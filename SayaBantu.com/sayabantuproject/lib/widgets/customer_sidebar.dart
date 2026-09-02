@@ -68,123 +68,258 @@ class _CustomerSidebarState extends State<CustomerSidebar> {
     return (words[0][0] + words[1][0]).toUpperCase();
   }
 
+  // =========================================================
+  // LOGOUT
+  // =========================================================
+
+  Future<void> _logout() async {
+    final confirmLogout = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            "Keluar",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            "Apakah Anda yakin ingin keluar dari akun?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text(
+                "Batal",
+                style: TextStyle(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text("Keluar"),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Jika user memilih Batal
+    if (confirmLogout != true) return;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    // Hapus data sesi pengguna
+    await prefs.remove("name");
+    await prefs.remove("email");
+    await prefs.remove("phone");
+    await prefs.remove("address");
+    await prefs.remove("profile_image");
+    await prefs.remove("role");
+
+    if (!mounted) return;
+
+    // Kembali ke halaman Login
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      "/login",
+      (route) => false,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 700;
+Widget build(BuildContext context) {
+  final isMobile = MediaQuery.of(context).size.width < 700;
 
-    return SafeArea(
-      child: Container(
-        width: isMobile ? 240 : 260,
-        color: Theme.of(context).colorScheme.surface,
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
+  return SafeArea(
+    child: Container(
+      width: isMobile ? 240 : 260,
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        children: [
+          const SizedBox(height: 24),
 
-            //==================== PROFILE ====================
+          // ==================== PROFILE ====================
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: isMobile ? 22 : 24,
+                  backgroundColor: const Color(0xff2196F3),
+                  backgroundImage:
+                      profileImage != null
+                          ? MemoryImage(profileImage!)
+                          : null,
+                  child:
+                      profileImage == null
+                          ? Text(
+                              getInitials(name),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: isMobile ? 14 : 15,
+                          color:
+                              Theme.of(context)
+                                  .colorScheme
+                                  .onSurface,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        role,
+                        style: TextStyle(
+                          fontSize: isMobile ? 12 : 13,
+                          color:
+                              Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          const Divider(),
+
+          // ==================== MENU ====================
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: isMobile ? 22 : 24,
-                    backgroundColor: const Color(0xff2196F3),
-                    backgroundImage:
-                        profileImage != null ? MemoryImage(profileImage!) : null,
-                    child: profileImage == null
-                        ? Text(
-                            getInitials(name),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
+                  _menu(
+                    context,
+                    icon: Icons.home_outlined,
+                    title: "Beranda",
+                    menu: SidebarMenu.beranda,
                   ),
 
-                  const SizedBox(width: 12),
+                  _menu(
+                    context,
+                    icon: Icons.notifications_none_outlined,
+                    title: "Notifikasi",
+                    menu: SidebarMenu.notifikasi,
+                  ),
 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: isMobile ? 14 : 15,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          role,
-                          style: TextStyle(
-                            fontSize: isMobile ? 12 : 13,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _menu(
+                    context,
+                    icon: Icons.settings_outlined,
+                    title: "Pengaturan",
+                    menu: SidebarMenu.pengaturan,
                   ),
                 ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 24),
-            const Divider(),
+          // ==================== LOGOUT ====================
 
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: InkWell(
+              onTap: _logout,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                height: isMobile ? 52 : 56,
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
                   children: [
-                    _menu(
-                      context,
-                      icon: Icons.home_outlined,
-                      title: "Beranda",
-                      menu: SidebarMenu.beranda,
+                    Icon(
+                      Icons.logout_rounded,
+                      size: isMobile ? 22 : 24,
+                      color: Colors.red.shade600,
                     ),
 
-                    _menu(
-                      context,
-                      icon: Icons.notifications_none_outlined,
-                      title: "Notifikasi",
-                      menu: SidebarMenu.notifikasi,
-                    ),
+                    const SizedBox(width: 14),
 
-                    _menu(
-                      context,
-                      icon: Icons.settings_outlined,
-                      title: "Pengaturan",
-                      menu: SidebarMenu.pengaturan,
+                    Expanded(
+                      child: Text(
+                        "Keluar",
+                        style: TextStyle(
+                          fontSize: isMobile ? 14 : 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red.shade600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
+          ),
 
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-              ),
-              child: Text(
-                "SayaBantu v1.0",
-                style: TextStyle(
-                  color:
-                      Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
+          // ==================== VERSION ====================
+
+          Padding(
+            padding: EdgeInsets.only(
+              top: 2,
+              bottom: MediaQuery.of(context).padding.bottom + 16,
+            ),
+            child: Text(
+              "SayaBantu v1.0",
+              style: TextStyle(
+                color:
+                    Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant,
+                fontSize: 12,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+  // =========================================================
+  // MENU WIDGET
+  // =========================================================
 
   Widget _menu(
     BuildContext context, {
@@ -242,7 +377,9 @@ class _CustomerSidebarState extends State<CustomerSidebar> {
                       active ? FontWeight.bold : FontWeight.w600,
                   color: active
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface,
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface,
                 ),
               ),
             ),
