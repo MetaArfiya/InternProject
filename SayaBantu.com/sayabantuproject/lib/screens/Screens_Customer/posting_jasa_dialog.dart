@@ -29,7 +29,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   final _deskripsiController = TextEditingController();
   final _budgetController = TextEditingController();
 
-  // Alamat otomatis dari MapPicker / OpenStreetMap
+  // Alamat otomatis dari OpenStreetMap
   final _lokasiController = TextEditingController();
 
   // Detail alamat yang ditulis manual
@@ -62,6 +62,21 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     "Jasa Rumah Tangga",
     "Jasa Umum",
     "Lainnya",
+  ];
+
+  // =========================================================
+  // WAKTU PENGERJAAN
+  // =========================================================
+
+  String _waktuPengerjaan = "1–2 Jam";
+
+  final List<String> waktuPengerjaanList = [
+    "1–2 Jam",
+    "3–5 Jam",
+    "1 Hari",
+    "2–3 Hari",
+    "1 Minggu",
+    "> 1 Minggu",
   ];
 
   // =========================================================
@@ -120,65 +135,66 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // CEK DAN AMBIL GPS
+  // PILIH LOKASI
   // =========================================================
 
-  Future<LatLng?> _getCurrentLocation() async {
+  Future<void> _pickLocation() async {
     try {
-      // -------------------------------------------------------
-      // CEK SERVICE GPS
-      // -------------------------------------------------------
+      // =====================================================
+      // 1. CEK GPS / LOCATION SERVICE
+      // =====================================================
 
       final serviceEnabled =
           await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
-        if (!mounted) return null;
+        if (!mounted) return;
 
         _showMessage(
           "GPS/lokasi sedang tidak aktif. Silakan aktifkan lokasi.",
           backgroundColor: Colors.orange,
         );
 
-        return null;
+        return;
       }
 
-      // -------------------------------------------------------
-      // CEK PERMISSION
-      // -------------------------------------------------------
+      // =====================================================
+      // 2. CEK PERMISSION
+      // =====================================================
 
       LocationPermission permission =
           await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+        permission =
+            await Geolocator.requestPermission();
       }
 
       if (permission == LocationPermission.denied) {
-        if (!mounted) return null;
+        if (!mounted) return;
 
         _showMessage(
           "Izin lokasi diperlukan untuk menentukan lokasi pekerjaan.",
           backgroundColor: Colors.orange,
         );
 
-        return null;
+        return;
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (!mounted) return null;
+        if (!mounted) return;
 
         _showMessage(
-          "Izin lokasi ditolak permanen. Silakan aktifkan izin lokasi dari pengaturan perangkat.",
+          "Izin lokasi ditolak permanen. Silakan aktifkan izin lokasi dari pengaturan perangkat/browser.",
           backgroundColor: Colors.orange,
         );
 
-        return null;
+        return;
       }
 
-      // -------------------------------------------------------
-      // AMBIL POSISI GPS
-      // -------------------------------------------------------
+      // =====================================================
+      // 3. AMBIL POSISI GPS TERKINI
+      // =====================================================
 
       final Position currentPosition =
           await Geolocator.getCurrentPosition(
@@ -187,106 +203,26 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         ),
       );
 
-      debugPrint(
-        "========================================",
-      );
+      // =====================================================
+      // 4. POSISI AWAL PETA
+      // =====================================================
 
-      debugPrint(
-        "GPS SAAT INI:",
-      );
-
-      debugPrint(
-        "Latitude : ${currentPosition.latitude}",
-      );
-
-      debugPrint(
-        "Longitude: ${currentPosition.longitude}",
-      );
-
-      debugPrint(
-        "========================================",
-      );
-
-      return LatLng(
+      final LatLng initialPosition = LatLng(
         currentPosition.latitude,
         currentPosition.longitude,
       );
-    } catch (e) {
+
       debugPrint(
-        "ERROR GPS: $e",
+        "GPS SAAT INI: "
+        "${currentPosition.latitude}, "
+        "${currentPosition.longitude}",
       );
 
-      if (!mounted) return null;
-
-      _showMessage(
-        "Gagal mendapatkan lokasi GPS: $e",
-        backgroundColor: Colors.red,
-      );
-
-      return null;
-    }
-  }
-
-  // =========================================================
-  // PILIH LOKASI
-  // =========================================================
-
-  Future<void> _pickLocation() async {
-    try {
-      LatLng initialPosition;
-
       // =====================================================
-      // 1. JIKA SUDAH PERNAH PILIH LOKASI
-      // =====================================================
-
-      if (_latitude != null && _longitude != null) {
-        initialPosition = LatLng(
-          _latitude!,
-          _longitude!,
-        );
-
-        debugPrint(
-          "Membuka map menggunakan lokasi yang sebelumnya dipilih:",
-        );
-
-        debugPrint(
-          "$_latitude, $_longitude",
-        );
-      }
-
-      // =====================================================
-      // 2. JIKA BELUM ADA LOKASI, AMBIL GPS
-      // =====================================================
-
-      else {
-        final LatLng? currentLocation =
-            await _getCurrentLocation();
-
-        if (currentLocation == null) {
-          return;
-        }
-
-        initialPosition = currentLocation;
-
-        debugPrint(
-          "Map menggunakan lokasi GPS saat ini:",
-        );
-
-        debugPrint(
-          "${initialPosition.latitude}, "
-          "${initialPosition.longitude}",
-        );
-      }
-
-      // =====================================================
-      // 3. CEK CONTEXT
+      // 5. BUKA MAP PICKER
       // =====================================================
 
       if (!mounted) return;
-
-      // =====================================================
-      // 4. BUKA MAP PICKER
-      // =====================================================
 
       final result =
           await showDialog<Map<String, dynamic>>(
@@ -298,24 +234,20 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         },
       );
 
-      // =====================================================
-      // 5. USER MENUTUP MAP
-      // =====================================================
-
-      if (result == null) {
-        return;
-      }
+      // User menutup dialog
+      if (result == null) return;
 
       // =====================================================
-      // 6. AMBIL POSITION
+      // 6. AMBIL POSISI DARI MAP PICKER
       // =====================================================
 
       final dynamic positionData =
           result["position"];
 
       if (positionData is! LatLng) {
-        debugPrint(
-          "Position dari MapPicker bukan LatLng.",
+        _showMessage(
+          "Lokasi yang dipilih tidak valid.",
+          backgroundColor: Colors.red,
         );
 
         return;
@@ -329,10 +261,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       // =====================================================
 
       final String address =
-          result["address"]?.toString().trim() ?? "";
+          result["address"]?.toString() ?? "";
 
       // =====================================================
-      // 8. SIMPAN HASIL
+      // 8. SIMPAN LOKASI
       // =====================================================
 
       if (!mounted) return;
@@ -348,42 +280,24 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
             address;
       });
 
-      // =====================================================
-      // DEBUG
-      // =====================================================
-
       debugPrint(
-        "========================================",
+        "LOKASI DIPILIH: "
+        "${selectedPosition.latitude}, "
+        "${selectedPosition.longitude}",
       );
 
       debugPrint(
-        "LOKASI DIPILIH USER",
-      );
-
-      debugPrint(
-        "Latitude : ${selectedPosition.latitude}",
-      );
-
-      debugPrint(
-        "Longitude: ${selectedPosition.longitude}",
-      );
-
-      debugPrint(
-        "Alamat   : $address",
-      );
-
-      debugPrint(
-        "========================================",
+        "ALAMAT DIPILIH: $address",
       );
     } catch (e) {
       debugPrint(
-        "ERROR MEMILIH LOKASI: $e",
+        "ERROR MENGAMBIL LOKASI: $e",
       );
 
       if (!mounted) return;
 
       _showMessage(
-        "Gagal membuka peta: $e",
+        "Gagal mendapatkan lokasi saat ini: $e",
         backgroundColor: Colors.red,
       );
     }
@@ -394,6 +308,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   void _resetLocation() {
+    if (!mounted) return;
+
     setState(() {
       _latitude = null;
       _longitude = null;
@@ -502,17 +418,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           prefs.getString('token') ??
           '';
 
-      debugPrint(
-        "----------------------------------------",
-      );
-
-      debugPrint(
-        "TOKEN DIKIRIM: '$token'",
-      );
-
-      debugPrint(
-        "----------------------------------------",
-      );
+      debugPrint("----------------------------------------");
+      debugPrint("TOKEN DIKIRIM: '$token'");
+      debugPrint("----------------------------------------");
 
       // =====================================================
       // CEK TOKEN
@@ -537,12 +445,13 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       // FORMAT BUDGET
       // =====================================================
 
-      final rawBudget = _budgetController.text
-          .replaceAll('Rp', '')
-          .replaceAll('.', '')
-          .replaceAll(',', '')
-          .replaceAll(' ', '')
-          .trim();
+      final rawBudget =
+          _budgetController.text
+              .replaceAll('Rp', '')
+              .replaceAll('.', '')
+              .replaceAll(',', '')
+              .replaceAll(' ', '')
+              .trim();
 
       // =====================================================
       // URL API
@@ -584,6 +493,24 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       request.fields['initial_budget'] =
           rawBudget;
 
+      // =====================================================
+      // KATEGORI
+      // =====================================================
+
+      request.fields['category'] =
+          _kategori;
+
+      // =====================================================
+      // WAKTU PENGERJAAN
+      // =====================================================
+
+      request.fields['duration'] =
+          _waktuPengerjaan;
+
+      // =====================================================
+      // ALAMAT
+      // =====================================================
+
       // Alamat hasil reverse geocoding
       request.fields['location'] =
           _lokasiController.text.trim();
@@ -603,13 +530,6 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           _longitude!.toString();
 
       // =====================================================
-      // KATEGORI
-      // =====================================================
-
-      request.fields['category'] =
-          _kategori;
-
-      // =====================================================
       // FOTO
       // =====================================================
 
@@ -625,48 +545,23 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       }
 
       // =====================================================
-      // DEBUG DATA
+      // DEBUG REQUEST
       // =====================================================
 
+      debugPrint("----------------------------------------");
+      debugPrint("POSTING JASA");
+      debugPrint("Judul       : ${_judulController.text.trim()}");
+      debugPrint("Kategori    : $_kategori");
+      debugPrint("Deskripsi   : ${_deskripsiController.text.trim()}");
+      debugPrint("Budget      : $rawBudget");
+      debugPrint("Durasi      : $_waktuPengerjaan");
+      debugPrint("Lokasi      : ${_lokasiController.text.trim()}");
       debugPrint(
-        "========================================",
+        "Detail      : ${_detailAlamatController.text.trim()}",
       );
-
-      debugPrint(
-        "DATA POSTING JASA",
-      );
-
-      debugPrint(
-        "Judul      : ${_judulController.text.trim()}",
-      );
-
-      debugPrint(
-        "Kategori   : $_kategori",
-      );
-
-      debugPrint(
-        "Budget     : $rawBudget",
-      );
-
-      debugPrint(
-        "Alamat     : ${_lokasiController.text.trim()}",
-      );
-
-      debugPrint(
-        "Detail     : ${_detailAlamatController.text.trim()}",
-      );
-
-      debugPrint(
-        "Latitude   : $_latitude",
-      );
-
-      debugPrint(
-        "Longitude  : $_longitude",
-      );
-
-      debugPrint(
-        "========================================",
-      );
+      debugPrint("Latitude    : ${_latitude!}");
+      debugPrint("Longitude   : ${_longitude!}");
+      debugPrint("----------------------------------------");
 
       // =====================================================
       // KIRIM REQUEST
@@ -733,6 +628,16 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
           if (!mounted) return;
 
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Posting berhasil, tetapi data pekerjaan gagal dibaca.",
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+
           Navigator.pop(context);
         }
 
@@ -745,9 +650,26 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
       if (!mounted) return;
 
+      String errorMessage =
+          "Gagal membuat pekerjaan. "
+          "Status: ${response.statusCode}";
+
+      // Coba ambil pesan error dari API
+      try {
+        final errorData =
+            jsonDecode(response.body);
+
+        if (errorData is Map &&
+            errorData['message'] != null) {
+          errorMessage =
+              errorData['message'].toString();
+        }
+      } catch (_) {
+        // Abaikan jika response bukan JSON
+      }
+
       _showMessage(
-        "Gagal membuat pekerjaan. "
-        "Status: ${response.statusCode}",
+        errorMessage,
         backgroundColor: Colors.red,
       );
     } catch (e) {
@@ -818,6 +740,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
+
               // =================================================
               // TITLE
               // =================================================
@@ -831,9 +754,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 30,
-              ),
+              const SizedBox(height: 30),
 
               // =================================================
               // JUDUL
@@ -847,9 +768,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 8,
-              ),
+              const SizedBox(height: 8),
 
               TextField(
                 controller:
@@ -865,9 +784,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
 
               // =================================================
               // KATEGORI
@@ -881,9 +798,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 8,
-              ),
+              const SizedBox(height: 8),
 
               DropdownButtonFormField<String>(
                 value: _kategori,
@@ -901,8 +816,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     return DropdownMenuItem<
                         String>(
                       value: e,
-                      child:
-                          Text(e),
+                      child: Text(e),
                     );
                   },
                 ).toList(),
@@ -922,9 +836,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                           },
               ),
 
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
 
               // =================================================
               // DESKRIPSI
@@ -938,9 +850,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 8,
-              ),
+              const SizedBox(height: 8),
 
               TextField(
                 controller:
@@ -957,9 +867,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
 
               // =================================================
               // BUDGET
@@ -973,9 +881,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 8,
-              ),
+              const SizedBox(height: 8),
 
               TextField(
                 controller:
@@ -991,22 +897,77 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     thousandSeparator:
                         ThousandSeparator
                             .Period,
-                    mantissaLength:
-                        0,
+                    mantissaLength: 0,
                   ),
                 ],
                 decoration:
                     const InputDecoration(
-                  hintText:
-                      "Rp 0",
+                  hintText: "Rp 0",
                   border:
                       OutlineInputBorder(),
                 ),
               ),
 
-              const SizedBox(
-                height: 20,
+              const SizedBox(height: 20),
+
+              // =================================================
+              // WAKTU PENGERJAAN
+              // =================================================
+
+              const Text(
+                "Waktu Pengerjaan",
+                style: TextStyle(
+                  fontWeight:
+                      FontWeight.w500,
+                ),
               ),
+
+              const SizedBox(height: 8),
+
+              DropdownButtonFormField<String>(
+                value:
+                    _waktuPengerjaan,
+                isExpanded: true,
+                decoration:
+                    const InputDecoration(
+                  border:
+                      OutlineInputBorder(),
+                  hintText:
+                      "Pilih perkiraan waktu pengerjaan",
+                  prefixIcon:
+                      Icon(
+                    Icons
+                        .schedule_outlined,
+                  ),
+                ),
+                items:
+                    waktuPengerjaanList
+                        .map(
+                  (e) {
+                    return DropdownMenuItem<
+                        String>(
+                      value: e,
+                      child: Text(e),
+                    );
+                  },
+                ).toList(),
+                onChanged:
+                    _isSubmitting
+                        ? null
+                        : (value) {
+                            if (value ==
+                                null) {
+                              return;
+                            }
+
+                            setState(() {
+                              _waktuPengerjaan =
+                                  value;
+                            });
+                          },
+              ),
+
+              const SizedBox(height: 20),
 
               // =================================================
               // LOKASI
@@ -1020,9 +981,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 ),
               ),
 
-              const SizedBox(
-                height: 8,
-              ),
+              const SizedBox(height: 8),
 
               InkWell(
                 onTap:
@@ -1033,7 +992,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     BorderRadius.circular(
                   10,
                 ),
-                child: Container(
+                child:
+                    Container(
                   width:
                       double.infinity,
                   padding:
@@ -1073,6 +1033,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                   ),
                   child: Row(
                     children: [
+
                       Icon(
                         _latitude !=
                                 null
@@ -1101,6 +1062,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                               CrossAxisAlignment
                                   .start,
                           children: [
+
                             Text(
                               _latitude !=
                                       null
@@ -1109,7 +1071,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                               style:
                                   TextStyle(
                                 fontWeight:
-                                    FontWeight.w600,
+                                    FontWeight
+                                        .w600,
                                 color:
                                     _latitude !=
                                             null
@@ -1154,13 +1117,18 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
               ),
 
               // =================================================
-              // ALAMAT OTOMATIS
+              // ALAMAT & DETAIL
               // =================================================
 
               if (_latitude != null) ...[
+
                 const SizedBox(
                   height: 16,
                 ),
+
+                // =================================================
+                // ALAMAT
+                // =================================================
 
                 const Text(
                   "Alamat",
@@ -1220,21 +1188,47 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 // UBAH LOKASI
                 // =================================================
 
-                TextButton.icon(
-                  onPressed:
-                      _isSubmitting
-                          ? null
-                          : _pickLocation,
-                  icon:
-                      const Icon(
-                    Icons
-                        .edit_location_alt_outlined,
-                    size: 18,
-                  ),
-                  label:
-                      const Text(
-                    "Ubah lokasi",
-                  ),
+                Row(
+                  children: [
+
+                    TextButton.icon(
+                      onPressed:
+                          _isSubmitting
+                              ? null
+                              : _pickLocation,
+                      icon:
+                          const Icon(
+                        Icons
+                            .edit_location_alt_outlined,
+                        size: 18,
+                      ),
+                      label:
+                          const Text(
+                        "Ubah lokasi",
+                      ),
+                    ),
+
+                    const SizedBox(
+                      width: 4,
+                    ),
+
+                    TextButton.icon(
+                      onPressed:
+                          _isSubmitting
+                              ? null
+                              : _resetLocation,
+                      icon:
+                          const Icon(
+                        Icons
+                            .refresh,
+                        size: 18,
+                      ),
+                      label:
+                          const Text(
+                        "Reset",
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(
@@ -1307,7 +1301,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     BorderRadius.circular(
                   14,
                 ),
-                child: Container(
+                child:
+                    Container(
                   height: 180,
                   width:
                       double.infinity,
@@ -1320,31 +1315,32 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                           .shade300,
                     ),
                     borderRadius:
-                        BorderRadius.circular(
+                        BorderRadius
+                            .circular(
                       14,
                     ),
                   ),
                   child:
-                      _imageBytes ==
-                              null
+                      _imageBytes == null
                           ? const Column(
                               mainAxisAlignment:
                                   MainAxisAlignment
                                       .center,
                               children: [
+
                                 Icon(
                                   Icons
                                       .cloud_upload_outlined,
-                                  size:
-                                      40,
+                                  size: 40,
                                   color:
                                       Colors
                                           .grey,
                                 ),
+
                                 SizedBox(
-                                  height:
-                                      10,
+                                  height: 10,
                                 ),
+
                                 Text(
                                   "Klik untuk upload foto",
                                   style:
@@ -1358,14 +1354,15 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                             )
                           : ClipRRect(
                               borderRadius:
-                                  BorderRadius.circular(
+                                  BorderRadius
+                                      .circular(
                                 14,
                               ),
                               child:
                                   Image.memory(
                                 _imageBytes!,
-                                fit: BoxFit
-                                    .cover,
+                                fit:
+                                    BoxFit.cover,
                                 width:
                                     double.infinity,
                               ),
@@ -1383,6 +1380,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
               Row(
                 children: [
+
                   Expanded(
                     child:
                         OutlinedButton(
@@ -1418,10 +1416,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                       icon:
                           _isSubmitting
                               ? const SizedBox(
-                                  width:
-                                      18,
-                                  height:
-                                      18,
+                                  width: 18,
+                                  height: 18,
                                   child:
                                       CircularProgressIndicator(
                                     color:

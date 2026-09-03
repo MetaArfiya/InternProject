@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../screens/Screens_Landing/landing_page.dart';
 import '../models/sidebar_menu.dart';
 
 class CustomerSidebar extends StatefulWidget {
@@ -72,74 +72,117 @@ class _CustomerSidebarState extends State<CustomerSidebar> {
   // LOGOUT
   // =========================================================
 
-  Future<void> _logout() async {
-    final confirmLogout = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            "Keluar",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: const Text(
-            "Apakah Anda yakin ingin keluar dari akun?",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              child: const Text(
-                "Batal",
-                style: TextStyle(
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text("Keluar"),
-            ),
-          ],
-        );
-      },
-    );
+Future<void> _logout() async {
+  // =========================================================
+  // KONFIRMASI LOGOUT
+  // =========================================================
 
-    // Jika user memilih Batal
-    if (confirmLogout != true) return;
+  final confirmLogout = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text(
+          "Keluar",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          "Apakah Anda yakin ingin keluar dari akun?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(false);
+            },
+            child: const Text(
+              "Batal",
+              style: TextStyle(
+                color: Colors.grey,
+              ),
+            ),
+          ),
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(true);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text("Keluar"),
+          ),
+        ],
+      );
+    },
+  );
+
+  // User memilih Batal
+  if (confirmLogout != true) {
+    return;
+  }
+
+  try {
+    // =======================================================
+    // HAPUS DATA LOGIN
+    // =======================================================
 
     final prefs = await SharedPreferences.getInstance();
 
-    // Hapus data sesi pengguna
+    await prefs.remove("auth_token");
+    await prefs.remove("token");
+    await prefs.remove("access_token");
+
+    // =======================================================
+    // HAPUS DATA USER
+    // =======================================================
+
     await prefs.remove("name");
     await prefs.remove("email");
     await prefs.remove("phone");
     await prefs.remove("address");
     await prefs.remove("profile_image");
     await prefs.remove("role");
+    await prefs.remove("user_id");
+    await prefs.remove("userId");
+
+    // Kalau ada flag login
+    await prefs.setBool("isLoggedIn", false);
 
     if (!mounted) return;
 
-    // Kembali ke halaman Login
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      "/login",
+    // =======================================================
+    // KEMBALI KE LANDING PAGE
+    // =======================================================
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const LandingPage(),
+      ),
       (route) => false,
     );
+  } catch (e) {
+    debugPrint("ERROR LOGOUT: $e");
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "Gagal keluar dari akun: $e",
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
+}
 
   @override
 Widget build(BuildContext context) {
