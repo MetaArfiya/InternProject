@@ -23,13 +23,15 @@ class JobController extends Controller
     public function show($id)
     {
         try {
-            $job = jobs::with([
+            $job = jobs::withCount('bids')
+            ->with([
                 'bids' => function ($query) {
                     $query->latest();
                 },
                 'bids.mitraProfile',
                 'bids.user'
-            ])->find($id);
+            ])
+            ->find($id);
 
             if (!$job) {
                 return response()->json([
@@ -124,13 +126,12 @@ class JobController extends Controller
      * =========================================================
      */
     public function myJobs()
-    {
+{
+    try {
         $pelangganId = auth()->id();
 
-        $jobs = jobs::where(
-            'pelanggan_id',
-            $pelangganId
-        )
+        $jobs = jobs::withCount('bids')
+            ->where('pelanggan_id', $pelangganId)
             ->latest()
             ->get();
 
@@ -148,18 +149,29 @@ class JobController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' =>
-                'Berhasil mengambil riwayat pekerjaan kamu.',
+            'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
 
             'statistics' => [
                 'total_posting' => $totalPosting,
                 'sedang_berjalan' => $sedangBerjalan,
-                'selesai' => $selesai
+                'selesai' => $selesai,
             ],
 
-            'data' => $jobs
+            'data' => $jobs,
         ], 200);
+
+    } catch (\Exception $e) {
+
+        \Log::error(
+            'Error JobController@myJobs: ' . $e->getMessage()
+        );
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan pada server.',
+        ], 500);
     }
+}
 
 
     /**
@@ -505,7 +517,8 @@ class JobController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $query = jobs::where('status', 'Mencari Mitra');
+        $query = jobs::withCount('bids')
+    ->where('status', 'Mencari Mitra');
 
         /*
         |--------------------------------------------------------------------------

@@ -196,6 +196,14 @@ class JobModel {
             ? json['offers'] as List<dynamic>
             : <dynamic>[];
 
+    final int offerCountFromDatabase =
+      int.tryParse(
+        json['bids_count']?.toString() ??
+        json['offer_count']?.toString() ??
+        '0',
+      ) ??
+      0;
+
     // ------------------------------------------------------------
     // IMAGE URL
     // ------------------------------------------------------------
@@ -277,10 +285,10 @@ class JobModel {
       offers: offersList,
 
       bidderCount:
-          offersList.length,
+          offerCountFromDatabase,
 
       offerCount:
-          offersList.length,
+          offerCountFromDatabase,
     );
   }
 
