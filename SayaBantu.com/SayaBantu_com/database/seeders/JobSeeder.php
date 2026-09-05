@@ -15,19 +15,19 @@ class JobSeeder extends Seeder
         $pelangganId = $pelanggan ? $pelanggan->id : 4;
 
         // Ambil user yang memiliki role Admin / Super Admin untuk kolom verified_by
-        $admin = users::whereHas('role', function($q) {
-            $q->where('role_name', 'Admin')->orWhere('role_name', 'Super Admin');
+        $admin = users::whereHas('role', function ($q) {
+            $q->where('role_name', 'Admin')
+              ->orWhere('role_name', 'Super Admin');
         })->first();
 
         // Fallback ID admin jika tidak ditemukan via relasi
-        $adminId = $admin ? $admin->id : 2; 
+        $adminId = $admin ? $admin->id : 2;
 
-        // Lowongan 1: Service AC Bocor di Ruang Tamu
         jobs::create([
             'pelanggan_id'   => $pelangganId,
             'tittle'         => 'Service AC Bocor di Ruang Tamu',
             'description'    => 'AC 1 PK merek Sharp, bocor terus dari bagian atas. Sudah dibersihkan tapi masih bocor.',
-            'category'       => 'Service AC',
+            'category'       => 'Instalasi & Teknisi',
             'location'       => 'Sidoarjo, Jawa Timur',
             'initial_budget' => 150000,
             'status'         => 'Mencari Mitra',
@@ -35,12 +35,11 @@ class JobSeeder extends Seeder
             'verified_by'    => null,
         ]);
 
-        // Lowongan 2: Pasang Kran Air Dapur Bocor
         jobs::create([
             'pelanggan_id'   => $pelangganId,
             'tittle'         => 'Pasang Kran Air Dapur Bocor',
             'description'    => 'Kran dapur bocor parah, air terus menetes. Perlu penggantian kran baru.',
-            'category'       => 'Plumbing',
+            'category'       => 'Instalasi & Teknisi',
             'location'       => 'Surabaya Barat',
             'initial_budget' => 95000,
             'status'         => 'Mencari Mitra',
@@ -48,12 +47,11 @@ class JobSeeder extends Seeder
             'verified_by'    => null,
         ]);
 
-        // Lowongan 3: Cat Ulang Kamar Tidur 3x4m
         jobs::create([
             'pelanggan_id'   => $pelangganId,
             'tittle'         => 'Cat Ulang Kamar Tidur 3x4m',
             'description'    => 'Kamar tidur perlu dicat ulang, warna putih bersih. Cat dan peralatan disediakan.',
-            'category'       => 'Cat Rumah',
+            'category'       => 'Perbaikan & Perawatan Rumah',
             'location'       => 'Surabaya Timur',
             'initial_budget' => 320000,
             'status'         => 'Mencari Mitra',
@@ -61,12 +59,11 @@ class JobSeeder extends Seeder
             'verified_by'    => null,
         ]);
 
-        // Lowongan 4: Perbaikan Pintu Kayu Tidak Bisa Tutup
         jobs::create([
             'pelanggan_id'   => $pelangganId,
             'tittle'         => 'Perbaikan Pintu Kayu Tidak Bisa Tutup',
             'description'    => 'Pintu kamar mandi tidak bisa ditutup rapat, engsel longgar.',
-            'category'       => 'Lainnya',
+            'category'       => 'Perbaikan & Perawatan Rumah',
             'location'       => 'Gresik, Jawa Timur',
             'initial_budget' => 70000,
             'status'         => 'Mencari Mitra',

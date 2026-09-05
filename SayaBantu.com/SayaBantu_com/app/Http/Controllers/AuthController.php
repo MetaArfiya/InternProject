@@ -7,6 +7,7 @@ use App\Models\users;
 use App\Models\mitra_profiles;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Helpers\ActivityLogger;
 
 class AuthController extends Controller
@@ -130,7 +131,6 @@ class AuthController extends Controller
 
         if (!$user->is_active) {
 
-            // Logout kembali jika akun tidak aktif
             Auth::logout();
 
             return response()->json([
@@ -183,13 +183,6 @@ class AuthController extends Controller
 
         // =====================================================
         // SIMPAN LOG LOGIN
-        //
-        // SEMUA ROLE MASUK KE SINI:
-        //
-        // Super Admin
-        // Admin
-        // Mitra
-        // Pelanggan
         // =====================================================
 
         try {
@@ -208,13 +201,6 @@ class AuthController extends Controller
             );
 
         } catch (\Exception $e) {
-
-            // =================================================
-            // LOG AKTIVITAS GAGAL
-            //
-            // Jangan sampai login gagal hanya karena
-            // penyimpanan activity log bermasalah.
-            // =================================================
 
             \Log::error(
                 'Gagal menyimpan activity login: '
@@ -258,6 +244,10 @@ class AuthController extends Controller
 
                 'address' =>
                     $user->address,
+
+                // =================================================
+                // FOTO PROFIL
+                // =================================================
 
                 'photo_url' =>
                     $user->photo_profile,
@@ -327,6 +317,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
+
         // =====================================================
         // CEK PASSWORD LAMA
         // =====================================================
@@ -380,6 +371,7 @@ class AuthController extends Controller
         Request $request
     ) {
         $user = $request->user();
+
 
         // =====================================================
         // DATA MITRA
@@ -440,8 +432,12 @@ class AuthController extends Controller
                     $user->is_notification_enabled
                     ?? 1,
 
+                // =================================================
+                // FOTO PROFIL
+                // =================================================
+
                 'photo_url' =>
-                    $user->photo_url
+                    $user->photo_profile
                     ?? null,
 
                 'mitra_profile' =>
@@ -460,6 +456,7 @@ class AuthController extends Controller
         Request $request
     ) {
         $user = $request->user();
+
 
         // =====================================================
         // VALIDASI
@@ -514,10 +511,216 @@ class AuthController extends Controller
             'message' =>
                 'Profil berhasil diperbarui.',
 
-            'user' =>
-                $user
+            'user' => [
+                'id' =>
+                    $user->id,
+
+                'name' =>
+                    $user->name,
+
+                'email' =>
+                    $user->email,
+
+                'phone' =>
+                    $user->phone,
+
+                'address' =>
+                    $user->address,
+
+                'photo_url' =>
+                    $user->photo_profile,
+            ]
 
         ], 200);
+    }
+
+
+    // =========================================================
+    // UPLOAD FOTO PROFIL
+    // =========================================================
+
+    public function uploadProfilePhoto(
+        Request $request
+    ) {
+        try {
+
+            // =================================================
+            // USER LOGIN
+            // =================================================
+
+            $user = $request->user();
+
+            if (!$user) {
+
+                return response()->json([
+                    'success' => false,
+
+                    'message' =>
+                        'User tidak ditemukan.'
+
+                ], 401);
+            }
+
+
+            // =================================================
+            // VALIDASI FILE
+            // =================================================
+
+            $request->validate([
+                'photo_profile' => [
+                    'required',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:5120',
+                ],
+            ]);
+
+
+            // =================================================
+            // FILE
+            // =================================================
+
+            $file =
+                $request->file('photo_profile');
+
+
+            if (!$file || !$file->isValid()) {
+
+                return response()->json([
+                    'success' => false,
+
+                    'message' =>
+                        'File foto tidak valid.'
+
+                ], 422);
+            }
+
+
+            // =================================================
+            // HAPUS FOTO LAMA
+            // =================================================
+
+            if (
+                !empty($user->photo_profile)
+                &&
+                Storage::disk('public')->exists(
+                    $user->photo_profile
+                )
+            ) {
+
+                Storage::disk('public')->delete(
+                    $user->photo_profile
+                );
+            }
+
+
+            // =================================================
+            // SIMPAN FOTO BARU
+            // =================================================
+
+            $path =
+                $file->store(
+                    'profile_photos',
+                    'public'
+                );
+
+
+            // =================================================
+            // CEK APAKAH BERHASIL DISIMPAN
+            // =================================================
+
+            if (!$path) {
+
+                return response()->json([
+                    'success' => false,
+
+                    'message' =>
+                        'Foto gagal disimpan ke storage.'
+
+                ], 500);
+            }
+
+
+            // =================================================
+            // SIMPAN PATH KE DATABASE
+            // =================================================
+
+            $user->photo_profile =
+                $path;
+
+            $user->save();
+
+
+            // =================================================
+            // RESPONSE
+            // =================================================
+
+            return response()->json([
+                'success' => true,
+
+                'message' =>
+                    'Foto profil berhasil diupload.',
+
+                'photo_url' =>
+                    $user->photo_profile,
+
+                'user' => [
+                    'id' =>
+                        $user->id,
+
+                    'name' =>
+                        $user->name,
+
+                    'email' =>
+                        $user->email,
+
+                    'phone' =>
+                        $user->phone,
+
+                    'address' =>
+                        $user->address,
+
+                    'photo_url' =>
+                        $user->photo_profile,
+                ]
+
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+
+            return response()->json([
+                'success' => false,
+
+                'message' =>
+                    'Validasi foto gagal.',
+
+                'errors' =>
+                    $e->errors()
+
+            ], 422);
+
+        } catch (\Exception $e) {
+
+            // =================================================
+            // CATAT ERROR LENGKAP
+            // =================================================
+
+            \Log::error(
+                'Gagal upload foto profil: '
+                . $e->getMessage()
+            );
+
+            return response()->json([
+                'success' => false,
+
+                'message' =>
+                    'Gagal upload foto profil.',
+
+                'error' =>
+                    $e->getMessage()
+
+            ], 500);
+        }
     }
 
 
@@ -535,6 +738,7 @@ class AuthController extends Controller
             'password' =>
                 'required|min:6|confirmed',
         ]);
+
 
         // =====================================================
         // CARI USER
