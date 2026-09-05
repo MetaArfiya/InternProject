@@ -30,15 +30,40 @@ Route::get('/images/jobs/{filename}', function ($filename) {
 
     $path = 'jobs/' . $filename;
 
+    // -----------------------------------------------------
+    // CEK FILE
+    // -----------------------------------------------------
+
     if (!Storage::disk('public')->exists($path)) {
+
         return response()->json([
             'success' => false,
             'message' => 'Gambar tidak ditemukan.',
         ], 404);
     }
 
+    // -----------------------------------------------------
+    // AMBIL FILE
+    // -----------------------------------------------------
+
     $file = Storage::disk('public')->get($path);
-    $mimeType = Storage::disk('public')->mimeType($path);
+
+    // -----------------------------------------------------
+    // TENTUKAN MIME TYPE
+    // -----------------------------------------------------
+
+    $mimeType = match (
+        strtolower(pathinfo($filename, PATHINFO_EXTENSION))
+    ) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        default => 'application/octet-stream',
+    };
+
+    // -----------------------------------------------------
+    // KIRIM FILE DENGAN CORS
+    // -----------------------------------------------------
 
     return Response::make($file, 200)
         ->header('Content-Type', $mimeType)
@@ -61,6 +86,7 @@ Route::get('/images/profile/{filename}', function ($filename) {
     // -----------------------------------------------------
 
     if (!Storage::disk('public')->exists($path)) {
+
         return response()->json([
             'success' => false,
             'message' => 'Foto profil tidak ditemukan.',
@@ -74,10 +100,17 @@ Route::get('/images/profile/{filename}', function ($filename) {
     $file = Storage::disk('public')->get($path);
 
     // -----------------------------------------------------
-    // AMBIL MIME TYPE
+    // TENTUKAN MIME TYPE
     // -----------------------------------------------------
 
-    $mimeType = Storage::disk('public')->mimeType($path);
+    $mimeType = match (
+        strtolower(pathinfo($filename, PATHINFO_EXTENSION))
+    ) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        default => 'application/octet-stream',
+    };
 
     // -----------------------------------------------------
     // KIRIM FILE DENGAN CORS
@@ -279,7 +312,6 @@ Route::get(
 
 Route::middleware('auth:sanctum')->group(function () {
 
-
     // =====================================================
     // USER PROFILE
     // =====================================================
@@ -471,6 +503,7 @@ Route::middleware('auth:sanctum')->group(function () {
         );
 
         // Route dinamis jobs/{id} diletakkan paling bawah
+
         Route::get(
             '/jobs/{id}',
             [JobController::class, 'show']

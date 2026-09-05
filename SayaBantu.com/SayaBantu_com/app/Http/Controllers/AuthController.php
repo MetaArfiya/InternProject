@@ -8,6 +8,7 @@ use App\Models\mitra_profiles;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use App\Helpers\ActivityLogger;
 
 class AuthController extends Controller
@@ -19,10 +20,17 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-            'role_id'  => 'required|integer|in:3,4',
+            'name' =>
+                'required|string|max:255',
+
+            'email' =>
+                'required|string|email|max:255|unique:users',
+
+            'password' =>
+                'required|string|min:6',
+
+            'role_id' =>
+                'required|integer|in:3,4',
         ]);
 
         // =====================================================
@@ -30,10 +38,17 @@ class AuthController extends Controller
         // =====================================================
 
         $user = users::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id'  => $request->role_id,
+            'name' =>
+                $request->name,
+
+            'email' =>
+                $request->email,
+
+            'password' =>
+                Hash::make($request->password),
+
+            'role_id' =>
+                $request->role_id,
         ]);
 
         // =====================================================
@@ -43,9 +58,14 @@ class AuthController extends Controller
         if ($user->role_id == 3) {
 
             mitra_profiles::create([
-                'user_id'     => $user->id,
-                'is_verified' => 0,
-                'point'       => 0,
+                'user_id' =>
+                    $user->id,
+
+                'is_verified' =>
+                    0,
+
+                'point' =>
+                    0,
             ]);
         }
 
@@ -54,12 +74,14 @@ class AuthController extends Controller
         // =====================================================
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'message' =>
                 'Registrasi berhasil! Silakan lakukan login.',
 
-            'user' => $user,
+            'user' =>
+                $user,
 
         ], 201);
     }
@@ -83,18 +105,21 @@ class AuthController extends Controller
                 'required|string',
         ]);
 
-
         // =====================================================
         // CEK EMAIL + PASSWORD
         // =====================================================
 
         if (!Auth::attempt([
-            'email' => $request->email,
-            'password' => $request->password,
+            'email' =>
+                $request->email,
+
+            'password' =>
+                $request->password,
         ])) {
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
                     'Email atau password salah!',
@@ -102,13 +127,15 @@ class AuthController extends Controller
             ], 401);
         }
 
-
         // =====================================================
         // AMBIL USER + ROLE
         // =====================================================
 
         $user = users::with('role')
-            ->where('email', $request->email)
+            ->where(
+                'email',
+                $request->email
+            )
             ->first();
 
         if (!$user) {
@@ -116,14 +143,14 @@ class AuthController extends Controller
             Auth::logout();
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
                     'Data pengguna tidak ditemukan.',
 
             ], 404);
         }
-
 
         // =====================================================
         // CEK STATUS AKUN
@@ -134,7 +161,8 @@ class AuthController extends Controller
             Auth::logout();
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
                     'Akun Anda sedang dinonaktifkan.',
@@ -142,19 +170,20 @@ class AuthController extends Controller
             ], 403);
         }
 
-
         // =====================================================
         // AMBIL NAMA ROLE
         // =====================================================
 
-        $roleName = $user->role?->role_name;
+        $roleName =
+            $user->role?->role_name;
 
         if (!$roleName) {
 
             Auth::logout();
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
                     'Role pengguna tidak ditemukan.',
@@ -162,15 +191,14 @@ class AuthController extends Controller
             ], 403);
         }
 
-
         // =====================================================
         // UPDATE LOGIN TERAKHIR
         // =====================================================
 
         $user->update([
-            'last_login_at' => now(),
+            'last_login_at' =>
+                now(),
         ]);
-
 
         // =====================================================
         // BUAT TOKEN
@@ -179,7 +207,6 @@ class AuthController extends Controller
         $token =
             $user->createToken('auth_token')
                 ->plainTextToken;
-
 
         // =====================================================
         // SIMPAN LOG LOGIN
@@ -202,19 +229,19 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
 
-            \Log::error(
+            Log::error(
                 'Gagal menyimpan activity login: '
                 . $e->getMessage()
             );
         }
-
 
         // =====================================================
         // RESPONSE
         // =====================================================
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'message' =>
                 'Login berhasil! Selamat datang, '
@@ -272,18 +299,20 @@ class AuthController extends Controller
     ) {
         $request->validate([
             'is_notification_enabled' =>
-                'required|boolean'
+                'required|boolean',
         ]);
 
-        $user = $request->user();
+        $user =
+            $request->user();
 
         $user->update([
             'is_notification_enabled' =>
-                $request->is_notification_enabled
+                $request->is_notification_enabled,
         ]);
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'message' =>
                 'Pengaturan notifikasi berhasil diperbarui.',
@@ -293,7 +322,7 @@ class AuthController extends Controller
                     $user->name,
 
                 'is_notification_enabled' =>
-                    $user->is_notification_enabled
+                    $user->is_notification_enabled,
             ]
 
         ], 200);
@@ -315,8 +344,8 @@ class AuthController extends Controller
                 'required|string|min:6|confirmed',
         ]);
 
-        $user = $request->user();
-
+        $user =
+            $request->user();
 
         // =====================================================
         // CEK PASSWORD LAMA
@@ -328,14 +357,14 @@ class AuthController extends Controller
         )) {
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
-                    'Password lama Anda tidak sesuai.'
+                    'Password lama Anda tidak sesuai.',
 
             ], 422);
         }
-
 
         // =====================================================
         // UPDATE PASSWORD
@@ -345,19 +374,19 @@ class AuthController extends Controller
             'password' =>
                 Hash::make(
                     $request->new_password
-                )
+                ),
         ]);
-
 
         // =====================================================
         // RESPONSE
         // =====================================================
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'message' =>
-                'Password berhasil diubah!'
+                'Password berhasil diubah!',
 
         ], 200);
     }
@@ -370,14 +399,15 @@ class AuthController extends Controller
     public function me(
         Request $request
     ) {
-        $user = $request->user();
-
+        $user =
+            $request->user();
 
         // =====================================================
         // DATA MITRA
         // =====================================================
 
-        $mitraProfileData = null;
+        $mitraProfileData =
+            null;
 
         if (
             method_exists(
@@ -386,7 +416,9 @@ class AuthController extends Controller
             )
         ) {
 
-            $user->load('mitraProfile');
+            $user->load(
+                'mitraProfile'
+            );
 
             if ($user->mitraProfile) {
 
@@ -402,13 +434,13 @@ class AuthController extends Controller
             }
         }
 
-
         // =====================================================
         // RESPONSE
         // =====================================================
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'user' => [
                 'id' =>
@@ -455,8 +487,8 @@ class AuthController extends Controller
     public function updateProfile(
         Request $request
     ) {
-        $user = $request->user();
-
+        $user =
+            $request->user();
 
         // =====================================================
         // VALIDASI
@@ -481,7 +513,6 @@ class AuthController extends Controller
                 'nullable|string',
         ]);
 
-
         // =====================================================
         // UPDATE
         // =====================================================
@@ -500,13 +531,13 @@ class AuthController extends Controller
                 $request->address,
         ]);
 
-
         // =====================================================
         // RESPONSE
         // =====================================================
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'message' =>
                 'Profil berhasil diperbarui.',
@@ -548,19 +579,20 @@ class AuthController extends Controller
             // USER LOGIN
             // =================================================
 
-            $user = $request->user();
+            $user =
+                $request->user();
 
             if (!$user) {
 
                 return response()->json([
-                    'success' => false,
+                    'success' =>
+                        false,
 
                     'message' =>
-                        'User tidak ditemukan.'
+                        'User tidak ditemukan.',
 
                 ], 401);
             }
-
 
             // =================================================
             // VALIDASI FILE
@@ -575,33 +607,38 @@ class AuthController extends Controller
                 ],
             ]);
 
-
             // =================================================
             // FILE
             // =================================================
 
             $file =
-                $request->file('photo_profile');
+                $request->file(
+                    'photo_profile'
+                );
 
-
-            if (!$file || !$file->isValid()) {
+            if (
+                !$file ||
+                !$file->isValid()
+            ) {
 
                 return response()->json([
-                    'success' => false,
+                    'success' =>
+                        false,
 
                     'message' =>
-                        'File foto tidak valid.'
+                        'File foto tidak valid.',
 
                 ], 422);
             }
-
 
             // =================================================
             // HAPUS FOTO LAMA
             // =================================================
 
             if (
-                !empty($user->photo_profile)
+                !empty(
+                    $user->photo_profile
+                )
                 &&
                 Storage::disk('public')->exists(
                     $user->photo_profile
@@ -613,7 +650,6 @@ class AuthController extends Controller
                 );
             }
 
-
             // =================================================
             // SIMPAN FOTO BARU
             // =================================================
@@ -624,7 +660,6 @@ class AuthController extends Controller
                     'public'
                 );
 
-
             // =================================================
             // CEK APAKAH BERHASIL DISIMPAN
             // =================================================
@@ -632,14 +667,14 @@ class AuthController extends Controller
             if (!$path) {
 
                 return response()->json([
-                    'success' => false,
+                    'success' =>
+                        false,
 
                     'message' =>
-                        'Foto gagal disimpan ke storage.'
+                        'Foto gagal disimpan ke storage.',
 
                 ], 500);
             }
-
 
             // =================================================
             // SIMPAN PATH KE DATABASE
@@ -650,13 +685,13 @@ class AuthController extends Controller
 
             $user->save();
 
-
             // =================================================
             // RESPONSE
             // =================================================
 
             return response()->json([
-                'success' => true,
+                'success' =>
+                    true,
 
                 'message' =>
                     'Foto profil berhasil diupload.',
@@ -686,16 +721,19 @@ class AuthController extends Controller
 
             ], 200);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (
+            \Illuminate\Validation\ValidationException $e
+        ) {
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
                     'Validasi foto gagal.',
 
                 'errors' =>
-                    $e->errors()
+                    $e->errors(),
 
             ], 422);
 
@@ -705,19 +743,20 @@ class AuthController extends Controller
             // CATAT ERROR LENGKAP
             // =================================================
 
-            \Log::error(
+            Log::error(
                 'Gagal upload foto profil: '
                 . $e->getMessage()
             );
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
                     'Gagal upload foto profil.',
 
                 'error' =>
-                    $e->getMessage()
+                    $e->getMessage(),
 
             ], 500);
         }
@@ -739,27 +778,27 @@ class AuthController extends Controller
                 'required|min:6|confirmed',
         ]);
 
-
         // =====================================================
         // CARI USER
         // =====================================================
 
-        $user = users::where(
-            'email',
-            $request->email
-        )->first();
+        $user =
+            users::where(
+                'email',
+                $request->email
+            )->first();
 
         if (!$user) {
 
             return response()->json([
-                'success' => false,
+                'success' =>
+                    false,
 
                 'message' =>
-                    'Email tidak terdaftar di sistem.'
+                    'Email tidak terdaftar di sistem.',
 
             ], 404);
         }
-
 
         // =====================================================
         // UPDATE PASSWORD
@@ -772,16 +811,16 @@ class AuthController extends Controller
 
         $user->save();
 
-
         // =====================================================
         // RESPONSE
         // =====================================================
 
         return response()->json([
-            'success' => true,
+            'success' =>
+                true,
 
             'message' =>
-                'Password berhasil diubah. Silakan login kembali.'
+                'Password berhasil diubah. Silakan login kembali.',
 
         ], 200);
     }
