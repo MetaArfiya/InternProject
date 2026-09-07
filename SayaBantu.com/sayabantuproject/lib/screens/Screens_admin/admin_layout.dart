@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../services/api_service.dart';
 
 import 'admin_verification_screen.dart';
 import 'admin_moderation_screen.dart';
 import 'admin_daily_report_screen.dart';
 import 'admin_profile_screen.dart';
+
 import '../../screens/Screens_Landing/landing_page.dart';
-//import '../../screens/Screens_auth/login_page.dart';
 
 class AdminLayout extends StatefulWidget {
   final String activeMenu;
@@ -25,10 +29,16 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   int _reportRefreshKey = 0;
 
+  // =========================================================
+  // DATA ADMIN
+  // =========================================================
+
   String adminName = 'Admin Operator';
   String adminEmail = 'admin@sayabantu.com';
   String adminRole = 'Admin Harian';
   String adminToken = '';
+
+  String? adminPhotoUrl;
 
   @override
   void initState() {
@@ -46,27 +56,325 @@ class _AdminLayoutState extends State<AdminLayout> {
   Future<void> _loadAdminProfile() async {
     final prefs = await SharedPreferences.getInstance();
 
+    // -------------------------------------------------------
+    // Ambil data sementara dari SharedPreferences
+    // -------------------------------------------------------
+
     final savedName =
-        prefs.getString('name') ?? 'Admin Operator';
+        prefs.getString('name') ??
+        'Admin Operator';
 
     final savedEmail =
         prefs.getString('email') ??
-            'admin@sayabantu.com';
+        'admin@sayabantu.com';
 
     final savedRole =
-        prefs.getString('role') ?? 'Admin Harian';
+        prefs.getString('role') ??
+        'Admin Harian';
 
     final savedToken =
-        prefs.getString('token') ?? '';
+        prefs.getString('token') ??
+        '';
 
     if (!mounted) return;
 
+    // Tampilkan data lokal terlebih dahulu
     setState(() {
       adminName = savedName;
       adminEmail = savedEmail;
       adminRole = savedRole;
       adminToken = savedToken;
     });
+
+    // -------------------------------------------------------
+    // Ambil data terbaru dari API
+    // -------------------------------------------------------
+
+    try {
+      final response =
+          await ApiService.get('/user');
+
+      debugPrint(
+        '===== ADMIN LAYOUT USER =====',
+      );
+
+      debugPrint(
+        'STATUS: ${response.statusCode}',
+      );
+
+      debugPrint(
+        'BODY: ${response.body}',
+      );
+
+      if (response.statusCode == 200) {
+        final decodedData =
+            jsonDecode(response.body);
+
+        dynamic userData;
+
+        if (decodedData is Map<String, dynamic>) {
+          userData =
+              decodedData['user'] ??
+              decodedData;
+        }
+
+        if (userData is Map<String, dynamic>) {
+          final apiName =
+              userData['name']?.toString();
+
+          final apiEmail =
+              userData['email']?.toString();
+
+          final apiPhoto =
+              userData['photo_url']?.toString();
+
+          debugPrint(
+            'ADMIN NAME: $apiName',
+          );
+
+          debugPrint(
+            'ADMIN PHOTO: $apiPhoto',
+          );
+
+          if (!mounted) return;
+
+          setState(() {
+            if (apiName != null &&
+                apiName.trim().isNotEmpty) {
+              adminName =
+                  apiName.trim();
+            }
+
+            if (apiEmail != null &&
+                apiEmail.trim().isNotEmpty) {
+              adminEmail =
+                  apiEmail.trim();
+            }
+
+            if (apiPhoto != null &&
+                apiPhoto.trim().isNotEmpty &&
+                apiPhoto != 'null') {
+              adminPhotoUrl =
+                  apiPhoto.trim();
+            } else {
+              adminPhotoUrl = null;
+            }
+          });
+
+          debugPrint(
+            'ADMIN FULL PHOTO URL: '
+            '${_getFullPhotoUrl()}',
+          );
+        }
+      } else {
+        debugPrint(
+          'GAGAL MEMUAT USER ADMIN: '
+          '${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        'ERROR LOAD USER ADMIN: $e',
+      );
+    }
+  }
+
+  // =========================================================
+  // FULL PHOTO URL
+  // =========================================================
+
+  String? _getFullPhotoUrl() {
+    if (adminPhotoUrl == null ||
+        adminPhotoUrl!.trim().isEmpty ||
+        adminPhotoUrl == 'null') {
+      return null;
+    }
+
+    String path =
+        adminPhotoUrl!.trim();
+
+    // Jika API sudah memberikan URL lengkap
+    if (path.startsWith('http://') ||
+        path.startsWith('https://')) {
+      return path;
+    }
+
+    // Hilangkan slash di awal
+    if (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+
+    // Contoh:
+    // profile_photos/admin.jpg
+    //
+    // menjadi:
+    // admin.jpg
+
+    final filename =
+        path.split('/').last;
+
+    if (filename.isEmpty) {
+      return null;
+    }
+
+    return 'http://127.0.0.1:8000/api/images/profile/$filename';
+  }
+
+  // =========================================================
+  // INITIALS
+  // =========================================================
+
+  String _getInitials() {
+    final text =
+        adminName.trim();
+
+    if (text.isEmpty) {
+      return 'A';
+    }
+
+    final words =
+        text.split(RegExp(r'\s+'));
+
+    if (words.length >= 2) {
+      return (
+        '${words.first[0]}'
+        '${words.last[0]}'
+      ).toUpperCase();
+    }
+
+    return words.first[0].toUpperCase();
+  }
+
+  // =========================================================
+  // PROFILE IMAGE
+  // =========================================================
+
+  Widget _buildAdminProfileImage({
+    double size = 40,
+  }) {
+    final fullPhotoUrl =
+        _getFullPhotoUrl();
+
+    // -------------------------------------------------------
+    // Tidak ada foto
+    // -------------------------------------------------------
+
+    if (fullPhotoUrl == null) {
+      return Container(
+        width: size,
+        height: size,
+        decoration:
+            const BoxDecoration(
+          color: Color(0xFF8B5CF6),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          _getInitials(),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize:
+                size * 0.38,
+            fontWeight:
+                FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // -------------------------------------------------------
+    // Ada foto
+    // -------------------------------------------------------
+
+    return Container(
+      width: size,
+      height: size,
+      decoration:
+          const BoxDecoration(
+        color: Color(0xFF8B5CF6),
+        shape: BoxShape.circle,
+      ),
+      child: ClipOval(
+        child: Image.network(
+          fullPhotoUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+
+          loadingBuilder:
+              (
+                context,
+                child,
+                loadingProgress,
+              ) {
+            if (loadingProgress ==
+                null) {
+              return child;
+            }
+
+            return Container(
+              width: size,
+              height: size,
+              color:
+                  const Color(0xFF8B5CF6),
+              alignment:
+                  Alignment.center,
+              child:
+                  SizedBox(
+                width: 16,
+                height: 16,
+                child:
+                    CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color:
+                      Colors.white,
+                ),
+              ),
+            );
+          },
+
+          errorBuilder:
+              (
+                context,
+                error,
+                stackTrace,
+              ) {
+            debugPrint(
+              'GAGAL MENAMPILKAN FOTO ADMIN',
+            );
+
+            debugPrint(
+              'URL: $fullPhotoUrl',
+            );
+
+            debugPrint(
+              'ERROR: $error',
+            );
+
+            return Container(
+              width: size,
+              height: size,
+              color:
+                  const Color(0xFF8B5CF6),
+              alignment:
+                  Alignment.center,
+              child: Text(
+                _getInitials(),
+                style:
+                    TextStyle(
+                  color:
+                      Colors.white,
+                  fontSize:
+                      size * 0.38,
+                  fontWeight:
+                      FontWeight.bold,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   // =========================================================
@@ -120,7 +428,8 @@ class _AdminLayoutState extends State<AdminLayout> {
           ? Drawer(
               width: 270,
               child: SafeArea(
-                child: _buildSidebar(context),
+                child:
+                    _buildSidebar(context),
               ),
             )
           : null,
@@ -138,16 +447,19 @@ class _AdminLayoutState extends State<AdminLayout> {
               elevation: 0,
 
               leading: Builder(
-                builder: (context) {
+                builder:
+                    (context) {
                   return IconButton(
-                    icon: const Icon(
+                    icon:
+                        const Icon(
                       Icons.menu,
                       color:
                           Color(0xFF334155),
                     ),
                     onPressed: () {
-                      Scaffold.of(context)
-                          .openDrawer();
+                      Scaffold.of(
+                        context,
+                      ).openDrawer();
                     },
                   );
                 },
@@ -176,7 +488,7 @@ class _AdminLayoutState extends State<AdminLayout> {
             CrossAxisAlignment.stretch,
         children: [
           // ===================================================
-          // SIDEBAR DESKTOP / TABLET
+          // SIDEBAR
           // ===================================================
 
           if (!isMobile)
@@ -193,38 +505,19 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           Expanded(
             child: IndexedStack(
-              index: _getMenuIndex(),
+              index:
+                  _getMenuIndex(),
 
               children: [
-                // =============================================
-                // VERIFIKASI
-                // =============================================
-
                 const AdminVerificationScreen(),
-
-                // =============================================
-                // MODERASI
-                // =============================================
 
                 const AdminModerationScreen(),
 
-                // =============================================
-                // LAPORAN HARIAN
-                // =============================================
-                //
-                // TOKEN DARI SHARED PREFERENCES
-                // DIKIRIM KE SCREEN
-                // =============================================
-
                 AdminDailyReportScreen(
                   key: ValueKey(
-                    'report_${_reportRefreshKey}',
+                    'report_$_reportRefreshKey',
                   ),
                 ),
-
-                // =============================================
-                // PROFIL
-                // =============================================
 
                 AdminProfileScreen(
                   onProfileUpdated:
@@ -249,7 +542,6 @@ class _AdminLayoutState extends State<AdminLayout> {
       width: double.infinity,
       height: double.infinity,
       color: Colors.white,
-
       child: Column(
         children: [
           const SizedBox(height: 20),
@@ -263,28 +555,10 @@ class _AdminLayoutState extends State<AdminLayout> {
                 const EdgeInsets.symmetric(
               horizontal: 16,
             ),
-
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-
-                  decoration:
-                      const BoxDecoration(
-                    color:
-                        Color(0xFF8B5CF6),
-                    shape:
-                        BoxShape.circle,
-                  ),
-
-                  child:
-                      const Icon(
-                    Icons.shield_outlined,
-                    color:
-                        Colors.white,
-                    size: 21,
-                  ),
+                _buildAdminProfileImage(
+                  size: 40,
                 ),
 
                 const SizedBox(
@@ -295,14 +569,12 @@ class _AdminLayoutState extends State<AdminLayout> {
                   child: Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
-
                     children: [
                       Text(
                         adminName,
-
                         overflow:
-                            TextOverflow.ellipsis,
-
+                            TextOverflow
+                                .ellipsis,
                         style:
                             const TextStyle(
                           fontSize: 13,
@@ -319,10 +591,9 @@ class _AdminLayoutState extends State<AdminLayout> {
 
                       Text(
                         'Level: $adminRole',
-
                         overflow:
-                            TextOverflow.ellipsis,
-
+                            TextOverflow
+                                .ellipsis,
                         style:
                             const TextStyle(
                           fontSize: 10,
@@ -427,26 +698,17 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           const Spacer(),
 
-          // =================================================
-          // PEMBATAS
-          // =================================================
-
           const Padding(
             padding:
                 EdgeInsets.symmetric(
               horizontal: 16,
             ),
-
             child: Divider(
               height: 1,
               color:
                   Color(0xFFE2E8F0),
             ),
           ),
-
-          // =================================================
-          // LOGOUT
-          // =================================================
 
           _logoutButton(context),
 
@@ -463,21 +725,24 @@ class _AdminLayoutState extends State<AdminLayout> {
   // =========================================================
 
   void _changePage(
-  BuildContext context,
-  String menu,
-) {
-  setState(() {
-    activeMenu = menu;
+    BuildContext context,
+    String menu,
+  ) {
+    setState(() {
+      activeMenu = menu;
 
-    if (menu == 'report') {
-      _reportRefreshKey++;
+      if (menu == 'report') {
+        _reportRefreshKey++;
+      }
+    });
+
+    if (MediaQuery.of(context)
+            .size
+            .width <
+        700) {
+      Navigator.of(context).pop();
     }
-  });
-
-  if (MediaQuery.of(context).size.width < 700) {
-    Navigator.of(context).pop();
   }
-}
 
   // =========================================================
   // MENU ITEM
@@ -493,25 +758,24 @@ class _AdminLayoutState extends State<AdminLayout> {
   }) {
     return InkWell(
       onTap: onTap,
-
       child: Container(
         width: double.infinity,
         height: 46,
-
         padding:
             const EdgeInsets.symmetric(
           horizontal: 17,
         ),
-
         decoration:
             BoxDecoration(
           color: active
-              ? const Color(0xFFF3E8FF)
+              ? const Color(
+                  0xFFF3E8FF,
+                )
               : Colors.transparent,
-
           border: active
               ? const Border(
-                  right: BorderSide(
+                  right:
+                      BorderSide(
                     color:
                         Color(0xFF8B5CF6),
                     width: 3,
@@ -519,7 +783,6 @@ class _AdminLayoutState extends State<AdminLayout> {
                 )
               : null,
         ),
-
         child: Row(
           children: [
             Icon(
@@ -541,17 +804,15 @@ class _AdminLayoutState extends State<AdminLayout> {
             Expanded(
               child: Text(
                 title,
-
                 overflow:
-                    TextOverflow.ellipsis,
-
-                style: TextStyle(
+                    TextOverflow
+                        .ellipsis,
+                style:
+                    TextStyle(
                   fontSize: 12,
-
                   fontWeight: active
                       ? FontWeight.w600
                       : FontWeight.w400,
-
                   color: active
                       ? const Color(
                           0xFF7C3AED,
@@ -567,10 +828,8 @@ class _AdminLayoutState extends State<AdminLayout> {
               Container(
                 width: 19,
                 height: 19,
-
                 alignment:
                     Alignment.center,
-
                 decoration:
                     const BoxDecoration(
                   color:
@@ -578,10 +837,8 @@ class _AdminLayoutState extends State<AdminLayout> {
                   shape:
                       BoxShape.circle,
                 ),
-
                 child: Text(
                   badge,
-
                   style:
                       const TextStyle(
                     color:
@@ -611,24 +868,19 @@ class _AdminLayoutState extends State<AdminLayout> {
           context,
         );
       },
-
       borderRadius:
           BorderRadius.circular(8),
-
       child: Container(
         width: double.infinity,
         height: 48,
-
         margin:
             const EdgeInsets.symmetric(
           horizontal: 10,
         ),
-
         padding:
             const EdgeInsets.symmetric(
           horizontal: 17,
         ),
-
         child: Row(
           children: [
             const Icon(
@@ -645,7 +897,6 @@ class _AdminLayoutState extends State<AdminLayout> {
             const Expanded(
               child: Text(
                 'Keluar',
-
                 style:
                     TextStyle(
                   fontSize: 12,
@@ -672,69 +923,102 @@ class _AdminLayoutState extends State<AdminLayout> {
     showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
+      builder:
+          (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              12,
+            ),
           ),
           title: const Row(
             children: [
               Icon(
                 Icons.logout_outlined,
-                color: Color(0xFFEF4444),
+                color:
+                    Color(0xFFEF4444),
               ),
               SizedBox(width: 10),
               Text(
                 'Keluar',
-                style: TextStyle(
+                style:
+                    TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight:
+                      FontWeight.w700,
                 ),
               ),
             ],
           ),
-          content: const Text(
+          content:
+              const Text(
             'Apakah kamu yakin ingin keluar dari akun admin?',
-            style: TextStyle(
+            style:
+                TextStyle(
               fontSize: 13,
-              color: Color(0xFF64748B),
+              color:
+                  Color(0xFF64748B),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(false);
+                Navigator.of(
+                  dialogContext,
+                ).pop(false);
               },
-              child: const Text(
+              child:
+                  const Text(
                 'Batal',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
+                style:
+                    TextStyle(
+                  color:
+                      Color(0xFF64748B),
                 ),
               ),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(true);
+                Navigator.of(
+                  dialogContext,
+                ).pop(true);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    const Color(
+                  0xFFEF4444,
+                ),
+                foregroundColor:
+                    Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(7),
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    7,
+                  ),
                 ),
               ),
-              child: const Text('Keluar'),
+              child:
+                  const Text(
+                'Keluar',
+              ),
             ),
           ],
         );
       },
-    ).then((shouldLogout) {
-      if (shouldLogout == true) {
-        if (!mounted) return;
-        _logout(context);
-      }
-    });
+    ).then(
+      (shouldLogout) {
+        if (shouldLogout ==
+            true) {
+          if (!mounted) return;
+          _logout(context);
+        }
+      },
+    );
   }
 
   // =========================================================
@@ -744,14 +1028,16 @@ class _AdminLayoutState extends State<AdminLayout> {
   Future<void> _logout(
     BuildContext context,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs =
+        await SharedPreferences
+            .getInstance();
 
-    await prefs.clear(); // Membersihkan seluruh sesi dan token secara aman
+    await prefs.clear();
 
     if (!mounted) return;
 
-    // Navigasi langsung dengan menghapus seluruh stack rute sebelumnya
-    Navigator.of(context).pushAndRemoveUntil(
+    Navigator.of(context)
+        .pushAndRemoveUntil(
       PageRouteBuilder(
         pageBuilder: (
           context,
@@ -760,8 +1046,10 @@ class _AdminLayoutState extends State<AdminLayout> {
         ) {
           return const LandingPage();
         },
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
+        transitionDuration:
+            Duration.zero,
+        reverseTransitionDuration:
+            Duration.zero,
       ),
       (route) => false,
     );

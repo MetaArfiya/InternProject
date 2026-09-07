@@ -126,52 +126,52 @@ class JobController extends Controller
      * =========================================================
      */
     public function myJobs()
-{
-    try {
-        $pelangganId = auth()->id();
+    {
+        try {
+            $pelangganId = auth()->id();
 
-        $jobs = jobs::withCount('bids')
-            ->where('pelanggan_id', $pelangganId)
-            ->latest()
-            ->get();
+            $jobs = jobs::withCount('bids')
+                ->where('pelanggan_id', $pelangganId)
+                ->latest()
+                ->get();
 
-        $totalPosting = $jobs->count();
+            $totalPosting = $jobs->count();
 
-        $sedangBerjalan = $jobs->where(
-            'status',
-            'Sedang Dikerjakan'
-        )->count();
+            $sedangBerjalan = $jobs->where(
+                'status',
+                'Sedang Dikerjakan'
+            )->count();
 
-        $selesai = $jobs->where(
-            'status',
-            'Selesai'
-        )->count();
+            $selesai = $jobs->where(
+                'status',
+                'Selesai'
+            )->count();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
 
-            'statistics' => [
-                'total_posting' => $totalPosting,
-                'sedang_berjalan' => $sedangBerjalan,
-                'selesai' => $selesai,
-            ],
+                'statistics' => [
+                    'total_posting' => $totalPosting,
+                    'sedang_berjalan' => $sedangBerjalan,
+                    'selesai' => $selesai,
+                ],
 
-            'data' => $jobs,
-        ], 200);
+                'data' => $jobs,
+            ], 200);
 
-    } catch (\Exception $e) {
+        } catch (\Exception $e) {
 
-        \Log::error(
-            'Error JobController@myJobs: ' . $e->getMessage()
-        );
+            \Log::error(
+                'Error JobController@myJobs: ' . $e->getMessage()
+            );
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan pada server.',
-        ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server.',
+            ], 500);
+        }
     }
-}
 
 
     /**
