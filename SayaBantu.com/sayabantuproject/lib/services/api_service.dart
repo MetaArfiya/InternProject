@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -160,6 +161,116 @@ class ApiService {
     print('📦 BODY: ${response.body}');
 
     return response;
+  }
+    // ============================================================
+  // POST MULTIPART / UPLOAD FILE
+  // ============================================================
+
+  static Future<http.Response> postMultipart(
+    String endpoint,
+    Map<String, String> fields, {
+    Map<String, Uint8List>? files,
+    Map<String, List<Uint8List>>? multipleFiles,
+  }) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+
+    final token = await _getToken();
+
+    print('🌐 [POST MULTIPART] $url');
+    print('📤 FIELDS: $fields');
+
+    final request = http.MultipartRequest(
+      'POST',
+      url,
+    );
+
+    request.headers['Accept'] =
+        'application/json';
+
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] =
+          'Bearer $token';
+    }
+
+    // FIELD TEXT
+    request.fields.addAll(fields);
+
+    // SINGLE FILE
+    if (files != null) {
+      for (final entry in files.entries) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            entry.key,
+            entry.value,
+            filename: _getFileName(entry.key),
+          ),
+        );
+      }
+    }
+
+    // MULTIPLE FILE
+    if (multipleFiles != null) {
+      for (final entry
+          in multipleFiles.entries) {
+        for (int i = 0;
+            i < entry.value.length;
+            i++) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              entry.key,
+              entry.value[i],
+              filename:
+                  '${entry.key.replaceAll('[]', '')}_$i.jpg',
+            ),
+          );
+        }
+      }
+    }
+
+    try {
+      final streamedResponse =
+          await request.send();
+
+      final response =
+          await http.Response.fromStream(
+        streamedResponse,
+      );
+
+      print(
+        '🔎 [MULTIPART RESPONSE] '
+        '${response.statusCode} - $url',
+      );
+
+      print(
+        '📦 BODY: ${response.body}',
+      );
+
+      return response;
+    } catch (e) {
+      print(
+        '❌ [MULTIPART ERROR] $e',
+      );
+      rethrow;
+    }
+  }
+
+  // ============================================================
+  // FILE NAME
+  // ============================================================
+
+  static String _getFileName(
+    String fieldName,
+  ) {
+    switch (fieldName) {
+      case 'ktp_image':
+        return 'ktp.jpg';
+
+      case 'verification_image':
+        return 'verification.jpg';
+
+      default:
+        return 'image.jpg';
+    }
   }
 
   // ============================================================

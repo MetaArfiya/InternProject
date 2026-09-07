@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/partner_sidebar_menu.dart';
-import '../services/api_service.dart'; // Pastikan path import api_service benar
+import '../services/api_service.dart';
+import '../../screens/Screens_auth/login_page.dart';
 
 class PartnerSidebar extends StatefulWidget {
   final PartnerSidebarMenu activeMenu;
@@ -24,8 +26,7 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
   String username = "Partner";
   Uint8List? profileImage;
   String initials = "P";
-  
-  // Variabel state untuk menampung data dari database
+
   int totalPoint = 0;
   bool isVerified = false;
 
@@ -35,20 +36,37 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     loadUser();
   }
 
+  // ============================================================
+  // LOAD USER
+  // ============================================================
+
   Future<void> loadUser() async {
     final prefs = await SharedPreferences.getInstance();
+
     final savedName = prefs.getString("name") ?? "Partner";
     final image = prefs.getString("profile_image");
+
+    Uint8List? decodedImage;
+
+    if (image != null && image.isNotEmpty) {
+      try {
+        decodedImage = base64Decode(image);
+      } catch (e) {
+        debugPrint("Gagal membaca profile image: $e");
+      }
+    }
 
     if (!mounted) return;
 
     setState(() {
       username = savedName;
-      profileImage = image != null ? base64Decode(image) : null;
+      profileImage = decodedImage;
 
-      final words = savedName.trim().split(" ");
+      final words = savedName.trim().split(RegExp(r'\s+'));
+
       if (words.length >= 2) {
-        initials = "${words.first[0]}${words.last[0]}".toUpperCase();
+        initials =
+            "${words.first[0]}${words.last[0]}".toUpperCase();
       } else if (savedName.isNotEmpty) {
         initials = savedName[0].toUpperCase();
       } else {
@@ -56,7 +74,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       }
     });
 
-    // Mengambil data Poin dan Status Verifikasi dari API Backend (/mitra/profile)
+    // ==========================================================
+    // LOAD DATA PROFIL MITRA DARI API
+    // ==========================================================
+
     try {
       final response = await ApiService.get('/mitra/profile');
 
@@ -67,14 +88,153 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
         if (!mounted) return;
 
         setState(() {
-          totalPoint = int.tryParse(data['point']?.toString() ?? '0') ?? 0;
-          isVerified = data['is_verified'] == true || data['is_verified'] == 1;
+          totalPoint =
+              int.tryParse(
+                data['point']?.toString() ?? '0',
+              ) ??
+              0;
+
+          isVerified =
+              data['is_verified'] == true ||
+              data['is_verified'] == 1;
         });
       }
     } catch (e) {
-      debugPrint("GAGAL MEMUAT PROFIL MITRA: $e");
+      debugPrint(
+        "GAGAL MEMUAT PROFIL MITRA: $e",
+      );
     }
   }
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
+  Future<void> _logout() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: Colors.orange,
+              ),
+              SizedBox(width: 10),
+              Text(
+                "Logout",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            "Apakah kamu yakin ingin keluar dari akun?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text(
+                "Batal",
+                style: TextStyle(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text("Logout"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // ========================================================
+      // UBAH STATUS LOGIN MENJADI FALSE
+      // ========================================================
+
+      await prefs.setBool("isLoggedIn", false);
+
+      // ========================================================
+      // HAPUS TOKEN
+      // ========================================================
+
+      await prefs.remove("token");
+      await prefs.remove("access_token");
+
+      // ========================================================
+      // HAPUS DATA USER
+      // ========================================================
+
+      await prefs.remove("name");
+      await prefs.remove("email");
+      await prefs.remove("phone");
+      await prefs.remove("address");
+      await prefs.remove("profile_image");
+
+      if (!mounted) return;
+
+      // ========================================================
+      // KEMBALI KE LOGIN
+      //
+      // PENTING:
+      // Gunakan ROOT NAVIGATOR agar semua halaman dashboard
+      // yang mungkin bertumpuk ikut dibersihkan.
+      // ========================================================
+
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      debugPrint(
+        "GAGAL LOGOUT: $e",
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Terjadi kesalahan saat logout.",
+          ),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -87,8 +247,14 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
           children: [
             const SizedBox(height: 20),
 
+            // ==================================================
+            // PROFILE
+            // ==================================================
+
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+              ),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -107,10 +273,13 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                           )
                         : null,
                   ),
+
                   const SizedBox(width: 12),
+
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
                         Text(
                           username,
@@ -122,7 +291,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                             fontSize: 16,
                           ),
                         ),
+
                         const SizedBox(height: 3),
+
                         const Text(
                           "Mitra Aktif",
                           style: TextStyle(
@@ -139,9 +310,14 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
             const SizedBox(height: 20),
 
-            // Kotak Total Poin (Dinamis dari database)
+            // ==================================================
+            // TOTAL POIN
+            // ==================================================
+
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
+              margin: const EdgeInsets.symmetric(
+                horizontal: 16,
+              ),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -153,7 +329,8 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                 ),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   const Text(
                     "TOTAL POIN SAYA",
@@ -163,7 +340,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 8),
+
                   Row(
                     children: [
                       const Icon(
@@ -171,9 +350,11 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                         color: Colors.amber,
                         size: 32,
                       ),
+
                       const SizedBox(width: 10),
+
                       Text(
-                        "$totalPoint", // Menampilkan poin asli dari database
+                        "$totalPoint",
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -182,7 +363,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 6),
+
                   const Text(
                     "Peringkat mitra aktif",
                     maxLines: 1,
@@ -198,24 +381,34 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
             const SizedBox(height: 12),
 
-            // Widget Akun Terverifikasi (Hanya muncul jika is_verified bernilai 1 di database)
+            // ==================================================
+            // AKUN TERVERIFIKASI
+            // ==================================================
+
             if (isVerified)
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 11,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xffE8F7EE),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.check,
                       color: Colors.green,
                       size: 18,
                     ),
+
                     SizedBox(width: 6),
+
                     Text(
                       "Akun Terverifikasi",
                       style: TextStyle(
@@ -229,12 +422,20 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
             const SizedBox(height: 25),
 
+            // ==================================================
+            // CARI PEKERJAAN
+            // ==================================================
+
             _menu(
               context,
               icon: Icons.home_outlined,
               title: "Cari Pekerjaan",
               menu: PartnerSidebarMenu.cariPekerjaan,
             ),
+
+            // ==================================================
+            // PENAWARAN AKTIF
+            // ==================================================
 
             _menu(
               context,
@@ -243,6 +444,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
               menu: PartnerSidebarMenu.penawaranAktif,
             ),
 
+            // ==================================================
+            // PENGATURAN
+            // ==================================================
+
             _menu(
               context,
               icon: Icons.settings,
@@ -250,12 +455,28 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
               menu: PartnerSidebarMenu.pengaturan,
             ),
 
+            // ==================================================
+            // DORONG LOGOUT KE BAGIAN BAWAH
+            // ==================================================
+
             const Spacer(),
+
+            // ==================================================
+            // LOGOUT
+            // ==================================================
+
+            _logoutMenu(),
+
+            const SizedBox(height: 15),
           ],
         ),
       ),
     );
   }
+
+  // ============================================================
+  // MENU SIDEBAR
+  // ============================================================
 
   Widget _menu(
     BuildContext context, {
@@ -266,7 +487,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     final active = widget.activeMenu == menu;
 
     return InkWell(
-      onTap: () => widget.onMenuSelected(menu),
+      onTap: () {
+        widget.onMenuSelected(menu);
+      },
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(
@@ -280,22 +503,71 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
           children: [
             Icon(
               icon,
-              color: active ? Colors.orange : Colors.white70,
+              color: active
+                  ? Colors.orange
+                  : Colors.white70,
             ),
+
             const SizedBox(width: 15),
+
             Expanded(
               child: Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: active ? Colors.orange : Colors.white,
-                  fontWeight:
-                      active ? FontWeight.bold : FontWeight.normal,
+                  color: active
+                      ? Colors.orange
+                      : Colors.white,
+                  fontWeight: active
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOGOUT MENU
+  // ============================================================
+
+  Widget _logoutMenu() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _logout,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: Colors.red.shade400,
+              ),
+
+              const SizedBox(width: 15),
+
+              const Expanded(
+                child: Text(
+                  "Keluar",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
