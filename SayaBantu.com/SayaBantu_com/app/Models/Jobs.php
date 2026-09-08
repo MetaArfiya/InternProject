@@ -10,18 +10,24 @@ class jobs extends Model
     use HasFactory;
 
     protected $fillable = [
-        'pelanggan_id', 
-        'mitra_id', 
-        'tittle', 
-        'description', 
+        'pelanggan_id',
+        'mitra_id',
+        'tittle',
+        'description',
         'category',
         'location',
-        'image_url', 
-        'initial_budget', 
-        'final_price', 
+        'latitude',
+        'longitude',
+        'location_description',
+        'image_url',
+        'initial_budget',
+        'final_price',
+        'duration',
+        'started_at',
+        'completed_at',
         'status',
         'is_verified',
-        'verified_by'
+        'verified_by',
     ];
 
     // Relasi: Job ini diposting oleh Pelanggan
