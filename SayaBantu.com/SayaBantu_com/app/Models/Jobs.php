@@ -28,6 +28,14 @@ class jobs extends Model
         'status',
         'is_verified',
         'verified_by',
+        // ════════════════════════════════════════════
+        // TAMBAHAN UNTUK BUKTI PENYELESAIAN
+        // ════════════════════════════════════════════
+        'completion_photo_url',
+        'completion_submitted_at',
+        'completion_status',
+        'completion_verified_at',
+        'completion_admin_note',
     ];
 
     // Relasi: Job ini diposting oleh Pelanggan

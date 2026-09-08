@@ -30,6 +30,15 @@ return new class extends Migration
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
 
+            // ════════════════════════════════════════════════════
+            // BUKTI PEKERJAAN SELESAI (1 bukti per job)
+            // ════════════════════════════════════════════════════
+            $table->string('completion_photo_url')->nullable();
+            $table->timestamp('completion_submitted_at')->nullable();
+            $table->enum('completion_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->timestamp('completion_verified_at')->nullable();
+            $table->text('completion_admin_note')->nullable();
+
             $table->enum('status', [
                 'Mencari Mitra',
                 'Sedang Dikerjakan',

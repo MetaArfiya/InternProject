@@ -69,7 +69,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   String _waktuPengerjaan = "1–2 Jam";
-
+ 
   final List<String> waktuPengerjaanList = [
     "1–2 Jam",
     "3–5 Jam",

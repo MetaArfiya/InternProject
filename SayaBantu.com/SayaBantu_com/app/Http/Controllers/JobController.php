@@ -1312,4 +1312,176 @@ class JobController extends Controller
             ], 500);
         }
     }
+
+        /**
+     * =========================================================
+     * MITRA UPLOAD BUKTI SELESAI
+     * =========================================================
+     * POST /api/jobs/{id}/upload-proof
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadProof(Request $request, $id)
+    {
+        // Cari job
+        $job = jobs::find($id);
+
+        if (!$job) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pekerjaan tidak ditemukan.'
+            ], 404);
+        }
+
+        // Hanya mitra yang sedang mengerjakan yang boleh upload
+        if ($job->mitra_id !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda bukan mitra pekerjaan ini.'
+            ], 403);
+        }
+
+        // Status harus 'Sedang Dikerjakan'
+        if ($job->status !== 'Sedang Dikerjakan') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pekerjaan tidak dalam status sedang dikerjakan.'
+            ], 400);
+        }
+
+        // Validasi input
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'note'  => 'nullable|string|max:500',
+        ]);
+
+        // Upload foto
+        $path = $request->file('photo')->store('completion_proofs', 'public');
+        $photoUrl = '/storage/' . $path;
+
+        // Update job
+        $job->update([
+            'completion_photo_url'      => $photoUrl,
+            'completion_submitted_at'   => now(),
+            'completion_status'         => 'pending',
+            'completion_verified_at'    => null,
+            'completion_admin_note'     => $request->note ?? null,
+            'status'                    => 'Menunggu Konfirmasi Selesai',
+        ]);
+
+        // Log aktivitas
+        ActivityLogger::log(
+            auth()->id(),
+            'Mitra upload bukti selesai',
+            'Mitra mengupload bukti penyelesaian untuk pekerjaan "' . $job->tittle . '".',
+            'upload_file',
+            'Mitra'
+        );
+
+        // Notifikasi ke pelanggan (opsional, bisa diaktifkan jika sudah buat Notification)
+        // $pelanggan = users::find($job->pelanggan_id);
+        // if ($pelanggan) {
+        //     $pelanggan->notify(new \App\Notifications\CompletionProofSubmitted($job));
+        // }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bukti berhasil diupload, menunggu konfirmasi pelanggan.',
+            'data'    => $job->fresh()
+        ], 200);
+    }
+
+    /**
+     * =========================================================
+     * PELANGGAN VERIFIKASI BUKTI
+     * =========================================================
+     * POST /api/jobs/{id}/verify-proof
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyProof(Request $request, $id)
+    {
+        // Cari job
+        $job = jobs::find($id);
+
+        if (!$job) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pekerjaan tidak ditemukan.'
+            ], 404);
+        }
+
+        // Hanya pelanggan pemilik pekerjaan
+        if ($job->pelanggan_id !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda bukan pemilik pekerjaan ini.'
+            ], 403);
+        }
+
+        // Status harus 'Menunggu Konfirmasi Selesai'
+        if ($job->status !== 'Menunggu Konfirmasi Selesai') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pekerjaan tidak dalam status menunggu konfirmasi.'
+            ], 400);
+        }
+
+        // Validasi input
+        $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'note'   => 'nullable|string|max:500',
+        ]);
+
+        // Update job
+        $job->update([
+            'completion_status'      => $request->status,
+            'completion_verified_at' => now(),
+            'completion_admin_note'  => $request->note ?? null,
+            'status'                 => $request->status === 'approved' ? 'Selesai' : 'Sedang Dikerjakan',
+        ]);
+
+        // Jika disetujui, beri poin ke mitra (opsional)
+        if ($request->status === 'approved') {
+            // Ambil sistem setting untuk poin (pastikan model system_settings ada)
+            // Jika belum ada, gunakan nilai default 10
+            $pointsToAdd = 10; // atau ambil dari setting
+
+            $mitraProfile = mitra_profiles::where('user_id', $job->mitra_id)->first();
+            if ($mitraProfile) {
+                $mitraProfile->increment('point', $pointsToAdd);
+            }
+
+            // Notifikasi ke mitra (opsional)
+            // $mitra = users::find($job->mitra_id);
+            // if ($mitra) {
+            //     $mitra->notify(new \App\Notifications\JobCompleted($job));
+            // }
+        } else {
+            // Notifikasi ke mitra jika ditolak (opsional)
+            // $mitra = users::find($job->mitra_id);
+            // if ($mitra) {
+            //     $mitra->notify(new \App\Notifications\ProofRejected($job, $request->note));
+            // }
+        }
+
+        // Log aktivitas
+        ActivityLogger::log(
+            auth()->id(),
+            'Pelanggan verifikasi bukti',
+            'Pelanggan ' . ($request->status === 'approved' ? 'menyetujui' : 'menolak') . ' bukti pekerjaan "' . $job->tittle . '".',
+            'check_circle',
+            'Pelanggan'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bukti berhasil diverifikasi.',
+            'data'    => $job->fresh()
+        ], 200);
+    }
 }
