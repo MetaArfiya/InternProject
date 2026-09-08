@@ -6,6 +6,12 @@ class ActiveOfferModel {
   final bool isTop;
   final String status;
 
+  // Untuk fitur bukti pekerjaan
+  final bool canSubmitProof;
+  final bool proofSubmitted;
+  final String? proofImage;
+  final String? proofDescription;
+
   ActiveOfferModel({
     required this.id,
     required this.title,
@@ -13,6 +19,10 @@ class ActiveOfferModel {
     required this.queuePosition,
     required this.isTop,
     required this.status,
+    this.canSubmitProof = false,
+    this.proofSubmitted = false,
+    this.proofImage,
+    this.proofDescription,
   });
 
   String get price {
@@ -23,38 +33,86 @@ class ActiveOfferModel {
   }
 
   factory ActiveOfferModel.fromJson(Map<String, dynamic> json) {
-    // 1. Parsing Safe ID
+    // ID
     int parsedId = 0;
+
     if (json['id'] != null) {
       parsedId = int.tryParse(json['id'].toString()) ?? 0;
     }
 
-    // 2. Parsing Safe Price (Anti FormatException)
+    // Harga
     double parsedPrice = 0.0;
-    var rawPrice = json['price'] ?? json['offered_price'];
+
+    final rawPrice = json['price'] ?? json['offered_price'];
+
     if (rawPrice != null) {
       parsedPrice = double.tryParse(rawPrice.toString()) ?? 0.0;
     }
 
-    // 3. Parsing Safe Queue Position
+    // Posisi antrean
     int parsedQueue = 1;
+
     if (json['queue_position'] != null) {
-      parsedQueue = int.tryParse(json['queue_position'].toString()) ?? 1;
+      parsedQueue =
+          int.tryParse(json['queue_position'].toString()) ?? 1;
     }
 
-    // 4. Parsing Safe Is Top
+    // Top
     bool parsedIsTop = false;
+
     if (json['is_top'] != null) {
-      parsedIsTop = json['is_top'] == true || json['is_top'].toString() == '1';
+      parsedIsTop =
+          json['is_top'] == true ||
+          json['is_top'].toString() == '1';
+    }
+
+    // Status
+    final parsedStatus =
+        json['status']?.toString() ?? 'Menunggu';
+
+    // Bukti pekerjaan
+    bool parsedProofSubmitted = false;
+
+    if (json['proof_submitted'] != null) {
+      parsedProofSubmitted =
+          json['proof_submitted'] == true ||
+          json['proof_submitted'].toString() == '1' ||
+          json['proof_submitted'].toString().toLowerCase() == 'true';
+    }
+
+    // Apakah mitra boleh mengirim bukti
+    bool parsedCanSubmitProof = false;
+
+    if (json['can_submit_proof'] != null) {
+      parsedCanSubmitProof =
+          json['can_submit_proof'] == true ||
+          json['can_submit_proof'].toString() == '1' ||
+          json['can_submit_proof'].toString().toLowerCase() == 'true';
     }
 
     return ActiveOfferModel(
       id: parsedId,
-      title: json['tittle']?.toString() ?? json['title']?.toString() ?? 'Pekerjaan Tidak Diketahui',
+
+      title: json['tittle']?.toString() ??
+          json['title']?.toString() ??
+          'Pekerjaan Tidak Diketahui',
+
       offeredPrice: parsedPrice,
+
       queuePosition: parsedQueue,
+
       isTop: parsedIsTop,
-      status: json['status']?.toString() ?? 'Menunggu',
+
+      status: parsedStatus,
+
+      canSubmitProof: parsedCanSubmitProof,
+
+      proofSubmitted: parsedProofSubmitted,
+
+      proofImage: json['proof_image']?.toString(),
+
+      proofDescription:
+          json['proof_description']?.toString(),
     );
   }
 }
