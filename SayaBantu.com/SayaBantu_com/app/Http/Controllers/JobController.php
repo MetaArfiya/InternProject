@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\jobs;
 use App\Models\job_bids;
 use App\Models\mitra_profiles;
@@ -48,7 +50,7 @@ class JobController extends Controller
 
         } catch (\Exception $e) {
 
-            \Log::error(
+            Log::error(
                 "Error pada JobController@show: "
                 . $e->getMessage()
             );
@@ -162,7 +164,7 @@ class JobController extends Controller
 
         } catch (\Exception $e) {
 
-            \Log::error(
+            Log::error(
                 'Error JobController@myJobs: ' . $e->getMessage()
             );
 
@@ -189,266 +191,119 @@ class JobController extends Controller
      * latitude
      * longitude
      * category
-     * image
-     *
-     * image merupakan file multipart.
+     * duration     <-- WAJIB (contoh: "1–2 Jam", "3–5 Jam", "1 Hari", dll.)
+     * image        (opsional, multipart)
      */
     public function store(Request $request)
-{
-    // =====================================================
-    // DEBUG UPLOAD
-    // =====================================================
+    {
+        // =====================================================
+        // DEBUG UPLOAD (opsional)
+        // =====================================================
+        Log::info('=== DEBUG UPLOAD JOB ===');
+        Log::info('Has image: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
+        Log::info('Request files:', $request->allFiles());
+        Log::info('Request data:', $request->except('image'));
 
-    \Log::info('=== DEBUG UPLOAD JOB ===');
+        // =====================================================
+        // VALIDASI
+        // =====================================================
+        $validated = $request->validate([
+            'tittle'          => 'required|string',
+            'description'     => 'required|string',
+            'location'        => 'required|string',
+            'address_detail'  => 'nullable|string',
+            'latitude'        => 'nullable|numeric',
+            'longitude'       => 'nullable|numeric',
+            'category'        => 'nullable|string',
+            'initial_budget'  => 'required|numeric',
+            'duration'        => 'required|string|max:50',
+            'image'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
 
-    \Log::info('Has image: ' . (
-        $request->hasFile('image') ? 'YES' : 'NO'
-    ));
-
-    \Log::info('Request files:', $request->allFiles());
-
-    \Log::info(
-        'Request data:',
-        $request->except('image')
-    );
-
-
-    // =====================================================
-    // VALIDASI
-    // =====================================================
-
-    $validated = $request->validate([
-        'tittle' => 'required|string',
-
-        'description' => 'required|string',
-
-        'location' => 'required|string',
-
-        'address_detail' => 'nullable|string',
-
-        'latitude' => 'nullable|numeric',
-
-        'longitude' => 'nullable|numeric',
-
-        'category' => 'nullable|string',
-
-        'initial_budget' => 'required|numeric',
-
-        'image' =>
-            'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-    ]);
-
-
-    // =====================================================
-    // UPLOAD GAMBAR
-    // =====================================================
-
-    $imageUrl = null;
-
-    if ($request->hasFile('image')) {
-
-        \Log::info('IMAGE FILE BERHASIL DITERIMA');
-
-        $path = $request->file('image')->store(
-            'jobs',
-            'public'
-        );
-
-        \Log::info('IMAGE PATH: ' . $path);
-
-        $imageUrl = '/storage/' . $path;
-
-        \Log::info('IMAGE URL: ' . $imageUrl);
-    } else {
-
-        \Log::warning(
-            'IMAGE TIDAK DITERIMA OLEH SERVER'
-        );
-    }
-
-
-    // =====================================================
-    // ANALISIS DESKRIPSI
-    // =====================================================
-
-    $deskripsi = strtolower(
-        $request->description
-    );
-
-    $judul = strtolower(
-        $request->tittle
-    );
-
-
-    $minPrice = 75000;
-
-    $maxPrice = 150000;
-
-    $rekomendasiTeks =
-        "Analisis Sistem: Deteksi jenis jasa harian / personal umum.";
-
-
-    // =====================================================
-    // WALI MURID
-    // =====================================================
-
-    if (
-        str_contains($deskripsi, 'walimurid') ||
-        str_contains($deskripsi, 'wali murid')
-    ) {
-
-        $minPrice = 100000;
-
-        $maxPrice = 150000;
-
-        $rekomendasiTeks =
-            "Analisis Sistem: Deteksi jasa wali murid sementara "
-            . "(ambil raport/pendampingan).";
-    }
-
-
-    // =====================================================
-    // AC
-    // =====================================================
-
-    elseif (
-        str_contains($deskripsi, 'ac') ||
-        str_contains($judul, 'ac')
-    ) {
-
-        $minPrice = 75000;
-
-        $maxPrice = 180000;
-
-        $rekomendasiTeks =
-            "Analisis Sistem: Deteksi perawatan / cuci AC ringan.";
-
-
-        if (
-            str_contains($deskripsi, 'bocor') ||
-            str_contains($deskripsi, 'freon')
-        ) {
-
-            $minPrice = 200000;
-
-            $maxPrice = 400000;
-
-            $rekomendasiTeks =
-                "Analisis Sistem: Deteksi perbaikan AC bocor "
-                . "+ tambah media Freon.";
+        // =====================================================
+        // UPLOAD GAMBAR
+        // =====================================================
+        $imageUrl = null;
+        if ($request->hasFile('image')) {
+            Log::info('IMAGE FILE BERHASIL DITERIMA');
+            $path = $request->file('image')->store('jobs', 'public');
+            Log::info('IMAGE PATH: ' . $path);
+            $imageUrl = '/storage/' . $path;
+            Log::info('IMAGE URL: ' . $imageUrl);
+        } else {
+            Log::warning('IMAGE TIDAK DITERIMA OLEH SERVER');
         }
+
+        // =====================================================
+        // ANALISIS DESKRIPSI (untuk rekomendasi budget)
+        // =====================================================
+        $deskripsi = strtolower($request->description);
+        $judul = strtolower($request->tittle);
+        $minPrice = 75000;
+        $maxPrice = 150000;
+        $rekomendasiTeks = "Analisis Sistem: Deteksi jenis jasa harian / personal umum.";
+
+        if (str_contains($deskripsi, 'walimurid') || str_contains($deskripsi, 'wali murid')) {
+            $minPrice = 100000;
+            $maxPrice = 150000;
+            $rekomendasiTeks = "Analisis Sistem: Deteksi jasa wali murid sementara (ambil raport/pendampingan).";
+        } elseif (str_contains($deskripsi, 'ac') || str_contains($judul, 'ac')) {
+            $minPrice = 75000;
+            $maxPrice = 180000;
+            $rekomendasiTeks = "Analisis Sistem: Deteksi perawatan / cuci AC ringan.";
+            if (str_contains($deskripsi, 'bocor') || str_contains($deskripsi, 'freon')) {
+                $minPrice = 200000;
+                $maxPrice = 400000;
+                $rekomendasiTeks = "Analisis Sistem: Deteksi perbaikan AC bocor + tambah media Freon.";
+            }
+        } elseif (str_contains($deskripsi, 'pompa') || str_contains($deskripsi, 'sanyo')) {
+            $minPrice = 150000;
+            $maxPrice = 350000;
+            $rekomendasiTeks = "Analisis Sistem: Deteksi pengecekan mesin pompa air rusak.";
+        }
+
+        $aiRecommendation = $rekomendasiTeks . " Kisaran harga pasar: Rp " . number_format($minPrice, 0, ',', '.') . " - Rp " . number_format($maxPrice, 0, ',', '.') . ".";
+
+        // =====================================================
+        // DATA TAMBAHAN
+        // =====================================================
+        $validated['pelanggan_id'] = auth()->id();
+        $validated['status'] = 'Mencari Mitra';
+        $validated['ai_recommended_budget'] = $aiRecommendation;
+        $validated['is_verified'] = 0;
+        $validated['verified_by'] = null;
+        $validated['image_url'] = $imageUrl;
+
+        // ══════════════════════════════════════════════════════════════
+        // 🔁 MAPPING: address_detail (dari Flutter) → location_description (di DB)
+        // ══════════════════════════════════════════════════════════════
+        if (isset($validated['address_detail'])) {
+            $validated['location_description'] = $validated['address_detail'];
+            unset($validated['address_detail']); // hapus agar tidak error karena kolom tidak ada
+        }
+
+        // =====================================================
+        // CREATE JOB
+        // =====================================================
+        $job = jobs::create($validated);
+
+        // =====================================================
+        // LOG AKTIVITAS
+        // =====================================================
+        ActivityLogger::log(
+            auth()->id(),
+            'Pengguna membuat postingan',
+            'Pengguna membuat postingan pekerjaan "' . $job->tittle . '".',
+            'post_add',
+            'Sistem'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lowongan sukses diposting dan masuk antrean moderasi!',
+            'data' => $job
+        ], 201);
     }
-
-
-    // =====================================================
-    // POMPA AIR
-    // =====================================================
-
-    elseif (
-        str_contains($deskripsi, 'pompa') ||
-        str_contains($deskripsi, 'sanyo')
-    ) {
-
-        $minPrice = 150000;
-
-        $maxPrice = 350000;
-
-        $rekomendasiTeks =
-            "Analisis Sistem: Deteksi pengecekan mesin pompa air rusak.";
-    }
-
-
-    // =====================================================
-    // REKOMENDASI BUDGET
-    // =====================================================
-
-    $aiRecommendation =
-        $rekomendasiTeks
-        . " Kisaran harga pasar: Rp "
-        . number_format(
-            $minPrice,
-            0,
-            ',',
-            '.'
-        )
-        . " - Rp "
-        . number_format(
-            $maxPrice,
-            0,
-            ',',
-            '.'
-        )
-        . ".";
-
-
-    // =====================================================
-    // DATA TAMBAHAN
-    // =====================================================
-
-    $validated['pelanggan_id'] =
-        auth()->id();
-
-    $validated['status'] =
-        'Mencari Mitra';
-
-    $validated['ai_recommended_budget'] =
-        $aiRecommendation;
-
-    $validated['is_verified'] =
-        0;
-
-    $validated['verified_by'] =
-        null;
-
-
-    // =====================================================
-    // SIMPAN IMAGE URL
-    // =====================================================
-
-    $validated['image_url'] =
-        $imageUrl;
-
-
-    // =====================================================
-    // CREATE JOB
-    // =====================================================
-
-    $job = jobs::create(
-        $validated
-    );
-
-
-    // =====================================================
-    // LOG AKTIVITAS
-    // =====================================================
-
-    ActivityLogger::log(
-        auth()->id(),
-        'Pengguna membuat postingan',
-        'Pengguna membuat postingan pekerjaan "'
-            . $job->tittle
-            . '".',
-        'post_add',
-        'Sistem'
-    );
-
-
-    // =====================================================
-    // RESPONSE
-    // =====================================================
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Lowongan sukses diposting dan masuk antrean moderasi!',
-
-        'data' =>
-            $job
-
-    ], 201);
-}
 
 
     /**
@@ -1197,7 +1052,7 @@ class JobController extends Controller
             // =================================================
 
             $latestJobWithBids =
-                \DB::table('jobs')
+                DB::table('jobs')
                     ->where(
                         'status',
                         'Mencari Mitra'
@@ -1229,7 +1084,7 @@ class JobController extends Controller
             if (!$latestJobWithBids) {
 
                 $activeMitraCount =
-                    \DB::table(
+                    DB::table(
                         'mitra_profiles'
                     )
                     ->where(
@@ -1264,7 +1119,7 @@ class JobController extends Controller
             // =================================================
 
             $bids =
-                \DB::table(
+                DB::table(
                     'job_bids'
                 )
                 ->leftJoin(
@@ -1284,7 +1139,7 @@ class JobController extends Controller
                     'job_bids.offered_price',
                     'job_bids.mitras_point_at_time',
                     'users.name as user_name',
-                    \DB::raw(
+                    DB::raw(
                         'COALESCE('
                         . 'mitra_profiles.point, '
                         . 'job_bids.mitras_point_at_time, '
@@ -1412,7 +1267,7 @@ class JobController extends Controller
             // =================================================
 
             $activeMitraCount =
-                \DB::table(
+                DB::table(
                     'mitra_profiles'
                 )
                 ->where(
