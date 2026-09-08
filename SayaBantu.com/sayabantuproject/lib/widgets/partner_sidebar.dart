@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
+
 import '../models/partner_sidebar_menu.dart';
 import '../services/api_service.dart';
 
@@ -27,6 +29,8 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
   int totalPoint = 0;
   bool isVerified = false;
+
+  bool isLoggingOut = false;
 
   @override
   void initState() {
@@ -64,19 +68,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
 
-        // Bisa:
-        // {
-        //   "success": true,
-        //   "user": {...}
-        // }
-        //
-        // atau langsung:
-        // {
-        //   "id": ...,
-        //   "name": ...,
-        //   "photo_url": ...
-        // }
-
         final dynamic userData =
             decodedData is Map<String, dynamic>
                 ? (decodedData['user'] ?? decodedData)
@@ -85,26 +76,19 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
         if (userData is Map<String, dynamic>) {
           final apiName = userData['name']?.toString();
 
-          final dynamic apiPhoto =
-              userData['photo_url'];
+          final dynamic apiPhoto = userData['photo_url'];
 
-          final apiPhotoUrl =
-              apiPhoto?.toString();
+          final apiPhotoUrl = apiPhoto?.toString();
 
-          debugPrint(
-            "NAMA USER        : $apiName",
-          );
-
-          debugPrint(
-            "PHOTO URL DARI API: $apiPhotoUrl",
-          );
+          debugPrint("NAMA USER        : $apiName");
+          debugPrint("PHOTO URL DARI API: $apiPhotoUrl");
 
           if (!mounted) return;
 
           setState(() {
-            // -----------------------------------------------
+            // ------------------------------------------------
             // NAMA
-            // -----------------------------------------------
+            // ------------------------------------------------
 
             if (apiName != null &&
                 apiName.trim().isNotEmpty) {
@@ -112,9 +96,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
               initials = getInitials(apiName);
             }
 
-            // -----------------------------------------------
+            // ------------------------------------------------
             // PHOTO
-            // -----------------------------------------------
+            // ------------------------------------------------
 
             if (apiPhotoUrl != null &&
                 apiPhotoUrl.trim().isNotEmpty &&
@@ -125,13 +109,8 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
             }
           });
 
-          debugPrint(
-            "PHOTO URL STATE  : $photoUrl",
-          );
-
-          debugPrint(
-            "FULL PHOTO URL   : ${getFullPhotoUrl()}",
-          );
+          debugPrint("PHOTO URL STATE : $photoUrl");
+          debugPrint("FULL PHOTO URL  : ${getFullPhotoUrl()}");
         }
       } else {
         debugPrint(
@@ -165,30 +144,24 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       );
 
       if (response.statusCode == 200) {
-        final decodedData =
-            jsonDecode(response.body);
+        final decodedData = jsonDecode(response.body);
 
-        final data =
-            decodedData['data'];
+        final data = decodedData['data'];
 
-        if (data != null) {
+        if (data != null && data is Map) {
           if (!mounted) return;
 
           setState(() {
             totalPoint =
                 int.tryParse(
-                      data['point']
-                              ?.toString() ??
-                          '0',
+                      data['point']?.toString() ?? '0',
                     ) ??
                     0;
 
             isVerified =
                 data['is_verified'] == true ||
                 data['is_verified'] == 1 ||
-                data['is_verified']
-                        ?.toString() ==
-                    '1' ||
+                data['is_verified']?.toString() == '1' ||
                 data['is_verified']
                         ?.toString()
                         .toLowerCase() ==
@@ -219,13 +192,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       return "P";
     }
 
-    final words =
-        trimmed.split(RegExp(r'\s+'));
+    final words = trimmed.split(RegExp(r'\s+'));
 
     if (words.length >= 2) {
-      return (
-        "${words.first[0]}${words.last[0]}"
-      ).toUpperCase();
+      return "${words.first[0]}${words.last[0]}".toUpperCase();
     }
 
     return words.first[0].toUpperCase();
@@ -255,25 +225,13 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       path = path.substring(1);
     }
 
-    // Contoh:
-    //
-    // profile_photos/abc.jpg
-    //
-    // menjadi:
-    //
-    // abc.jpg
-
-    final filename =
-        path.split('/').last;
+    final filename = path.split('/').last;
 
     if (filename.isEmpty) {
       return null;
     }
 
-    final url =
-        'http://127.0.0.1:8000/api/images/profile/$filename';
-
-    return url;
+    return 'http://127.0.0.1:8000/api/images/profile/$filename';
   }
 
   // =========================================================
@@ -281,8 +239,7 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
   // =========================================================
 
   Widget _buildProfileImage() {
-    final fullPhotoUrl =
-        getFullPhotoUrl();
+    final fullPhotoUrl = getFullPhotoUrl();
 
     // -------------------------------------------------------
     // TIDAK ADA FOTO
@@ -322,83 +279,199 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       child: ClipOval(
         child: Image.network(
           fullPhotoUrl,
-
           width: 52,
           height: 52,
-
           fit: BoxFit.cover,
-
-          // Supaya browser tidak menggunakan cache foto lama
-          // setelah user mengganti foto.
           cacheWidth: 120,
           cacheHeight: 120,
 
-          loadingBuilder:
-              (
-                context,
-                child,
-                loadingProgress,
-              ) {
-                if (loadingProgress == null) {
-                  return child;
-                }
+          loadingBuilder: (
+            context,
+            child,
+            loadingProgress,
+          ) {
+            if (loadingProgress == null) {
+              return child;
+            }
 
-                return Container(
-                  width: 52,
-                  height: 52,
-                  color: Colors.orange,
-                  alignment: Alignment.center,
-                  child:
-                      const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child:
-                        CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              },
+            return Container(
+              width: 52,
+              height: 52,
+              color: Colors.orange,
+              alignment: Alignment.center,
+              child: const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+            );
+          },
 
-          errorBuilder:
-              (
-                context,
-                error,
-                stackTrace,
-              ) {
-                debugPrint(
-                  "GAGAL MENAMPILKAN FOTO SIDEBAR",
-                );
+          errorBuilder: (
+            context,
+            error,
+            stackTrace,
+          ) {
+            debugPrint(
+              "GAGAL MENAMPILKAN FOTO SIDEBAR",
+            );
 
-                debugPrint(
-                  "URL FOTO: $fullPhotoUrl",
-                );
+            debugPrint(
+              "URL FOTO: $fullPhotoUrl",
+            );
 
-                debugPrint(
-                  "ERROR: $error",
-                );
+            debugPrint(
+              "ERROR: $error",
+            );
 
-                return Container(
-                  width: 52,
-                  height: 52,
-                  color: Colors.orange,
-                  alignment: Alignment.center,
-                  child: Text(
-                    initials,
-                    style:
-                        const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-                );
-              },
+            return Container(
+              width: 52,
+              height: 52,
+              color: Colors.orange,
+              alignment: Alignment.center,
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
+  }
+
+  // =========================================================
+  // LOGOUT
+  // =========================================================
+
+  Future<void> logout() async {
+    if (isLoggingOut) return;
+
+    final confirm = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(
+                    Icons.logout,
+                    color: Colors.red,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Keluar',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Apakah kamu yakin ingin keluar dari akun?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogContext,
+                      false,
+                    );
+                  },
+                  child: const Text(
+                    'Batal',
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogContext,
+                      true,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Keluar',
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!confirm) return;
+
+    if (mounted) {
+      setState(() {
+        isLoggingOut = true;
+      });
+    }
+
+    try {
+      final prefs =
+          await SharedPreferences.getInstance();
+
+      // Hapus data login
+      await prefs.remove('token');
+
+      // Tandai sudah logout
+      await prefs.setBool(
+        'isLoggedIn',
+        false,
+      );
+
+      // Opsional: hapus data profil lokal
+      await prefs.remove('name');
+      await prefs.remove('email');
+      await prefs.remove('phone');
+      await prefs.remove('address');
+      await prefs.remove('profile_image_url');
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LandingPage(),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoggingOut = false;
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Gagal keluar dari akun: $e',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
   }
 
   // =========================================================
@@ -421,8 +494,7 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
             // =================================================
 
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: 18,
               ),
               child: Row(
@@ -439,13 +511,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                         Text(
                           username,
                           maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
-                          style:
-                              const TextStyle(
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
                             color: Colors.white,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
@@ -454,10 +523,8 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
                         const Text(
                           "Mitra Aktif",
-                          style:
-                              TextStyle(
-                            color:
-                                Colors.white60,
+                          style: TextStyle(
+                            color: Colors.white60,
                             fontSize: 13,
                           ),
                         ),
@@ -475,17 +542,13 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
             // =================================================
 
             Container(
-              margin:
-                  const EdgeInsets.symmetric(
+              margin: const EdgeInsets.symmetric(
                 horizontal: 16,
               ),
-              padding:
-                  const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                borderRadius:
-                    BorderRadius.circular(16),
-                gradient:
-                    const LinearGradient(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
                   colors: [
                     Color(0xffFF8A00),
                     Color(0xffF97316),
@@ -501,8 +564,7 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
@@ -520,11 +582,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
                       Text(
                         "$totalPoint",
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                           fontSize: 32,
                         ),
                       ),
@@ -536,8 +596,7 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                   const Text(
                     "Peringkat mitra aktif",
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -555,17 +614,14 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
             if (isVerified)
               Container(
-                margin:
-                    const EdgeInsets.symmetric(
+                margin: const EdgeInsets.symmetric(
                   horizontal: 16,
                 ),
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   vertical: 11,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      const Color(0xffE8F7EE),
+                  color: const Color(0xffE8F7EE),
                   borderRadius:
                       BorderRadius.circular(10),
                 ),
@@ -578,16 +634,12 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
                       color: Colors.green,
                       size: 18,
                     ),
-
                     SizedBox(width: 6),
-
                     Text(
                       "Akun Terverifikasi",
-                      style:
-                          TextStyle(
+                      style: TextStyle(
                         color: Colors.green,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -597,46 +649,43 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
             const SizedBox(height: 25),
 
             // =================================================
-            // CARI PEKERJAAN
+            // MENU
             // =================================================
 
             _menu(
               context,
               icon: Icons.home_outlined,
               title: "Cari Pekerjaan",
-              menu:
-                  PartnerSidebarMenu
-                      .cariPekerjaan,
+              menu: PartnerSidebarMenu.cariPekerjaan,
             ),
-
-            // =================================================
-            // PENAWARAN AKTIF
-            // =================================================
 
             _menu(
               context,
-              icon:
-                  Icons.assignment_outlined,
+              icon: Icons.assignment_outlined,
               title: "Penawaran Aktif",
-              menu:
-                  PartnerSidebarMenu
-                      .penawaranAktif,
+              menu: PartnerSidebarMenu.penawaranAktif,
             ),
-
-            // =================================================
-            // PENGATURAN
-            // =================================================
 
             _menu(
               context,
               icon: Icons.settings,
               title: "Pengaturan",
-              menu:
-                  PartnerSidebarMenu
-                      .pengaturan,
+              menu: PartnerSidebarMenu.pengaturan,
             ),
 
+            // =================================================
+            // KOSONGKAN RUANG
+            // =================================================
+
             const Spacer(),
+
+            // =================================================
+            // LOGOUT
+            // =================================================
+
+            _buildLogoutButton(),
+
+            const SizedBox(height: 15),
           ],
         ),
       ),
@@ -653,8 +702,7 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     required String title,
     required PartnerSidebarMenu menu,
   }) {
-    final active =
-        widget.activeMenu == menu;
+    final active = widget.activeMenu == menu;
 
     return InkWell(
       onTap: () {
@@ -662,24 +710,20 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       },
       child: Container(
         width: double.infinity,
-        padding:
-            const EdgeInsets.symmetric(
+        padding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 15,
         ),
-        color:
-            active
-                ? Colors.orange
-                    .withOpacity(0.2)
-                : Colors.transparent,
+        color: active
+            ? Colors.orange.withOpacity(0.2)
+            : Colors.transparent,
         child: Row(
           children: [
             Icon(
               icon,
-              color:
-                  active
-                      ? Colors.orange
-                      : Colors.white70,
+              color: active
+                  ? Colors.orange
+                  : Colors.white70,
             ),
 
             const SizedBox(width: 15),
@@ -688,21 +732,82 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
               child: Text(
                 title,
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color:
-                      active
-                          ? Colors.orange
-                          : Colors.white,
-                  fontWeight:
-                      active
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                  color: active
+                      ? Colors.orange
+                      : Colors.white,
+                  fontWeight: active
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // LOGOUT BUTTON
+  // =========================================================
+
+  Widget _buildLogoutButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+      ),
+      child: InkWell(
+        onTap: isLoggingOut ? null : logout,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 13,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: Colors.red.withOpacity(0.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              if (isLoggingOut)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.red,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.logout,
+                  color: Colors.red,
+                  size: 20,
+                ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Text(
+                  isLoggingOut
+                      ? 'Keluar...'
+                      : 'Keluar',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
