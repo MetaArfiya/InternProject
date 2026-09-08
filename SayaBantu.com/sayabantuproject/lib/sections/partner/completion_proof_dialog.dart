@@ -1,17 +1,16 @@
-import 'dart:io';
-
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../services/api_service.dart';
+
 class CompletionProofDialog extends StatefulWidget {
-  final Future<void> Function({
-    required File image,
-    required String description,
-  })? onSubmit;
+  final int offerId;
 
   const CompletionProofDialog({
     super.key,
-    this.onSubmit,
+    required this.offerId,
   });
 
   @override
@@ -26,7 +25,7 @@ class _CompletionProofDialogState
   final TextEditingController _descriptionController =
       TextEditingController();
 
-  File? _selectedImage;
+  Uint8List? _selectedImage;
 
   bool _isSubmitting = false;
 
@@ -53,27 +52,25 @@ class _CompletionProofDialogState
         return;
       }
 
+      final Uint8List imageBytes =
+          await pickedFile.readAsBytes();
+
       if (!mounted) return;
 
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = imageBytes;
       });
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Gagal memilih foto: $e',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      _showError(
+        'Gagal memilih foto: $e',
       );
     }
   }
 
   // ============================================================
-  // BOTTOM SHEET PILIH SUMBER FOTO
+  // PILIH SUMBER FOTO
   // ============================================================
 
   void _showImageSourceOptions() {
@@ -97,13 +94,13 @@ class _CompletionProofDialogState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle
                 Container(
                   width: 45,
                   height: 5,
                   decoration: BoxDecoration(
                     color: const Color(0xffD1D5DB),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius:
+                        BorderRadius.circular(10),
                   ),
                 ),
 
@@ -119,7 +116,10 @@ class _CompletionProofDialogState
 
                 const SizedBox(height: 20),
 
-                // Kamera
+                // ==================================================
+                // KAMERA
+                // ==================================================
+
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -127,7 +127,8 @@ class _CompletionProofDialogState
                     height: 48,
                     decoration: BoxDecoration(
                       color: const Color(0xffDCFCE7),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius:
+                          BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.camera_alt_outlined,
@@ -144,14 +145,22 @@ class _CompletionProofDialogState
                     'Ambil foto pekerjaan sekarang',
                   ),
                   onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    _pickImage(ImageSource.camera);
+                    Navigator.pop(
+                      bottomSheetContext,
+                    );
+
+                    _pickImage(
+                      ImageSource.camera,
+                    );
                   },
                 ),
 
                 const SizedBox(height: 8),
 
-                // Galeri
+                // ==================================================
+                // GALERI
+                // ==================================================
+
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -159,7 +168,8 @@ class _CompletionProofDialogState
                     height: 48,
                     decoration: BoxDecoration(
                       color: const Color(0xffDBEAFE),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius:
+                          BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.photo_library_outlined,
@@ -176,26 +186,39 @@ class _CompletionProofDialogState
                     'Pilih foto dari galeri perangkat',
                   ),
                   onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    _pickImage(ImageSource.gallery);
+                    Navigator.pop(
+                      bottomSheetContext,
+                    );
+
+                    _pickImage(
+                      ImageSource.gallery,
+                    );
                   },
                 ),
 
                 const SizedBox(height: 8),
 
-                // Batal
+                // ==================================================
+                // BATAL
+                // ==================================================
+
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
-                      Navigator.pop(bottomSheetContext);
+                      Navigator.pop(
+                        bottomSheetContext,
+                      );
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
+                      padding:
+                          const EdgeInsets.symmetric(
                         vertical: 14,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(12),
                       ),
                     ),
                     child: const Text('Batal'),
@@ -232,7 +255,7 @@ class _CompletionProofDialogState
   }
 
   // ============================================================
-  // KIRIM BUKTI
+  // KIRIM BUKTI KE LARAVEL
   // ============================================================
 
   Future<void> _submitProof() async {
@@ -264,35 +287,79 @@ class _CompletionProofDialogState
     });
 
     try {
-      // --------------------------------------------------------
-      // FRONTEND ONLY
-      // --------------------------------------------------------
-      //
-      // Kalau callback tersedia, hasil akan dikirim ke parent.
-      // Untuk sementara callback ini belum wajib digunakan.
-      //
-      if (widget.onSubmit != null) {
-        await widget.onSubmit!(
-          image: _selectedImage!,
-          description: description,
+      debugPrint(
+        '📤 Mengirim bukti pekerjaan...',
+      );
+
+      debugPrint(
+        '📌 Offer ID: ${widget.offerId}',
+      );
+
+      // ========================================================
+      // KIRIM MULTIPART
+      // ========================================================
+
+      final response =
+          await ApiService.postMultipart(
+        '/mitra/offers/${widget.offerId}/completion-proof',
+        {
+          'description': description,
+        },
+        files: {
+          'photo': _selectedImage!,
+        },
+      );
+
+      debugPrint(
+        '📥 STATUS: ${response.statusCode}',
+      );
+
+      debugPrint(
+        '📦 RESPONSE: ${response.body}',
+      );
+
+      // ========================================================
+      // BERHASIL
+      // ========================================================
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300) {
+        if (!mounted) return;
+
+        Navigator.pop(
+          context,
+          CompletionProofResult(
+            image: _selectedImage!,
+            description: description,
+          ),
         );
-      } else {
-        // Simulasi proses pengiriman sementara.
-        await Future.delayed(
-          const Duration(milliseconds: 700),
-        );
+
+        return;
       }
 
-      if (!mounted) return;
+      // ========================================================
+      // GAGAL
+      // ========================================================
 
-      Navigator.pop(
-        context,
-        CompletionProofResult(
-          image: _selectedImage!,
-          description: description,
-        ),
-      );
-    } catch (e) {
+      String message =
+          'Gagal mengirim bukti pekerjaan.';
+
+      try {
+        final decoded =
+            response.body.isNotEmpty
+                ? jsonDecode(response.body)
+                : null;
+
+        if (decoded is Map<String, dynamic>) {
+          if (decoded['message'] != null) {
+            message =
+                decoded['message'].toString();
+          }
+        }
+      } catch (_) {
+        // Response bukan JSON.
+      }
+
       if (!mounted) return;
 
       setState(() {
@@ -300,13 +367,27 @@ class _CompletionProofDialogState
       });
 
       _showError(
-        'Gagal mengirim bukti pekerjaan: $e',
+        '$message\nStatus: ${response.statusCode}',
+      );
+    } catch (e) {
+      debugPrint(
+        '❌ ERROR KIRIM BUKTI: $e',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      _showError(
+        'Terjadi kesalahan saat mengirim bukti:\n$e',
       );
     }
   }
 
   // ============================================================
-  // ERROR MESSAGE
+  // ERROR
   // ============================================================
 
   void _showError(String message) {
@@ -341,7 +422,8 @@ class _CompletionProofDialogState
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 600,
-          maxHeight: mediaQuery.size.height * 0.88,
+          maxHeight:
+              mediaQuery.size.height * 0.88,
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
@@ -351,7 +433,8 @@ class _CompletionProofDialogState
             24,
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               // ==================================================
               // HEADER
@@ -364,7 +447,8 @@ class _CompletionProofDialogState
                     height: 45,
                     decoration: BoxDecoration(
                       color: const Color(0xffDCFCE7),
-                      borderRadius: BorderRadius.circular(13),
+                      borderRadius:
+                          BorderRadius.circular(13),
                     ),
                     child: const Icon(
                       Icons.task_alt_rounded,
@@ -384,7 +468,8 @@ class _CompletionProofDialogState
                           'Bukti Pekerjaan',
                           style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight:
+                                FontWeight.bold,
                           ),
                         ),
                         SizedBox(height: 3),
@@ -392,7 +477,8 @@ class _CompletionProofDialogState
                           'Kirim bukti bahwa pekerjaan telah selesai.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xff6B7280),
+                            color:
+                                Color(0xff6B7280),
                           ),
                         ),
                       ],
@@ -403,7 +489,9 @@ class _CompletionProofDialogState
                     onPressed: _isSubmitting
                         ? null
                         : () {
-                            Navigator.pop(context);
+                            Navigator.pop(
+                              context,
+                            );
                           },
                     icon: const Icon(
                       Icons.close,
@@ -457,11 +545,13 @@ class _CompletionProofDialogState
               const SizedBox(height: 8),
 
               TextField(
-                controller: _descriptionController,
+                controller:
+                    _descriptionController,
                 maxLines: 5,
                 minLines: 4,
                 maxLength: 500,
-                textInputAction: TextInputAction.newline,
+                textInputAction:
+                    TextInputAction.newline,
                 onChanged: (_) {
                   setState(() {});
                 },
@@ -473,13 +563,15 @@ class _CompletionProofDialogState
                     fontSize: 13,
                   ),
                   filled: true,
-                  fillColor: const Color(0xffF9FAFB),
+                  fillColor:
+                      const Color(0xffF9FAFB),
                   contentPadding:
                       const EdgeInsets.all(16),
                   border: OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(14),
-                    borderSide: const BorderSide(
+                    borderSide:
+                        const BorderSide(
                       color: Color(0xffE5E7EB),
                     ),
                   ),
@@ -487,7 +579,8 @@ class _CompletionProofDialogState
                       OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(14),
-                    borderSide: const BorderSide(
+                    borderSide:
+                        const BorderSide(
                       color: Color(0xffE5E7EB),
                     ),
                   ),
@@ -495,7 +588,8 @@ class _CompletionProofDialogState
                       OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(14),
-                    borderSide: const BorderSide(
+                    borderSide:
+                        const BorderSide(
                       color: Color(0xff16A34A),
                       width: 2,
                     ),
@@ -517,7 +611,8 @@ class _CompletionProofDialogState
                   borderRadius:
                       BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xffBBF7D0),
+                    color:
+                        const Color(0xffBBF7D0),
                   ),
                 ),
                 child: const Row(
@@ -534,7 +629,8 @@ class _CompletionProofDialogState
                       child: Text(
                         'Pastikan foto dan deskripsi sesuai dengan pekerjaan yang telah kamu lakukan.',
                         style: TextStyle(
-                          color: Color(0xff166534),
+                          color:
+                              Color(0xff166534),
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -557,28 +653,38 @@ class _CompletionProofDialogState
                       onPressed: _isSubmitting
                           ? null
                           : () {
-                              Navigator.pop(context);
+                              Navigator.pop(
+                                context,
+                              );
                             },
-                      style: OutlinedButton.styleFrom(
+                      style:
+                          OutlinedButton.styleFrom(
                         foregroundColor:
-                            const Color(0xff374151),
+                            const Color(
+                          0xff374151,
+                        ),
                         padding:
                             const EdgeInsets.symmetric(
                           vertical: 15,
                         ),
                         side: const BorderSide(
-                          color: Color(0xffD1D5DB),
+                          color: Color(
+                            0xffD1D5DB,
+                          ),
                         ),
                         shape:
                             RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(12),
+                              BorderRadius.circular(
+                            12,
+                          ),
                         ),
                       ),
                       child: const Text(
                         'Batal',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600,
+                          fontWeight:
+                              FontWeight.w600,
                         ),
                       ),
                     ),
@@ -588,9 +694,11 @@ class _CompletionProofDialogState
 
                   Expanded(
                     flex: 2,
-                    child: ElevatedButton.icon(
+                    child:
+                        ElevatedButton.icon(
                       onPressed:
-                          _isFormValid && !_isSubmitting
+                          _isFormValid &&
+                                  !_isSubmitting
                               ? _submitProof
                               : null,
                       icon: _isSubmitting
@@ -615,17 +723,24 @@ class _CompletionProofDialogState
                         _isSubmitting
                             ? 'Mengirim...'
                             : 'Kirim Bukti',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                        style:
+                            const TextStyle(
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
                       style:
                           ElevatedButton.styleFrom(
                         backgroundColor:
-                            const Color(0xff16A34A),
+                            const Color(
+                          0xff16A34A,
+                        ),
                         disabledBackgroundColor:
-                            const Color(0xffD1D5DB),
-                        foregroundColor: Colors.white,
+                            const Color(
+                          0xffD1D5DB,
+                        ),
+                        foregroundColor:
+                            Colors.white,
                         disabledForegroundColor:
                             Colors.white,
                         padding:
@@ -636,7 +751,9 @@ class _CompletionProofDialogState
                         shape:
                             RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(12),
+                              BorderRadius.circular(
+                            12,
+                          ),
                         ),
                       ),
                     ),
@@ -655,17 +772,22 @@ class _CompletionProofDialogState
   // ============================================================
 
   Widget _buildImageSection() {
-    // Belum ada foto
+    // ----------------------------------------------------------
+    // BELUM ADA FOTO
+    // ----------------------------------------------------------
+
     if (_selectedImage == null) {
       return InkWell(
         onTap: _showImageSourceOptions,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius:
+            BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
           height: 190,
           decoration: BoxDecoration(
             color: const Color(0xffF9FAFB),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius:
+                BorderRadius.circular(16),
             border: Border.all(
               color: const Color(0xffD1D5DB),
               width: 1.5,
@@ -679,13 +801,15 @@ class _CompletionProofDialogState
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: const Color(0xffDCFCE7),
+                  color:
+                      const Color(0xffDCFCE7),
                   borderRadius:
                       BorderRadius.circular(18),
                 ),
                 child: const Icon(
                   Icons.add_a_photo_outlined,
-                  color: Color(0xff16A34A),
+                  color:
+                      Color(0xff16A34A),
                   size: 30,
                 ),
               ),
@@ -695,7 +819,8 @@ class _CompletionProofDialogState
               const Text(
                 'Tambahkan Foto',
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                      FontWeight.bold,
                   fontSize: 15,
                 ),
               ),
@@ -705,7 +830,8 @@ class _CompletionProofDialogState
               const Text(
                 'Kamera atau Galeri',
                 style: TextStyle(
-                  color: Color(0xff6B7280),
+                  color:
+                      Color(0xff6B7280),
                   fontSize: 13,
                 ),
               ),
@@ -715,11 +841,15 @@ class _CompletionProofDialogState
       );
     }
 
-    // Sudah ada foto
+    // ----------------------------------------------------------
+    // SUDAH ADA FOTO
+    // ----------------------------------------------------------
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius:
+            BorderRadius.circular(16),
         border: Border.all(
           color: const Color(0xffD1D5DB),
         ),
@@ -727,15 +857,14 @@ class _CompletionProofDialogState
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Foto
-          Image.file(
+          Image.memory(
             _selectedImage!,
             width: double.infinity,
             height: 250,
             fit: BoxFit.cover,
           ),
 
-          // Gradient bagian bawah
+          // Gradient
           Positioned(
             left: 0,
             right: 0,
@@ -744,18 +873,22 @@ class _CompletionProofDialogState
               height: 75,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin:
+                      Alignment.topCenter,
+                  end:
+                      Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(
+                      alpha: 0.7,
+                    ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Tombol ganti
+          // Ganti Foto
           Positioned(
             left: 12,
             bottom: 12,
@@ -770,8 +903,10 @@ class _CompletionProofDialogState
               label: const Text(
                 'Ganti Foto',
               ),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white,
+              style:
+                  OutlinedButton.styleFrom(
+                backgroundColor:
+                    Colors.white,
                 foregroundColor:
                     const Color(0xff374151),
                 side: BorderSide.none,
@@ -780,7 +915,8 @@ class _CompletionProofDialogState
                   horizontal: 13,
                   vertical: 9,
                 ),
-                shape: RoundedRectangleBorder(
+                shape:
+                    RoundedRectangleBorder(
                   borderRadius:
                       BorderRadius.circular(10),
                 ),
@@ -788,7 +924,7 @@ class _CompletionProofDialogState
             ),
           ),
 
-          // Tombol hapus
+          // Hapus Foto
           Positioned(
             right: 12,
             bottom: 12,
@@ -797,9 +933,12 @@ class _CompletionProofDialogState
                   ? null
                   : _removeImage,
               tooltip: 'Hapus foto',
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.red,
+              style:
+                  IconButton.styleFrom(
+                backgroundColor:
+                    Colors.white,
+                foregroundColor:
+                    Colors.red,
               ),
               icon: const Icon(
                 Icons.delete_outline,
@@ -813,11 +952,11 @@ class _CompletionProofDialogState
 }
 
 // ================================================================
-// HASIL DARI DIALOG
+// HASIL DIALOG
 // ================================================================
 
 class CompletionProofResult {
-  final File image;
+  final Uint8List image;
   final String description;
 
   const CompletionProofResult({

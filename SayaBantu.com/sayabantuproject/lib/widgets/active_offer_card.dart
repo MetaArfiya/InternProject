@@ -398,8 +398,10 @@ class ActiveOfferCard extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return const CompletionProofDialog();
-      },
+        return CompletionProofDialog(
+          offerId: offer.id,
+        );
+},
     );
 
     if (result == null) {
