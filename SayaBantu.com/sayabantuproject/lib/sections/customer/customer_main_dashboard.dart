@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../models/sidebar_menu.dart';
 import '../../../widgets/customer_sidebar.dart';
-
 import '../../models/job_model.dart';
 import '../../models/offer_model.dart';
-
 import '../../screens/Screens_Customer/offer_screen.dart';
 import '../../screens/Screens_Customer/partner_profile_screen.dart';
-
 import 'customer_dashboard.dart';
 import 'notification_screen.dart';
 import 'setting_screen.dart';
@@ -17,8 +14,7 @@ class CustomerMainDashboard extends StatefulWidget {
   const CustomerMainDashboard({super.key});
 
   @override
-  State<CustomerMainDashboard> createState() =>
-      _CustomerMainDashboardState();
+  State<CustomerMainDashboard> createState() => _CustomerMainDashboardState();
 }
 
 class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
@@ -26,12 +22,16 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
 
   JobModel? selectedJob;
   OfferModel? selectedOffer;
+  String? profilePhotoUrl;
+
+  // ═══════════════════════════════════════════════════════
+  // 🔑 GLOBAL KEY UNTUK MENGAKSES STATE CUSTOMER SIDEBAR
+  // ═══════════════════════════════════════════════════════
+  final GlobalKey<CustomerSidebarState> _sidebarKey = GlobalKey<CustomerSidebarState>();
 
   Widget currentPage() {
     switch (selectedMenu) {
       case SidebarMenu.beranda:
-        // 🚀 Disesuaikan: Hanya mengirim onOpenOffer karena CustomerDashboard 
-        // sudah mengambil data & menangani aksi 'Selesai' via API internal.
         return CustomerDashboard(
           onOpenOffer: (job) {
             setState(() {
@@ -90,7 +90,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
         }
 
         return PartnerProfileScreen(
-          mitraId: selectedOffer!.mitraId, 
+          mitraId: selectedOffer!.mitraId,
           onFinish: () {
             setState(() {
               selectedMenu = SidebarMenu.penawaran;
@@ -104,7 +104,11 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       case SidebarMenu.pengaturan:
         return CustomerSettingScreen(
           onProfileUpdate: () {
+            // ═══════════════════════════════════════════════
+            // 🔄 REFRESH SIDEBAR SETELAH FOTO BERUBAH
+            // ═══════════════════════════════════════════════
             setState(() {});
+            _sidebarKey.currentState?.refreshProfile();
           },
         );
     }
@@ -122,12 +126,12 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
               : Drawer(
                   child: SafeArea(
                     child: CustomerSidebar(
+                      key: _sidebarKey,
                       activeMenu: selectedMenu,
                       onMenuSelected: (menu) {
                         setState(() {
                           selectedMenu = menu;
                         });
-
                         Navigator.pop(context);
                       },
                     ),
@@ -142,6 +146,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
               ? Row(
                   children: [
                     CustomerSidebar(
+                      key: _sidebarKey,
                       activeMenu: selectedMenu,
                       onMenuSelected: (menu) {
                         setState(() {
