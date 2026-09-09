@@ -19,10 +19,10 @@ class PartnerSidebar extends StatefulWidget {
   });
 
   @override
-  State<PartnerSidebar> createState() => _PartnerSidebarState();
+  PartnerSidebarState createState() => PartnerSidebarState();
 }
 
-class _PartnerSidebarState extends State<PartnerSidebar> {
+class PartnerSidebarState extends State<PartnerSidebar> {
   String username = "Partner";
   String? photoUrl;
   String initials = "P";
@@ -39,8 +39,11 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
   }
 
   // =========================================================
-  // LOAD USER
+  // 🔄 METHOD UNTUK REFRESH DARI LUAR
   // =========================================================
+  void refreshProfile() {
+    loadUser();
+  }
 
   Future<void> loadUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -86,19 +89,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
           if (!mounted) return;
 
           setState(() {
-            // ------------------------------------------------
-            // NAMA
-            // ------------------------------------------------
-
-            if (apiName != null &&
-                apiName.trim().isNotEmpty) {
+            if (apiName != null && apiName.trim().isNotEmpty) {
               username = apiName.trim();
               initials = getInitials(apiName);
             }
-
-            // ------------------------------------------------
-            // PHOTO
-            // ------------------------------------------------
 
             if (apiPhotoUrl != null &&
                 apiPhotoUrl.trim().isNotEmpty &&
@@ -113,14 +107,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
           debugPrint("FULL PHOTO URL  : ${getFullPhotoUrl()}");
         }
       } else {
-        debugPrint(
-          "GAGAL MEMUAT USER: ${response.statusCode}",
-        );
+        debugPrint("GAGAL MEMUAT USER: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint(
-        "ERROR LOAD USER PARTNER SIDEBAR: $e",
-      );
+      debugPrint("ERROR LOAD USER PARTNER SIDEBAR: $e");
     }
 
     // =======================================================
@@ -128,20 +118,11 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     // =======================================================
 
     try {
-      final response =
-          await ApiService.get('/mitra/profile');
+      final response = await ApiService.get('/mitra/profile');
 
-      debugPrint(
-        "===== PARTNER SIDEBAR MITRA =====",
-      );
-
-      debugPrint(
-        "STATUS : ${response.statusCode}",
-      );
-
-      debugPrint(
-        "BODY   : ${response.body}",
-      );
+      debugPrint("===== PARTNER SIDEBAR MITRA =====");
+      debugPrint("STATUS : ${response.statusCode}");
+      debugPrint("BODY   : ${response.body}");
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
@@ -169,21 +150,12 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
           });
         }
       } else {
-        debugPrint(
-          "GAGAL MEMUAT PROFIL MITRA: "
-          "${response.statusCode}",
-        );
+        debugPrint("GAGAL MEMUAT PROFIL MITRA: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint(
-        "ERROR LOAD PROFIL MITRA: $e",
-      );
+      debugPrint("ERROR LOAD PROFIL MITRA: $e");
     }
   }
-
-  // =========================================================
-  // INITIAL
-  // =========================================================
 
   String getInitials(String text) {
     final trimmed = text.trim();
@@ -201,10 +173,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     return words.first[0].toUpperCase();
   }
 
-  // =========================================================
-  // FULL PHOTO URL
-  // =========================================================
-
   String? getFullPhotoUrl() {
     if (photoUrl == null ||
         photoUrl!.trim().isEmpty ||
@@ -214,13 +182,10 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
 
     String path = photoUrl!.trim();
 
-    // Kalau sudah berupa URL lengkap
-    if (path.startsWith('http://') ||
-        path.startsWith('https://')) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
 
-    // Hilangkan "/" di awal
     if (path.startsWith('/')) {
       path = path.substring(1);
     }
@@ -234,16 +199,8 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     return 'http://127.0.0.1:8000/api/images/profile/$filename';
   }
 
-  // =========================================================
-  // PROFILE IMAGE
-  // =========================================================
-
   Widget _buildProfileImage() {
     final fullPhotoUrl = getFullPhotoUrl();
-
-    // -------------------------------------------------------
-    // TIDAK ADA FOTO
-    // -------------------------------------------------------
 
     if (fullPhotoUrl == null) {
       return Container(
@@ -264,10 +221,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
         ),
       );
     }
-
-    // -------------------------------------------------------
-    // ADA FOTO
-    // -------------------------------------------------------
 
     return Container(
       width: 52,
@@ -315,17 +268,9 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
             error,
             stackTrace,
           ) {
-            debugPrint(
-              "GAGAL MENAMPILKAN FOTO SIDEBAR",
-            );
-
-            debugPrint(
-              "URL FOTO: $fullPhotoUrl",
-            );
-
-            debugPrint(
-              "ERROR: $error",
-            );
+            debugPrint("GAGAL MENAMPILKAN FOTO SIDEBAR");
+            debugPrint("URL FOTO: $fullPhotoUrl");
+            debugPrint("ERROR: $error");
 
             return Container(
               width: 52,
@@ -346,10 +291,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       ),
     );
   }
-
-  // =========================================================
-  // LOGOUT
-  // =========================================================
 
   Future<void> logout() async {
     if (isLoggingOut) return;
@@ -425,19 +366,15 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     }
 
     try {
-      final prefs =
-          await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-      // Hapus data login
       await prefs.remove('token');
 
-      // Tandai sudah logout
       await prefs.setBool(
         'isLoggedIn',
         false,
       );
 
-      // Opsional: hapus data profil lokal
       await prefs.remove('name');
       await prefs.remove('email');
       await prefs.remove('phone');
@@ -473,10 +410,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
         );
     }
   }
-
-  // =========================================================
-  // BUILD
-  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -692,10 +625,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
     );
   }
 
-  // =========================================================
-  // MENU
-  // =========================================================
-
   Widget _menu(
     BuildContext context, {
     required IconData icon,
@@ -748,10 +677,6 @@ class _PartnerSidebarState extends State<PartnerSidebar> {
       ),
     );
   }
-
-  // =========================================================
-  // LOGOUT BUTTON
-  // =========================================================
 
   Widget _buildLogoutButton() {
     return Padding(

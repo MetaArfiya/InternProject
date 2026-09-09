@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/partner_sidebar_menu.dart';
 import '../../models/partner_job_model.dart';
-
 import '../../widgets/partner_sidebar.dart';
-
 import '../../sections/partner/partner_dashboard.dart';
 import '../../sections/partner/active_offer_screen.dart';
 import '../../sections/partner/partner_profile_section.dart';
@@ -22,6 +20,9 @@ class PartnerMainDashboard extends StatefulWidget {
 class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   PartnerSidebarMenu selectedMenu = PartnerSidebarMenu.cariPekerjaan;
   PartnerJobModel? selectedJob;
+
+  // GlobalKey untuk mengakses PartnerSidebarState
+  final GlobalKey<PartnerSidebarState> _sidebarKey = GlobalKey<PartnerSidebarState>();
 
   Widget currentPage() {
     switch (selectedMenu) {
@@ -41,10 +42,8 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
             child: Text("Silakan pilih pekerjaan terlebih dahulu dari menu Cari Pekerjaan."),
           );
         }
-
         return OfferJobScreen(
-          // Tambahkan .toJobModel() di sini untuk mengubah tipe data
-          job: selectedJob!, 
+          job: selectedJob!,
           onSubmit: () {
             setState(() {
               selectedMenu = PartnerSidebarMenu.penawaranAktif;
@@ -60,19 +59,18 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
       case PartnerSidebarMenu.penawaranAktif:
         return const ActiveOfferScreen();
 
-      case PartnerSidebarMenu.penghasilan: 
+      case PartnerSidebarMenu.penghasilan:
         return const IncomeScreen();
 
-      case PartnerSidebarMenu.profile: 
+      case PartnerSidebarMenu.profile:
         return const PartnerProfileSection();
 
       case PartnerSidebarMenu.pengaturan:
         return PartnerSettingScreen(
-          // FIX ERROR 3: Menambahkan callback wajib onProfileUpdate
           onProfileUpdate: () {
-            setState(() {
-              // Aksi saat profil berhasil diupdate, misal refresh data
-            });
+            // Refresh sidebar setelah profil berubah
+            _sidebarKey.currentState?.refreshProfile();
+            setState(() {});
           },
         );
     }
@@ -90,6 +88,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
               : Drawer(
                   child: SafeArea(
                     child: PartnerSidebar(
+                      key: _sidebarKey,
                       activeMenu: selectedMenu,
                       onMenuSelected: (menu) {
                         setState(() {
@@ -109,6 +108,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
               ? Row(
                   children: [
                     PartnerSidebar(
+                      key: _sidebarKey,
                       activeMenu: selectedMenu,
                       onMenuSelected: (menu) {
                         setState(() {

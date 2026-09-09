@@ -536,121 +536,67 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  Future<void> uploadProfilePhoto(
-    Uint8List bytes,
-    String fileName,
-  ) async {
+  Future<void> uploadProfilePhoto(Uint8List bytes, String fileName) async {
     try {
-      setState(() {
-        isUploadingPhoto = true;
-      });
+      setState(() => isUploadingPhoto = true);
 
       final request = html.HttpRequest();
       final formData = html.FormData();
 
-      final blob = html.Blob(
-        [bytes],
-        'image/jpeg',
-      );
+      final blob = html.Blob([bytes], 'image/jpeg');
 
-      formData.appendBlob(
-        'photo',
-        blob,
-        fileName,
-      );
+      // ════════════════════════════════════════════
+      // 🔥 Ganti 'photo' menjadi 'photo_profile'
+      // ════════════════════════════════════════════
+      formData.appendBlob('photo_profile', blob, fileName);
 
       request.open(
         'POST',
         'http://127.0.0.1:8000/api/user/profile/photo',
       );
 
-      final prefs =
-          await SharedPreferences.getInstance();
-
-      final token =
-          prefs.getString('token');
-
-      if (token != null &&
-          token.isNotEmpty) {
-        request.setRequestHeader(
-          'Authorization',
-          'Bearer $token',
-        );
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token != null && token.isNotEmpty) {
+        request.setRequestHeader('Authorization', 'Bearer $token');
       }
 
       final completer = Completer<bool>();
-
       request.onLoad.listen((_) {
         if (!completer.isCompleted) {
-          completer.complete(
-            request.status == 200 ||
-                request.status == 201,
-          );
+          completer.complete(request.status == 200 || request.status == 201);
         }
       });
-
       request.onError.listen((_) {
-        if (!completer.isCompleted) {
-          completer.complete(false);
-        }
+        if (!completer.isCompleted) completer.complete(false);
       });
 
       request.send(formData);
-
-      final success =
-          await completer.future;
+      final success = await completer.future;
 
       if (success) {
         try {
-          final responseData =
-              jsonDecode(
-            request.responseText ?? '',
-          );
-
-          final returnedUrl =
-              responseData['photo_url'] ??
-              responseData['url'] ??
-              responseData['photo'];
-
+          final responseData = jsonDecode(request.responseText ?? '');
+          final returnedUrl = responseData['photo_url'] ?? responseData['url'] ?? responseData['photo'];
           if (returnedUrl != null) {
-            final url =
-                returnedUrl.toString();
-
+            final url = returnedUrl.toString();
             if (mounted) {
-              setState(() {
-                photoUrl = url;
-              });
+              setState(() => photoUrl = url);
             }
-
-            await prefs.setString(
-              'profile_image_url',
-              url,
-            );
+            await prefs.setString('profile_image_url', url);
           }
         } catch (_) {}
 
-        widget.onProfileUpdate();
+        widget.onProfileUpdate(); // ✅ Panggil refresh sidebar
 
-        _showMessage(
-          'Foto profil berhasil diperbarui.',
-        );
+        _showMessage('Foto profil berhasil diperbarui.');
       } else {
-        _showMessage(
-          'Gagal mengunggah foto profil.',
-          error: true,
-        );
+        _showMessage('Gagal mengunggah foto profil.', error: true);
       }
     } catch (e) {
-      _showMessage(
-        'Gagal mengunggah foto: $e',
-        error: true,
-      );
+      _showMessage('Gagal mengunggah foto: $e', error: true);
     } finally {
-      if (mounted) {
-        setState(() {
-          isUploadingPhoto = false;
-        });
-      }
+      if (mounted) setState(() => isUploadingPhoto = false);
     }
   }
 
