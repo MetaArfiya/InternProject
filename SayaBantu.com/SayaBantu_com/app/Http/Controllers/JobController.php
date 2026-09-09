@@ -446,154 +446,56 @@ class JobController extends Controller
      * PENAWARAN MILIK MITRA
      * =========================================================
      */
+    /**
+ * =========================================================
+ * PENAWARAN MILIK MITRA
+ * =========================================================
+ */
     public function myOffers(Request $request)
     {
         $userId = auth()->id();
 
+        $profile = mitra_profiles::where('user_id', $userId)->first();
 
-        $profile =
-            mitra_profiles::where(
-                'user_id',
-                $userId
-            )->first();
+        $totalMitra = mitra_profiles::count();
 
+        $higherPointsCount = mitra_profiles::where('point', '>', $profile ? $profile->point : 0)->count();
 
-        $totalMitra =
-            mitra_profiles::count();
+        $ranking = $higherPointsCount + 1;
 
-
-        $higherPointsCount =
-            mitra_profiles::where(
-                'point',
-                '>',
-                $profile
-                    ? $profile->point
-                    : 0
-            )->count();
-
-
-        $ranking =
-            $higherPointsCount + 1;
-
-
-        $myBids =
-            job_bids::where(
-                'mitra_id',
-                $userId
-            )
-            ->whereIn(
-                'status',
-                [
-                    'Menunggu',
-                    'Diterima Pelanggan'
-                ]
-            )
+        $myBids = job_bids::where('mitra_id', $userId)
+            ->whereIn('status', ['Menunggu', 'Diterima Pelanggan'])
             ->with('job')
             ->latest()
             ->get();
 
+        $formattedOffers = $myBids->map(function ($bid) {
+            $queuePosition = job_bids::where('job_id', $bid->job_id)
+                ->where('status', 'Menunggu')
+                ->where('id', '<=', $bid->id)
+                ->count();
 
-        $formattedOffers =
-            $myBids->map(
-                function ($bid) {
-
-                    $queuePosition =
-                        job_bids::where(
-                            'job_id',
-                            $bid->job_id
-                        )
-                        ->where(
-                            'status',
-                            'Menunggu'
-                        )
-                        ->where(
-                            'id',
-                            '<=',
-                            $bid->id
-                        )
-                        ->count();
-
-
-                    return [
-
-                        'id' =>
-                            $bid->id,
-
-                        'tittle' =>
-                            optional(
-                                $bid->job
-                            )->tittle
-                            ?? 'Pekerjaan Tidak Diketahui',
-
-                        'price' =>
-                            (float) (
-                                $bid->offered_price
-                                ?? 0
-                            ),
-
-                        'queue_position' =>
-                            $bid->status ===
-                            'Diterima Pelanggan'
-
-                                ? 1
-
-                                : (
-                                    $queuePosition
-                                    ?: 1
-                                ),
-
-                        'is_top' =>
-                            (
-                                $bid->status ===
-                                'Diterima Pelanggan'
-
-                                ||
-
-                                $queuePosition === 1
-                            ),
-
-                        'status' =>
-                            $bid->status
-                            ?? 'Menunggu'
-                    ];
-                }
-            );
-
+            return [
+                'id' => $bid->id,
+                'job_id' => $bid->job_id, // <-- TAMBAHKAN INI
+                'tittle' => optional($bid->job)->tittle ?? 'Pekerjaan Tidak Diketahui',
+                'price' => (float) ($bid->offered_price ?? 0),
+                'queue_position' => $bid->status === 'Diterima Pelanggan' ? 1 : ($queuePosition ?: 1),
+                'is_top' => ($bid->status === 'Diterima Pelanggan' || $queuePosition === 1),
+                'status' => $bid->status ?? 'Menunggu'
+            ];
+        });
 
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Berhasil mengambil daftar penawaran aktif.',
-
+            'message' => 'Berhasil mengambil daftar penawaran aktif.',
             'sidebar' => [
-
-                'nama_mitra' =>
-                    auth()->user()->name
-                    ?? 'Mitra',
-
-                'total_poin' =>
-                    $profile
-                        ? $profile->point
-                        : 0,
-
-                'peringkat' =>
-                    "Peringkat ke-"
-                    . $ranking
-                    . " dari "
-                    . $totalMitra
-                    . " mitra",
-
-                'is_verified' =>
-                    $profile
-                        ? (bool) $profile->is_verified
-                        : false,
+                'nama_mitra' => auth()->user()->name ?? 'Mitra',
+                'total_poin' => $profile ? $profile->point : 0,
+                'peringkat' => "Peringkat ke-" . $ranking . " dari " . $totalMitra . " mitra",
+                'is_verified' => $profile ? (bool) $profile->is_verified : false,
             ],
-
-            'data' =>
-                $formattedOffers
-
+            'data' => $formattedOffers
         ], 200);
     }
 
