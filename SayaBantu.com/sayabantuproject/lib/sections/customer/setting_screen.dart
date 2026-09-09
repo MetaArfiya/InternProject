@@ -47,8 +47,55 @@ class _CustomerSettingScreenState
   @override
   void initState() {
     super.initState();
-
     loadProfileFromApi();
+  }
+
+  // =========================================================
+  // PREVIEW IMAGE DIALOG
+  // =========================================================
+  void _showImageDialog(BuildContext context, ImageProvider imageProvider) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            alignment: Alignment.topRight,
+            children: [
+              InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image(
+                  image: imageProvider,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // =========================================================
@@ -1046,110 +1093,120 @@ class _CustomerSettingScreenState
                 children: [
 
                   // =================================================
-                  // PROFILE PHOTO
+                  // PROFILE PHOTO (klik untuk preview)
                   // =================================================
 
-                  Stack(
-                    alignment:
-                        Alignment.bottomRight,
+                  GestureDetector(
+                    onTap: () {
+                      // Tampilkan preview jika ada gambar
+                      if (selectedPhotoBytes != null) {
+                        _showImageDialog(context, MemoryImage(selectedPhotoBytes!));
+                      } else if (fullPhotoUrl != null) {
+                        _showImageDialog(context, NetworkImage(fullPhotoUrl!));
+                      }
+                    },
+                    child: Stack(
+                      alignment:
+                          Alignment.bottomRight,
 
-                    children: [
+                      children: [
 
-                      CircleAvatar(
-                        radius: 55,
+                        CircleAvatar(
+                          radius: 55,
 
-                        backgroundColor:
-                            const Color(
-                          0xffFFF3E8,
-                        ),
-
-                        // =================================================
-                        // FOTO BARU PRIORITAS
-                        // DATABASE FALLBACK
-                        // =================================================
-
-                        backgroundImage:
-                            selectedPhotoBytes !=
-                                    null
-                                ? MemoryImage(
-                                    selectedPhotoBytes!,
-                                  )
-                                : fullPhotoUrl !=
-                                        null
-                                    ? NetworkImage(
-                                        fullPhotoUrl,
-                                      )
-                                    : null,
-
-                        child:
-                            selectedPhotoBytes ==
-                                        null &&
-                                    fullPhotoUrl ==
-                                        null
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color:
-                                        Color(
-                                      0xffF97316,
-                                    ),
-                                  )
-                                : null,
-                      ),
-
-                      // =================================================
-                      // CAMERA
-                      // =================================================
-
-                      Container(
-                        decoration:
-                            BoxDecoration(
-                          color:
+                          backgroundColor:
                               const Color(
-                            0xffF97316,
+                            0xffFFF3E8,
                           ),
 
-                          shape:
-                              BoxShape.circle,
+                          // =================================================
+                          // FOTO BARU PRIORITAS
+                          // DATABASE FALLBACK
+                          // =================================================
 
-                          border:
-                              Border.all(
-                            color:
-                                Colors.white,
-                            width: 3,
-                          ),
-                        ),
+                          backgroundImage:
+                              selectedPhotoBytes !=
+                                      null
+                                  ? MemoryImage(
+                                      selectedPhotoBytes!,
+                                    )
+                                  : fullPhotoUrl !=
+                                          null
+                                      ? NetworkImage(
+                                          fullPhotoUrl!,
+                                        )
+                                      : null,
 
-                        child:
-                            IconButton(
-                          icon:
-                              isUploadingPhoto
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child:
-                                          CircularProgressIndicator(
-                                        strokeWidth:
-                                            2,
-                                        color:
-                                            Colors.white,
+                          child:
+                              selectedPhotoBytes ==
+                                          null &&
+                                      fullPhotoUrl ==
+                                          null
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color:
+                                          Color(
+                                        0xffF97316,
                                       ),
                                     )
-                                  : const Icon(
-                                      Icons
-                                          .camera_alt,
-                                      color:
-                                          Colors.white,
-                                      size: 20,
-                                    ),
-
-                          onPressed:
-                              isUploadingPhoto
-                                  ? null
-                                  : pickProfilePhoto,
+                                  : null,
                         ),
-                      ),
-                    ],
+
+                        // =================================================
+                        // CAMERA
+                        // =================================================
+
+                        Container(
+                          decoration:
+                              BoxDecoration(
+                            color:
+                                const Color(
+                              0xffF97316,
+                            ),
+
+                            shape:
+                                BoxShape.circle,
+
+                            border:
+                                Border.all(
+                              color:
+                                  Colors.white,
+                              width: 3,
+                            ),
+                          ),
+
+                          child:
+                              IconButton(
+                            icon:
+                                isUploadingPhoto
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child:
+                                            CircularProgressIndicator(
+                                          strokeWidth:
+                                              2,
+                                          color:
+                                              Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons
+                                            .camera_alt,
+                                        color:
+                                            Colors.white,
+                                        size: 20,
+                                      ),
+
+                            onPressed:
+                                isUploadingPhoto
+                                    ? null
+                                    : pickProfilePhoto,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(
@@ -1253,87 +1310,97 @@ class _CustomerSettingScreenState
                                     children: [
 
                                       // =================================
-                                      // FOTO
+                                      // FOTO (klik untuk preview)
                                       // =================================
 
-                                      Stack(
-                                        alignment:
-                                            Alignment.bottomRight,
+                                      GestureDetector(
+                                        onTap: () {
+                                          // Tampilkan preview dari dialog
+                                          if (selectedPhotoBytes != null) {
+                                            _showImageDialog(dialogContext, MemoryImage(selectedPhotoBytes!));
+                                          } else if (fullPhotoUrl != null) {
+                                            _showImageDialog(dialogContext, NetworkImage(fullPhotoUrl!));
+                                          }
+                                        },
+                                        child: Stack(
+                                          alignment:
+                                              Alignment.bottomRight,
 
-                                        children: [
+                                          children: [
 
-                                          CircleAvatar(
-                                            radius: 50,
+                                            CircleAvatar(
+                                              radius: 50,
 
-                                            backgroundColor:
-                                                const Color(
-                                              0xffFFF3E8,
-                                            ),
-
-                                            backgroundImage:
-                                                selectedPhotoBytes !=
-                                                        null
-                                                    ? MemoryImage(
-                                                        selectedPhotoBytes!,
-                                                      )
-                                                    : fullPhotoUrl !=
-                                                            null
-                                                        ? NetworkImage(
-                                                            fullPhotoUrl,
-                                                          )
-                                                        : null,
-
-                                            child:
-                                                selectedPhotoBytes ==
-                                                            null &&
-                                                        fullPhotoUrl ==
-                                                            null
-                                                    ? const Icon(
-                                                        Icons.person,
-                                                        size: 50,
-                                                        color:
-                                                            Color(
-                                                          0xffF97316,
-                                                        ),
-                                                      )
-                                                    : null,
-                                          ),
-
-                                          Container(
-                                            decoration:
-                                                const BoxDecoration(
-                                              color:
-                                                  Color(
-                                                0xffF97316,
+                                              backgroundColor:
+                                                  const Color(
+                                                0xffFFF3E8,
                                               ),
-                                              shape:
-                                                  BoxShape.circle,
+
+                                              backgroundImage:
+                                                  selectedPhotoBytes !=
+                                                          null
+                                                      ? MemoryImage(
+                                                          selectedPhotoBytes!,
+                                                        )
+                                                      : fullPhotoUrl !=
+                                                              null
+                                                          ? NetworkImage(
+                                                              fullPhotoUrl!,
+                                                            )
+                                                          : null,
+
+                                              child:
+                                                  selectedPhotoBytes ==
+                                                              null &&
+                                                          fullPhotoUrl ==
+                                                              null
+                                                      ? const Icon(
+                                                          Icons.person,
+                                                          size: 50,
+                                                          color:
+                                                              Color(
+                                                            0xffF97316,
+                                                          ),
+                                                        )
+                                                      : null,
                                             ),
 
-                                            child:
-                                                IconButton(
-                                              icon:
-                                                  const Icon(
-                                                Icons
-                                                    .camera_alt,
+                                            Container(
+                                              decoration:
+                                                  const BoxDecoration(
                                                 color:
-                                                    Colors.white,
-                                                size: 18,
+                                                    Color(
+                                                  0xffF97316,
+                                                ),
+                                                shape:
+                                                    BoxShape.circle,
                                               ),
 
-                                              onPressed:
-                                                  () async {
+                                              child:
+                                                  IconButton(
+                                                icon:
+                                                    const Icon(
+                                                  Icons
+                                                      .camera_alt,
+                                                  color:
+                                                      Colors.white,
+                                                  size: 18,
+                                                ),
 
-                                                Navigator
-                                                    .pop(
-                                                  dialogContext,
-                                                );
+                                                onPressed:
+                                                    () async {
 
-                                                await pickProfilePhoto();
-                                              },
+                                                  Navigator
+                                                      .pop(
+                                                    dialogContext,
+                                                  );
+
+                                                  await pickProfilePhoto();
+                                                },
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
 
                                       const SizedBox(
