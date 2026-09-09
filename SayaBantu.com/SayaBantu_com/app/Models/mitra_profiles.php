@@ -10,21 +10,39 @@ class mitra_profiles extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 
+        'user_id',
+
+        // Data profil
+        'gender',
+        'birth_date',
+        'city',
         'bio',
-        'skills', 
-        'verification_image', 
+        'skills',
+
+        // Verifikasi
+        'skill_photos',
+        'verification_image',
+        'selfie_image', 
         'certificate',
+        'verified_by',
+        'verified_at',
+
+        // Statistik
         'point',
         'rating',
-        'is_verified', 
-        'verified_by', 
-        'verified_at'
+        'is_verified',
+
+        // Pekerjaan
+        'jobs_completed',
     ];
 
     protected $casts = [
         'certificate' => 'array',
-        'rating' => 'float', // Kita cast ke float agar saat ditarik API berupa angka desimal (contoh: 4.7)
+        'skill_photos' => 'array',
+        'rating' => 'float',
+        'point' => 'integer',
+        'is_verified' => 'boolean',
+        'birth_date' => 'date:Y-m-d',
     ];
 
     // Relasi: Profil ini milik seorang User (Mitra)

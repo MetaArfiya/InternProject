@@ -148,26 +148,239 @@ class MitraProfileController extends Controller
         }
     }
 
-    public function getProfile(Request $request)
+    public function updateProfile(Request $request)
     {
         try {
             $user = auth()->user();
+
             $profile = mitra_profiles::where('user_id', $user->id)->first();
+
+            if (!$profile) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Profil Mitra tidak ditemukan.'
+                ], 404);
+            }
+
+            $request->validate([
+                'gender' => 'nullable|string|max:50',
+                'birth_date' => 'nullable|date',
+                'city' => 'nullable|string|max:100',
+                'bio' => 'nullable|string',
+                'skills' => 'nullable|string|max:255',
+            ]);
+
+            $updateData = [];
+
+            if ($request->has('gender')) {
+                $updateData['gender'] = $request->gender;
+            }
+
+            if ($request->has('birth_date')) {
+                $updateData['birth_date'] = $request->birth_date;
+            }
+
+            if ($request->has('city')) {
+                $updateData['city'] = $request->city;
+            }
+
+            if ($request->has('bio')) {
+                $updateData['bio'] = $request->bio;
+            }
+
+            if ($request->has('skills')) {
+                $updateData['skills'] = $request->skills;
+            }
+
+            $profile->update($updateData);
 
             return response()->json([
                 'status' => 'success',
+                'message' => 'Profil Mitra berhasil diperbarui.',
                 'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'point' => $profile ? ($profile->point ?? 0) : 0,
-                    'is_verified' => $profile ? (int)$profile->is_verified === 1 : false,
+                    'gender' => $profile->gender,
+                    'birth_date' => $profile->birth_date,
+                    'city' => $profile->city,
+                    'bio' => $profile->bio,
+                    'skills' => $profile->skills,
+                    'point' => $profile->point ?? 0,
+                    'rating' => $profile->rating ?? 0,
+                    'is_verified' => (int) $profile->is_verified === 1,
                 ]
             ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function getProfile(Request $request)
+    {
+        try {
+            $user = auth()->user();
+
+            $profile = mitra_profiles::where('user_id', $user->id)->first();
+
+            if (!$profile) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Profil Mitra tidak ditemukan.'
+                ], 404);
+            }
+
+            // Pecah skills menjadi array jika datanya dipisahkan koma
+            $skillsArray = [];
+
+            if (!empty($profile->skills)) {
+                $skillsArray = array_values(
+                    array_filter(
+                        array_map('trim', explode(',', $profile->skills))
+                    )
+                );
+            }
+
+            return response()->json([
+                'status' => 'success',
+
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+
+                    // Data user
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'address' => $user->address,
+
+                    // Data profil mitra
+                    'gender' => $profile->gender,
+                    'birth_date' => $profile->birth_date,
+                    'city' => $profile->city,
+                    'bio' => $profile->bio,
+
+                    // Skills tetap dikirim sebagai array
+                    'skills' => $skillsArray,
+
+                    // Statistik
+                    'point' => $profile->point ?? 0,
+                    'rating' => $profile->rating ?? 0,
+                    'is_verified' => (int)$profile->is_verified === 1,
+
+                    // Berkas jika nanti diperlukan frontend
+                    'verification_image' => $profile->verification_image,
+                    'selfie_image' => $profile->selfie_image,
+                    'certificate' => $profile->certificate,
+                    'skill_photos' => $profile->skill_photos,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function submitVerification(Request $request)
+    {
+        try {
+            $request->validate([
+                'ktp_file' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+                'selfie_file' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            ]);
+
+            $user = auth()->user();
+            $profile = mitra_profiles::where('user_id', $user->id)->first();
+
+            if (!$profile) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Profil mitra tidak ditemukan.'
+                ], 404);
+            }
+
+            // Simpan file
+            $ktpPath = $request->file('ktp_file')->store('profile_photos', 'public');
+            $selfiePath = $request->file('selfie_file')->store('profile_photos', 'public');
+
+            $profile->update([
+                'verification_image' => $ktpPath,
+                'selfie_image' => $selfiePath,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verifikasi berhasil dikirim.',
+                'verification_image' => $ktpPath,  // ← kirim
+                'selfie_image' => $selfiePath,     // ← kirim
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function uploadSkillPhotos(Request $request)
+    {
+        $request->validate([
+            'photos.*' => 'image|max:2048',
+        ]);
+
+        $profile = mitra_profiles::where('user_id', auth()->id())->first();
+
+        if (!$profile) {
+            return response()->json(['message' => 'Profil tidak ditemukan'], 404);
+        }
+
+        $paths = [];
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('skill_photos', 'public');
+                $paths[] = $path;
+            }
+        }
+
+        // Gabung dengan foto lama (jika ada)
+        $oldPhotos = $profile->skill_photos ?? [];
+        $allPhotos = array_merge($oldPhotos, $paths);
+
+        $profile->update(['skill_photos' => $allPhotos]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto keahlian berhasil diupload',
+            'skill_photos' => $allPhotos,
+        ]);
+    }
+
+public function uploadCertificate(Request $request)
+    {
+        $request->validate([
+            'certificate' => 'required|file|max:2048',
+        ]);
+
+        $profile = mitra_profiles::where('user_id', auth()->id())->first();
+
+        if (!$profile) {
+            return response()->json(['message' => 'Profil tidak ditemukan'], 404);
+        }
+
+        $path = $request->file('certificate')->store('certificates', 'public');
+        $profile->update(['certificate' => $path]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sertifikat berhasil diupload',
+            'certificate' => $path,
+        ]);
     }
 }

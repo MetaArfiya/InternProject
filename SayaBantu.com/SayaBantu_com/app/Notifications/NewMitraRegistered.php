@@ -12,7 +12,7 @@ class NewMitraRegistered extends Notification
 
     protected $mitra;
 
-    public function __construct(User $mitra)
+    public function __construct(users $mitra)
     {
         $this->mitra = $mitra;
     }
