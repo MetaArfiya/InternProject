@@ -28,9 +28,9 @@ class MitraProfileSeeder extends Seeder
 
             'point' => 248,
             'rating' => 4.9,
-            'is_verified' => 0,
-            'verified_by' => null,
-            'verified_at' => null,
+            'is_verified' => 1,
+            'verified_by' => 2,
+            'verified_at' => now(),
         ]);
 
         // 2. Mas Eko Prasetyo (User ID: 6) - Terverifikasi
