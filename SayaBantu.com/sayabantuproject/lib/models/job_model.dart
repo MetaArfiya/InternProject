@@ -15,8 +15,9 @@ class JobModel {
   final String status;
   final String price;
   final String? createdAt;
+  final String? startedAt;
+  final String? completedAt;
 
-  // Properti pendukung UI
   final String? partnerName;
   final String? acceptedPrice;
   final String? completedDate;
@@ -24,11 +25,8 @@ class JobModel {
   final int bidderCount;
   final int offerCount;
 
-  // ============================================================
-  // BUKTI PEKERJAAN
-  // ============================================================
   final String? completionPhotoUrl;
-  final String? completionStatus; // 'pending', 'approved', 'rejected'
+  final String? completionStatus;
   final String? completionAdminNote;
   final DateTime? completionSubmittedAt;
   final DateTime? completionVerifiedAt;
@@ -48,6 +46,8 @@ class JobModel {
     required this.status,
     required this.price,
     this.createdAt,
+    this.startedAt,
+    this.completedAt,
     this.partnerName,
     this.acceptedPrice,
     this.completedDate,
@@ -65,14 +65,14 @@ class JobModel {
   String get time => createdAt ?? 'Baru saja';
 
   // ============================================================
-  // BUILD IMAGE URL UNTUK JOB
+  // BUILD IMAGE URL
   // ============================================================
   static String? _buildImageUrl(dynamic value) {
     if (value == null) return null;
     final String url = value.toString().trim();
     if (url.isEmpty) return null;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const String serverUrl = 'http://localhost:8000';
+    const String serverUrl = 'http://127.0.0.1:8000';
     if (url.startsWith('/storage/jobs/')) {
       final filename = url.substring('/storage/jobs/'.length);
       return '$serverUrl/api/images/jobs/$filename';
@@ -81,15 +81,12 @@ class JobModel {
     return '$serverUrl/$url';
   }
 
-  // ============================================================
-  // BUILD URL UNTUK BUKTI PEKERJAAN (TAMBAHAN)
-  // ============================================================
   static String? _buildProofUrl(dynamic value) {
     if (value == null) return null;
     final String url = value.toString().trim();
     if (url.isEmpty) return null;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const String serverUrl = 'http://localhost:8000';
+    const String serverUrl = 'http://127.0.0.1:8000';
     if (url.startsWith('/storage/completion_proofs/')) {
       final filename = url.substring('/storage/completion_proofs/'.length);
       return '$serverUrl/api/images/completion_proofs/$filename';
@@ -113,6 +110,8 @@ class JobModel {
     String? status,
     String? price,
     String? createdAt,
+    String? startedAt,
+    String? completedAt,
     String? partnerName,
     String? acceptedPrice,
     String? completedDate,
@@ -140,6 +139,8 @@ class JobModel {
       status: status ?? this.status,
       price: price ?? this.price,
       createdAt: createdAt ?? this.createdAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
       partnerName: partnerName ?? this.partnerName,
       acceptedPrice: acceptedPrice ?? this.acceptedPrice,
       completedDate: completedDate ?? this.completedDate,
@@ -155,19 +156,47 @@ class JobModel {
   }
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
+    // ============================================================
+    // BUDGET
+    // ============================================================
     final double budget = double.tryParse(json['initial_budget']?.toString() ?? '0') ?? 0.0;
-    final double? finalP = json['final_price'] != null ? double.tryParse(json['final_price'].toString()) : null;
+
+    // ============================================================
+    // FINAL PRICE (dari acceptBid)
+    // ============================================================
+    final double? finalP = json['final_price'] != null
+        ? double.tryParse(json['final_price'].toString())
+        : null;
+
+    // ============================================================
+    // CATEGORY
+    // ============================================================
     String categoryValue = 'Umum';
     if (json['category'] != null) {
-      if (json['category'] is Map) categoryValue = json['category']['name']?.toString() ?? 'Umum';
-      else if (json['category'] is String) categoryValue = json['category'].toString();
+      if (json['category'] is Map) {
+        categoryValue = json['category']['name']?.toString() ?? 'Umum';
+      } else if (json['category'] is String) {
+        categoryValue = json['category'].toString();
+      }
     }
-    final List<dynamic> offersList = json['offers'] is List ? json['offers'] as List<dynamic> : <dynamic>[];
-    final int offerCountFromDatabase = int.tryParse(json['bids_count']?.toString() ?? json['offer_count']?.toString() ?? '0') ?? 0;
+
+    // ============================================================
+    // OFFERS & COUNT
+    // ============================================================
+    final List<dynamic> offersList = json['offers'] is List
+        ? json['offers'] as List<dynamic>
+        : <dynamic>[];
+    final int offerCountFromDatabase = int.tryParse(
+      json['bids_count']?.toString() ?? json['offer_count']?.toString() ?? '0',
+    ) ?? 0;
+
+    // ============================================================
+    // IMAGE
+    // ============================================================
     final String? imageUrl = _buildImageUrl(json['image_url']);
 
     // ============================================================
-    // PERBAIKAN: gunakan _buildProofUrl untuk completion_photo_url
+    // BUKTI PEKERJAAN
     // ============================================================
     final completionPhotoUrl = _buildProofUrl(json['completion_photo_url']?.toString());
     final completionStatus = json['completion_status']?.toString();
@@ -178,6 +207,21 @@ class JobModel {
     final completionVerifiedAt = json['completion_verified_at'] != null
         ? DateTime.tryParse(json['completion_verified_at'].toString())
         : null;
+
+    // ============================================================
+    // PARTNER NAME (dari relasi 'mitra')
+    // ============================================================
+    String? partnerName;
+    if (json['mitra'] is Map) {
+      partnerName = json['mitra']['name']?.toString();
+    } else if (json['mitra_name'] != null) {
+      partnerName = json['mitra_name'].toString();
+    }
+
+    // ============================================================
+    // ACCEPTED PRICE (format Rupiah dari final_price)
+    // ============================================================
+    final String? acceptedPrice = finalP != null ? _formatRupiah(finalP) : null;
 
     return JobModel(
       id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
@@ -193,6 +237,10 @@ class JobModel {
       status: json['status']?.toString() ?? 'Mencari Mitra',
       price: _formatRupiah(budget),
       createdAt: json['created_at']?.toString(),
+      startedAt: json['started_at']?.toString(),
+      completedAt: json['completed_at']?.toString(),
+      partnerName: partnerName,
+      acceptedPrice: acceptedPrice,  // <-- INI YANG TADI KOSONG
       offers: offersList,
       bidderCount: offerCountFromDatabase,
       offerCount: offerCountFromDatabase,
@@ -205,6 +253,9 @@ class JobModel {
   }
 
   static String _formatRupiah(double number) {
-    return 'Rp ${number.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+    return 'Rp ${number.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    )}';
   }
 }

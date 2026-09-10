@@ -180,9 +180,6 @@ class _JobCardState extends State<JobCard> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // =================================================
-                  // GAMBAR (klik untuk preview)
-                  // =================================================
                   GestureDetector(
                     onTap: () {
                       if (widget.job.imageUrl != null && widget.job.imageUrl!.isNotEmpty) {
@@ -242,32 +239,28 @@ class _JobCardState extends State<JobCard> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.payments, size: 18, color: Colors.orange),
-                    const SizedBox(width: 6),
-                    Text(
-                      "Harga Deal: ${widget.job.acceptedPrice}",
-                      style: const TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
               ],
 
-              // ===== Info Pekerjaan =====
+              // ===== Info Harga & Waktu =====
               Wrap(
                 spacing: 20,
                 runSpacing: 8,
                 children: [
-                  if (isSearching) ...[
-                    Text(widget.job.price),
+                  _info(Icons.attach_money, "Harga Awal: ${widget.job.price}"),
+
+                  if (widget.job.acceptedPrice != null && widget.job.acceptedPrice!.isNotEmpty)
+                    _info(Icons.payments, "Harga Deal: ${widget.job.acceptedPrice}"),
+
+                  if (isSearching)
                     _info(Icons.people_alt_outlined, "${widget.job.offerCount} Penawar"),
-                  ],
-                  _info(Icons.access_time, _formatLocalTime(widget.job.time)),
+
+                  _info(Icons.access_time, "Dibuat: ${_formatLocalTime(widget.job.time)}"),
+
+                  if (widget.job.startedAt != null)
+                    _info(Icons.play_circle_outline, "Mulai: ${_formatLocalTime(widget.job.startedAt!)}"),
+
+                  if (widget.job.completedAt != null)
+                    _info(Icons.check_circle_outline, "Selesai: ${_formatLocalTime(widget.job.completedAt!)}"),
                 ],
               ),
               const SizedBox(height: 18),
@@ -280,9 +273,7 @@ class _JobCardState extends State<JobCard> {
                       ? Colors.green.shade100
                       : isInProgress
                           ? Colors.blue.shade100
-                          : isWaitingConfirmation
-                              ? Colors.orange.shade100
-                              : Colors.orange.shade100,
+                          : Colors.orange.shade100,
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Text(
@@ -301,8 +292,9 @@ class _JobCardState extends State<JobCard> {
               ),
               const SizedBox(height: 16),
 
-              // ===== Bukti Pekerjaan (jika status Menunggu Konfirmasi Selesai) =====
-              if (isWaitingConfirmation && hasProof) ...[
+              // ===== Bukti Pekerjaan =====
+              // Tampil di semua status (termasuk Selesai)
+              if (hasProof) ...[
                 const Divider(),
                 const Text(
                   '📸 Bukti Pekerjaan:',
@@ -318,7 +310,7 @@ class _JobCardState extends State<JobCard> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      widget.job.completionPhotoUrl!, // sudah URL lengkap
+                      widget.job.completionPhotoUrl!,
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -336,46 +328,50 @@ class _JobCardState extends State<JobCard> {
                     style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
                   ),
                 ],
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isVerifying ? null : () => _verifyProof('approved'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+
+                // Tombol Setujui/Tolak hanya saat masih menunggu konfirmasi
+                if (isWaitingConfirmation) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isVerifying ? null : () => _verifyProof('approved'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: _isVerifying
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.check, size: 18),
+                          label: const Text('Setujui'),
                         ),
-                        icon: _isVerifying
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.check, size: 18),
-                        label: const Text('Setujui'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isVerifying ? null : () => _verifyProof('rejected'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isVerifying ? null : () => _verifyProof('rejected'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: _isVerifying
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.close, size: 18),
+                          label: const Text('Tolak'),
                         ),
-                        icon: _isVerifying
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.close, size: 18),
-                        label: const Text('Tolak'),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
               ],
 
@@ -419,9 +415,7 @@ class _JobCardState extends State<JobCard> {
                             },
                             child: const Text("Selesaikan"),
                           )
-                        : isCompleted
-                            ? const SizedBox.shrink()
-                            : const SizedBox.shrink(),
+                        : const SizedBox.shrink(),
               ),
             ],
           ),
@@ -430,9 +424,6 @@ class _JobCardState extends State<JobCard> {
     );
   }
 
-  // ============================================================
-  // BUILD JOB IMAGE (tidak diubah, hanya untuk display)
-  // ============================================================
   Widget _buildJobImage(BuildContext context) {
     if (widget.job.imageUrl != null && widget.job.imageUrl!.isNotEmpty) {
       return Image.network(

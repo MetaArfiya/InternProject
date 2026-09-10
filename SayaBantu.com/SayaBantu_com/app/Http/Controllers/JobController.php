@@ -19,21 +19,19 @@ class JobController extends Controller
      * =========================================================
      * DETAIL PEKERJAAN
      * =========================================================
-     * Dipanggil oleh Flutter:
-     * GET /api/jobs/{id}
      */
     public function show($id)
     {
         try {
             $job = jobs::withCount('bids')
-            ->with([
-                'bids' => function ($query) {
-                    $query->latest();
-                },
-                'bids.mitraProfile',
-                'bids.user'
-            ])
-            ->find($id);
+                ->with([
+                    'bids' => function ($query) {
+                        $query->latest();
+                    },
+                    'bids.mitraProfile',
+                    'bids.user'
+                ])
+                ->find($id);
 
             if (!$job) {
                 return response()->json([
@@ -49,21 +47,13 @@ class JobController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-
-            Log::error(
-                "Error pada JobController@show: "
-                . $e->getMessage()
-            );
-
+            Log::error("Error pada JobController@show: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' =>
-                    'Terjadi kesalahan pada server: '
-                    . $e->getMessage()
+                'message' => 'Terjadi kesalahan pada server: ' . $e->getMessage()
             ], 500);
         }
     }
-
 
     /**
      * =========================================================
@@ -75,52 +65,28 @@ class JobController extends Controller
         $keyword = $request->query('keyword');
 
         if (!$keyword) {
-
-            $jobs = jobs::where(
-                'status',
-                'Mencari Mitra'
-            )
-                ->latest()
-                ->get();
-
+            $jobs = jobs::where('status', 'Mencari Mitra')->latest()->get();
             return response()->json([
                 'success' => true,
-                'message' =>
-                    'Menampilkan semua lowongan aktif.',
+                'message' => 'Menampilkan semua lowongan aktif.',
                 'data' => $jobs
             ], 200);
         }
 
-        $jobs = jobs::where(
-            'status',
-            'Mencari Mitra'
-        )
+        $jobs = jobs::where('status', 'Mencari Mitra')
             ->where(function ($query) use ($keyword) {
-
-                $query->where(
-                    'tittle',
-                    'LIKE',
-                    '%' . $keyword . '%'
-                )
-                ->orWhere(
-                    'description',
-                    'LIKE',
-                    '%' . $keyword . '%'
-                );
+                $query->where('tittle', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('description', 'LIKE', '%' . $keyword . '%');
             })
             ->latest()
             ->get();
 
         return response()->json([
             'success' => true,
-            'message' =>
-                'Hasil pencarian untuk: "'
-                . $keyword
-                . '"',
+            'message' => 'Hasil pencarian untuk: "' . $keyword . '"',
             'data' => $jobs
         ], 200);
     }
-
 
     /**
      * =========================================================
@@ -133,41 +99,31 @@ class JobController extends Controller
             $pelangganId = auth()->id();
 
             $jobs = jobs::withCount('bids')
+                ->with([
+                    'mitra:id,name',      // <-- TAMBAHKAN agar partnerName terisi
+                    'pelanggan:id,name',  // <-- opsional, untuk info pelanggan
+                ])
                 ->where('pelanggan_id', $pelangganId)
                 ->latest()
                 ->get();
 
             $totalPosting = $jobs->count();
-
-            $sedangBerjalan = $jobs->where(
-                'status',
-                'Sedang Dikerjakan'
-            )->count();
-
-            $selesai = $jobs->where(
-                'status',
-                'Selesai'
-            )->count();
+            $sedangBerjalan = $jobs->where('status', 'Sedang Dikerjakan')->count();
+            $selesai = $jobs->where('status', 'Selesai')->count();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
-
                 'statistics' => [
                     'total_posting' => $totalPosting,
                     'sedang_berjalan' => $sedangBerjalan,
                     'selesai' => $selesai,
                 ],
-
                 'data' => $jobs,
             ], 200);
 
         } catch (\Exception $e) {
-
-            Log::error(
-                'Error JobController@myJobs: ' . $e->getMessage()
-            );
-
+            Log::error('Error JobController@myJobs: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan pada server.',
@@ -175,38 +131,16 @@ class JobController extends Controller
         }
     }
 
-
     /**
      * =========================================================
      * PELANGGAN MEMBUAT POSTINGAN
      * =========================================================
-     *
-     * Flutter mengirim:
-     *
-     * tittle
-     * description
-     * initial_budget
-     * location
-     * address_detail
-     * latitude
-     * longitude
-     * category
-     * duration     <-- WAJIB (contoh: "1–2 Jam", "3–5 Jam", "1 Hari", dll.)
-     * image        (opsional, multipart)
      */
     public function store(Request $request)
     {
-        // =====================================================
-        // DEBUG UPLOAD (opsional)
-        // =====================================================
         Log::info('=== DEBUG UPLOAD JOB ===');
         Log::info('Has image: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
-        Log::info('Request files:', $request->allFiles());
-        Log::info('Request data:', $request->except('image'));
 
-        // =====================================================
-        // VALIDASI
-        // =====================================================
         $validated = $request->validate([
             'tittle'          => 'required|string',
             'description'     => 'required|string',
@@ -220,23 +154,12 @@ class JobController extends Controller
             'image'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
-        // =====================================================
-        // UPLOAD GAMBAR
-        // =====================================================
         $imageUrl = null;
         if ($request->hasFile('image')) {
-            Log::info('IMAGE FILE BERHASIL DITERIMA');
             $path = $request->file('image')->store('jobs', 'public');
-            Log::info('IMAGE PATH: ' . $path);
             $imageUrl = '/storage/' . $path;
-            Log::info('IMAGE URL: ' . $imageUrl);
-        } else {
-            Log::warning('IMAGE TIDAK DITERIMA OLEH SERVER');
         }
 
-        // =====================================================
-        // ANALISIS DESKRIPSI (untuk rekomendasi budget)
-        // =====================================================
         $deskripsi = strtolower($request->description);
         $judul = strtolower($request->tittle);
         $minPrice = 75000;
@@ -246,7 +169,7 @@ class JobController extends Controller
         if (str_contains($deskripsi, 'walimurid') || str_contains($deskripsi, 'wali murid')) {
             $minPrice = 100000;
             $maxPrice = 150000;
-            $rekomendasiTeks = "Analisis Sistem: Deteksi jasa wali murid sementara (ambil raport/pendampingan).";
+            $rekomendasiTeks = "Analisis Sistem: Deteksi jasa wali murid sementara.";
         } elseif (str_contains($deskripsi, 'ac') || str_contains($judul, 'ac')) {
             $minPrice = 75000;
             $maxPrice = 180000;
@@ -254,7 +177,7 @@ class JobController extends Controller
             if (str_contains($deskripsi, 'bocor') || str_contains($deskripsi, 'freon')) {
                 $minPrice = 200000;
                 $maxPrice = 400000;
-                $rekomendasiTeks = "Analisis Sistem: Deteksi perbaikan AC bocor + tambah media Freon.";
+                $rekomendasiTeks = "Analisis Sistem: Deteksi perbaikan AC bocor + tambah Freon.";
             }
         } elseif (str_contains($deskripsi, 'pompa') || str_contains($deskripsi, 'sanyo')) {
             $minPrice = 150000;
@@ -264,9 +187,6 @@ class JobController extends Controller
 
         $aiRecommendation = $rekomendasiTeks . " Kisaran harga pasar: Rp " . number_format($minPrice, 0, ',', '.') . " - Rp " . number_format($maxPrice, 0, ',', '.') . ".";
 
-        // =====================================================
-        // DATA TAMBAHAN
-        // =====================================================
         $validated['pelanggan_id'] = auth()->id();
         $validated['status'] = 'Mencari Mitra';
         $validated['ai_recommended_budget'] = $aiRecommendation;
@@ -274,22 +194,13 @@ class JobController extends Controller
         $validated['verified_by'] = null;
         $validated['image_url'] = $imageUrl;
 
-        // ══════════════════════════════════════════════════════════════
-        // 🔁 MAPPING: address_detail (dari Flutter) → location_description (di DB)
-        // ══════════════════════════════════════════════════════════════
         if (isset($validated['address_detail'])) {
             $validated['location_description'] = $validated['address_detail'];
-            unset($validated['address_detail']); // hapus agar tidak error karena kolom tidak ada
+            unset($validated['address_detail']);
         }
 
-        // =====================================================
-        // CREATE JOB
-        // =====================================================
         $job = jobs::create($validated);
 
-        // =====================================================
-        // LOG AKTIVITAS
-        // =====================================================
         ActivityLogger::log(
             auth()->id(),
             'Pengguna membuat postingan',
@@ -305,7 +216,6 @@ class JobController extends Controller
         ], 201);
     }
 
-
     /**
      * =========================================================
      * DAFTAR PEKERJAAN UNTUK MITRA
@@ -314,11 +224,8 @@ class JobController extends Controller
     public function availableJobs(Request $request)
     {
         $mitraId = auth()->id();
-
-        // Ambil profile Mitra yang sedang login
         $mitraProfile = mitra_profiles::where('user_id', $mitraId)->first();
 
-        // Jika profile Mitra tidak ditemukan
         if (!$mitraProfile) {
             return response()->json([
                 'success' => true,
@@ -330,104 +237,41 @@ class JobController extends Controller
             ], 200);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | PARSE SKILLS / KATEGORI MITRA
-        |--------------------------------------------------------------------------
-        | Mendukung kategori utama dari gambar:
-        | - Rumah & Bangunan
-        | - Perbaikan & Perawatan
-        | - Kebersihan
-        | - Pindahan & Pengiriman
-        | - Teknologi & Digital
-        | - Kreatif & Desain
-        | - Pendidikan & Les
-        | - Jasa Personal
-        | - Jasa Lainnya
-        */
-
         $mitraSkills = [];
-
-        // Ambil dari kolom 'skills' atau 'category' milik mitraProfile
-        //$rawSkills = $mitraProfile->skills ?? $mitraProfile->category ?? '';
-        $rawSkills = !empty($mitraProfile->skills)? $mitraProfile->skills: ($mitraProfile->category ?? '');
+        $rawSkills = !empty($mitraProfile->skills) ? $mitraProfile->skills : ($mitraProfile->category ?? '');
 
         if (!empty($rawSkills)) {
-            // Jika tersimpan sebagai string dipisah koma
             $mitraSkills = explode(',', $rawSkills);
-
             $mitraSkills = array_map(function ($skill) {
-                // Bersihkan emoji jika di DB tersimpan beserta emojinya (misal: "🏠 Rumah & Bangunan")
                 $cleanSkill = preg_replace('/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u', '', $skill);
                 return strtolower(trim($cleanSkill));
             }, $mitraSkills);
-
-            // Hilangkan nilai kosong dan duplikat
             $mitraSkills = array_unique(array_filter($mitraSkills));
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | QUERY PEKERJAAN
-        |--------------------------------------------------------------------------
-        */
-
-        $query = jobs::withCount('bids')
-    ->where('status', 'Mencari Mitra');
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER BERDASARKAN KATEGORI MITRA
-        |--------------------------------------------------------------------------
-        */
+        $query = jobs::withCount('bids')->where('status', 'Mencari Mitra');
 
         if (!empty($mitraSkills)) {
             $query->where(function ($q) use ($mitraSkills) {
                 foreach ($mitraSkills as $skill) {
-                    // Mencocokkan kolom category di tabel jobs dengan skill mitra (case-insensitive & trim)
                     $q->orWhereRaw('LOWER(TRIM(category)) = ?', [$skill]);
                 }
             });
         } else {
-            // Kalau Mitra belum memilih kategori/skills, jangan tampilkan pekerjaan apa pun
             $query->whereRaw('1 = 0');
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | JANGAN TAMPILKAN JOB YANG SUDAH PERNAH DIBID MITRA INI
-        |--------------------------------------------------------------------------
-        */
 
         $query->whereDoesntHave('bids', function ($bQuery) use ($mitraId) {
             $bQuery->where('mitra_id', $mitraId);
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | AMBIL DATA
-        |--------------------------------------------------------------------------
-        */
-
         $jobs = $query->latest()->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | JUMLAH PENAWARAN AKTIF & POINT
-        |--------------------------------------------------------------------------
-        */
 
         $activeOffersCount = job_bids::where('mitra_id', $mitraId)
             ->whereIn('status', ['Menunggu', 'Diterima Pelanggan'])
             ->count();
 
         $userPoints = $mitraProfile->point ?? 0;
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE JSON
-        |--------------------------------------------------------------------------
-        */
 
         return response()->json([
             'success' => true,
@@ -440,27 +284,17 @@ class JobController extends Controller
         ], 200);
     }
 
-
     /**
      * =========================================================
      * PENAWARAN MILIK MITRA
      * =========================================================
      */
-    /**
- * =========================================================
- * PENAWARAN MILIK MITRA
- * =========================================================
- */
     public function myOffers(Request $request)
     {
         $userId = auth()->id();
-
         $profile = mitra_profiles::where('user_id', $userId)->first();
-
         $totalMitra = mitra_profiles::count();
-
         $higherPointsCount = mitra_profiles::where('point', '>', $profile ? $profile->point : 0)->count();
-
         $ranking = $higherPointsCount + 1;
 
         $myBids = job_bids::where('mitra_id', $userId)
@@ -477,7 +311,7 @@ class JobController extends Controller
 
             return [
                 'id' => $bid->id,
-                'job_id' => $bid->job_id, // <-- TAMBAHKAN INI
+                'job_id' => $bid->job_id,
                 'tittle' => optional($bid->job)->tittle ?? 'Pekerjaan Tidak Diketahui',
                 'price' => (float) ($bid->offered_price ?? 0),
                 'queue_position' => $bid->status === 'Diterima Pelanggan' ? 1 : ($queuePosition ?: 1),
@@ -499,735 +333,161 @@ class JobController extends Controller
         ], 200);
     }
 
-
     /**
      * =========================================================
      * MITRA MEMBUAT PENAWARAN
      * =========================================================
      */
-    public function applyJob(
-        Request $request,
-        $id
-    ) {
-
+    public function applyJob(Request $request, $id)
+    {
         $request->validate([
-            'offered_price' =>
-                'required|numeric|min:1000',
+            'offered_price' => 'required|numeric|min:1000',
         ]);
 
+        $mitraId = auth()->id();
+        $mitraProfile = mitra_profiles::where('user_id', $mitraId)->first();
 
-        $mitraId =
-            auth()->id();
-
-
-        $mitraProfile =
-            mitra_profiles::where(
-                'user_id',
-                $mitraId
-            )->first();
-
-
-        if (
-            !$mitraProfile ||
-            $mitraProfile->is_verified !== 1
-        ) {
-
+        // ✅ PERBAIKAN: gunakan truthy check, karena is_verified sudah boolean
+        if (!$mitraProfile || !$mitraProfile->is_verified) {
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Akun anda belum diverifikasi oleh Admin. '
-                    . 'Tidak dapat mengajukkan penawaran.'
+                'message' => 'Akun anda belum diverifikasi oleh Admin. Tidak dapat mengajukkan penawaran.'
             ], 403);
         }
 
-
-        $job =
-            jobs::where(
-                'id',
-                $id
-            )
-            ->where(
-                'status',
-                'Mencari Mitra'
-            )
-            ->first();
-
+        $job = jobs::where('id', $id)->where('status', 'Mencari Mitra')->first();
 
         if (!$job) {
-
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Pekerjaan tidak ditemukan atau sudah tidak menerima tawaran.'
+                'message' => 'Pekerjaan tidak ditemukan atau sudah tidak menerima tawaran.'
             ], 404);
         }
 
-
-        // =====================================================
-        // CEK SUDAH BID
-        // =====================================================
-
-        $alreadyBid =
-            job_bids::where(
-                'job_id',
-                $id
-            )
-            ->where(
-                'mitra_id',
-                $mitraId
-            )
-            ->exists();
-
+        $alreadyBid = job_bids::where('job_id', $id)->where('mitra_id', $mitraId)->exists();
 
         if ($alreadyBid) {
-
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Kamu sudah mengajukan penawaran untuk pekerjaan ini.'
+                'message' => 'Kamu sudah mengajukan penawaran untuk pekerjaan ini.'
             ], 400);
         }
 
+        $currentPoint = $mitraProfile->point ?? 0;
 
-        // =====================================================
-        // POIN MITRA
-        // =====================================================
-
-        $currentPoint =
-            $mitraProfile
-                ? $mitraProfile->point
-                : 0;
-
-
-        // =====================================================
-        // CREATE BID
-        // =====================================================
-
-        $bid =
-            job_bids::create([
-
-                'job_id' =>
-                    $id,
-
-                'mitra_id' =>
-                    $mitraId,
-
-                'offered_price' =>
-                    $request->offered_price,
-
-                'mitras_point_at_time' =>
-                    $currentPoint,
-
-                'status' =>
-                    'Menunggu'
-            ]);
-
-
-        // =====================================================
-        // LOG AKTIVITAS
-        // =====================================================
+        $bid = job_bids::create([
+            'job_id' => $id,
+            'mitra_id' => $mitraId,
+            'offered_price' => $request->offered_price,
+            'mitras_point_at_time' => $currentPoint,
+            'status' => 'Menunggu'
+        ]);
 
         ActivityLogger::log(
             auth()->id(),
             'Mitra membuat penawaran',
-            'Mitra mengajukan penawaran sebesar Rp '
-                . number_format(
-                    $bid->offered_price,
-                    0,
-                    ',',
-                    '.'
-                )
-                . ' untuk pekerjaan "'
-                . $job->tittle
-                . '".',
+            'Mitra mengajukan penawaran sebesar Rp ' . number_format($bid->offered_price, 0, ',', '.') . ' untuk pekerjaan "' . $job->tittle . '".',
             'local_offer',
             'Mitra'
         );
 
-
-        // =====================================================
-        // NOTIFIKASI PELANGGAN
-        // =====================================================
-
-        $pelanggan =
-            users::find(
-                $job->pelanggan_id
-            );
-
-
+        $pelanggan = users::find($job->pelanggan_id);
         if ($pelanggan) {
-
-            $pelanggan->notify(
-                new NewBidReceived(
-                    $job,
-                    $bid
-                )
-            );
+            $pelanggan->notify(new NewBidReceived($job, $bid));
         }
 
-
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Berhasil mengirimkan penawaran kerja!',
-
-            'data' =>
-                $bid
-
+            'message' => 'Berhasil mengirimkan penawaran kerja!',
+            'data' => $bid
         ], 201);
     }
-
 
     /**
      * =========================================================
      * PELANGGAN MENERIMA PENAWARAN MITRA
      * =========================================================
+     * Ketika pelanggan klik "Setujui", set started_at
      */
     public function acceptBid($bidId)
     {
-        $selectedBid =
-            job_bids::find(
-                $bidId
-            );
-
+        $selectedBid = job_bids::find($bidId);
 
         if (!$selectedBid) {
-
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Penawaran tidak ditemukan.'
+                'message' => 'Penawaran tidak ditemukan.'
             ], 404);
         }
 
-
-        $job =
-            jobs::find(
-                $selectedBid->job_id
-            );
-
+        $job = jobs::find($selectedBid->job_id);
 
         if (!$job) {
-
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Pekerjaan tidak ditemukan.'
+                'message' => 'Pekerjaan tidak ditemukan.'
             ], 404);
         }
 
-
-        if (
-            $job->status !==
-            'Mencari Mitra'
-        ) {
-
+        if ($job->status !== 'Mencari Mitra') {
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Pekerjaan ini sudah diambil atau sedang diproses oleh mitra lain.'
+                'message' => 'Pekerjaan ini sudah diambil atau sedang diproses oleh mitra lain.'
             ], 400);
         }
 
-
-        // =====================================================
-        // PASTIKAN PEMILIK PEKERJAAN
-        // =====================================================
-
-        if (
-            $job->pelanggan_id !==
-            auth()->id()
-        ) {
-
+        if ($job->pelanggan_id !== auth()->id()) {
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Anda tidak memiliki izin untuk menerima penawaran ini.'
+                'message' => 'Anda tidak memiliki izin untuk menerima penawaran ini.'
             ], 403);
         }
 
-
         // =====================================================
-        // UPDATE JOB
+        // UPDATE JOB — SET started_at
         // =====================================================
-
         $job->update([
-
-            'mitra_id' =>
-                $selectedBid->mitra_id,
-
-            'final_price' =>
-                $selectedBid->offered_price,
-
-            'status' =>
-                'Sedang Dikerjakan'
+            'mitra_id' => $selectedBid->mitra_id,
+            'final_price' => $selectedBid->offered_price,
+            'status' => 'Sedang Dikerjakan',
+            'started_at' => now(), // <-- SET STARTED_AT
         ]);
 
+        $selectedBid->update(['status' => 'Diterima Pelanggan']);
 
-        // =====================================================
-        // UPDATE BID
-        // =====================================================
+        job_bids::where('job_id', $job->id)
+            ->where('id', '!=', $bidId)
+            ->update(['status' => 'Ditolak']);
 
-        $selectedBid->update([
-
-            'status' =>
-                'Diterima Pelanggan'
-        ]);
-
-
-        // =====================================================
-        // TOLAK BID LAIN
-        // =====================================================
-
-        job_bids::where(
-            'job_id',
-            $job->id
-        )
-        ->where(
-            'id',
-            '!=',
-            $bidId
-        )
-        ->update([
-
-            'status' =>
-                'Ditolak'
-        ]);
-
-
-        // =====================================================
-        // LOG AKTIVITAS
-        // =====================================================
-
-        $mitraUser =
-            users::find(
-                $selectedBid->mitra_id
-            );
-
-
-        $mitraName =
-            $mitraUser?->name
-            ?? 'Mitra';
-
+        $mitraUser = users::find($selectedBid->mitra_id);
+        $mitraName = $mitraUser?->name ?? 'Mitra';
 
         ActivityLogger::log(
             auth()->id(),
             'Pelanggan menerima penawaran mitra',
-            'Pelanggan menerima penawaran dari mitra '
-                . $mitraName
-                . ' untuk pekerjaan "'
-                . $job->tittle
-                . '".',
+            'Pelanggan menerima penawaran dari mitra ' . $mitraName . ' untuk pekerjaan "' . $job->tittle . '".',
             'check_circle',
             'Sistem'
         );
 
-
-        // =====================================================
-        // NOTIFIKASI MITRA
-        // =====================================================
-
         if ($mitraUser) {
-
-            $mitraUser->notify(
-                new BidAccepted(
-                    $job
-                )
-            );
+            $mitraUser->notify(new BidAccepted($job));
         }
 
-
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Selamat, Mitra berhasil dipilih! '
-                . 'Pekerjaan sekarang berstatus Sedang Dikerjakan.',
-
-            'data' =>
-                $job
-
+            'message' => 'Selamat, Mitra berhasil dipilih! Pekerjaan sekarang berstatus Sedang Dikerjakan.',
+            'data' => $job
         ], 200);
     }
-
 
     /**
      * =========================================================
      * PEKERJAAN SELESAI
      * =========================================================
      */
-    public function completeJob(
-        Request $request,
-        $id
-    ) {
-
-        $job =
-            jobs::find(
-                $id
-            );
-
-
-        if (!$job) {
-
-            return response()->json([
-                'success' => false,
-
-                'message' =>
-                    'Pekerjaan tidak ditemukan.'
-            ], 404);
-        }
-
-
-        if (
-            $job->pelanggan_id !==
-            auth()->id()
-        ) {
-
-            return response()->json([
-                'success' => false,
-
-                'message' =>
-                    'Anda tidak memiliki izin untuk menandai pekerjaan ini sebagai selesai.'
-            ], 403);
-        }
-
-
-        $job->update([
-
-            'status' =>
-                'Selesai'
-        ]);
-
-
-        // =====================================================
-        // LOG AKTIVITAS
-        // =====================================================
-
-        ActivityLogger::log(
-            auth()->id(),
-            'Pekerjaan selesai',
-            'Pekerjaan "'
-                . $job->tittle
-                . '" telah ditandai sebagai selesai oleh pelanggan.',
-            'check_circle',
-            'Sistem'
-        );
-
-
-        return response()->json([
-
-            'success' => true,
-
-            'message' =>
-                'Pekerjaan berhasil ditandai sebagai selesai.',
-
-            'data' =>
-                $job
-
-        ], 200);
-    }
-
-
-    /**
-     * =========================================================
-     * HERO RIGHT
-     * =========================================================
-     * Dipanggil oleh Flutter:
-     * GET /api/hero-right
-     */
-    public function getHeroData()
+    public function completeJob(Request $request, $id)
     {
-        try {
-
-            // =================================================
-            // CARI JOB TERBARU YANG MEMILIKI BID
-            // =================================================
-
-            $latestJobWithBids =
-                DB::table('jobs')
-                    ->where(
-                        'status',
-                        'Mencari Mitra'
-                    )
-                    ->whereIn(
-                        'id',
-                        function ($query) {
-
-                            $query->select(
-                                'job_id'
-                            )
-                            ->from(
-                                'job_bids'
-                            )
-                            ->where(
-                                'status',
-                                'Menunggu'
-                            );
-                        }
-                    )
-                    ->latest()
-                    ->first();
-
-
-            // =================================================
-            // JIKA BELUM ADA BID
-            // =================================================
-
-            if (!$latestJobWithBids) {
-
-                $activeMitraCount =
-                    DB::table(
-                        'mitra_profiles'
-                    )
-                    ->where(
-                        'is_verified',
-                        1
-                    )
-                    ->count();
-
-
-                return response()->json([
-
-                    'success' => true,
-
-                    'data' => [
-
-                        'title' =>
-                            "BELUM ADA PENAWARAN",
-
-                        'offers' =>
-                            [],
-
-                        'active_mitra_count' =>
-                            $activeMitraCount,
-                    ]
-
-                ], 200);
-            }
-
-
-            // =================================================
-            // AMBIL BID
-            // =================================================
-
-            $bids =
-                DB::table(
-                    'job_bids'
-                )
-                ->leftJoin(
-                    'users',
-                    'job_bids.mitra_id',
-                    '=',
-                    'users.id'
-                )
-                ->leftJoin(
-                    'mitra_profiles',
-                    'job_bids.mitra_id',
-                    '=',
-                    'mitra_profiles.user_id'
-                )
-                ->select(
-                    'job_bids.id',
-                    'job_bids.offered_price',
-                    'job_bids.mitras_point_at_time',
-                    'users.name as user_name',
-                    DB::raw(
-                        'COALESCE('
-                        . 'mitra_profiles.point, '
-                        . 'job_bids.mitras_point_at_time, '
-                        . '0'
-                        . ') as total_point'
-                    )
-                )
-                ->where(
-                    'job_bids.job_id',
-                    $latestJobWithBids->id
-                )
-                ->where(
-                    'job_bids.status',
-                    'Menunggu'
-                )
-                ->orderBy(
-                    'total_point',
-                    'desc'
-                )
-                ->limit(3)
-                ->get();
-
-
-            // =================================================
-            // FORMAT BID
-            // =================================================
-
-            $offers =
-                $bids->map(
-                    function (
-                        $bid,
-                        $index
-                    ) {
-
-                        $userName =
-                            $bid->user_name
-                            ?? 'Mitra';
-
-
-                        $words =
-                            explode(
-                                ' ',
-                                trim($userName)
-                            );
-
-
-                        $initials =
-                            (count($words) >= 2)
-
-                                ? strtoupper(
-                                    substr(
-                                        $words[0],
-                                        0,
-                                        1
-                                    )
-                                )
-                                .
-                                substr(
-                                    $words[1],
-                                    0,
-                                    1
-                                )
-
-                                : strtoupper(
-                                    substr(
-                                        $userName,
-                                        0,
-                                        2
-                                    )
-                                );
-
-
-                        return [
-
-                            'id' =>
-                                $bid->id,
-
-                            'active' =>
-                                $index === 0,
-
-                            'initials' =>
-                                $initials,
-
-                            'name' =>
-                                $userName,
-
-                            'rating' =>
-                                '4.9',
-
-                            'point' =>
-                                $bid->total_point
-                                . ' poin',
-
-                            'price' =>
-                                'Rp '
-                                . number_format(
-                                    $bid->offered_price,
-                                    0,
-                                    ',',
-                                    '.'
-                                ),
-
-                            'badge' =>
-                                $index === 0
-                                    ? 'ANTREAN #1'
-                                    : null,
-                        ];
-                    }
-                );
-
-
-            // =================================================
-            // TITLE
-            // =================================================
-
-            $title =
-                "PENAWARAN MASUK — "
-                . strtoupper(
-                    $latestJobWithBids->tittle
-                );
-
-
-            // =================================================
-            // JUMLAH MITRA AKTIF
-            // =================================================
-
-            $activeMitraCount =
-                DB::table(
-                    'mitra_profiles'
-                )
-                ->where(
-                    'is_verified',
-                    1
-                )
-                ->count();
-
-
-            // =================================================
-            // RESPONSE
-            // =================================================
-
-            return response()->json([
-
-                'success' => true,
-
-                'data' => [
-
-                    'title' =>
-                        $title,
-
-                    'offers' =>
-                        $offers,
-
-                    'active_mitra_count' =>
-                        $activeMitraCount,
-                ]
-
-            ], 200);
-
-        } catch (\Exception $e) {
-
-            return response()->json([
-
-                'success' => false,
-
-                'message' =>
-                    'Error: '
-                    . $e->getMessage()
-
-            ], 500);
-        }
-    }
-
-        /**
-     * =========================================================
-     * MITRA UPLOAD BUKTI SELESAI
-     * =========================================================
-     * POST /api/jobs/{id}/upload-proof
-     * 
-     * @param Request $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function uploadProof(Request $request, $id)
-    {
-        // Cari job
         $job = jobs::find($id);
 
         if (!$job) {
@@ -1237,7 +497,130 @@ class JobController extends Controller
             ], 404);
         }
 
-        // Hanya mitra yang sedang mengerjakan yang boleh upload
+        if ($job->pelanggan_id !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk menandai pekerjaan ini sebagai selesai.'
+            ], 403);
+        }
+
+        $job->update(['status' => 'Selesai']);
+
+        ActivityLogger::log(
+            auth()->id(),
+            'Pekerjaan selesai',
+            'Pekerjaan "' . $job->tittle . '" telah ditandai sebagai selesai oleh pelanggan.',
+            'check_circle',
+            'Sistem'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pekerjaan berhasil ditandai sebagai selesai.',
+            'data' => $job
+        ], 200);
+    }
+
+    /**
+     * =========================================================
+     * HERO RIGHT
+     * =========================================================
+     */
+    public function getHeroData()
+    {
+        try {
+            $latestJobWithBids = DB::table('jobs')
+                ->where('status', 'Mencari Mitra')
+                ->whereIn('id', function ($query) {
+                    $query->select('job_id')->from('job_bids')->where('status', 'Menunggu');
+                })
+                ->latest()
+                ->first();
+
+            if (!$latestJobWithBids) {
+                $activeMitraCount = DB::table('mitra_profiles')->where('is_verified', 1)->count();
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'title' => "BELUM ADA PENAWARAN",
+                        'offers' => [],
+                        'active_mitra_count' => $activeMitraCount,
+                    ]
+                ], 200);
+            }
+
+            $bids = DB::table('job_bids')
+                ->leftJoin('users', 'job_bids.mitra_id', '=', 'users.id')
+                ->leftJoin('mitra_profiles', 'job_bids.mitra_id', '=', 'mitra_profiles.user_id')
+                ->select(
+                    'job_bids.id',
+                    'job_bids.offered_price',
+                    'job_bids.mitras_point_at_time',
+                    'users.name as user_name',
+                    DB::raw('COALESCE(mitra_profiles.point, job_bids.mitras_point_at_time, 0) as total_point')
+                )
+                ->where('job_bids.job_id', $latestJobWithBids->id)
+                ->where('job_bids.status', 'Menunggu')
+                ->orderBy('total_point', 'desc')
+                ->limit(3)
+                ->get();
+
+            $offers = $bids->map(function ($bid, $index) {
+                $userName = $bid->user_name ?? 'Mitra';
+                $words = explode(' ', trim($userName));
+                $initials = (count($words) >= 2)
+                    ? strtoupper(substr($words[0], 0, 1)) . substr($words[1], 0, 1)
+                    : strtoupper(substr($userName, 0, 2));
+
+                return [
+                    'id' => $bid->id,
+                    'active' => $index === 0,
+                    'initials' => $initials,
+                    'name' => $userName,
+                    'rating' => '4.9',
+                    'point' => $bid->total_point . ' poin',
+                    'price' => 'Rp ' . number_format($bid->offered_price, 0, ',', '.'),
+                    'badge' => $index === 0 ? 'ANTREAN #1' : null,
+                ];
+            });
+
+            $title = "PENAWARAN MASUK — " . strtoupper($latestJobWithBids->tittle);
+            $activeMitraCount = DB::table('mitra_profiles')->where('is_verified', 1)->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'title' => $title,
+                    'offers' => $offers,
+                    'active_mitra_count' => $activeMitraCount,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * =========================================================
+     * MITRA UPLOAD BUKTI SELESAI
+     * =========================================================
+     * Set completed_at ketika mitra upload bukti
+     */
+    public function uploadProof(Request $request, $id)
+    {
+        $job = jobs::find($id);
+
+        if (!$job) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pekerjaan tidak ditemukan.'
+            ], 404);
+        }
+
         if ($job->mitra_id !== auth()->id()) {
             return response()->json([
                 'success' => false,
@@ -1245,7 +628,6 @@ class JobController extends Controller
             ], 403);
         }
 
-        // Status harus 'Sedang Dikerjakan'
         if ($job->status !== 'Sedang Dikerjakan') {
             return response()->json([
                 'success' => false,
@@ -1253,17 +635,17 @@ class JobController extends Controller
             ], 400);
         }
 
-        // Validasi input
         $request->validate([
             'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
             'note'  => 'nullable|string|max:500',
         ]);
 
-        // Upload foto
         $path = $request->file('photo')->store('completion_proofs', 'public');
         $photoUrl = '/storage/' . $path;
 
-        // Update job
+        // =====================================================
+        // UPDATE JOB — SET completed_at
+        // =====================================================
         $job->update([
             'completion_photo_url'      => $photoUrl,
             'completion_submitted_at'   => now(),
@@ -1271,9 +653,9 @@ class JobController extends Controller
             'completion_verified_at'    => null,
             'completion_admin_note'     => $request->note ?? null,
             'status'                    => 'Menunggu Konfirmasi Selesai',
+            'completed_at'              => now(), // <-- SET COMPLETED_AT
         ]);
 
-        // Log aktivitas
         ActivityLogger::log(
             auth()->id(),
             'Mitra upload bukti selesai',
@@ -1281,12 +663,6 @@ class JobController extends Controller
             'upload_file',
             'Mitra'
         );
-
-        // Notifikasi ke pelanggan (opsional, bisa diaktifkan jika sudah buat Notification)
-        // $pelanggan = users::find($job->pelanggan_id);
-        // if ($pelanggan) {
-        //     $pelanggan->notify(new \App\Notifications\CompletionProofSubmitted($job));
-        // }
 
         return response()->json([
             'success' => true,
@@ -1299,15 +675,9 @@ class JobController extends Controller
      * =========================================================
      * PELANGGAN VERIFIKASI BUKTI
      * =========================================================
-     * POST /api/jobs/{id}/verify-proof
-     * 
-     * @param Request $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
      */
     public function verifyProof(Request $request, $id)
     {
-        // Cari job
         $job = jobs::find($id);
 
         if (!$job) {
@@ -1317,7 +687,6 @@ class JobController extends Controller
             ], 404);
         }
 
-        // Hanya pelanggan pemilik pekerjaan
         if ($job->pelanggan_id !== auth()->id()) {
             return response()->json([
                 'success' => false,
@@ -1325,7 +694,6 @@ class JobController extends Controller
             ], 403);
         }
 
-        // Status harus 'Menunggu Konfirmasi Selesai'
         if ($job->status !== 'Menunggu Konfirmasi Selesai') {
             return response()->json([
                 'success' => false,
@@ -1333,13 +701,11 @@ class JobController extends Controller
             ], 400);
         }
 
-        // Validasi input
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'note'   => 'nullable|string|max:500',
         ]);
 
-        // Update job
         $job->update([
             'completion_status'      => $request->status,
             'completion_verified_at' => now(),
@@ -1347,31 +713,14 @@ class JobController extends Controller
             'status'                 => $request->status === 'approved' ? 'Selesai' : 'Sedang Dikerjakan',
         ]);
 
-        // Jika disetujui, beri poin ke mitra (opsional)
         if ($request->status === 'approved') {
-            // Ambil sistem setting untuk poin (pastikan model system_settings ada)
-            // Jika belum ada, gunakan nilai default 10
-            $pointsToAdd = 10; // atau ambil dari setting
-
+            $pointsToAdd = 10;
             $mitraProfile = mitra_profiles::where('user_id', $job->mitra_id)->first();
             if ($mitraProfile) {
                 $mitraProfile->increment('point', $pointsToAdd);
             }
-
-            // Notifikasi ke mitra (opsional)
-            // $mitra = users::find($job->mitra_id);
-            // if ($mitra) {
-            //     $mitra->notify(new \App\Notifications\JobCompleted($job));
-            // }
-        } else {
-            // Notifikasi ke mitra jika ditolak (opsional)
-            // $mitra = users::find($job->mitra_id);
-            // if ($mitra) {
-            //     $mitra->notify(new \App\Notifications\ProofRejected($job, $request->note));
-            // }
         }
 
-        // Log aktivitas
         ActivityLogger::log(
             auth()->id(),
             'Pelanggan verifikasi bukti',
