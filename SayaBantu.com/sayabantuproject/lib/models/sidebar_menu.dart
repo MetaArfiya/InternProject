@@ -4,4 +4,5 @@ enum SidebarMenu {
   profilMitra,
   notifikasi,
   pengaturan,
+  pembayaran,
 }

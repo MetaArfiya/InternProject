@@ -39,11 +39,16 @@ class PartnerSidebarState extends State<PartnerSidebar> {
   }
 
   // =========================================================
-  // 🔄 METHOD UNTUK REFRESH DARI LUAR
+  // REFRESH PROFILE DARI LUAR
   // =========================================================
+
   void refreshProfile() {
     loadUser();
   }
+
+  // =========================================================
+  // LOAD DATA USER
+  // =========================================================
 
   Future<void> loadUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -107,10 +112,14 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           debugPrint("FULL PHOTO URL  : ${getFullPhotoUrl()}");
         }
       } else {
-        debugPrint("GAGAL MEMUAT USER: ${response.statusCode}");
+        debugPrint(
+          "GAGAL MEMUAT USER: ${response.statusCode}",
+        );
       }
     } catch (e) {
-      debugPrint("ERROR LOAD USER PARTNER SIDEBAR: $e");
+      debugPrint(
+        "ERROR LOAD USER PARTNER SIDEBAR: $e",
+      );
     }
 
     // =======================================================
@@ -118,7 +127,8 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     // =======================================================
 
     try {
-      final response = await ApiService.get('/mitra/profile');
+      final response =
+          await ApiService.get('/mitra/profile');
 
       debugPrint("===== PARTNER SIDEBAR MITRA =====");
       debugPrint("STATUS : ${response.statusCode}");
@@ -150,12 +160,20 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           });
         }
       } else {
-        debugPrint("GAGAL MEMUAT PROFIL MITRA: ${response.statusCode}");
+        debugPrint(
+          "GAGAL MEMUAT PROFIL MITRA: ${response.statusCode}",
+        );
       }
     } catch (e) {
-      debugPrint("ERROR LOAD PROFIL MITRA: $e");
+      debugPrint(
+        "ERROR LOAD PROFIL MITRA: $e",
+      );
     }
   }
+
+  // =========================================================
+  // INITIAL
+  // =========================================================
 
   String getInitials(String text) {
     final trimmed = text.trim();
@@ -173,6 +191,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     return words.first[0].toUpperCase();
   }
 
+  // =========================================================
+  // PHOTO URL
+  // =========================================================
+
   String? getFullPhotoUrl() {
     if (photoUrl == null ||
         photoUrl!.trim().isEmpty ||
@@ -182,7 +204,8 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
     String path = photoUrl!.trim();
 
-    if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (path.startsWith('http://') ||
+        path.startsWith('https://')) {
       return path;
     }
 
@@ -198,6 +221,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
     return 'http://127.0.0.1:8000/api/images/profile/$filename';
   }
+
+  // =========================================================
+  // PROFILE IMAGE
+  // =========================================================
 
   Widget _buildProfileImage() {
     final fullPhotoUrl = getFullPhotoUrl();
@@ -237,7 +264,6 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           fit: BoxFit.cover,
           cacheWidth: 120,
           cacheHeight: 120,
-
           loadingBuilder: (
             context,
             child,
@@ -262,15 +288,20 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               ),
             );
           },
-
           errorBuilder: (
             context,
             error,
             stackTrace,
           ) {
-            debugPrint("GAGAL MENAMPILKAN FOTO SIDEBAR");
-            debugPrint("URL FOTO: $fullPhotoUrl");
-            debugPrint("ERROR: $error");
+            debugPrint(
+              "GAGAL MENAMPILKAN FOTO SIDEBAR",
+            );
+            debugPrint(
+              "URL FOTO: $fullPhotoUrl",
+            );
+            debugPrint(
+              "ERROR: $error",
+            );
 
             return Container(
               width: 52,
@@ -291,6 +322,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       ),
     );
   }
+
+  // =========================================================
+  // LOGOUT
+  // =========================================================
 
   Future<void> logout() async {
     if (isLoggingOut) return;
@@ -366,7 +401,8 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs =
+          await SharedPreferences.getInstance();
 
       await prefs.remove('token');
 
@@ -411,6 +447,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     }
   }
 
+  // =========================================================
+  // BUILD SIDEBAR
+  // =========================================================
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -451,9 +491,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                             fontSize: 16,
                           ),
                         ),
-
                         const SizedBox(height: 3),
-
                         const Text(
                           "Mitra Aktif",
                           style: TextStyle(
@@ -500,9 +538,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
                   Row(
                     children: [
                       const Icon(
@@ -510,9 +546,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                         color: Colors.amber,
                         size: 32,
                       ),
-
                       const SizedBox(width: 10),
-
                       Text(
                         "$totalPoint",
                         style: const TextStyle(
@@ -523,9 +557,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 6),
-
                   const Text(
                     "Peringkat mitra aktif",
                     maxLines: 1,
@@ -601,7 +633,28 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
             _menu(
               context,
-              icon: Icons.settings,
+              icon: Icons.account_balance_wallet_outlined,
+              title: "Penghasilan",
+              menu: PartnerSidebarMenu.penghasilan,
+            ),
+
+            _menu(
+              context,
+              icon: Icons.payment_outlined,
+              title: "Pembayaran",
+              menu: PartnerSidebarMenu.pembayaran,
+            ),
+
+            _menu(
+              context,
+              icon: Icons.person_outline,
+              title: "Profil",
+              menu: PartnerSidebarMenu.profile,
+            ),
+
+            _menu(
+              context,
+              icon: Icons.settings_outlined,
               title: "Pengaturan",
               menu: PartnerSidebarMenu.pengaturan,
             ),
@@ -624,6 +677,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       ),
     );
   }
+
+  // =========================================================
+  // MENU ITEM
+  // =========================================================
 
   Widget _menu(
     BuildContext context, {
@@ -654,9 +711,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                   ? Colors.orange
                   : Colors.white70,
             ),
-
             const SizedBox(width: 15),
-
             Expanded(
               child: Text(
                 title,
@@ -677,6 +732,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       ),
     );
   }
+
+  // =========================================================
+  // LOGOUT BUTTON
+  // =========================================================
 
   Widget _buildLogoutButton() {
     return Padding(
