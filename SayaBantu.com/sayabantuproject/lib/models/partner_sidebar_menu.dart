@@ -6,4 +6,5 @@ enum PartnerSidebarMenu {
   pembayaran,
   profile,
   pengaturan,
+  pengaduan,
 }
