@@ -3,6 +3,8 @@ enum PartnerSidebarMenu {
   offerJob,
   penawaranAktif,
   penghasilan,
+  pembayaran,
   profile,
   pengaturan,
+  pengaduan,
 }

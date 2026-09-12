@@ -3,29 +3,57 @@ import 'package:flutter/material.dart';
 import '../../models/partner_sidebar_menu.dart';
 import '../../models/partner_job_model.dart';
 import '../../widgets/partner_sidebar.dart';
+
 import '../../sections/partner/partner_dashboard.dart';
 import '../../sections/partner/active_offer_screen.dart';
 import '../../sections/partner/partner_profile_section.dart';
 import '../../sections/partner/partner_setting_screen.dart';
 import '../../sections/partner/offer_job_screen.dart';
+import '../../sections/partner/partner_complaint_screen.dart';
+
+import '../../sections/payment/payment_screen.dart';
 import 'income_screen.dart';
 
 class PartnerMainDashboard extends StatefulWidget {
   const PartnerMainDashboard({super.key});
 
   @override
-  State<PartnerMainDashboard> createState() => _PartnerMainDashboardState();
+  State<PartnerMainDashboard> createState() =>
+      _PartnerMainDashboardState();
 }
 
-class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
-  PartnerSidebarMenu selectedMenu = PartnerSidebarMenu.cariPekerjaan;
+class _PartnerMainDashboardState
+    extends State<PartnerMainDashboard> {
+  // ============================================================
+  // MENU YANG SEDANG AKTIF
+  // ============================================================
+
+  PartnerSidebarMenu selectedMenu =
+      PartnerSidebarMenu.cariPekerjaan;
+
+  // ============================================================
+  // PEKERJAAN YANG DIPILIH MITRA
+  // ============================================================
+
   PartnerJobModel? selectedJob;
 
-  // GlobalKey untuk mengakses PartnerSidebarState
-  final GlobalKey<PartnerSidebarState> _sidebarKey = GlobalKey<PartnerSidebarState>();
+  // ============================================================
+  // KEY UNTUK MENGAKSES PARTNER SIDEBAR
+  // ============================================================
+
+  final GlobalKey<PartnerSidebarState> _sidebarKey =
+      GlobalKey<PartnerSidebarState>();
+
+  // ============================================================
+  // MENENTUKAN HALAMAN BERDASARKAN MENU YANG DIPILIH
+  // ============================================================
 
   Widget currentPage() {
     switch (selectedMenu) {
+      // --------------------------------------------------------
+      // CARI PEKERJAAN
+      // --------------------------------------------------------
+
       case PartnerSidebarMenu.cariPekerjaan:
         return PartnerDashboard(
           onTakeOffer: (job) {
@@ -36,45 +64,111 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
           },
         );
 
+      // --------------------------------------------------------
+      // BUAT PENAWARAN
+      // --------------------------------------------------------
+
       case PartnerSidebarMenu.offerJob:
         if (selectedJob == null) {
           return const Center(
-            child: Text("Silakan pilih pekerjaan terlebih dahulu dari menu Cari Pekerjaan."),
+            child: Text(
+              'Silakan pilih pekerjaan terlebih dahulu '
+              'dari menu Cari Pekerjaan.',
+            ),
           );
         }
+
         return OfferJobScreen(
           job: selectedJob!,
           onSubmit: () {
             setState(() {
-              selectedMenu = PartnerSidebarMenu.penawaranAktif;
+              selectedMenu =
+                  PartnerSidebarMenu.penawaranAktif;
             });
           },
           onBack: () {
             setState(() {
-              selectedMenu = PartnerSidebarMenu.cariPekerjaan;
+              selectedMenu =
+                  PartnerSidebarMenu.cariPekerjaan;
             });
           },
         );
 
+      // --------------------------------------------------------
+      // PENAWARAN AKTIF
+      // --------------------------------------------------------
+
       case PartnerSidebarMenu.penawaranAktif:
         return const ActiveOfferScreen();
+
+      // --------------------------------------------------------
+      // PENGHASILAN
+      // --------------------------------------------------------
 
       case PartnerSidebarMenu.penghasilan:
         return const IncomeScreen();
 
+      // --------------------------------------------------------
+      // PEMBAYARAN
+      // --------------------------------------------------------
+
+      case PartnerSidebarMenu.pembayaran:
+        return const PaymentScreen(
+          role: 'mitra',
+        );
+
+      // --------------------------------------------------------
+      // PENGADUAN
+      // --------------------------------------------------------
+
+      case PartnerSidebarMenu.pengaduan:
+        return const PartnerComplaintScreen();
+
+      // --------------------------------------------------------
+      // PROFIL
+      // --------------------------------------------------------
+
       case PartnerSidebarMenu.profile:
         return const PartnerProfileSection();
+
+      // --------------------------------------------------------
+      // PENGATURAN
+      // --------------------------------------------------------
 
       case PartnerSidebarMenu.pengaturan:
         return PartnerSettingScreen(
           onProfileUpdate: () {
-            // Refresh sidebar setelah profil berubah
+            // Refresh profil pada sidebar
             _sidebarKey.currentState?.refreshProfile();
+
+            // Refresh halaman
             setState(() {});
           },
         );
     }
   }
+
+  // ============================================================
+  // MEMILIH MENU
+  // ============================================================
+
+  void _onMenuSelected(
+    BuildContext context,
+    PartnerSidebarMenu menu,
+  ) {
+    setState(() {
+      selectedMenu = menu;
+    });
+
+    // Menutup drawer hanya jika sedang berada pada mode mobile
+    if (Scaffold.of(context).isDrawerOpen) {
+      Navigator.pop(context);
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +177,10 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
         final bool isDesktop = constraints.maxWidth >= 1000;
 
         return Scaffold(
+          // ======================================================
+          // DRAWER UNTUK MOBILE / TABLET
+          // ======================================================
+
           drawer: isDesktop
               ? null
               : Drawer(
@@ -94,19 +192,37 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
                         setState(() {
                           selectedMenu = menu;
                         });
+
+                        // Tutup drawer setelah memilih menu
                         Navigator.pop(context);
                       },
                     ),
                   ),
                 ),
+
+          // ======================================================
+          // APP BAR MOBILE / TABLET
+          // ======================================================
+
           appBar: isDesktop
               ? null
               : AppBar(
-                  title: const Text("Dashboard Mitra"),
+                  title: const Text(
+                    'Dashboard Mitra',
+                  ),
                 ),
+
+          // ======================================================
+          // BODY
+          // ======================================================
+
           body: isDesktop
               ? Row(
                   children: [
+                    // ------------------------------------------------
+                    // SIDEBAR DESKTOP
+                    // ------------------------------------------------
+
                     PartnerSidebar(
                       key: _sidebarKey,
                       activeMenu: selectedMenu,
@@ -116,6 +232,11 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
                         });
                       },
                     ),
+
+                    // ------------------------------------------------
+                    // KONTEN
+                    // ------------------------------------------------
+
                     Expanded(
                       child: currentPage(),
                     ),

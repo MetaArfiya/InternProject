@@ -11,6 +11,7 @@ import 'analytics_page.dart';
 import 'manage_admin_page.dart';
 import 'system_setting_page.dart';
 import 'activity_log_page.dart';
+import 'active_partner_page.dart';
 
 import '../Screens_Landing/landing_page.dart';
 
@@ -1003,11 +1004,16 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           ),
           _buildMenuItem(
             index: 2,
+            icon: Icons.engineering_rounded,
+            title: 'Mitra Aktif',
+          ),
+          _buildMenuItem(
+            index: 3,
             icon: Icons.settings_rounded,
             title: 'Pengaturan Sistem',
           ),
           _buildMenuItem(
-            index: 3,
+            index: 4,
             icon: Icons.folder_rounded,
             title: 'Log Aktivitas',
           ),
@@ -1181,12 +1187,19 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     switch (_selectedIndex) {
       case 0:
         return const SuperAdminAnalyticsPage();
+
       case 1:
         return const ManageAdminPage();
+
       case 2:
-        return const SystemSettingsPage();
+        return const ActivePartnerPage();
+
       case 3:
+        return const SystemSettingsPage();
+
+      case 4:
         return const ActivityLogPage();
+
       default:
         return const SizedBox.shrink();
     }
