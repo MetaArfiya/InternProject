@@ -38,6 +38,10 @@ class jobs extends Model
         'completion_admin_note',
     ];
 
+    // ============================================================
+    // RELASI
+    // ============================================================
+
     // Relasi: Job ini diposting oleh Pelanggan
     public function pelanggan()
     {
@@ -60,5 +64,11 @@ class jobs extends Model
     public function bids()
     {
         return $this->hasMany(job_bids::class, 'job_id');
+    }
+
+    // (dibuat otomatis ketika status job = 'Selesai')
+    public function payment()
+    {
+        return $this->hasOne(Payment::class, 'job_id');
     }
 }

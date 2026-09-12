@@ -13,7 +13,7 @@ class MitraProfileSeeder extends Seeder
         mitra_profiles::create([
             'user_id' => 5,
 
-            // Kolom baru
+            // Kolom baru 
             'gender' => null,
             'birth_date' => null,
             'city' => null,

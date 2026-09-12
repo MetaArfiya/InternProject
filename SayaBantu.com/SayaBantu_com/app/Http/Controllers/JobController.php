@@ -9,6 +9,7 @@ use App\Models\jobs;
 use App\Models\job_bids;
 use App\Models\mitra_profiles;
 use App\Models\users;
+use App\Models\Payment;
 use App\Notifications\BidAccepted;
 use App\Notifications\NewBidReceived;
 use App\Helpers\ActivityLogger;
@@ -100,8 +101,8 @@ class JobController extends Controller
 
             $jobs = jobs::withCount('bids')
                 ->with([
-                    'mitra:id,name',      // <-- TAMBAHKAN agar partnerName terisi
-                    'pelanggan:id,name',  // <-- opsional, untuk info pelanggan
+                    'mitra:id,name',
+                    'pelanggan:id,name',
                 ])
                 ->where('pelanggan_id', $pelangganId)
                 ->latest()
@@ -190,8 +191,6 @@ class JobController extends Controller
         $validated['pelanggan_id'] = auth()->id();
         $validated['status'] = 'Mencari Mitra';
         $validated['ai_recommended_budget'] = $aiRecommendation;
-        $validated['is_verified'] = 0;
-        $validated['verified_by'] = null;
         $validated['image_url'] = $imageUrl;
 
         if (isset($validated['address_detail'])) {
@@ -211,7 +210,7 @@ class JobController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Lowongan sukses diposting dan masuk antrean moderasi!',
+            'message' => 'Lowongan sukses diposting!',
             'data' => $job
         ], 201);
     }
@@ -347,7 +346,7 @@ class JobController extends Controller
         $mitraId = auth()->id();
         $mitraProfile = mitra_profiles::where('user_id', $mitraId)->first();
 
-        // ✅ PERBAIKAN: gunakan truthy check, karena is_verified sudah boolean
+        // ✅ Gunakan truthy check, karena is_verified sudah boolean
         if (!$mitraProfile || !$mitraProfile->is_verified) {
             return response()->json([
                 'success' => false,
@@ -407,7 +406,7 @@ class JobController extends Controller
      * =========================================================
      * PELANGGAN MENERIMA PENAWARAN MITRA
      * =========================================================
-     * Ketika pelanggan klik "Setujui", set started_at
+     * Set started_at saat pelanggan klik "Setujui"
      */
     public function acceptBid($bidId)
     {
@@ -450,7 +449,7 @@ class JobController extends Controller
             'mitra_id' => $selectedBid->mitra_id,
             'final_price' => $selectedBid->offered_price,
             'status' => 'Sedang Dikerjakan',
-            'started_at' => now(), // <-- SET STARTED_AT
+            'started_at' => now(),
         ]);
 
         $selectedBid->update(['status' => 'Diterima Pelanggan']);
@@ -483,7 +482,7 @@ class JobController extends Controller
 
     /**
      * =========================================================
-     * PEKERJAAN SELESAI
+     * PEKERJAAN SELESAI (manual oleh pelanggan)
      * =========================================================
      */
     public function completeJob(Request $request, $id)
@@ -643,9 +642,6 @@ class JobController extends Controller
         $path = $request->file('photo')->store('completion_proofs', 'public');
         $photoUrl = '/storage/' . $path;
 
-        // =====================================================
-        // UPDATE JOB — SET completed_at
-        // =====================================================
         $job->update([
             'completion_photo_url'      => $photoUrl,
             'completion_submitted_at'   => now(),
@@ -653,7 +649,7 @@ class JobController extends Controller
             'completion_verified_at'    => null,
             'completion_admin_note'     => $request->note ?? null,
             'status'                    => 'Menunggu Konfirmasi Selesai',
-            'completed_at'              => now(), // <-- SET COMPLETED_AT
+            'completed_at'              => now(),
         ]);
 
         ActivityLogger::log(
@@ -673,8 +669,11 @@ class JobController extends Controller
 
     /**
      * =========================================================
-     * PELANGGAN VERIFIKASI BUKTI
+     * PELANGGAN VERIFIKASI BUKTI + AUTO-CREATE PAYMENT
      * =========================================================
+     * Model A: Komisi dipotong dari mitra.
+     *  - total_paid    = job_amount                (pelanggan bayar sesuai deal)
+     *  - mitra_earning = job_amount - commission   (mitra terima setelah dipotong)
      */
     public function verifyProof(Request $request, $id)
     {
@@ -706,6 +705,9 @@ class JobController extends Controller
             'note'   => 'nullable|string|max:500',
         ]);
 
+        // =====================================================
+        // UPDATE JOB
+        // =====================================================
         $job->update([
             'completion_status'      => $request->status,
             'completion_verified_at' => now(),
@@ -713,14 +715,64 @@ class JobController extends Controller
             'status'                 => $request->status === 'approved' ? 'Selesai' : 'Sedang Dikerjakan',
         ]);
 
+        // =====================================================
+        // AUTO-CREATE PAYMENT & POINT (hanya jika approved)
+        // =====================================================
         if ($request->status === 'approved') {
-            $pointsToAdd = 10;
+
+            // -------------------------------------------------
+            // 1. Ambil setting dari system_settings
+            // -------------------------------------------------
+            $settings = DB::table('system_settings')->first();
+
+            $commissionPercent = $settings
+                ? (float) $settings->platform_commission_percent
+                : 15.00;
+
+            $pointsToAdd = $settings
+                ? (int) $settings->points_on_completion
+                : 10;
+
+            // -------------------------------------------------
+            // 2. Hitung nominal (MODEL A)
+            // -------------------------------------------------
+            $jobAmount        = (float) $job->final_price;
+            $commissionAmount = round($jobAmount * ($commissionPercent / 100), 2);
+
+            $totalPaid    = $jobAmount;                       // pelanggan bayar = nilai deal
+            $mitraEarning = $jobAmount - $commissionAmount;   // mitra terima setelah dipotong
+
+            // -------------------------------------------------
+            // 3. Buat baris Payment (hindari duplikat)
+            // -------------------------------------------------
+            if (!Payment::where('job_id', $job->id)->exists()) {
+                Payment::create([
+                    'job_id'             => $job->id,
+                    'pelanggan_id'       => $job->pelanggan_id,
+                    'mitra_id'           => $job->mitra_id,
+                    'job_amount'         => $jobAmount,
+                    'commission_percent' => $commissionPercent,
+                    'commission_amount'  => $commissionAmount,
+                    'total_paid'         => $totalPaid,
+                    'mitra_earning'      => $mitraEarning,
+                    'status'             => 'pending',
+                    'payment_method'     => null,
+                    'reference_code'     => 'PAY-' . strtoupper(uniqid()),
+                ]);
+            }
+
+            // -------------------------------------------------
+            // 4. Tambah poin mitra
+            // -------------------------------------------------
             $mitraProfile = mitra_profiles::where('user_id', $job->mitra_id)->first();
             if ($mitraProfile) {
                 $mitraProfile->increment('point', $pointsToAdd);
             }
         }
 
+        // =====================================================
+        // LOG AKTIVITAS
+        // =====================================================
         ActivityLogger::log(
             auth()->id(),
             'Pelanggan verifikasi bukti',

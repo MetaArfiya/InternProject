@@ -15,6 +15,7 @@ use App\Http\Controllers\StatsController;
 use App\Http\Controllers\AdminActivityController;
 use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\PaymentController;
 use App\Models\AppReview;
 
 
@@ -143,7 +144,7 @@ Route::get('/images/certificates/{filename}', function ($filename) {
 
 
 // =========================================================
-// SERVE GAMBAR BUKTI PEKERJAAN (COMPLETION PROOFS) -- TAMBAHAN
+// SERVE GAMBAR BUKTI PEKERJAAN (COMPLETION PROOFS)
 // =========================================================
 Route::get('/images/completion_proofs/{filename}', function ($filename) {
     $path = 'completion_proofs/' . $filename;
@@ -282,6 +283,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/superadmin/admins/{id}', [SuperAdminController::class, 'deleteAdmin']);
         Route::get('/superadmin/system-settings', [SuperAdminController::class, 'getSystemSettings']);
         Route::put('/superadmin/system-settings', [SuperAdminController::class, 'updateSystemSettings']);
+
+        // ✅ PEMBAYARAN — SUPER ADMIN
+        Route::get('/superadmin/payments/overview',  [PaymentController::class, 'superOverview']);
+        Route::get('/superadmin/payments/chart',     [PaymentController::class, 'superChart']);
+        Route::get('/superadmin/payments/top-mitra', [PaymentController::class, 'superTopMitra']);
     });
 
 
@@ -289,13 +295,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // ADMIN
     // =====================================================
 
-    Route::middleware('role:Admin')->group(function () {
+        Route::middleware('role:Admin')->group(function () {
         Route::get('/admin/unverified-mitra', [AdminController::class, 'unverifiedMitra']);
         Route::post('/admin/verify-mitra/{id}', [AdminController::class, 'verifyMitra']);
         Route::get('/admin/jobs-moderation', [AdminController::class, 'contentModeration']);
         Route::post('/admin/jobs-moderate/{id}', [AdminController::class, 'moderateJob']);
         Route::get('/admin/activities', [AdminActivityController::class, 'index']);
         Route::post('/admin/activities', [AdminActivityController::class, 'store']);
+
+        // ✅ PEMBAYARAN — ADMIN
+        Route::get('/admin/payments',                  [PaymentController::class, 'adminIndex']);
+        Route::put('/admin/payments/{id}/mark-paid',   [PaymentController::class, 'markPaid']);
+        Route::put('/admin/payments/{id}/settle',      [PaymentController::class, 'settle']);
+        Route::put('/admin/payments/{id}/refund',      [PaymentController::class, 'refund']);
     });
 
 
@@ -325,6 +337,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Upload bukti selesai
         Route::post('/jobs/{id}/upload-proof', [JobController::class, 'uploadProof']);
+
+        // ✅ Pembayaran — Pendapatan Mitra
+        Route::get('/mitra/earnings', [PaymentController::class, 'mitraIndex']);
+        Route::get('/mitra/earnings/monthly', [PaymentController::class, 'mitraMonthlyStats']);
     });
 
 
@@ -343,7 +359,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/mitra/{id}', [MitraProfileController::class, 'show']);
         Route::get('/jobs/{id}', [JobController::class, 'show']);
+
+        // ✅ Pembayaran — Pelanggan
+        Route::get('/pelanggan/payments', [PaymentController::class, 'pelangganIndex']);
+        Route::post('/payments/{id}/pay', [PaymentController::class, 'pay']);
     });
+
+
+    // =====================================================
+    // PAYMENT DETAIL (semua role yang login)
+    // =====================================================
+    Route::get('/payments/{id}', [PaymentController::class, 'show']);
 
 
     // =====================================================
