@@ -1,60 +1,31 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+
+import '../../services/api_service.dart';
 
 class AdminComplaintScreen extends StatefulWidget {
   const AdminComplaintScreen({super.key});
 
   @override
-  State<AdminComplaintScreen> createState() =>
-      _AdminComplaintScreenState();
+  State<AdminComplaintScreen> createState() => _AdminComplaintScreenState();
 }
 
 class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
-  final List<Map<String, dynamic>> _complaints = [
-    {
-      'id': 'PGD-001',
-      'mitra': 'Budi Santoso',
-      'pelanggan': 'Andi Pratama',
-      'pekerjaan': 'Service AC Bocor',
-      'nominal': 145000,
-      'tanggal': '12 Sep 2026',
-      'status': 'Menunggu',
-      'deskripsi':
-          'Pekerjaan telah selesai dilakukan, tetapi pelanggan belum melakukan pembayaran sesuai kesepakatan awal.',
-    },
-    {
-      'id': 'PGD-002',
-      'mitra': 'Dewi Lestari',
-      'pelanggan': 'Siti Rahma',
-      'pekerjaan': 'Perbaikan Kunci Rumah',
-      'nominal': 85000,
-      'tanggal': '11 Sep 2026',
-      'status': 'Diproses',
-      'deskripsi':
-          'Mitra menyatakan pekerjaan sudah selesai dan pelanggan belum memberikan pembayaran.',
-    },
-    {
-      'id': 'PGD-003',
-      'mitra': 'Rudi Hartono',
-      'pelanggan': 'Fajar Nugroho',
-      'pekerjaan': 'Pemasangan Lampu Teras',
-      'nominal': 120000,
-      'tanggal': '10 Sep 2026',
-      'status': 'Selesai',
-      'deskripsi':
-          'Pengaduan telah ditangani oleh admin dan pembayaran telah dikonfirmasi.',
-    },
-    {
-      'id': 'PGD-004',
-      'mitra': 'Andi Wijaya',
-      'pelanggan': 'Maya Putri',
-      'pekerjaan': 'Pengecatan Rumah',
-      'nominal': 350000,
-      'tanggal': '09 Sep 2026',
-      'status': 'Ditolak',
-      'deskripsi':
-          'Pengaduan ditolak karena bukti penyelesaian pekerjaan belum mencukupi.',
-    },
-  ];
+  // ============================================================
+  // STATE
+  // ============================================================
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  List<Map<String, dynamic>> _complaints = [];
+
+  Map<String, int> _summary = {
+    'total': 0,
+    'menunggu': 0,
+    'diproses': 0,
+    'selesai': 0,
+    'ditolak': 0,
+  };
 
   String _selectedFilter = 'Semua';
 
@@ -66,9 +37,169 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     'Ditolak',
   ];
 
-  // =========================================================
-  // FORMAT RUPIAH
-  // =========================================================
+  // ============================================================
+  // LIFECYCLE
+  // ============================================================
+  @override
+  void initState() {
+    super.initState();
+    _loadComplaints();
+  }
+
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  Future<void> _loadComplaints() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await ApiService.get('/admin/complaints');
+
+      debugPrint('📢 ADMIN COMPLAINTS: ${response.statusCode}');
+      debugPrint('📢 BODY: ${response.body}');
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Gagal memuat (${response.statusCode})';
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded['success'] != true) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = decoded['message']?.toString() ?? 'Gagal memuat.';
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      final s = decoded['summary'] ?? {};
+      final list = (decoded['data'] is List) ? decoded['data'] as List : [];
+
+      setState(() {
+        _summary = {
+          'total':    int.tryParse(s['total']?.toString() ?? '0') ?? 0,
+          'menunggu': int.tryParse(s['menunggu']?.toString() ?? '0') ?? 0,
+          'diproses': int.tryParse(s['diproses']?.toString() ?? '0') ?? 0,
+          'selesai':  int.tryParse(s['selesai']?.toString() ?? '0') ?? 0,
+          'ditolak':  int.tryParse(s['ditolak']?.toString() ?? '0') ?? 0,
+        };
+
+        _complaints = list
+            .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+            .toList();
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ ERROR ADMIN COMPLAINTS: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error: $e';
+      });
+    }
+  }
+
+  // ============================================================
+  // UPDATE STATUS
+  // ============================================================
+  Future<void> _updateComplaintStatus(
+    dynamic id,
+    String newStatus, {
+    String? note,
+  }) async {
+    try {
+      final response = await ApiService.put(
+        '/admin/complaints/$id',
+        {
+          'status': newStatus,
+          if (note != null && note.isNotEmpty) 'admin_response': note,
+        },
+      );
+
+      debugPrint('📢 PUT /admin/complaints/$id → ${response.statusCode}');
+      debugPrint('📢 BODY: ${response.body}');
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Status pengaduan diubah menjadi $newStatus.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadComplaints();
+      } else {
+        String message = 'Gagal mengubah status.';
+        try {
+          final decoded = jsonDecode(response.body);
+          message = decoded['message']?.toString() ?? message;
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  String _getValue(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value != null &&
+          value.toString().trim().isNotEmpty &&
+          value.toString() != 'null') {
+        return value.toString();
+      }
+    }
+    return '-';
+  }
+
+  /// Ambil field dari relasi nested, misal `user.name` atau `job.tittle`
+  String _getNestedValue(
+    Map<String, dynamic> data,
+    String relation,
+    List<String> keys,
+  ) {
+    final rel = data[relation];
+    if (rel is Map) {
+      for (final key in keys) {
+        final value = rel[key];
+        if (value != null &&
+            value.toString().trim().isNotEmpty &&
+            value.toString() != 'null') {
+          return value.toString();
+        }
+      }
+    }
+    return '-';
+  }
 
   String _formatRupiah(dynamic value) {
     final number = int.tryParse(value.toString()) ?? 0;
@@ -76,351 +207,88 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
           (match) => '${match[1]}.',
         );
-
     return 'Rp$formatted';
   }
 
-  // =========================================================
-  // FILTER DATA
-  // =========================================================
-
-  List<Map<String, dynamic>> get _filteredComplaints {
-    if (_selectedFilter == 'Semua') {
-      return _complaints;
+  String _formatTanggal(String? iso) {
+    if (iso == null || iso.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(iso).toLocal();
+      const bulan = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      ];
+      return '${date.day.toString().padLeft(2, '0')} '
+          '${bulan[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return iso;
     }
+  }
 
+  String _code(Map<String, dynamic> c) {
+    final id = c['id'];
+    if (id is int) return 'PGD-${id.toString().padLeft(3, '0')}';
+    return 'PGD-${id.toString()}';
+  }
+
+  // ============================================================
+  // FILTER
+  // ============================================================
+  List<Map<String, dynamic>> get _filteredComplaints {
+    if (_selectedFilter == 'Semua') return _complaints;
     return _complaints
-        .where(
-          (complaint) =>
-              complaint['status'] == _selectedFilter,
-        )
+        .where((c) => c['status']?.toString() == _selectedFilter)
         .toList();
   }
 
-  // =========================================================
-  // STATISTIK
-  // =========================================================
-
-  int _countByStatus(String status) {
-    return _complaints
-        .where((complaint) => complaint['status'] == status)
-        .length;
-  }
-
-  // =========================================================
-  // UBAH STATUS
-  // =========================================================
-
-  void _updateComplaintStatus(
-    String complaintId,
-    String newStatus,
-  ) {
-    setState(() {
-      final index = _complaints.indexWhere(
-        (complaint) => complaint['id'] == complaintId,
-      );
-
-      if (index != -1) {
-        _complaints[index]['status'] = newStatus;
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Status pengaduan berhasil diubah menjadi $newStatus.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  // =========================================================
-  // DETAIL PENGADUAN
-  // =========================================================
-
-  void _showComplaintDetail(
-    Map<String, dynamic> complaint,
-  ) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.report_problem_outlined,
-                  color: Color(0xFF7C3AED),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Detail Pengaduan',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 480,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _detailRow(
-                    'ID Pengaduan',
-                    complaint['id'].toString(),
-                  ),
-                  _detailRow(
-                    'Tanggal',
-                    complaint['tanggal'].toString(),
-                  ),
-                  _detailRow(
-                    'Nama Mitra',
-                    complaint['mitra'].toString(),
-                  ),
-                  _detailRow(
-                    'Nama Pelanggan',
-                    complaint['pelanggan'].toString(),
-                  ),
-                  _detailRow(
-                    'Pekerjaan',
-                    complaint['pekerjaan'].toString(),
-                  ),
-                  _detailRow(
-                    'Nominal',
-                    _formatRupiah(complaint['nominal']),
-                  ),
-                  _detailRow(
-                    'Status',
-                    complaint['status'].toString(),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Keterangan Pengaduan',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF334155),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                      ),
-                    ),
-                    child: Text(
-                      complaint['deskripsi'].toString(),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: Color(0xFF475569),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Tutup'),
-            ),
-            if (complaint['status'] == 'Menunggu')
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-
-                  _updateComplaintStatus(
-                    complaint['id'].toString(),
-                    'Diproses',
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                ),
-                child: const Text('Proses Pengaduan'),
-              ),
-            if (complaint['status'] == 'Diproses')
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-
-                  _updateComplaintStatus(
-                    complaint['id'].toString(),
-                    'Selesai',
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                ),
-                child: const Text('Tandai Selesai'),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _detailRow(
-    String label,
-    String value,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 125,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ),
-          const Text(
-            ': ',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // =========================================================
-  // KONFIRMASI TOLAK
-  // =========================================================
-
-  void _confirmReject(
-    Map<String, dynamic> complaint,
-  ) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          title: const Text(
-            'Tolak Pengaduan?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          content: const Text(
-            'Apakah kamu yakin ingin menolak pengaduan ini?',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF64748B),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-
-                _updateComplaintStatus(
-                  complaint['id'].toString(),
-                  'Ditolak',
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-                elevation: 0,
-              ),
-              child: const Text('Tolak'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // =========================================================
+  // ============================================================
   // BUILD
-  // =========================================================
-
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 700;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(isMobile),
-          const SizedBox(height: 24),
-          _buildStatistics(isMobile),
-          const SizedBox(height: 24),
-          _buildComplaintSection(isMobile),
-        ],
+    return RefreshIndicator(
+      onRefresh: _loadComplaints,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(isMobile),
+            const SizedBox(height: 24),
+
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 80),
+                  child: CircularProgressIndicator(color: Colors.orange),
+                ),
+              )
+            else if (_errorMessage != null)
+              _buildError()
+            else ...[
+              _buildStatistics(isMobile),
+              const SizedBox(height: 24),
+              _buildComplaintSection(isMobile),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  // =========================================================
+  // ============================================================
   // HEADER
-  // =========================================================
-
+  // ============================================================
   Widget _buildHeader(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Pengaduan Mitra',
+          'Pengaduan',
           style: TextStyle(
             fontSize: isMobile ? 24 : 28,
             fontWeight: FontWeight.w700,
@@ -429,7 +297,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Kelola pengaduan mitra terkait pekerjaan yang belum dibayar pelanggan.',
+          'Kelola pengaduan dari mitra dan pelanggan.',
           style: TextStyle(
             fontSize: isMobile ? 12 : 13,
             color: const Color(0xFF64748B),
@@ -439,15 +307,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     );
   }
 
-  // =========================================================
+  // ============================================================
   // STATISTIK
-  // =========================================================
-
+  // ============================================================
   Widget _buildStatistics(bool isMobile) {
     final cards = [
       {
         'title': 'Menunggu',
-        'value': _countByStatus('Menunggu'),
+        'value': _summary['menunggu'] ?? 0,
         'subtitle': 'Pengaduan baru',
         'icon': Icons.hourglass_empty_outlined,
         'color': const Color(0xFFF59E0B),
@@ -455,7 +322,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       },
       {
         'title': 'Diproses',
-        'value': _countByStatus('Diproses'),
+        'value': _summary['diproses'] ?? 0,
         'subtitle': 'Sedang ditangani',
         'icon': Icons.sync_outlined,
         'color': const Color(0xFF3B82F6),
@@ -463,7 +330,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       },
       {
         'title': 'Selesai',
-        'value': _countByStatus('Selesai'),
+        'value': _summary['selesai'] ?? 0,
         'subtitle': 'Telah diselesaikan',
         'icon': Icons.check_circle_outline,
         'color': const Color(0xFF10B981),
@@ -471,7 +338,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       },
       {
         'title': 'Ditolak',
-        'value': _countByStatus('Ditolak'),
+        'value': _summary['ditolak'] ?? 0,
         'subtitle': 'Pengaduan ditolak',
         'icon': Icons.cancel_outlined,
         'color': const Color(0xFFEF4444),
@@ -482,12 +349,10 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     if (isMobile) {
       return Column(
         children: cards
-            .map(
-              (card) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildStatisticCard(card),
-              ),
-            )
+            .map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildStatisticCard(c),
+                ))
             .toList(),
       );
     }
@@ -497,30 +362,22 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: cards.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: MediaQuery.of(context).size.width < 1050
-            ? 2
-            : 4,
+        crossAxisCount: MediaQuery.of(context).size.width < 1050 ? 2 : 4,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
         childAspectRatio: 2.5,
       ),
-      itemBuilder: (context, index) {
-        return _buildStatisticCard(cards[index]);
-      },
+      itemBuilder: (_, i) => _buildStatisticCard(cards[i]),
     );
   }
 
-  Widget _buildStatisticCard(
-    Map<String, dynamic> card,
-  ) {
+  Widget _buildStatisticCard(Map<String, dynamic> card) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
@@ -544,10 +401,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
               children: [
                 Text(
                   card['title'].toString(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -561,10 +415,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                 const SizedBox(height: 2),
                 Text(
                   card['subtitle'].toString(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF94A3B8),
-                  ),
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
                 ),
               ],
             ),
@@ -574,10 +425,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     );
   }
 
-  // =========================================================
-  // SECTION PENGADUAN
-  // =========================================================
-
+  // ============================================================
+  // SECTION
+  // ============================================================
   Widget _buildComplaintSection(bool isMobile) {
     return Container(
       width: double.infinity,
@@ -585,9 +435,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,29 +452,22 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           else
             Row(
               children: [
-                Expanded(
-                  child: _buildSectionTitle(),
-                ),
+                Expanded(child: _buildSectionTitle()),
                 _buildFilterDropdown(),
               ],
             ),
           const SizedBox(height: 18),
-          const Divider(
-            height: 1,
-            color: Color(0xFFE2E8F0),
-          ),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
           const SizedBox(height: 12),
           if (_filteredComplaints.isEmpty)
             _buildEmptyState()
           else if (isMobile)
             Column(
               children: _filteredComplaints
-                  .map(
-                    (complaint) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildComplaintCard(complaint),
-                    ),
-                  )
+                  .map((c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildComplaintCard(c),
+                      ))
                   .toList(),
             )
           else
@@ -651,10 +492,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
         const SizedBox(height: 4),
         Text(
           '${_filteredComplaints.length} pengaduan ditampilkan',
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF64748B),
-          ),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
         ),
       ],
     );
@@ -664,179 +502,147 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedFilter,
-          icon: const Icon(
-            Icons.keyboard_arrow_down,
-            size: 18,
-          ),
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF334155),
-          ),
+          icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF334155)),
           items: _filters
-              .map(
-                (filter) => DropdownMenuItem<String>(
-                  value: filter,
-                  child: Text(filter),
-                ),
-              )
+              .map((f) => DropdownMenuItem<String>(value: f, child: Text(f)))
               .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-
-            setState(() {
-              _selectedFilter = value;
-            });
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => _selectedFilter = v);
           },
         ),
       ),
     );
   }
 
-  // =========================================================
+  // ============================================================
   // DESKTOP TABLE
-  // =========================================================
-
+  // ============================================================
   Widget _buildDesktopTable() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: 950,
-        ),
+        constraints: const BoxConstraints(minWidth: 950),
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(
-            const Color(0xFFF8FAFC),
-          ),
+          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
           dataRowMinHeight: 70,
-          dataRowMaxHeight: 90,
+          dataRowMaxHeight: 95,
           columnSpacing: 24,
           horizontalMargin: 12,
           columns: const [
-            DataColumn(
-              label: Text('Pengaduan'),
-            ),
-            DataColumn(
-              label: Text('Mitra'),
-            ),
-            DataColumn(
-              label: Text('Pekerjaan'),
-            ),
-            DataColumn(
-              label: Text('Nominal'),
-            ),
-            DataColumn(
-              label: Text('Status'),
-            ),
-            DataColumn(
-              label: Text('Aksi'),
-            ),
+            DataColumn(label: Text('Pengaduan')),
+            DataColumn(label: Text('Pengadu')),
+            DataColumn(label: Text('Pekerjaan')),
+            DataColumn(label: Text('Kategori')),
+            DataColumn(label: Text('Status')),
+            DataColumn(label: Text('Aksi')),
           ],
-          rows: _filteredComplaints
-              .map(
-                (complaint) => DataRow(
-                  cells: [
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              complaint['id'].toString(),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              complaint['tanggal'].toString(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFF94A3B8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      SizedBox(
-                        width: 130,
-                        child: Text(
-                          complaint['mitra'].toString(),
+          rows: _filteredComplaints.map((c) {
+            return DataRow(
+              cells: [
+                DataCell(
+                  SizedBox(
+                    width: 110,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _code(c),
                           style: const TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF475569),
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
                           ),
                         ),
-                      ),
-                    ),
-                    DataCell(
-                      SizedBox(
-                        width: 160,
-                        child: Text(
-                          complaint['pekerjaan'].toString(),
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatTanggal(c['created_at']?.toString()),
                           style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF475569),
+                            fontSize: 10,
+                            color: Color(0xFF94A3B8),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    DataCell(
-                      Text(
-                        _formatRupiah(complaint['nominal']),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      _buildStatusBadge(
-                        complaint['status'].toString(),
-                      ),
-                    ),
-                    DataCell(
-                      _buildActionButtons(complaint),
-                    ),
-                  ],
+                  ),
                 ),
-              )
-              .toList(),
+                DataCell(
+                  SizedBox(
+                    width: 150,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _getNestedValue(c, 'user', ['name']),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          c['user_role']?.toString() ?? '-',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                DataCell(
+                  SizedBox(
+                    width: 170,
+                    child: Text(
+                      _getNestedValue(c, 'job', ['tittle', 'title']),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    c['category']?.toString() ?? '-',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ),
+                DataCell(_buildStatusBadge(c['status']?.toString() ?? '-')),
+                DataCell(_buildActionButtons(c)),
+              ],
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
-  // =========================================================
+  // ============================================================
   // MOBILE CARD
-  // =========================================================
-
-  Widget _buildComplaintCard(
-    Map<String, dynamic> complaint,
-  ) {
+  // ============================================================
+  Widget _buildComplaintCard(Map<String, dynamic> c) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFAFCFF),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,7 +651,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             children: [
               Expanded(
                 child: Text(
-                  complaint['id'].toString(),
+                  _code(c),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -853,77 +659,74 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   ),
                 ),
               ),
-              _buildStatusBadge(
-                complaint['status'].toString(),
-              ),
+              _buildStatusBadge(c['status']?.toString() ?? '-'),
             ],
           ),
           const SizedBox(height: 12),
           _mobileInfoRow(
             Icons.person_outline,
-            'Mitra',
-            complaint['mitra'].toString(),
-          ),
-          _mobileInfoRow(
-            Icons.person_search_outlined,
-            'Pelanggan',
-            complaint['pelanggan'].toString(),
+            'Pengadu',
+            '${_getNestedValue(c, 'user', ['name'])} '
+                '(${c['user_role'] ?? '-'})',
           ),
           _mobileInfoRow(
             Icons.work_outline,
             'Pekerjaan',
-            complaint['pekerjaan'].toString(),
+            _getNestedValue(c, 'job', ['tittle', 'title']),
           ),
           _mobileInfoRow(
-            Icons.payments_outlined,
-            'Nominal',
-            _formatRupiah(complaint['nominal']),
+            Icons.category_outlined,
+            'Kategori',
+            c['category']?.toString() ?? '-',
           ),
           _mobileInfoRow(
             Icons.calendar_today_outlined,
             'Tanggal',
-            complaint['tanggal'].toString(),
+            _formatTanggal(c['created_at']?.toString()),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            c['title']?.toString() ?? '-',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            c['description']?.toString() ?? '-',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF64748B),
+            ),
           ),
           const SizedBox(height: 12),
-          _buildActionButtons(complaint),
+          _buildActionButtons(c),
         ],
       ),
     );
   }
 
-  Widget _mobileInfoRow(
-    IconData icon,
-    String label,
-    String value,
-  ) {
+  Widget _mobileInfoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: const Color(0xFF64748B),
-          ),
+          Icon(icon, size: 16, color: const Color(0xFF64748B)),
           const SizedBox(width: 8),
           SizedBox(
-            width: 75,
+            width: 80,
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF64748B),
-              ),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
             ),
           ),
-          const Text(
-            ': ',
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF64748B),
-            ),
-          ),
+          const Text(': ',
+              style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
           Expanded(
             child: Text(
               value,
@@ -939,10 +742,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     );
   }
 
-  // =========================================================
+  // ============================================================
   // STATUS BADGE
-  // =========================================================
-
+  // ============================================================
   Widget _buildStatusBadge(String status) {
     Color backgroundColor;
     Color textColor;
@@ -952,32 +754,25 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
         backgroundColor = const Color(0xFFFFF7ED);
         textColor = const Color(0xFFC2410C);
         break;
-
       case 'Diproses':
         backgroundColor = const Color(0xFFEFF6FF);
         textColor = const Color(0xFF1D4ED8);
         break;
-
       case 'Selesai':
         backgroundColor = const Color(0xFFECFDF5);
         textColor = const Color(0xFF047857);
         break;
-
       case 'Ditolak':
         backgroundColor = const Color(0xFFFEF2F2);
         textColor = const Color(0xFFB91C1C);
         break;
-
       default:
         backgroundColor = const Color(0xFFF1F5F9);
         textColor = const Color(0xFF475569);
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
@@ -993,103 +788,59 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     );
   }
 
-  // =========================================================
+  // ============================================================
   // ACTION BUTTONS
-  // =========================================================
-
-  Widget _buildActionButtons(
-    Map<String, dynamic> complaint,
-  ) {
-    final status = complaint['status'].toString();
+  // ============================================================
+  Widget _buildActionButtons(Map<String, dynamic> c) {
+    final status = c['status']?.toString() ?? '';
 
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
         OutlinedButton.icon(
-          onPressed: () {
-            _showComplaintDetail(complaint);
-          },
-          icon: const Icon(
-            Icons.visibility_outlined,
-            size: 14,
-          ),
+          onPressed: () => _showComplaintDetail(c),
+          icon: const Icon(Icons.visibility_outlined, size: 14),
           label: const Text('Detail'),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF7C3AED),
-            side: const BorderSide(
-              color: Color(0xFFD8B4FE),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
-            textStyle: const TextStyle(
-              fontSize: 11,
-            ),
+            side: const BorderSide(color: Color(0xFFD8B4FE)),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            textStyle: const TextStyle(fontSize: 11),
           ),
         ),
         if (status == 'Menunggu')
           ElevatedButton(
-            onPressed: () {
-              _updateComplaintStatus(
-                complaint['id'].toString(),
-                'Diproses',
-              );
-            },
+            onPressed: () => _updateComplaintStatus(c['id'], 'Diproses'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7C3AED),
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 11,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              textStyle: const TextStyle(fontSize: 11),
             ),
             child: const Text('Proses'),
           ),
         if (status == 'Diproses')
           ElevatedButton(
-            onPressed: () {
-              _updateComplaintStatus(
-                complaint['id'].toString(),
-                'Selesai',
-              );
-            },
+            onPressed: () => _updateComplaintStatus(c['id'], 'Selesai'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981),
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 11,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              textStyle: const TextStyle(fontSize: 11),
             ),
             child: const Text('Selesai'),
           ),
         if (status == 'Menunggu' || status == 'Diproses')
           OutlinedButton(
-            onPressed: () {
-              _confirmReject(complaint);
-            },
+            onPressed: () => _confirmReject(c),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFEF4444),
-              side: const BorderSide(
-                color: Color(0xFFFCA5A5),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 11,
-              ),
+              side: const BorderSide(color: Color(0xFFFCA5A5)),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              textStyle: const TextStyle(fontSize: 11),
             ),
             child: const Text('Tolak'),
           ),
@@ -1097,21 +848,298 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     );
   }
 
-  // =========================================================
-  // EMPTY STATE
-  // =========================================================
+  // ============================================================
+  // DETAIL DIALOG
+  // ============================================================
+  void _showComplaintDetail(Map<String, dynamic> c) {
+    final responseController = TextEditingController(
+      text: c['admin_response']?.toString() ?? '',
+    );
 
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final status = c['status']?.toString() ?? '';
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E8FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.report_problem_outlined,
+                  color: Color(0xFF7C3AED),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Detail Pengaduan',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _detailRow('ID Pengaduan', _code(c)),
+                  _detailRow('Tanggal', _formatTanggal(c['created_at']?.toString())),
+                  _detailRow('Pengadu', _getNestedValue(c, 'user', ['name'])),
+                  _detailRow('Role', c['user_role']?.toString() ?? '-'),
+                  _detailRow('Kategori', c['category']?.toString() ?? '-'),
+                  _detailRow('Pekerjaan', _getNestedValue(c, 'job', ['tittle', 'title'])),
+                  _detailRow('Judul', c['title']?.toString() ?? '-'),
+                  _detailRow('Status', status),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Keterangan Pengaduan',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      c['description']?.toString() ?? '-',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ),
+
+                  // Tanggapan admin (kalau sudah ada)
+                  if ((c['admin_response']?.toString() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Tanggapan Admin',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: Text(
+                        c['admin_response'].toString(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.5,
+                          color: Color(0xFF065F46),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Form tanggapan (kalau masih aktif)
+                  if (status == 'Menunggu' || status == 'Diproses') ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Tanggapan / Catatan Admin',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: responseController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Tulis tanggapan untuk pengadu...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Tutup'),
+            ),
+            if (status == 'Menunggu')
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _updateComplaintStatus(
+                    c['id'],
+                    'Diproses',
+                    note: responseController.text.trim(),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                ),
+                child: const Text('Proses'),
+              ),
+            if (status == 'Diproses')
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _updateComplaintStatus(
+                    c['id'],
+                    'Selesai',
+                    note: responseController.text.trim(),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                ),
+                child: const Text('Tandai Selesai'),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 125,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+          ),
+          const Text(': ',
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // KONFIRMASI TOLAK
+  // ============================================================
+  void _confirmReject(Map<String, dynamic> c) {
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text(
+            'Tolak Pengaduan?',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Apakah kamu yakin ingin menolak pengaduan ini?',
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Alasan penolakan...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _updateComplaintStatus(
+                  c['id'],
+                  'Ditolak',
+                  note: reasonController.text.trim(),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+              child: const Text('Tolak'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // EMPTY STATE
+  // ============================================================
   Widget _buildEmptyState() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 45),
       child: Center(
         child: Column(
           children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 12),
             const Text(
               'Tidak ada pengaduan',
@@ -1124,14 +1152,47 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             const SizedBox(height: 5),
             const Text(
               'Belum ada pengaduan dengan status tersebut.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF94A3B8),
-              ),
+              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
               textAlign: TextAlign.center,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR STATE
+  // ============================================================
+  Widget _buildError() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(35),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.red.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const SizedBox(height: 12),
+          Text(
+            _errorMessage ?? 'Terjadi kesalahan.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadComplaints,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -14,6 +14,9 @@ class system_setting extends Model
         'points_on_cancellation',
         'points_bonus_rating',
         'platform_commission_percent',
+        'platform_bank_name',
+        'platform_bank_account_number',
+        'platform_bank_account_name',
     ];
 
     protected $casts = [
@@ -22,4 +25,15 @@ class system_setting extends Model
         'points_bonus_rating' => 'integer',
         'platform_commission_percent' => 'decimal:2',
     ];
+
+    public function getPlatformBankInfoAttribute(): string
+    {
+        if (empty($this->platform_bank_name) || empty($this->platform_bank_account_number)) {
+            return '-';
+        }
+
+        return $this->platform_bank_name
+            . ' - ' . $this->platform_bank_account_number
+            . ' (' . ($this->platform_bank_account_name ?? '-') . ')';
+    }
 }

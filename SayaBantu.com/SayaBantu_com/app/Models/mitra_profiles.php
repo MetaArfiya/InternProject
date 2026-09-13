@@ -11,28 +11,23 @@ class mitra_profiles extends Model
 
     protected $fillable = [
         'user_id',
-
-        // Data profil
         'gender',
         'birth_date',
         'city',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
         'bio',
         'skills',
-
-        // Verifikasi
         'skill_photos',
         'verification_image',
-        'selfie_image', 
+        'selfie_image',
         'certificate',
         'verified_by',
         'verified_at',
-
-        // Statistik
         'point',
         'rating',
         'is_verified',
-
-        // Pekerjaan
         'jobs_completed',
     ];
 
@@ -45,15 +40,24 @@ class mitra_profiles extends Model
         'birth_date' => 'date:Y-m-d',
     ];
 
-    // Relasi: Profil ini milik seorang User (Mitra)
     public function user()
     {
         return $this->belongsTo(users::class, 'user_id');
     }
 
-    // Relasi: Profil ini diverifikasi oleh seorang User (Admin)
     public function verifier()
     {
         return $this->belongsTo(users::class, 'verified_by');
+    }
+
+    public function getBankAccountInfoAttribute(): string
+    {
+        if (empty($this->bank_name) || empty($this->bank_account_number)) {
+            return '-';
+        }
+
+        return $this->bank_name
+            . ' - ' . $this->bank_account_number
+            . ' (' . ($this->bank_account_name ?? '-') . ')';
     }
 }

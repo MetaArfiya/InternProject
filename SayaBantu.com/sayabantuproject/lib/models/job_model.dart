@@ -31,6 +31,10 @@ class JobModel {
   final DateTime? completionSubmittedAt;
   final DateTime? completionVerifiedAt;
 
+  final bool canRate;
+  final bool hasRated;
+  final int? myRating;
+
   JobModel({
     required this.id,
     required this.pelangganId,
@@ -59,6 +63,9 @@ class JobModel {
     this.completionAdminNote,
     this.completionSubmittedAt,
     this.completionVerifiedAt,
+    this.canRate = false,
+    this.hasRated = false,
+    this.myRating,
   });
 
   String get title => tittle;
@@ -123,6 +130,9 @@ class JobModel {
     String? completionAdminNote,
     DateTime? completionSubmittedAt,
     DateTime? completionVerifiedAt,
+    bool? canRate,
+    bool? hasRated,
+    int? myRating,
   }) {
     return JobModel(
       id: id ?? this.id,
@@ -152,10 +162,24 @@ class JobModel {
       completionAdminNote: completionAdminNote ?? this.completionAdminNote,
       completionSubmittedAt: completionSubmittedAt ?? this.completionSubmittedAt,
       completionVerifiedAt: completionVerifiedAt ?? this.completionVerifiedAt,
+      canRate: canRate ?? this.canRate,
+      hasRated: hasRated ?? this.hasRated,
+      myRating: myRating ?? this.myRating,
     );
   }
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
+    final bool canRate = json['can_rate'] == true ||
+        json['can_rate'] == 1 ||
+        json['can_rate']?.toString().toLowerCase() == 'true';
+
+    final bool hasRated = json['has_rated'] == true ||
+        json['has_rated'] == 1 ||
+        json['has_rated']?.toString().toLowerCase() == 'true';
+
+    final int? myRating = json['my_rating'] != null
+        ? int.tryParse(json['my_rating'].toString())
+        : null;
     // ============================================================
     // BUDGET
     // ============================================================
@@ -249,6 +273,9 @@ class JobModel {
       completionAdminNote: completionAdminNote,
       completionSubmittedAt: completionSubmittedAt,
       completionVerifiedAt: completionVerifiedAt,
+      canRate: canRate,
+      hasRated: hasRated,
+      myRating: myRating,
     );
   }
 

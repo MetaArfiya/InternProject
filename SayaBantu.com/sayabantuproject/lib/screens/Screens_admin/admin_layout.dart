@@ -487,13 +487,13 @@ class _AdminLayoutState extends State<AdminLayout> {
           ),
 
           // =================================================
-          // PENGADUAN MITRA
+          // PENGADUAN
           // =================================================
 
           _menuItem(
             context: context,
             icon: Icons.report_problem_outlined,
-            title: 'Pengaduan Mitra',
+            title: 'Pengaduan',
             active: activeMenu == 'complaint',
             onTap: () {
               _changePage(context, 'complaint');

@@ -14,6 +14,13 @@ class SystemSettingSeeder extends Seeder
             'points_on_cancellation' => 5,
             'points_bonus_rating' => 3,
             'platform_commission_percent' => 15.00,
+
+            // =====================================================
+            // REKENING PLATFORM (contoh)
+            // =====================================================
+            'platform_bank_name' => 'BCA',
+            'platform_bank_account_number' => '1234567890',
+            'platform_bank_account_name' => 'PT Sayabantu Indonesia',
         ]);
     }
 }

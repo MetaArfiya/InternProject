@@ -163,11 +163,16 @@ class MitraProfileController extends Controller
             }
 
             $request->validate([
-                'gender' => 'nullable|string|max:50',
-                'birth_date' => 'nullable|date',
-                'city' => 'nullable|string|max:100',
-                'bio' => 'nullable|string',
-                'skills' => 'nullable|string|max:255',
+                'gender'              => 'nullable|string|max:50',
+                'birth_date'          => 'nullable|date',
+                'city'                => 'nullable|string|max:100',
+                'bio'                 => 'nullable|string',
+                'skills'              => 'nullable|string|max:255',
+
+                // 🆕 Validasi rekening bank
+                'bank_name'           => 'nullable|string|max:100',
+                'bank_account_number' => 'nullable|string|max:50',
+                'bank_account_name'   => 'nullable|string|max:100',
             ]);
 
             $updateData = [];
@@ -192,20 +197,39 @@ class MitraProfileController extends Controller
                 $updateData['skills'] = $request->skills;
             }
 
+            // 🆕 Handle rekening bank
+            if ($request->has('bank_name')) {
+                $updateData['bank_name'] = $request->bank_name;
+            }
+
+            if ($request->has('bank_account_number')) {
+                $updateData['bank_account_number'] = $request->bank_account_number;
+            }
+
+            if ($request->has('bank_account_name')) {
+                $updateData['bank_account_name'] = $request->bank_account_name;
+            }
+
             $profile->update($updateData);
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Profil Mitra berhasil diperbarui.',
                 'data' => [
-                    'gender' => $profile->gender,
-                    'birth_date' => $profile->birth_date,
-                    'city' => $profile->city,
-                    'bio' => $profile->bio,
-                    'skills' => $profile->skills,
-                    'point' => $profile->point ?? 0,
-                    'rating' => $profile->rating ?? 0,
-                    'is_verified' => (int) $profile->is_verified === 1,
+                    'gender'              => $profile->gender,
+                    'birth_date'          => $profile->birth_date,
+                    'city'                => $profile->city,
+                    'bio'                 => $profile->bio,
+                    'skills'              => $profile->skills,
+
+                    // 🆕 Kirim balik data bank
+                    'bank_name'           => $profile->bank_name,
+                    'bank_account_number' => $profile->bank_account_number,
+                    'bank_account_name'   => $profile->bank_account_name,
+
+                    'point'               => $profile->point ?? 0,
+                    'rating'              => $profile->rating ?? 0,
+                    'is_verified'         => (int) $profile->is_verified === 1,
                 ]
             ], 200);
 
@@ -265,6 +289,11 @@ class MitraProfileController extends Controller
 
                     // Skills tetap dikirim sebagai array
                     'skills' => $skillsArray,
+
+                    // 🆕 Rekening bank
+                    'bank_name'           => $profile->bank_name,
+                    'bank_account_number' => $profile->bank_account_number,
+                    'bank_account_name'   => $profile->bank_account_name,
 
                     // Statistik
                     'point' => $profile->point ?? 0,

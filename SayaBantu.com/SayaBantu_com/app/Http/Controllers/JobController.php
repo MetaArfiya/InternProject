@@ -108,6 +108,23 @@ class JobController extends Controller
                 ->latest()
                 ->get();
 
+            // Ambil semua rating pelanggan ini (untuk cek has_rated)
+            $myRatings = \App\Models\Rating::where('pelanggan_id', $pelangganId)
+                ->pluck('stars', 'job_id');
+
+            // Transform data — tambahkan can_rate, has_rated, my_rating
+            $jobsTransformed = $jobs->map(function ($job) use ($myRatings) {
+                $data = $job->toArray();
+
+                $hasRated = $myRatings->has($job->id);
+
+                $data['has_rated'] = $hasRated;
+                $data['my_rating'] = $hasRated ? $myRatings[$job->id] : null;
+                $data['can_rate'] = $job->status === 'Selesai' && !$hasRated;
+
+                return $data;
+            });
+
             $totalPosting = $jobs->count();
             $sedangBerjalan = $jobs->where('status', 'Sedang Dikerjakan')->count();
             $selesai = $jobs->where('status', 'Selesai')->count();
@@ -120,7 +137,7 @@ class JobController extends Controller
                     'sedang_berjalan' => $sedangBerjalan,
                     'selesai' => $selesai,
                 ],
-                'data' => $jobs,
+                'data' => $jobsTransformed,
             ], 200);
 
         } catch (\Exception $e) {
@@ -296,11 +313,24 @@ class JobController extends Controller
         $higherPointsCount = mitra_profiles::where('point', '>', $profile ? $profile->point : 0)->count();
         $ranking = $higherPointsCount + 1;
 
+        // Ambil semua bid yang relevan (tambahkan status agar data tidak hilang)
         $myBids = job_bids::where('mitra_id', $userId)
             ->whereIn('status', ['Menunggu', 'Diterima Pelanggan'])
             ->with('job')
-            ->latest()
             ->get();
+
+        // =========================================================
+        // SORTING: Pekerjaan aktif di atas, selesai/menunggu di bawah
+        // =========================================================
+        $myBids = $myBids->sortBy(function ($bid) {
+            $jobStatus = $bid->job ? $bid->job->status : 'Menunggu';
+            
+            // Prioritas 1: Masih berjalan / sedang dikerjakan
+            // Prioritas 2: Menunggu konfirmasi atau sudah selesai
+            $priority = in_array($jobStatus, ['Sedang Dikerjakan', 'Diterima Pelanggan', 'Mencari Mitra', 'Menunggu']) ? 1 : 2;
+            
+            return $priority . '-' . $bid->created_at->timestamp;
+        })->values();
 
         $formattedOffers = $myBids->map(function ($bid) {
             $queuePosition = job_bids::where('job_id', $bid->job_id)
@@ -308,14 +338,19 @@ class JobController extends Controller
                 ->where('id', '<=', $bid->id)
                 ->count();
 
+            // =========================================================
+            // KUNCI UTAMA: Ambil status dari tabel JOBS, bukan dari BIDS
+            // =========================================================
+            $jobStatus = $bid->job ? $bid->job->status : ($bid->status ?? 'Menunggu');
+
             return [
                 'id' => $bid->id,
                 'job_id' => $bid->job_id,
                 'tittle' => optional($bid->job)->tittle ?? 'Pekerjaan Tidak Diketahui',
                 'price' => (float) ($bid->offered_price ?? 0),
-                'queue_position' => $bid->status === 'Diterima Pelanggan' ? 1 : ($queuePosition ?: 1),
-                'is_top' => ($bid->status === 'Diterima Pelanggan' || $queuePosition === 1),
-                'status' => $bid->status ?? 'Menunggu'
+                'queue_position' => $jobStatus === 'Diterima Pelanggan' ? 1 : ($queuePosition ?: 1),
+                'is_top' => ($jobStatus === 'Diterima Pelanggan' || $queuePosition === 1),
+                'status' => $jobStatus // <--- Kirim status pekerjaan ke Flutter
             ];
         });
 

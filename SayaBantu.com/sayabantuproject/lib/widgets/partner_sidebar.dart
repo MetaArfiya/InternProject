@@ -656,12 +656,6 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             // PROFIL
             // =================================================
 
-            _menu(
-              context,
-              icon: Icons.person_outline,
-              title: "Profil",
-              menu: PartnerSidebarMenu.profile,
-            ),
 
             // =================================================
             // PENGATURAN

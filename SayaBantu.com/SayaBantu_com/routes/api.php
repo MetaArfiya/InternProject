@@ -16,6 +16,8 @@ use App\Http\Controllers\AdminActivityController;
 use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\RatingController;
 use App\Models\AppReview;
 
 
@@ -23,11 +25,9 @@ use App\Models\AppReview;
 // JALUR UMUM / PUBLIC
 // =========================================================
 
-
 // =========================================================
 // SERVE GAMBAR JOB DENGAN CORS
 // =========================================================
-
 Route::get('/images/jobs/{filename}', function ($filename) {
     $path = 'jobs/' . $filename;
 
@@ -57,7 +57,6 @@ Route::get('/images/jobs/{filename}', function ($filename) {
 // =========================================================
 // SERVE GAMBAR PROFILE DENGAN CORS
 // =========================================================
-
 Route::get('/images/profile/{filename}', function ($filename) {
     $path = 'profile_photos/' . $filename;
 
@@ -173,6 +172,43 @@ Route::get('/images/completion_proofs/{filename}', function ($filename) {
 
 
 // =========================================================
+// SERVE GAMBAR BUKTI PEMBAYARAN (PAYMENT PROOFS) — BARU
+// =========================================================
+Route::get('/images/payment_proofs/{folder}/{filename}', function ($folder, $filename) {
+    // $folder bisa 'customer' atau 'mitra'
+    if (!in_array($folder, ['customer', 'mitra'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Folder tidak valid.',
+        ], 400);
+    }
+
+    $path = 'payment_proofs/' . $folder . '/' . $filename;
+
+    if (!Storage::disk('public')->exists($path)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Bukti pembayaran tidak ditemukan.',
+        ], 404);
+    }
+
+    $file = Storage::disk('public')->get($path);
+    $mimeType = match (strtolower(pathinfo($filename, PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        default => 'application/octet-stream',
+    };
+
+    return Response::make($file, 200)
+        ->header('Content-Type', $mimeType)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        ->header('Access-Control-Allow-Headers', '*');
+});
+
+
+// =========================================================
 // TESTIMONIALS
 // =========================================================
 
@@ -253,11 +289,9 @@ Route::get('/landing-stats', [StatsController::class, 'getLandingStats']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-
     // =====================================================
     // USER PROFILE
     // =====================================================
-
     Route::get('/user', [AuthController::class, 'me']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/user/profile/photo', [AuthController::class, 'uploadProfilePhoto']);
@@ -266,15 +300,41 @@ Route::middleware('auth:sanctum')->group(function () {
     // =====================================================
     // ACTIVITY LOG
     // =====================================================
-
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
     Route::post('/activity-logs', [ActivityLogController::class, 'store']);
 
 
     // =====================================================
+    // COMPLAINTS — SEMUA ROLE YANG LOGIN
+    // =====================================================
+    Route::get('/complaints/my',    [ComplaintController::class, 'myComplaints']);
+    Route::post('/complaints',      [ComplaintController::class, 'store']);
+    Route::get('/complaints/{id}',  [ComplaintController::class, 'show']);
+
+
+    // =====================================================
+    // PAYMENT DETAIL — SEMUA ROLE YANG LOGIN
+    // =====================================================
+    Route::get('/payments/{id}', [PaymentController::class, 'show']);
+
+
+    // =====================================================
+    // NOTIFICATION
+    // =====================================================
+    Route::get('/notifications', [NotificationController::class, 'getNotifications']);
+    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
+    Route::put('/user/notification-setting', [AuthController::class, 'updateNotificationSetting']);
+
+
+    // =====================================================
+    // CHANGE PASSWORD
+    // =====================================================
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+
+
+    // =====================================================
     // SUPER ADMIN
     // =====================================================
-
     Route::middleware('role:Super Admin')->group(function () {
         Route::post('/superadmin/create-admin', [SuperAdminController::class, 'createAdmin']);
         Route::get('/superadmin/analytics', [SuperAdminController::class, 'analytics']);
@@ -284,7 +344,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/superadmin/system-settings', [SuperAdminController::class, 'getSystemSettings']);
         Route::put('/superadmin/system-settings', [SuperAdminController::class, 'updateSystemSettings']);
 
-        // ✅ PEMBAYARAN — SUPER ADMIN
+        // ✅ BARU: Update rekening platform
+        Route::post('/superadmin/settings/bank-account', [SuperAdminController::class, 'updateBankAccount']);
+
+        // Active mitra
+        Route::get('/superadmin/active-partners', [SuperAdminController::class, 'activePartners']);
+
+        // PEMBAYARAN — SUPER ADMIN
         Route::get('/superadmin/payments/overview',  [PaymentController::class, 'superOverview']);
         Route::get('/superadmin/payments/chart',     [PaymentController::class, 'superChart']);
         Route::get('/superadmin/payments/top-mitra', [PaymentController::class, 'superTopMitra']);
@@ -294,8 +360,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // =====================================================
     // ADMIN
     // =====================================================
-
-        Route::middleware('role:Admin')->group(function () {
+    Route::middleware('role:Admin')->group(function () {
         Route::get('/admin/unverified-mitra', [AdminController::class, 'unverifiedMitra']);
         Route::post('/admin/verify-mitra/{id}', [AdminController::class, 'verifyMitra']);
         Route::get('/admin/jobs-moderation', [AdminController::class, 'contentModeration']);
@@ -303,18 +368,37 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/activities', [AdminActivityController::class, 'index']);
         Route::post('/admin/activities', [AdminActivityController::class, 'store']);
 
-        // ✅ PEMBAYARAN — ADMIN
-        Route::get('/admin/payments',                  [PaymentController::class, 'adminIndex']);
-        Route::put('/admin/payments/{id}/mark-paid',   [PaymentController::class, 'markPaid']);
-        Route::put('/admin/payments/{id}/settle',      [PaymentController::class, 'settle']);
-        Route::put('/admin/payments/{id}/refund',      [PaymentController::class, 'refund']);
+        // =====================================================
+        // PEMBAYARAN — ADMIN (REVISI)
+        // =====================================================
+        Route::get('/admin/payments',                    [PaymentController::class, 'adminIndex']);
+        Route::get('/admin/payments/{id}',               [PaymentController::class, 'showForAdmin']);
+        Route::put('/admin/payments/{id}/verify',        [PaymentController::class, 'verifyCustomerProof']);
+        Route::post('/admin/payments/{id}/settle',       [PaymentController::class, 'settle']);
+        Route::put('/admin/payments/{id}/refund',        [PaymentController::class, 'refund']);
+
+        // ⚠️ Endpoint lama (bisa dihapus kalau sudah tidak dipakai)
+        // Route::put('/admin/payments/{id}/mark-paid',  [PaymentController::class, 'markPaid']);
+
+        // COMPLAINTS — ADMIN
+        Route::get('/admin/complaints',         [ComplaintController::class, 'adminIndex']);
+        Route::put('/admin/complaints/{id}',    [ComplaintController::class, 'adminRespond']);
+
+        // Laporan harian
+        Route::get('/admin/daily-report', [AdminController::class, 'dailyReport']);
+
+        // RATING — ADMIN
+        Route::get('/admin/ratings',             [RatingController::class, 'adminIndex']);
+        Route::get('/admin/ratings/{id}',        [RatingController::class, 'show']);
+        Route::delete('/admin/ratings/{id}',     [RatingController::class, 'destroy']);
+        Route::put('/admin/ratings/{id}/hide',   [RatingController::class, 'hide']);
+        Route::put('/admin/ratings/{id}/unhide', [RatingController::class, 'unhide']);
     });
 
 
     // =====================================================
     // MITRA
     // =====================================================
-
     Route::middleware('role:Mitra')->group(function () {
         // Verifikasi & Upload
         Route::post('/mitra/verification', [MitraProfileController::class, 'submitVerification']);
@@ -338,7 +422,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Upload bukti selesai
         Route::post('/jobs/{id}/upload-proof', [JobController::class, 'uploadProof']);
 
-        // ✅ Pembayaran — Pendapatan Mitra
+        // Pembayaran — Pendapatan Mitra
         Route::get('/mitra/earnings', [PaymentController::class, 'mitraIndex']);
         Route::get('/mitra/earnings/monthly', [PaymentController::class, 'mitraMonthlyStats']);
     });
@@ -347,7 +431,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // =====================================================
     // PELANGGAN
     // =====================================================
-
     Route::middleware('role:Pelanggan')->group(function () {
         Route::post('/jobs', [JobController::class, 'store']);
         Route::post('/jobs/{id}/complete', [JobController::class, 'completeJob']);
@@ -360,29 +443,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/mitra/{id}', [MitraProfileController::class, 'show']);
         Route::get('/jobs/{id}', [JobController::class, 'show']);
 
-        // ✅ Pembayaran — Pelanggan
-        Route::get('/pelanggan/payments', [PaymentController::class, 'pelangganIndex']);
-        Route::post('/payments/{id}/pay', [PaymentController::class, 'pay']);
+        // =====================================================
+        // PEMBAYARAN — PELANGGAN (REVISI)
+        // =====================================================
+        Route::get('/pelanggan/payments',                   [PaymentController::class, 'pelangganIndex']);
+        Route::get('/pelanggan/payments/{id}',              [PaymentController::class, 'showForPelanggan']);
+        Route::post('/pelanggan/payments/{id}/upload-proof',[PaymentController::class, 'uploadCustomerProof']);
+
+        // ✅ RATING — PELANGGAN
+        Route::post('/pelanggan/ratings',              [RatingController::class, 'storeFromPelanggan']);
+        Route::get('/pelanggan/ratings/job/{jobId}',   [RatingController::class, 'checkJobRating']);
     });
-
-
-    // =====================================================
-    // PAYMENT DETAIL (semua role yang login)
-    // =====================================================
-    Route::get('/payments/{id}', [PaymentController::class, 'show']);
-
-
-    // =====================================================
-    // NOTIFICATION
-    // =====================================================
-
-    Route::get('/notifications', [NotificationController::class, 'getNotifications']);
-    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
-    Route::put('/user/notification-setting', [AuthController::class, 'updateNotificationSetting']);
-
-    // =====================================================
-    // CHANGE PASSWORD
-    // =====================================================
-
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
 });

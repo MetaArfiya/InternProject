@@ -6,7 +6,7 @@ import '../../widgets/partner_sidebar.dart';
 
 import '../../sections/partner/partner_dashboard.dart';
 import '../../sections/partner/active_offer_screen.dart';
-import '../../sections/partner/partner_profile_section.dart';
+// import '../../sections/partner/partner_profile_section.dart';
 import '../../sections/partner/partner_setting_screen.dart';
 import '../../sections/partner/offer_job_screen.dart';
 import '../../sections/partner/partner_complaint_screen.dart';
@@ -125,11 +125,11 @@ class _PartnerMainDashboardState
         return const PartnerComplaintScreen();
 
       // --------------------------------------------------------
-      // PROFIL
+      // PROFIL — ✅ SUDAH DIAKTIFKAN
       // --------------------------------------------------------
 
-      case PartnerSidebarMenu.profile:
-        return const PartnerProfileSection();
+      // case PartnerSidebarMenu.profile:
+      //   return const PartnerProfileSection();
 
       // --------------------------------------------------------
       // PENGATURAN

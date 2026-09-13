@@ -3,189 +3,98 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;  // ← FIX: import Log
 use App\Models\ActivityLog;
 
 class ActivityLogController extends Controller
 {
-    /**
-     * =========================================================
-     * MENGAMBIL SEMUA LOG AKTIVITAS
-     * =========================================================
-     *
-     * Log berasal dari:
-     *
-     * Super Admin
-     * Admin
-     * Mitra
-     * Pelanggan
-     * Sistem
-     *
-     */
-    public function index()
+    public function index(Request $request)
     {
         try {
+            $query = ActivityLog::with('user:id,name,role_id');
 
-            $activities = ActivityLog::with([
-                'user.role'
-            ])
-                ->latest()
-                ->take(100)
-                ->get();
+            // Optional: filter by role dari query string
+            if ($request->filled('role') && $request->role !== 'all') {
+                $roleName = $request->role;
+                $query->whereHas('user', function ($q) use ($roleName) {
+                    $q->whereHas('role', function ($qr) use ($roleName) {
+                        $qr->where('role_name', $roleName);
+                        // kalau field-nya 'name', tambah ->orWhere('name', $roleName)
+                    });
+                });
+            }
 
-            $formattedActivities = $activities->map(
-                function ($activity) {
+            $logs = $query->latest()->get();
 
-                    return [
-                        'id' => $activity->id,
+            $data = $logs->map(function ($log) {
+                $user = $log->user;
 
-                        // =================================================
-                        // NAMA USER
-                        // =================================================
-                        'name' =>
-                            $activity->user?->name
-                            ?? 'Sistem',
-
-                        // =================================================
-                        // ROLE DARI TABEL ROLES
-                        // =================================================
-                        'role' =>
-                            $activity->user?->role?->role_name
-                            ?? 'Sistem',
-
-                        // =================================================
-                        // AKTIVITAS
-                        // =================================================
-                        'activity' =>
-                            $activity->title,
-
-                        // =================================================
-                        // DETAIL
-                        // =================================================
-                        'detail' =>
-                            $activity->detail ?? '',
-
-                        // =================================================
-                        // TYPE
-                        // =================================================
-                        'type' =>
-                            $activity->type ?? 'Sistem',
-
-                        // =================================================
-                        // ICON
-                        // =================================================
-                        'icon' =>
-                            $activity->icon ?? 'settings',
-
-                        // =================================================
-                        // WAKTU
-                        // =================================================
-                        'time' =>
-                            $activity->created_at
-                            ? $activity->created_at
-                                ->format('d M Y, H:i')
-                            : '-',
-
-                        // =================================================
-                        // TIMESTAMP
-                        // =================================================
-                        'created_at' =>
-                            $activity->created_at,
-                    ];
+                // Tentukan role name
+                $roleName = 'Sistem';
+                if ($user) {
+                    $roleName = $user->role_name ?? 'Pelanggan';
                 }
-            );
+
+                $time = $log->created_at
+                    ? $log->created_at->diffForHumans()
+                    : '-';
+
+                return [
+                    'id'       => $log->id,
+                    'name'     => $user->name ?? 'System',
+                    'role'     => $roleName,
+                    'activity' => $log->activity ?? $log->title ?? '-',
+                    'detail'   => $log->detail ?? $log->description ?? '-',
+                    'type'     => $log->type ?? 'Sistem',
+                    'icon'     => $log->icon ?? 'history',
+                    'time'     => $time,
+                ];
+            });
 
             return response()->json([
                 'success' => true,
-
-                'message' =>
-                    'Berhasil mengambil log aktivitas.',
-
-                'data' =>
-                    $formattedActivities,
-
+                'data'    => $data,
             ], 200);
 
         } catch (\Exception $e) {
-
+            Log::error('ActivityLogController@index: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'Gagal mengambil log aktivitas.',
-
-                'error' =>
-                    $e->getMessage(),
-
+                'message' => 'Gagal memuat log aktivitas.',
             ], 500);
         }
     }
 
-
-    /**
-     * =========================================================
-     * MENYIMPAN LOG AKTIVITAS
-     * =========================================================
-     *
-     * Endpoint ini sebenarnya opsional.
-     *
-     * Aktivitas penting sebaiknya dicatat langsung
-     * dari controller masing-masing menggunakan ActivityLogger.
-     *
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'title' =>
-                'required|string',
-
-            'detail' =>
-                'nullable|string',
-
-            'icon' =>
-                'nullable|string',
-
-            'type' =>
-                'nullable|string',
+            'title'  => 'required|string',
+            'detail' => 'nullable|string',
+            'icon'   => 'nullable|string',
+            'type'   => 'nullable|string',
         ]);
 
         $user = $request->user();
 
         if (!$user) {
-
             return response()->json([
                 'success' => false,
-
-                'message' =>
-                    'User belum terautentikasi.',
+                'message' => 'User belum terautentikasi.',
             ], 401);
         }
 
         $activity = ActivityLog::create([
-            'user_id' =>
-                $user->id,
-
-            'title' =>
-                $request->title,
-
-            'detail' =>
-                $request->detail,
-
-            'icon' =>
-                $request->icon ?? 'settings',
-
-            'type' =>
-                $request->type ?? 'Sistem',
+            'user_id' => $user->id,
+            'title'   => $request->title,
+            'detail'  => $request->detail,
+            'icon'    => $request->icon ?? 'settings',
+            'type'    => $request->type ?? 'Sistem',
         ]);
 
         return response()->json([
             'success' => true,
-
-            'message' =>
-                'Aktivitas berhasil dicatat.',
-
-            'data' =>
-                $activity,
-
+            'message' => 'Aktivitas berhasil dicatat.',
+            'data'    => $activity,
         ], 201);
     }
 }

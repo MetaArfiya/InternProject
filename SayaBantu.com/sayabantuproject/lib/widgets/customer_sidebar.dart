@@ -1,3 +1,5 @@
+// lib/widgets/customer_sidebar.dart
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -25,7 +27,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // STATE
   // =========================================================
-
   String name = 'Pengguna';
   String role = 'Pelanggan';
   String? photoUrl;
@@ -33,7 +34,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // INIT
   // =========================================================
-
   @override
   void initState() {
     super.initState();
@@ -43,8 +43,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // REFRESH PROFILE
   // =========================================================
-
-  /// Dipanggil dari parent setelah data/foto profil diperbarui.
   void refreshProfile() {
     loadUser();
   }
@@ -52,7 +50,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // LOAD USER
   // =========================================================
-
   Future<void> loadUser() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -60,7 +57,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
       String savedName = prefs.getString('name') ?? 'Pengguna';
       String savedRole = prefs.getString('role') ?? 'Pelanggan';
 
-      // Ambil data terbaru dari API
       try {
         final response = await ApiService.get('/user');
 
@@ -111,7 +107,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // FULL PHOTO URL
   // =========================================================
-
   String? getFullPhotoUrl() {
     if (photoUrl == null ||
         photoUrl!.trim().isEmpty ||
@@ -121,17 +116,14 @@ class CustomerSidebarState extends State<CustomerSidebar> {
 
     String path = photoUrl!.trim();
 
-    // Jika API sudah memberikan URL lengkap
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
 
-    // Hapus "/" di awal jika ada
     if (path.startsWith('/')) {
       path = path.substring(1);
     }
 
-    // Ambil nama file saja
     final filename = path.split('/').last.trim();
 
     if (filename.isEmpty) {
@@ -144,7 +136,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // INITIAL NAMA
   // =========================================================
-
   String getInitials(String text) {
     final cleanedText = text.trim();
 
@@ -171,7 +162,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // LOGOUT
   // =========================================================
-
   Future<void> _logout() async {
     final confirmLogout = await showDialog<bool>(
       context: context,
@@ -182,9 +172,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
         return AlertDialog(
           title: const Text(
             'Keluar',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: const Text(
             'Apakah Anda yakin ingin keluar dari akun?',
@@ -196,9 +184,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               },
               child: Text(
                 'Batal',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
@@ -227,12 +213,9 @@ class CustomerSidebarState extends State<CustomerSidebar> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Hapus seluruh data sesi login
       await prefs.remove('auth_token');
       await prefs.remove('token');
       await prefs.remove('access_token');
-
-      // Hapus data user
       await prefs.remove('name');
       await prefs.remove('email');
       await prefs.remove('phone');
@@ -246,11 +229,8 @@ class CustomerSidebarState extends State<CustomerSidebar> {
 
       if (!mounted) return;
 
-      // Kembali ke landing dan membersihkan route sebelumnya
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const LandingPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const LandingPage()),
         (route) => false,
       );
     } catch (e) {
@@ -260,9 +240,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Gagal keluar dari akun: $e',
-          ),
+          content: Text('Gagal keluar dari akun: $e'),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -273,7 +251,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // BUILD
   // =========================================================
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -293,13 +270,10 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             // =================================================
             // PROFILE HEADER
             // =================================================
-
             const SizedBox(height: 24),
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -336,9 +310,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                             color: colorScheme.onSurface,
                           ),
                         ),
-
                         const SizedBox(height: 4),
-
                         Text(
                           role,
                           maxLines: 1,
@@ -357,26 +329,17 @@ class CustomerSidebarState extends State<CustomerSidebar> {
 
             const SizedBox(height: 24),
 
-            Divider(
-              height: 1,
-              color: colorScheme.outlineVariant,
-            ),
+            Divider(height: 1, color: colorScheme.outlineVariant),
 
             // =================================================
             // MENU
             // =================================================
-
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Column(
                   children: [
-                    // -----------------------------------------
                     // BERANDA
-                    // -----------------------------------------
-
                     _menu(
                       context,
                       icon: Icons.home_outlined,
@@ -384,10 +347,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                       menu: SidebarMenu.beranda,
                     ),
 
-                    // -----------------------------------------
                     // PEMBAYARAN
-                    // -----------------------------------------
-
                     _menu(
                       context,
                       icon: Icons.payment_outlined,
@@ -395,10 +355,15 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                       menu: SidebarMenu.pembayaran,
                     ),
 
-                    // -----------------------------------------
-                    // NOTIFIKASI
-                    // -----------------------------------------
+                    // 🆕 PENGADUAN
+                    _menu(
+                      context,
+                      icon: Icons.report_problem_outlined,
+                      title: 'Pengaduan',
+                      menu: SidebarMenu.pengaduan,
+                    ),
 
+                    // NOTIFIKASI
                     _menu(
                       context,
                       icon: Icons.notifications_none_outlined,
@@ -406,10 +371,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                       menu: SidebarMenu.notifikasi,
                     ),
 
-                    // -----------------------------------------
                     // PENGATURAN
-                    // -----------------------------------------
-
                     _menu(
                       context,
                       icon: Icons.settings_outlined,
@@ -424,23 +386,16 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             // =================================================
             // LOGOUT
             // =================================================
-
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: InkWell(
                 onTap: _logout,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: double.infinity,
                   height: isMobile ? 52 : 56,
-                  margin: const EdgeInsets.symmetric(
-                    vertical: 4,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -451,9 +406,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                         size: isMobile ? 22 : 24,
                         color: colorScheme.error,
                       ),
-
                       const SizedBox(width: 14),
-
                       Expanded(
                         child: Text(
                           'Keluar',
@@ -473,7 +426,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             // =================================================
             // VERSION
             // =================================================
-
             Padding(
               padding: EdgeInsets.only(
                 top: 2,
@@ -496,7 +448,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // MENU WIDGET
   // =========================================================
-
   Widget _menu(
     BuildContext context, {
     required IconData icon,
@@ -520,13 +471,8 @@ class CustomerSidebarState extends State<CustomerSidebar> {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         height: isMobile ? 52 : 56,
-        margin: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 4,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: active
               ? colorScheme.primary.withOpacity(0.12)
@@ -535,7 +481,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
         ),
         child: Row(
           children: [
-            // ICON
             Icon(
               icon,
               size: isMobile ? 22 : 24,
@@ -543,10 +488,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                   ? colorScheme.primary
                   : colorScheme.onSurfaceVariant,
             ),
-
             const SizedBox(width: 14),
-
-            // TITLE
             Expanded(
               child: Text(
                 title,
@@ -554,12 +496,8 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: isMobile ? 14 : 15,
-                  fontWeight: active
-                      ? FontWeight.bold
-                      : FontWeight.w600,
-                  color: active
-                      ? colorScheme.primary
-                      : colorScheme.onSurface,
+                  fontWeight: active ? FontWeight.bold : FontWeight.w600,
+                  color: active ? colorScheme.primary : colorScheme.onSurface,
                 ),
               ),
             ),

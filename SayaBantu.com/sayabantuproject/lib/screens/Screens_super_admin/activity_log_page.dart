@@ -1,3 +1,5 @@
+// lib/screens/Screens_SuperAdmin/activity_log_page.dart
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -12,8 +14,7 @@ class ActivityLogPage extends StatefulWidget {
 }
 
 class _ActivityLogPageState extends State<ActivityLogPage> {
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
   String _selectedFilter = 'Semua';
@@ -22,6 +23,18 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
 
   bool _isLoading = true;
   String? _errorMessage;
+
+  // ============================================================
+  // FILTER OPTIONS — BEDA PER ROLE
+  // ============================================================
+  final List<Map<String, dynamic>> _filterOptions = [
+    {'label': 'Semua Aktivitas', 'value': 'Semua'},
+    {'label': 'Super Admin', 'value': 'Super Admin'},
+    {'label': 'Admin', 'value': 'Admin'},
+    {'label': 'Mitra', 'value': 'Mitra'},
+    {'label': 'Pelanggan', 'value': 'Pelanggan'},
+    {'label': 'Sistem', 'value': 'Sistem'},
+  ];
 
   @override
   void initState() {
@@ -38,7 +51,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // LOAD ACTIVITY DARI DATABASE
   // ============================================================
-
   Future<void> _loadActivities() async {
     if (!mounted) return;
 
@@ -50,20 +62,16 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     try {
       final response = await ApiService.get('/activity-logs');
 
-      // ApiService.get() mengembalikan http.Response
-      final Map<String, dynamic> responseData =
-          jsonDecode(response.body);
+      debugPrint('📋 ACTIVITY LOGS: ${response.statusCode}');
+      debugPrint('📋 BODY: ${response.body}');
 
-      if (response.statusCode == 200 &&
-          responseData['success'] == true) {
-        final List<dynamic> data =
-            responseData['data'] ?? [];
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
 
-        final List<ActivityData> loadedActivities =
-            data.map((item) {
-          return ActivityData.fromJson(
-            item as Map<String, dynamic>,
-          );
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        final List<dynamic> data = responseData['data'] ?? [];
+
+        final List<ActivityData> loadedActivities = data.map((item) {
+          return ActivityData.fromJson(item as Map<String, dynamic>);
         }).toList();
 
         if (!mounted) return;
@@ -74,8 +82,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         });
       } else {
         throw Exception(
-          responseData['message'] ??
-              'Gagal mengambil log aktivitas.',
+          responseData['message'] ?? 'Gagal mengambil log aktivitas.',
         );
       }
     } catch (e) {
@@ -91,19 +98,19 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // FILTER DATA
   // ============================================================
-
   List<ActivityData> get _filteredActivities {
     final query = _searchQuery.toLowerCase().trim();
 
     return _activities.where((activity) {
-      final matchesSearch =
+      final matchesSearch = query.isEmpty ||
           activity.name.toLowerCase().contains(query) ||
           activity.activity.toLowerCase().contains(query) ||
-          activity.detail.toLowerCase().contains(query);
+          activity.detail.toLowerCase().contains(query) ||
+          activity.role.toLowerCase().contains(query);
 
-      final matchesFilter =
-          _selectedFilter == 'Semua' ||
-          activity.type == _selectedFilter;
+      // Filter by ROLE (bukan type)
+      final matchesFilter = _selectedFilter == 'Semua' ||
+          activity.role.toLowerCase() == _selectedFilter.toLowerCase();
 
       return matchesSearch && matchesFilter;
     }).toList();
@@ -112,7 +119,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // BUILD
   // ============================================================
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -133,13 +139,9 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(isMobile),
-
                 const SizedBox(height: 20),
-
                 _buildFilterSection(isMobile),
-
                 const SizedBox(height: 20),
-
                 _buildContent(isMobile),
               ],
             ),
@@ -152,28 +154,18 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // CONTENT
   // ============================================================
-
   Widget _buildContent(bool isMobile) {
-    if (_isLoading) {
-      return _buildLoadingState();
-    }
-
-    if (_errorMessage != null) {
-      return _buildErrorState();
-    }
-
+    if (_isLoading) return _buildLoadingState();
+    if (_errorMessage != null) return _buildErrorState();
     return _buildActivityList(isMobile);
   }
 
   // ============================================================
   // HEADER
   // ============================================================
-
   Widget _buildHeader(bool isMobile) {
     return Padding(
-      padding: EdgeInsets.only(
-        top: isMobile ? 16 : 20,
-      ),
+      padding: EdgeInsets.only(top: isMobile ? 16 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -187,7 +179,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           ),
           const SizedBox(height: 5),
           Text(
-            'Pantau seluruh aktivitas Super Admin dan sistem.',
+            'Pantau seluruh aktivitas pengguna, mitra, admin, dan sistem.',
             style: TextStyle(
               fontSize: isMobile ? 12 : 14,
               color: const Color(0xFF64748B),
@@ -201,7 +193,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // SEARCH + FILTER
   // ============================================================
-
   Widget _buildFilterSection(bool isMobile) {
     if (isMobile) {
       return Column(
@@ -217,34 +208,26 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: _buildSearchField(),
-        ),
+        Expanded(child: _buildSearchField()),
         const SizedBox(width: 14),
-        SizedBox(
-          width: 180,
-          child: _buildFilterDropdown(),
-        ),
+        SizedBox(width: 200, child: _buildFilterDropdown()),
       ],
     );
   }
 
   // ============================================================
-  // SEARCH
+  // SEARCH FIELD
   // ============================================================
-
   Widget _buildSearchField() {
     return SizedBox(
       height: 46,
       child: TextField(
         controller: _searchController,
         onChanged: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
+          setState(() => _searchQuery = value);
         },
         decoration: InputDecoration(
-          hintText: 'Cari aktivitas...',
+          hintText: 'Cari aktivitas, nama, atau role...',
           hintStyle: const TextStyle(
             fontSize: 14,
             color: Color(0xFF64748B),
@@ -262,21 +245,15 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-              color: Color(0xFFE2E8F0),
-            ),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-              color: Color(0xFFE2E8F0),
-            ),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-              color: Color(0xFF2563EB),
-            ),
+            borderSide: const BorderSide(color: Color(0xFF2563EB)),
           ),
         ),
       ),
@@ -284,9 +261,8 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // DROPDOWN
+  // FILTER DROPDOWN
   // ============================================================
-
   Widget _buildFilterDropdown() {
     return Container(
       height: 46,
@@ -294,9 +270,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -309,34 +283,22 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
             size: 21,
           ),
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             color: Color(0xFF334155),
             fontWeight: FontWeight.w500,
           ),
-          items: const [
-            DropdownMenuItem(
-              value: 'Semua',
-              child: Text('Semua Aktivitas'),
-            ),
-            DropdownMenuItem(
-              value: 'Admin',
-              child: Text('Aktivitas Admin'),
-            ),
-            DropdownMenuItem(
-              value: 'Sistem',
-              child: Text('Aktivitas Sistem'),
-            ),
-            DropdownMenuItem(
-              value: 'Login',
-              child: Text('Aktivitas Login'),
-            ),
-          ],
+          items: _filterOptions.map((option) {
+            return DropdownMenuItem<String>(
+              value: option['value'] as String,
+              child: Text(
+                option['label'] as String,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
           onChanged: (value) {
             if (value == null) return;
-
-            setState(() {
-              _selectedFilter = value;
-            });
+            setState(() => _selectedFilter = value);
           },
         ),
       ),
@@ -346,40 +308,29 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // ACTIVITY LIST
   // ============================================================
-
   Widget _buildActivityList(bool isMobile) {
     final activities = _filteredActivities;
 
-    if (activities.isEmpty) {
-      return _buildEmptyState();
-    }
+    if (activities.isEmpty) return _buildEmptyState();
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           if (!isMobile) _buildTableHeader(),
-
-          ...activities.asMap().entries.map(
-            (entry) {
-              final int index = entry.key;
-              final ActivityData activity = entry.value;
-
-              return _buildActivityItem(
-                activity,
-                isMobile,
-                index == activities.length - 1,
-              );
-            },
-          ),
+          ...activities.asMap().entries.map((entry) {
+            return _buildActivityItem(
+              entry.value,
+              isMobile,
+              entry.key == activities.length - 1,
+            );
+          }),
         ],
       ),
     );
@@ -388,20 +339,14 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // TABLE HEADER
   // ============================================================
-
   Widget _buildTableHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 15,
-      ),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
       child: const Row(
         children: [
           SizedBox(
-            width: 230,
+            width: 240,
             child: Text(
               'PENGGUNA',
               style: TextStyle(
@@ -422,7 +367,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
             ),
           ),
           SizedBox(
-            width: 190,
+            width: 180,
             child: Text(
               'WAKTU',
               style: TextStyle(
@@ -440,46 +385,31 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // ACTIVITY ITEM
   // ============================================================
-
   Widget _buildActivityItem(
     ActivityData activity,
     bool isMobile,
     bool isLast,
   ) {
-    if (isMobile) {
-      return _buildMobileActivityCard(activity);
-    }
+    if (isMobile) return _buildMobileActivityCard(activity);
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(
-                  color: Color(0xFFE2E8F0),
-                ),
+                bottom: BorderSide(color: Color(0xFFE2E8F0)),
               ),
       ),
       child: Row(
         children: [
+          SizedBox(width: 240, child: _buildUserInfo(activity)),
+          Expanded(child: _buildActivityInfo(activity)),
           SizedBox(
-            width: 230,
-            child: _buildUserInfo(activity),
-          ),
-
-          Expanded(
-            child: _buildActivityInfo(activity),
-          ),
-
-          SizedBox(
-            width: 190,
+            width: 180,
             child: Row(
               children: [
-                _buildTypeBadge(activity.type),
+                _buildRoleBadge(activity.role),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -502,7 +432,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // USER INFO
   // ============================================================
-
   Widget _buildUserInfo(ActivityData activity) {
     return Row(
       children: [
@@ -510,13 +439,13 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: _getIconBackground(activity.type),
+            color: _getRoleBackground(activity.role),
             shape: BoxShape.circle,
           ),
           child: Icon(
             activity.icon,
             size: 18,
-            color: _getIconColor(activity.type),
+            color: _getRoleColor(activity.role),
           ),
         ),
         const SizedBox(width: 11),
@@ -537,9 +466,10 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
               Text(
                 activity.role,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF94A3B8),
+                  color: _getRoleColor(activity.role),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -552,7 +482,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // ACTIVITY INFO
   // ============================================================
-
   Widget _buildActivityInfo(ActivityData activity) {
     return Padding(
       padding: const EdgeInsets.only(right: 20),
@@ -583,45 +512,47 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // BADGE
+  // ROLE BADGE — dibedakan per role
   // ============================================================
-
-  Widget _buildTypeBadge(String type) {
+  Widget _buildRoleBadge(String role) {
     Color background;
     Color foreground;
 
-    switch (type) {
+    switch (role) {
+      case 'Super Admin':
+        background = const Color(0xFFF3E8FF);
+        foreground = const Color(0xFF7C3AED);
+        break;
+
       case 'Admin':
         background = const Color(0xFFEFF6FF);
         foreground = const Color(0xFF2563EB);
         break;
 
-      case 'Sistem':
+      case 'Mitra':
         background = const Color(0xFFFFF7ED);
         foreground = const Color(0xFFEA580C);
         break;
 
-      case 'Login':
+      case 'Pelanggan':
         background = const Color(0xFFECFDF5);
         foreground = const Color(0xFF059669);
         break;
 
+      case 'Sistem':
       default:
         background = const Color(0xFFF1F5F9);
         foreground = const Color(0xFF64748B);
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        type,
+        role,
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -632,19 +563,14 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // MOBILE
+  // MOBILE CARD
   // ============================================================
-
-  Widget _buildMobileActivityCard(
-    ActivityData activity,
-  ) {
+  Widget _buildMobileActivityCard(ActivityData activity) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFE2E8F0),
-          ),
+          bottom: BorderSide(color: Color(0xFFE2E8F0)),
         ),
       ),
       child: Column(
@@ -656,22 +582,19 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _getIconBackground(activity.type),
+                  color: _getRoleBackground(activity.role),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   activity.icon,
                   size: 19,
-                  color: _getIconColor(activity.type),
+                  color: _getRoleColor(activity.role),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       activity.name,
@@ -685,21 +608,19 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
                     const SizedBox(height: 3),
                     Text(
                       activity.role,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF94A3B8),
+                        color: _getRoleColor(activity.role),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-
-              _buildTypeBadge(activity.type),
+              _buildRoleBadge(activity.role),
             ],
           ),
-
           const SizedBox(height: 14),
-
           Text(
             activity.activity,
             style: const TextStyle(
@@ -708,9 +629,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
               color: Color(0xFF334155),
             ),
           ),
-
           const SizedBox(height: 5),
-
           Text(
             activity.detail,
             style: const TextStyle(
@@ -718,9 +637,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
               color: Color(0xFF94A3B8),
             ),
           ),
-
           const SizedBox(height: 10),
-
           Row(
             children: [
               const Icon(
@@ -744,56 +661,34 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // LOADING
+  // LOADING / ERROR / EMPTY
   // ============================================================
-
   Widget _buildLoadingState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 60,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 60),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(),
-      ),
+      child: const Center(child: CircularProgressIndicator()),
     );
   }
-
-  // ============================================================
-  // ERROR
-  // ============================================================
 
   Widget _buildErrorState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 50,
-        horizontal: 20,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Color(0xFFEF4444),
-          ),
-
+          const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444)),
           const SizedBox(height: 12),
-
           const Text(
             'Gagal mengambil log aktivitas',
             style: TextStyle(
@@ -802,20 +697,13 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
               color: Color(0xFF334155),
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
-
           const SizedBox(height: 16),
-
           ElevatedButton.icon(
             onPressed: _loadActivities,
             icon: const Icon(Icons.refresh),
@@ -826,31 +714,18 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     );
   }
 
-  // ============================================================
-  // EMPTY
-  // ============================================================
-
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 60,
-        horizontal: 20,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.history_outlined,
-            size: 52,
-            color: Color(0xFFCBD5E1),
-          ),
+          Icon(Icons.history_outlined, size: 52, color: Color(0xFFCBD5E1)),
           SizedBox(height: 12),
           Text(
             'Aktivitas tidak ditemukan',
@@ -864,10 +739,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           Text(
             'Belum ada aktivitas yang sesuai dengan pencarian atau filter.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF94A3B8),
-            ),
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
           ),
         ],
       ),
@@ -875,36 +747,33 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // COLORS
+  // COLORS — per role
   // ============================================================
-
-  Color _getIconBackground(String type) {
-    switch (type) {
+  Color _getRoleBackground(String role) {
+    switch (role) {
+      case 'Super Admin':
+        return const Color(0xFFF3E8FF);
       case 'Admin':
         return const Color(0xFFEFF6FF);
-
-      case 'Sistem':
+      case 'Mitra':
         return const Color(0xFFFFF7ED);
-
-      case 'Login':
+      case 'Pelanggan':
         return const Color(0xFFECFDF5);
-
       default:
         return const Color(0xFFF1F5F9);
     }
   }
 
-  Color _getIconColor(String type) {
-    switch (type) {
+  Color _getRoleColor(String role) {
+    switch (role) {
+      case 'Super Admin':
+        return const Color(0xFF7C3AED);
       case 'Admin':
         return const Color(0xFF2563EB);
-
-      case 'Sistem':
+      case 'Mitra':
         return const Color(0xFFEA580C);
-
-      case 'Login':
+      case 'Pelanggan':
         return const Color(0xFF059669);
-
       default:
         return const Color(0xFF64748B);
     }
@@ -914,7 +783,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
 // ============================================================
 // MODEL
 // ============================================================
-
 class ActivityData {
   final int id;
   final String name;
@@ -936,77 +804,83 @@ class ActivityData {
     required this.icon,
   });
 
-  // ============================================================
-  // FROM JSON
-  // ============================================================
+  factory ActivityData.fromJson(Map<String, dynamic> json) {
+    final role = json['role']?.toString() ?? 'Sistem';
 
-  factory ActivityData.fromJson(
-    Map<String, dynamic> json,
-  ) {
     return ActivityData(
       id: json['id'] ?? 0,
-
-      name: json['name'] ?? 'Super Admin',
-
-      role: json['role'] ?? 'Super Admin',
-
+      name: json['name'] ?? 'System',
+      role: role,
       activity: json['activity'] ?? '-',
-
       detail: json['detail'] ?? '-',
-
       type: json['type'] ?? 'Sistem',
-
       time: json['time'] ?? '-',
-
-      icon: _getIconFromString(
-        json['icon'],
-      ),
+      icon: _getIconFromRole(role, json['icon']),
     );
   }
 
   // ============================================================
-  // CONVERT ICON STRING → ICONDATA
+  // ICON MAPPER — berdasarkan role + icon name dari backend
   // ============================================================
+  static IconData _getIconFromRole(String role, dynamic iconName) {
+    // Prioritas: custom icon dari backend
+    final custom = _getCustomIcon(iconName);
+    if (custom != null) return custom;
 
-  static IconData _getIconFromString(
-    dynamic iconName,
-  ) {
+    // Fallback: icon default per role
+    switch (role) {
+      case 'Super Admin':
+        return Icons.admin_panel_settings_outlined;
+      case 'Admin':
+        return Icons.verified_user_outlined;
+      case 'Mitra':
+        return Icons.handyman_outlined;
+      case 'Pelanggan':
+        return Icons.person_outline;
+      default:
+        return Icons.history_outlined;
+    }
+  }
+
+  static IconData? _getCustomIcon(dynamic iconName) {
     switch (iconName?.toString()) {
       case 'login':
         return Icons.login_outlined;
-
       case 'settings':
         return Icons.settings_outlined;
-
       case 'edit':
         return Icons.edit_outlined;
-
       case 'delete':
         return Icons.delete_outline;
-
       case 'restore':
         return Icons.restore_outlined;
-
       case 'stars':
         return Icons.stars_outlined;
-
       case 'person_add':
-        return Icons.person_add_alt_1;
-
       case 'person_add_alt_1':
         return Icons.person_add_alt_1;
-
       case 'admin':
         return Icons.admin_panel_settings_outlined;
-
       case 'security':
         return Icons.security_outlined;
-
       case 'logout':
         return Icons.logout_outlined;
-
+      case 'post_add':
+        return Icons.post_add;
+      case 'check_circle':
+        return Icons.check_circle_outline;
+      case 'local_offer':
+        return Icons.local_offer_outlined;
+      case 'upload_file':
+        return Icons.upload_file_outlined;
+      case 'payment':
+        return Icons.payment_outlined;
+      case 'report_problem':
+        return Icons.report_problem_outlined;
+      case 'block':
+        return Icons.block;
       default:
-        return Icons.history_outlined;
+        return null;
     }
   }
 }

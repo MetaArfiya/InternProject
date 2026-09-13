@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+
+import '../../models/monthly_earning_model.dart';
+import '../../services/api_service.dart';
 
 class IncomeScreen extends StatefulWidget {
   const IncomeScreen({super.key});
@@ -10,114 +14,148 @@ class IncomeScreen extends StatefulWidget {
 
 class _IncomeScreenState extends State<IncomeScreen> {
   String selectedPeriod = '6 Bulan';
+  int _monthsCount = 6;
 
-  final List<String> monthNames = [
-    'Apr',
-    'Mei',
-    'Jun',
-    'Jul',
-    'Agu',
-    'Sep',
-  ];
+  bool _isLoading = true;
+  String? _error;
 
-  final List<double> incomeData = [
-    850000,
-    1250000,
-    980000,
-    1750000,
-    2100000,
-    2450000,
-  ];
+  MonthlyEarningSummary? _summary;
+  List<MonthlyEarningModel> _monthly = [];
 
-  final List<int> completedJobs = [
-    5,
-    8,
-    6,
-    11,
-    14,
-    16,
-  ];
-
-  double get totalIncome {
-    return incomeData.fold(
-      0,
-      (previousValue, element) => previousValue + element,
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
   }
 
-  int get totalJobs {
-    return completedJobs.fold(
-      0,
-      (previousValue, element) => previousValue + element,
-    );
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final endpoint = '/mitra/earnings/monthly?months=$_monthsCount';
+      final response = await ApiService.get(endpoint);
+
+      debugPrint('💰 MONTHLY: ${response.statusCode}');
+      debugPrint('💰 BODY: ${response.body}');
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Gagal memuat (${response.statusCode})';
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded['success'] != true) {
+        setState(() {
+          _isLoading = false;
+          _error = decoded['message']?.toString() ?? 'Gagal memuat.';
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _summary = decoded['summary'] is Map
+            ? MonthlyEarningSummary.fromJson(decoded['summary'])
+            : null;
+
+        _monthly = (decoded['monthly'] is List)
+            ? (decoded['monthly'] as List)
+                .map((e) => MonthlyEarningModel.fromJson(e))
+                .toList()
+            : [];
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ ERROR: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = 'Error: $e';
+      });
+    }
   }
 
+  // ============================================================
+  // FORMAT RUPIAH
+  // ============================================================
   String formatRupiah(double value) {
     final number = value.toInt().toString();
-
     String result = '';
     int counter = 0;
 
     for (int i = number.length - 1; i >= 0; i--) {
       result = number[i] + result;
       counter++;
-
       if (counter % 3 == 0 && i != 0) {
         result = '.$result';
       }
     }
-
     return 'Rp$result';
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
+        child: RefreshIndicator(
+          onRefresh: _loadData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 28),
 
-              const SizedBox(height: 28),
-
-              _buildSummaryCards(),
-
-              const SizedBox(height: 28),
-
-              _buildChartCard(),
-
-              const SizedBox(height: 28),
-
-              _buildRecentIncomeCard(),
-            ],
+                if (_isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 80),
+                      child: CircularProgressIndicator(color: Colors.orange),
+                    ),
+                  )
+                else if (_error != null)
+                  _buildError()
+                else if (_monthly.isEmpty)
+                  _buildEmptyState()
+                else ...[
+                  _buildSummaryCards(),
+                  const SizedBox(height: 28),
+                  _buildChartCard(),
+                  const SizedBox(height: 28),
+                  _buildRecentIncomeCard(),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  // ============================================================
+  // HEADER
+  // ============================================================
   Widget _buildHeader() {
     return Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.arrow_back,
-            color: Colors.black87,
-          ),
-        ),
-
-        const SizedBox(width: 16),
-
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,39 +171,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
               SizedBox(height: 5),
               Text(
                 'Pantau pendapatan dari pekerjaan yang telah selesai.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Row(
-            children: [
-              Icon(
-                Icons.bar_chart,
-                size: 18,
-                color: Colors.orange,
-              ),
-              SizedBox(width: 6),
-              Text(
-                'Data Dummy',
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ],
           ),
@@ -174,7 +180,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
     );
   }
 
+  // ============================================================
+  // SUMMARY CARDS
+  // ============================================================
   Widget _buildSummaryCards() {
+    final s = _summary;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall = constraints.maxWidth < 700;
@@ -182,21 +193,21 @@ class _IncomeScreenState extends State<IncomeScreen> {
         final cards = [
           _summaryCard(
             title: 'Total Penghasilan',
-            value: formatRupiah(totalIncome),
-            subtitle: 'Akumulasi 6 bulan',
+            value: formatRupiah(s?.totalPendapatan ?? 0),
+            subtitle: 'Akumulasi $_monthsCount bulan',
             icon: Icons.account_balance_wallet_outlined,
             iconColor: Colors.orange,
           ),
           _summaryCard(
             title: 'Pekerjaan Selesai',
-            value: '$totalJobs',
+            value: '${s?.totalPekerjaan ?? 0}',
             subtitle: 'Total pekerjaan',
             icon: Icons.check_circle_outline,
             iconColor: Colors.green,
           ),
           _summaryCard(
             title: 'Rata-rata Penghasilan',
-            value: formatRupiah(totalIncome / incomeData.length),
+            value: formatRupiah(s?.rataRataPerBulan ?? 0),
             subtitle: 'Per bulan',
             icon: Icons.trending_up,
             iconColor: Colors.blue,
@@ -208,8 +219,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             children: [
               for (int i = 0; i < cards.length; i++) ...[
                 cards[i],
-                if (i != cards.length - 1)
-                  const SizedBox(height: 14),
+                if (i != cards.length - 1) const SizedBox(height: 14),
               ],
             ],
           );
@@ -219,8 +229,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
           children: [
             for (int i = 0; i < cards.length; i++) ...[
               Expanded(child: cards[i]),
-              if (i != cards.length - 1)
-                const SizedBox(width: 16),
+              if (i != cards.length - 1) const SizedBox(width: 16),
             ],
           ],
         );
@@ -270,17 +279,11 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 22,
-                ),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
             ],
           ),
-
           const SizedBox(height: 18),
-
           Text(
             value,
             style: const TextStyle(
@@ -289,22 +292,28 @@ class _IncomeScreenState extends State<IncomeScreen> {
               color: Color(0xff111827),
             ),
           ),
-
           const SizedBox(height: 6),
-
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
     );
   }
 
+  // ============================================================
+  // CHART
+  // ============================================================
   Widget _buildChartCard() {
+    final incomeData = _monthly.map((m) => m.totalPendapatan).toList();
+    final maxIncome = incomeData.isEmpty
+        ? 1000000.0
+        : incomeData.reduce((a, b) => a > b ? a : b);
+
+    // Bulatkan max ke atas biar grid rapi
+    final maxY = (maxIncome / 500000).ceil() * 500000.0;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -338,39 +347,29 @@ class _IncomeScreenState extends State<IncomeScreen> {
                     SizedBox(height: 5),
                     Text(
                       'Perkembangan penghasilan setiap bulan',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                   ],
                 ),
               ),
-
               DropdownButton<String>(
                 value: selectedPeriod,
                 underline: const SizedBox(),
                 items: const [
-                  DropdownMenuItem(
-                    value: '6 Bulan',
-                    child: Text('6 Bulan'),
-                  ),
-                  DropdownMenuItem(
-                    value: '1 Tahun',
-                    child: Text('1 Tahun'),
-                  ),
+                  DropdownMenuItem(value: '6 Bulan', child: Text('6 Bulan')),
+                  DropdownMenuItem(value: '1 Tahun', child: Text('1 Tahun')),
                 ],
                 onChanged: (value) {
                   if (value == null) return;
-
                   setState(() {
                     selectedPeriod = value;
+                    _monthsCount = value == '6 Bulan' ? 6 : 12;
                   });
+                  _loadData();
                 },
               ),
             ],
           ),
-
           const SizedBox(height: 30),
 
           SizedBox(
@@ -378,27 +377,21 @@ class _IncomeScreenState extends State<IncomeScreen> {
             child: LineChart(
               LineChartData(
                 minX: 0,
-                maxX: 5,
+                maxX: (_monthly.length - 1).toDouble(),
                 minY: 0,
-                maxY: 3000000,
+                maxY: maxY,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: 500000,
+                  horizontalInterval: maxY / 6,
                 ),
-                borderData: FlBorderData(
-                  show: false,
-                ),
+                borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
                   topTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: false,
-                    ),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
                   rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: false,
-                    ),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -406,16 +399,13 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
-
-                        if (index < 0 ||
-                            index >= monthNames.length) {
+                        if (index < 0 || index >= _monthly.length) {
                           return const SizedBox();
                         }
-
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            monthNames[index],
+                            _monthly[index].bulanLabel,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
@@ -428,19 +418,15 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 500000,
+                      interval: maxY / 6,
                       reservedSize: 55,
                       getTitlesWidget: (value, meta) {
                         if (value == 0) {
                           return const Text(
                             '0',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 10, color: Colors.grey),
                           );
                         }
-
                         return Text(
                           '${(value / 1000000).toStringAsFixed(1)}jt',
                           style: const TextStyle(
@@ -455,17 +441,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 lineBarsData: [
                   LineChartBarData(
                     spots: [
-                      for (int i = 0; i < incomeData.length; i++)
-                        FlSpot(
-                          i.toDouble(),
-                          incomeData[i],
-                        ),
+                      for (int i = 0; i < _monthly.length; i++)
+                        FlSpot(i.toDouble(), _monthly[i].totalPendapatan),
                     ],
                     isCurved: true,
                     barWidth: 4,
-                    dotData: FlDotData(
-                      show: true,
-                    ),
+                    dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
                       color: Colors.orange.withValues(alpha: 0.12),
@@ -481,6 +462,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
     );
   }
 
+  // ============================================================
+  // RECENT INCOME
+  // ============================================================
   Widget _buildRecentIncomeCard() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -506,17 +490,15 @@ class _IncomeScreenState extends State<IncomeScreen> {
               color: Color(0xff111827),
             ),
           ),
-
           const SizedBox(height: 18),
 
           ListView.separated(
-            itemCount: monthNames.length,
+            itemCount: _monthly.length,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            separatorBuilder: (_, __) {
-              return const Divider(height: 24);
-            },
+            separatorBuilder: (_, __) => const Divider(height: 24),
             itemBuilder: (context, index) {
+              final m = _monthly[index];
               return Row(
                 children: [
                   Container(
@@ -531,16 +513,13 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       color: Colors.orange,
                     ),
                   ),
-
                   const SizedBox(width: 14),
-
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Penghasilan ${monthNames[index]}',
+                          'Penghasilan ${m.bulanLabel}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             color: Color(0xff111827),
@@ -548,7 +527,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          '${completedJobs[index]} pekerjaan selesai',
+                          '${m.jumlahPekerjaan} pekerjaan selesai',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -557,9 +536,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       ],
                     ),
                   ),
-
                   Text(
-                    formatRupiah(incomeData[index]),
+                    formatRupiah(m.totalPendapatan),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -568,6 +546,54 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 ],
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR & EMPTY
+  // ============================================================
+  Widget _buildError() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      alignment: Alignment.center,
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const SizedBox(height: 12),
+          Text(
+            _error ?? 'Error',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadData,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(60),
+      alignment: Alignment.center,
+      child: Column(
+        children: [
+          Icon(Icons.bar_chart_outlined, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada data penghasilan.',
+            style: TextStyle(color: Colors.grey.shade600),
           ),
         ],
       ),

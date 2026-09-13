@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/job_model.dart';
 import '../services/api_service.dart';
+import 'rating_dialog.dart';
 
 class JobCard extends StatefulWidget {
   final JobModel job;
@@ -376,6 +377,7 @@ class _JobCardState extends State<JobCard> {
               ],
 
               // ===== Tombol Utama =====
+                            // ===== Tombol Utama =====
               SizedBox(
                 width: double.infinity,
                 child: isSearching
@@ -415,7 +417,69 @@ class _JobCardState extends State<JobCard> {
                             },
                             child: const Text("Selesaikan"),
                           )
-                        : const SizedBox.shrink(),
+                        // ===== BARU: Tombol Beri Rating =====
+                        : isCompleted
+                            ? (widget.job.hasRated
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.amber.shade200,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.star_rounded,
+                                          color: Colors.amber,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Rating Anda: ${widget.job.myRating ?? 0}/5',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.amber,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final result = await showDialog<bool>(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (_) => RatingDialog(
+                                          jobId: widget.job.id,
+                                          jobTitle: widget.job.title,
+                                          mitraName: widget.job.partnerName ?? 'Mitra',
+                                        ),
+                                      );
+
+                                      if (result == true) {
+                                        widget.onRefresh?.call();
+                                      }
+                                    },
+                                    icon: const Icon(Icons.star_rate_rounded, size: 20),
+                                    label: const Text('Beri Rating'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.amber,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  )
+                            )
+                            : const SizedBox.shrink(),
               ),
             ],
           ),

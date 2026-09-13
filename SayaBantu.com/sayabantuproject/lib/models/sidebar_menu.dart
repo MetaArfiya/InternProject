@@ -5,4 +5,5 @@ enum SidebarMenu {
   notifikasi,
   pengaturan,
   pembayaran,
+  pengaduan,
 }

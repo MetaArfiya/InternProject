@@ -13,9 +13,24 @@ class ActiveOfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool accepted = offer.status == 'Diterima Pelanggan';
-    final bool waitingConfirmation = offer.status == 'Menunggu Konfirmasi';
+    // ==========================================================
+    // PERBAIKAN LOGIKA STATUS:
+    // Backend Laravel mengirim status dari tabel 'jobs', bukan 'job_bids'.
+    // Status yang mungkin: 'Menunggu', 'Sedang Dikerjakan', 
+    // 'Menunggu Konfirmasi Selesai', 'Selesai'.
+    // ==========================================================
+    
+    // Mitra sedang mengerjakan (sudah diterima pelanggan)
+    final bool isWorking = offer.status == 'Sedang Dikerjakan';
+    
+    // Mitra sudah upload bukti, menunggu pelanggan verifikasi
+    final bool waitingConfirmation = offer.status == 'Menunggu Konfirmasi Selesai';
+    
+    // Pekerjaan sudah selesai dan diverifikasi pelanggan
     final bool completed = offer.status == 'Selesai';
+    
+    // Penawaran masih diajukan (belum diterima pelanggan)
+    final bool isPending = offer.status == 'Menunggu' || offer.status == 'Mencari Mitra';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 22),
@@ -24,20 +39,20 @@ class ActiveOfferCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: accepted
+          color: isWorking
               ? const Color(0xff16A34A)
               : waitingConfirmation
                   ? const Color(0xffF59E0B)
                   : completed
                       ? const Color(0xff2563EB)
                       : const Color(0xffE5E7EB),
-          width: accepted || waitingConfirmation || completed ? 2 : 1,
+          width: isWorking || waitingConfirmation || completed ? 2 : 1,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Judul
+          // Judul Pekerjaan
           Text(
             offer.title,
             style: const TextStyle(
@@ -47,7 +62,7 @@ class ActiveOfferCard extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Info
+          // Info Harga & Posisi
           Row(
             children: [
               const Icon(Icons.attach_money, color: Colors.orange),
@@ -78,15 +93,19 @@ class ActiveOfferCard extends StatelessWidget {
               ],
               const Spacer(),
               _buildStatusBadge(
-                accepted: accepted,
+                isWorking: isWorking,
                 waitingConfirmation: waitingConfirmation,
                 completed: completed,
+                isPending: isPending,
               ),
             ],
           ),
 
-          // Diterima → tampilkan tombol kirim bukti
-          if (accepted) ...[
+          // ==========================================================
+          // KONDISI 1: SEDANG DIKERJAKAN
+          // Menampilkan tombol upload bukti
+          // ==========================================================
+          if (isWorking) ...[
             const SizedBox(height: 24),
             const Divider(color: Color(0xffE5E7EB)),
             const SizedBox(height: 16),
@@ -144,13 +163,19 @@ class ActiveOfferCard extends StatelessWidget {
             ),
           ],
 
-          // Menunggu Konfirmasi
+          // ==========================================================
+          // KONDISI 2: MENUNGGU KONFIRMASI
+          // Tombol upload sudah hilang, berganti pesan tunggu
+          // ==========================================================
           if (waitingConfirmation) ...[
             const SizedBox(height: 20),
             _buildWaitingConfirmation(),
           ],
 
-          // Selesai
+          // ==========================================================
+          // KONDISI 3: SELESAI
+          // Pekerjaan sudah dikonfirmasi pelanggan
+          // ==========================================================
           if (completed) ...[
             const SizedBox(height: 20),
             _buildCompleted(),
@@ -164,30 +189,36 @@ class ActiveOfferCard extends StatelessWidget {
   // Status Badge
   // --------------------------------------------------------------
   Widget _buildStatusBadge({
-    required bool accepted,
+    required bool isWorking,
     required bool waitingConfirmation,
     required bool completed,
+    required bool isPending,
   }) {
     Color backgroundColor;
     Color textColor;
     IconData icon;
+    String textStatus;
 
     if (completed) {
       backgroundColor = const Color(0xffDBEAFE);
       textColor = const Color(0xff2563EB);
       icon = Icons.check_circle;
+      textStatus = 'Selesai';
     } else if (waitingConfirmation) {
       backgroundColor = const Color(0xffFFF7ED);
       textColor = const Color(0xffEA580C);
       icon = Icons.hourglass_top_rounded;
-    } else if (accepted) {
+      textStatus = 'Menunggu Konfirmasi';
+    } else if (isWorking) {
       backgroundColor = const Color(0xffDCFCE7);
       textColor = const Color(0xff16A34A);
-      icon = Icons.check_circle;
+      icon = Icons.engineering; // Ikon alat kerja
+      textStatus = 'Sedang Dikerjakan';
     } else {
       backgroundColor = const Color(0xffFFF7ED);
       textColor = const Color(0xffEA580C);
       icon = Icons.access_time;
+      textStatus = 'Menunggu';
     }
 
     return Container(
@@ -202,7 +233,7 @@ class ActiveOfferCard extends StatelessWidget {
           Icon(icon, size: 18, color: textColor),
           const SizedBox(width: 6),
           Text(
-            offer.status,
+            textStatus,
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,

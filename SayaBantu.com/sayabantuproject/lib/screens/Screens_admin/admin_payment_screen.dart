@@ -1,4 +1,13 @@
+// lib/screens/AdminPaymentScreen.dart
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
+
+import '../../models/payment_model.dart';
+import '../../models/payment_summary_model.dart';
+import '../../services/api_service.dart';
+import '../../services/payment_service.dart';
+import '../../sections/admin/admin_payment_detail_dialog.dart';
 
 class AdminPaymentScreen extends StatefulWidget {
   const AdminPaymentScreen({super.key});
@@ -8,160 +17,210 @@ class AdminPaymentScreen extends StatefulWidget {
 }
 
 class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
-  final List<Map<String, dynamic>> _payments = [
-    {
-      'id': 'PAY-001',
-      'customer': 'Budi Santoso',
-      'partner': 'Andi Teknik AC',
-      'service': 'Service AC Bocor',
-      'amount': 145000.0,
-      'commission': 21750.0,
-      'partnerIncome': 123250.0,
-      'date': '12 September 2026',
-      'status': 'Berhasil',
-      'method': 'Transfer Bank',
-      'account': 'BCA **** 1234',
-    },
-    {
-      'id': 'PAY-002',
-      'customer': 'Siti Aminah',
-      'partner': 'Joko Plumbing',
-      'service': 'Perbaikan Pipa Air',
-      'amount': 200000.0,
-      'commission': 30000.0,
-      'partnerIncome': 170000.0,
-      'date': '12 September 2026',
-      'status': 'Menunggu',
-      'method': 'Transfer Bank',
-      'account': 'BRI **** 5678',
-    },
-    {
-      'id': 'PAY-003',
-      'customer': 'Rina Wulandari',
-      'partner': 'Dimas Elektrik',
-      'service': 'Perbaikan Instalasi Listrik',
-      'amount': 175000.0,
-      'commission': 26250.0,
-      'partnerIncome': 148750.0,
-      'date': '11 September 2026',
-      'status': 'Diproses',
-      'method': 'E-Wallet',
-      'account': 'DANA **** 8899',
-    },
-    {
-      'id': 'PAY-004',
-      'customer': 'Agus Pratama',
-      'partner': 'Budi Cat Rumah',
-      'service': 'Pengecatan Ruang Tamu',
-      'amount': 350000.0,
-      'commission': 52500.0,
-      'partnerIncome': 297500.0,
-      'date': '10 September 2026',
-      'status': 'Berhasil',
-      'method': 'Transfer Bank',
-      'account': 'Mandiri **** 1122',
-    },
-    {
-      'id': 'PAY-005',
-      'customer': 'Dewi Lestari',
-      'partner': 'Clean Home',
-      'service': 'Jasa Kebersihan Rumah',
-      'amount': 125000.0,
-      'commission': 18750.0,
-      'partnerIncome': 106250.0,
-      'date': '09 September 2026',
-      'status': 'Gagal',
-      'method': 'E-Wallet',
-      'account': 'OVO **** 7788',
-    },
-    {
-      'id': 'PAY-006',
-      'customer': 'Fajar Hidayat',
-      'partner': 'Andi Teknik AC',
-      'service': 'Cuci AC Rumah',
-      'amount': 100000.0,
-      'commission': 15000.0,
-      'partnerIncome': 85000.0,
-      'date': '08 September 2026',
-      'status': 'Menunggu',
-      'method': 'Transfer Bank',
-      'account': 'BCA **** 1234',
-    },
-  ];
+  bool _isLoading = true;
+  String? _error;
+
+  List<PaymentModel> _payments = [];
+  PaymentSummary? _summary;
 
   String _selectedStatus = 'Semua';
-
   final List<String> _statusOptions = [
     'Semua',
-    'Menunggu',
-    'Diproses',
-    'Berhasil',
-    'Gagal',
+    'Menunggu Bayar',
+    'Menunggu Verifikasi',
+    'Siap Transfer',
+    'Selesai',
+    'Refund',
   ];
 
-  List<Map<String, dynamic>> get _filteredPayments {
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await ApiService.get('/admin/payments');
+
+      debugPrint('💰 ADMIN PAYMENTS: ${response.statusCode}');
+      debugPrint('💰 BODY: ${response.body}');
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Gagal memuat (${response.statusCode})';
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded['success'] != true) {
+        setState(() {
+          _isLoading = false;
+          _error = decoded['message']?.toString() ?? 'Gagal memuat.';
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _summary = decoded['summary'] is Map
+            ? PaymentSummary.fromJson(decoded['summary'])
+            : null;
+
+        _payments = (decoded['data'] is List)
+            ? (decoded['data'] as List)
+                .map((e) => PaymentModel.fromJson(e))
+                .toList()
+            : [];
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ ERROR: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = 'Terjadi kesalahan: $e';
+      });
+    }
+  }
+
+  // ============================================================
+  // FILTER DATA
+  // ============================================================
+  List<PaymentModel> get _filteredPayments {
     if (_selectedStatus == 'Semua') {
       return _payments;
     }
 
-    return _payments
-        .where((payment) => payment['status'] == _selectedStatus)
-        .toList();
-  }
-
-  double _getTotalAmount() {
-    return _payments.fold(
-      0,
-      (total, payment) => total + (payment['amount'] as double),
-    );
-  }
-
-  double _getTotalCommission() {
-    return _payments.fold(
-      0,
-      (total, payment) => total + (payment['commission'] as double),
-    );
-  }
-
-  double _getTotalPartnerIncome() {
-    return _payments.fold(
-      0,
-      (total, payment) => total + (payment['partnerIncome'] as double),
-    );
-  }
-
-  double _getTotalByStatus(String status) {
-    return _payments
-        .where((payment) => payment['status'] == status)
-        .fold(
-          0,
-          (total, payment) => total + (payment['amount'] as double),
-        );
-  }
-
-  String _formatRupiah(double amount) {
-    final value = amount.toInt().toString();
-    final reversed = value.split('').reversed.toList();
-
-    final chunks = <String>[];
-
-    for (int i = 0; i < reversed.length; i += 3) {
-      final chunk = reversed.skip(i).take(3).toList().reversed.join();
-      chunks.add(chunk);
+    String? targetStatus;
+    switch (_selectedStatus) {
+      case 'Menunggu Bayar':
+        targetStatus = 'pending';
+        break;
+      case 'Menunggu Verifikasi':
+        targetStatus = 'waiting_verification';
+        break;
+      case 'Siap Transfer':
+        targetStatus = 'paid';
+        break;
+      case 'Selesai':
+        targetStatus = 'settled';
+        break;
+      case 'Refund':
+        targetStatus = 'refunded';
+        break;
     }
 
-    return 'Rp${chunks.reversed.join('.')}';
+    if (targetStatus == null) return _payments;
+
+    return _payments.where((p) => p.status == targetStatus).toList();
   }
 
+  // ============================================================
+  // BUKA DIALOG DETAIL PEMBAYARAN
+  // ============================================================
+  Future<void> _openPaymentDetail(PaymentModel p) async {
+    // Loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.orange),
+      ),
+    );
+
+    // Fetch detail dari API
+    final detailData = await PaymentService.getAdminPaymentDetail(p.id);
+
+    if (!mounted) return;
+    Navigator.pop(context); // tutup loading
+
+    PaymentModel paymentToUse = p;
+
+    if (detailData != null && detailData['payment'] is Map) {
+      // 1. Parse payment dari detail
+      final parsed = PaymentModel.fromJson(
+        Map<String, dynamic>.from(detailData['payment']),
+      );
+
+      // 2. Siapkan mitraBank (kalau ada)
+      Map<String, dynamic>? bankMap;
+      if (detailData['transfer_to'] is Map) {
+        bankMap = Map<String, dynamic>.from(detailData['transfer_to']);
+      }
+
+      // 3. Bikin PaymentModel baru dengan mitraBank
+      paymentToUse = PaymentModel(
+        id: parsed.id,
+        jobId: parsed.jobId,
+        pelangganId: parsed.pelangganId,
+        mitraId: parsed.mitraId,
+        jobAmount: parsed.jobAmount,
+        commissionPercent: parsed.commissionPercent,
+        commissionAmount: parsed.commissionAmount,
+        totalPaid: parsed.totalPaid,
+        mitraEarning: parsed.mitraEarning,
+        status: parsed.status,
+        paymentMethod: parsed.paymentMethod,
+        referenceCode: parsed.referenceCode,
+        customerProofUrl: parsed.customerProofUrl,
+        customerProofUploadedAt: parsed.customerProofUploadedAt,
+        customerBankName: parsed.customerBankName,
+        customerAccountName: parsed.customerAccountName,
+        mitraProofUrl: parsed.mitraProofUrl,
+        mitraProofUploadedAt: parsed.mitraProofUploadedAt,
+        adminNote: parsed.adminNote,
+        mitraBank: bankMap ?? parsed.mitraBank,
+        paidAt: parsed.paidAt,
+        settledAt: parsed.settledAt,
+        createdAt: parsed.createdAt,
+        jobTitle: parsed.jobTitle,
+        mitraName: parsed.mitraName,
+        pelangganName: parsed.pelangganName,
+      );
+    }
+
+    // Buka dialog admin
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AdminPaymentDetailDialog(payment: paymentToUse),
+    );
+
+    // Kalau ada aksi (verify/settle/refund), reload data
+    if (result == true && mounted) {
+      _loadData();
+    }
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Berhasil':
+      case 'settled':
         return Colors.green;
-      case 'Diproses':
+      case 'paid':
         return Colors.blue;
-      case 'Menunggu':
+      case 'waiting_verification':
+        return Colors.purple;
+      case 'pending':
         return Colors.orange;
-      case 'Gagal':
+      case 'refunded':
+      case 'failed':
         return Colors.red;
       default:
         return Colors.grey;
@@ -170,263 +229,111 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
   IconData _getStatusIcon(String status) {
     switch (status) {
-      case 'Berhasil':
+      case 'settled':
         return Icons.check_circle_outline;
-      case 'Diproses':
+      case 'paid':
         return Icons.sync;
-      case 'Menunggu':
+      case 'waiting_verification':
+        return Icons.fact_check_outlined;
+      case 'pending':
         return Icons.access_time;
-      case 'Gagal':
+      case 'refunded':
+        return Icons.undo;
+      case 'failed':
         return Icons.cancel_outlined;
       default:
         return Icons.info_outline;
     }
   }
 
-  void _showPaymentDetail(Map<String, dynamic> payment) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.receipt_long),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Detail Pembayaran',
-                  style: const TextStyle(fontSize: 20),
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Menunggu Bayar';
+      case 'waiting_verification':
+        return 'Menunggu Verifikasi';
+      case 'paid':
+        return 'Siap Transfer';
+      case 'settled':
+        return 'Selesai';
+      case 'refunded':
+        return 'Refund';
+      case 'failed':
+        return 'Gagal';
+      default:
+        return 'Tidak Diketahui';
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 800;
+
+        return RefreshIndicator(
+          onRefresh: _loadData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Pembayaran',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 480,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _detailRow('ID Pembayaran', payment['id']),
-                  _detailRow('Pelanggan', payment['customer']),
-                  _detailRow('Mitra', payment['partner']),
-                  _detailRow('Layanan', payment['service']),
-                  _detailRow('Tanggal', payment['date']),
-                  _detailRow('Metode Pembayaran', payment['method']),
-                  _detailRow('Rekening/E-Wallet', payment['account']),
-                  const Divider(height: 25),
-                  _detailRow(
-                    'Total Pembayaran',
-                    _formatRupiah(payment['amount']),
-                    isBold: true,
+                const SizedBox(height: 8),
+                Text(
+                  'Kelola dan pantau seluruh transaksi pembayaran pelanggan dan mitra.',
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.7),
                   ),
-                  _detailRow(
-                    'Komisi Admin 15%',
-                    _formatRupiah(payment['commission']),
-                  ),
-                  _detailRow(
-                    'Pendapatan Mitra 85%',
-                    _formatRupiah(payment['partnerIncome']),
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      const Text(
-                        'Status: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      _statusBadge(payment['status']),
-                    ],
-                  ),
+                ),
+                const SizedBox(height: 24),
+
+                if (_isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 80),
+                      child: CircularProgressIndicator(color: Colors.orange),
+                    ),
+                  )
+                else if (_error != null)
+                  _buildError()
+                else ...[
+                  _buildSummarySection(),
+                  const SizedBox(height: 24),
+                  _buildFilterSection(),
+                  const SizedBox(height: 18),
+                  if (_filteredPayments.isEmpty)
+                    _buildEmptyState()
+                  else if (isMobile)
+                    _buildMobileList()
+                  else
+                    _buildDesktopTable(),
                 ],
-              ),
+              ],
             ),
           ),
-          actions: [
-            if (payment['status'] == 'Menunggu' ||
-                payment['status'] == 'Diproses')
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _showProcessConfirmation(payment);
-                },
-                child: const Text('Proses Pembayaran'),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Tutup'),
-            ),
-          ],
         );
       },
     );
   }
 
-  Widget _detailRow(
-    String label,
-    String value, {
-    bool isBold = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 155,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusBadge(String status) {
-    final color = _getStatusColor(status);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _getStatusIcon(status),
-            size: 15,
-            color: color,
-          ),
-          const SizedBox(width: 5),
-          Text(
-            status,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showProcessConfirmation(Map<String, dynamic> payment) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Proses Pembayaran'),
-          content: Text(
-            'Apakah pembayaran ${payment['id']} ingin ditandai sebagai berhasil?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  payment['status'] = 'Berhasil';
-                });
-
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Pembayaran berhasil diperbarui.'),
-                  ),
-                );
-              },
-              child: const Text('Ya, Proses'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _summaryCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withOpacity(0.4),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 27,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withOpacity(0.7),
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // ============================================================
+  // SUMMARY
+  // ============================================================
   Widget _buildSummarySection() {
+    final s = _summary;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 750;
@@ -434,19 +341,19 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         final cards = [
           _summaryCard(
             title: 'Total Transaksi',
-            value: _formatRupiah(_getTotalAmount()),
+            value: PaymentModel.formatRupiah(s?.totalPembayaran ?? 0),
             icon: Icons.account_balance_wallet_outlined,
             color: Colors.blue,
           ),
           _summaryCard(
-            title: 'Komisi Admin 15%',
-            value: _formatRupiah(_getTotalCommission()),
+            title: 'Komisi Platform',
+            value: PaymentModel.formatRupiah(s?.totalKomisi ?? 0),
             icon: Icons.account_balance,
             color: Colors.green,
           ),
           _summaryCard(
-            title: 'Pendapatan Mitra 85%',
-            value: _formatRupiah(_getTotalPartnerIncome()),
+            title: 'Total ke Mitra',
+            value: PaymentModel.formatRupiah(s?.totalMitraEarning ?? 0),
             icon: Icons.handshake_outlined,
             color: Colors.orange,
           ),
@@ -455,14 +362,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         if (isMobile) {
           return Column(
             children: [
-              for (final card in cards) ...[
-                card is Expanded
-                    ? SizedBox(
-                        width: double.infinity,
-                        child: card,
-                      )
-                    : card,
-                const SizedBox(height: 12),
+              for (int i = 0; i < cards.length; i++) ...[
+                cards[i],
+                if (i != cards.length - 1) const SizedBox(height: 12),
               ],
             ],
           );
@@ -481,6 +383,66 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     );
   }
 
+  Widget _summaryCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 27),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.7),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // FILTER — FIXED RESPONSIVE + ANTI OVERFLOW
+  // ============================================================
   Widget _buildFilterSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -491,54 +453,110 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           color: Theme.of(context).dividerColor.withOpacity(0.4),
         ),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.filter_list),
-          const SizedBox(width: 10),
-          const Text(
-            'Filter Status:',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(width: 15),
-          SizedBox(
-            width: 180,
-            child: DropdownButtonFormField<String>(
-              value: _selectedStatus,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
-              items: _statusOptions.map((status) {
-                return DropdownMenuItem(
-                  value: status,
-                  child: Text(status),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value == null) return;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Kalau layar sempit, stack vertikal
+          final isNarrow = constraints.maxWidth < 550;
 
-                setState(() {
-                  _selectedStatus = value;
-                });
-              },
+          // Widget dropdown (dipakai di kedua layout)
+          final dropdown = DropdownButtonFormField<String>(
+            value: _selectedStatus,
+            isExpanded: true, // ✅ KUNCI FIX — supaya tidak overflow
+            decoration: const InputDecoration(
+              isDense: true,
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
-          ),
-          const Spacer(),
-          Text(
-            '${_filteredPayments.length} transaksi',
-            style: TextStyle(
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withOpacity(0.7),
-            ),
-          ),
-        ],
+            items: _statusOptions.map((status) {
+              return DropdownMenuItem(
+                value: status,
+                child: Text(
+                  status,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedStatus = value);
+            },
+          );
+
+          // ============================================
+          // LAYOUT NARROW: judul + counter di atas, dropdown di bawah
+          // ============================================
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.filter_list, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Filter Status',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_filteredPayments.length} transaksi',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                dropdown,
+              ],
+            );
+          }
+
+          // ============================================
+          // LAYOUT WIDE: semua dalam satu baris
+          // ============================================
+          return Row(
+            children: [
+              const Icon(Icons.filter_list, size: 20),
+              const SizedBox(width: 10),
+              const Text(
+                'Filter Status:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 15),
+              SizedBox(
+                width: 220,
+                child: dropdown,
+              ),
+              const Spacer(),
+              Text(
+                '${_filteredPayments.length} transaksi',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withOpacity(0.7),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
+  // ============================================================
+  // DESKTOP TABLE
+  // ============================================================
   Widget _buildDesktopTable() {
     return Container(
       width: double.infinity,
@@ -557,35 +575,51 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             Theme.of(context).colorScheme.surface,
           ),
           columns: const [
-            DataColumn(label: Text('ID Pembayaran')),
+            DataColumn(label: Text('ID')),
+            DataColumn(label: Text('Pekerjaan')),
             DataColumn(label: Text('Pelanggan')),
             DataColumn(label: Text('Mitra')),
             DataColumn(label: Text('Total')),
-            DataColumn(label: Text('Komisi 15%')),
+            DataColumn(label: Text('Komisi')),
             DataColumn(label: Text('Status')),
             DataColumn(label: Text('Aksi')),
           ],
-          rows: _filteredPayments.map((payment) {
+          rows: _filteredPayments.map((p) {
             return DataRow(
               cells: [
+                DataCell(Text(
+                  'PAY-${p.id.toString().padLeft(3, '0')}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                )),
+                DataCell(Text(p.jobTitle ?? '-')),
+                DataCell(Text(p.pelangganName ?? '-')),
+                DataCell(Text(p.mitraName ?? '-')),
+                DataCell(Text(PaymentModel.formatRupiah(p.jobAmount))),
+                DataCell(Text(PaymentModel.formatRupiah(p.commissionAmount))),
+                DataCell(_statusBadge(p.status)),
                 DataCell(
-                  Text(
-                    payment['id'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                DataCell(Text(payment['customer'])),
-                DataCell(Text(payment['partner'])),
-                DataCell(Text(_formatRupiah(payment['amount']))),
-                DataCell(Text(_formatRupiah(payment['commission']))),
-                DataCell(_statusBadge(payment['status'])),
-                DataCell(
-                  IconButton(
-                    tooltip: 'Lihat Detail',
-                    icon: const Icon(Icons.visibility_outlined),
-                    onPressed: () => _showPaymentDetail(payment),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Lihat Detail',
+                        icon: const Icon(Icons.visibility_outlined),
+                        onPressed: () => _openPaymentDetail(p),
+                      ),
+                      // Quick action badge
+                      if (p.canVerifyCustomerProof)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(Icons.fiber_new,
+                              color: Colors.purple, size: 20),
+                        ),
+                      if (p.canSettleToMitra)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(Icons.priority_high,
+                              color: Colors.blue, size: 20),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -596,9 +630,12 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     );
   }
 
+  // ============================================================
+  // MOBILE LIST
+  // ============================================================
   Widget _buildMobileList() {
     return Column(
-      children: _filteredPayments.map((payment) {
+      children: _filteredPayments.map((p) {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -616,61 +653,105 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      payment['id'],
+                      'PAY-${p.id.toString().padLeft(3, '0')}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
                   ),
-                  _statusBadge(payment['status']),
+                  _statusBadge(p.status),
                 ],
               ),
               const SizedBox(height: 12),
+              _mobileInfoRow(Icons.work_outline, 'Pekerjaan', p.jobTitle ?? '-'),
+              _mobileInfoRow(Icons.person_outline, 'Pelanggan',
+                  p.pelangganName ?? '-'),
               _mobileInfoRow(
-                Icons.person_outline,
-                'Pelanggan',
-                payment['customer'],
-              ),
-              _mobileInfoRow(
-                Icons.handshake_outlined,
-                'Mitra',
-                payment['partner'],
-              ),
-              _mobileInfoRow(
-                Icons.work_outline,
-                'Layanan',
-                payment['service'],
-              ),
-              _mobileInfoRow(
-                Icons.calendar_today_outlined,
-                'Tanggal',
-                payment['date'],
-              ),
+                  Icons.handshake_outlined, 'Mitra', p.mitraName ?? '-'),
+              _mobileInfoRow(Icons.calendar_today_outlined, 'Tanggal',
+                  p.formattedDate),
               const Divider(height: 22),
               _mobileInfoRow(
                 Icons.payments_outlined,
-                'Total Pembayaran',
-                _formatRupiah(payment['amount']),
-                isBold: true,
+                'Nilai Pekerjaan',
+                PaymentModel.formatRupiah(p.jobAmount),
               ),
               _mobileInfoRow(
                 Icons.account_balance_outlined,
-                'Komisi Admin',
-                _formatRupiah(payment['commission']),
+                'Komisi',
+                PaymentModel.formatRupiah(p.commissionAmount),
               ),
               _mobileInfoRow(
                 Icons.wallet_outlined,
-                'Pendapatan Mitra',
-                _formatRupiah(payment['partnerIncome']),
+                'Mitra Terima',
+                PaymentModel.formatRupiah(p.mitraEarning),
+                isBold: true,
               ),
               const SizedBox(height: 12),
+
+              // Banner quick action
+              if (p.canVerifyCustomerProof)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.fact_check_outlined,
+                          color: Colors.purple, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Perlu verifikasi bukti transfer pelanggan',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.purple,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (p.canSettleToMitra)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.priority_high, color: Colors.blue, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Siap ditransfer ke mitra',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => _showPaymentDetail(payment),
+                  onPressed: () => _openPaymentDetail(p),
                   icon: const Icon(Icons.visibility_outlined),
-                  label: const Text('Lihat Detail Pembayaran'),
+                  label: const Text('Lihat Detail'),
                 ),
               ),
             ],
@@ -727,71 +808,83 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 800;
+  // ============================================================
+  // STATUS BADGE
+  // ============================================================
+  Widget _statusBadge(String status) {
+    final color = _getStatusColor(status);
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Pembayaran',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Kelola dan pantau seluruh transaksi pembayaran pelanggan dan mitra.',
-                style: TextStyle(
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.color
-                      ?.withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildSummarySection(),
-              const SizedBox(height: 24),
-              _buildFilterSection(),
-              const SizedBox(height: 18),
-              if (_filteredPayments.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(35),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        size: 55,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Tidak ada data pembayaran.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
-              else if (isMobile)
-                _buildMobileList()
-              else
-                _buildDesktopTable(),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getStatusIcon(status), size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(
+            _getStatusLabel(status),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR & EMPTY
+  // ============================================================
+  Widget _buildError() {
+    return Container(
+      padding: const EdgeInsets.all(35),
+      alignment: Alignment.center,
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const SizedBox(height: 12),
+          Text(
+            _error ?? 'Error',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadData,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(35),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.receipt_long_outlined, size: 55, color: Colors.grey),
+          SizedBox(height: 12),
+          Text('Tidak ada data pembayaran.',
+              style: TextStyle(color: Colors.grey)),
+        ],
+      ),
     );
   }
 }

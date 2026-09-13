@@ -4,7 +4,6 @@ enum PartnerSidebarMenu {
   penawaranAktif,
   penghasilan,
   pembayaran,
-  profile,
   pengaturan,
   pengaduan,
 }

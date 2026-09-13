@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import '../../services/api_service.dart';
 
 class AdminRatingScreen extends StatefulWidget {
   const AdminRatingScreen({super.key});
@@ -8,150 +12,178 @@ class AdminRatingScreen extends StatefulWidget {
 }
 
 class _AdminRatingScreenState extends State<AdminRatingScreen> {
-  final List<Map<String, dynamic>> _ratings = [
-    {
-      'id': 'RAT-001',
-      'mitra': 'Andi Teknik AC',
-      'pelanggan': 'Budi Santoso',
-      'layanan': 'Service AC Bocor',
-      'rating': 5,
-      'komentar': 'Pelayanan sangat baik, cepat, dan hasil pekerjaannya rapi.',
-      'tanggal': '12 September 2026',
-    },
-    {
-      'id': 'RAT-002',
-      'mitra': 'Joko Plumbing',
-      'pelanggan': 'Siti Aminah',
-      'layanan': 'Perbaikan Pipa Air',
-      'rating': 4,
-      'komentar': 'Pekerjaan cukup bagus dan mitra sangat ramah.',
-      'tanggal': '11 September 2026',
-    },
-    {
-      'id': 'RAT-003',
-      'mitra': 'Dimas Elektrik',
-      'pelanggan': 'Rina Wulandari',
-      'layanan': 'Perbaikan Instalasi Listrik',
-      'rating': 3,
-      'komentar': 'Hasil pekerjaan cukup baik, tetapi datang sedikit terlambat.',
-      'tanggal': '10 September 2026',
-    },
-    {
-      'id': 'RAT-004',
-      'mitra': 'Budi Cat Rumah',
-      'pelanggan': 'Agus Pratama',
-      'layanan': 'Pengecatan Ruang Tamu',
-      'rating': 2,
-      'komentar': 'Hasil pengecatan kurang rapi dan waktu pengerjaan cukup lama.',
-      'tanggal': '09 September 2026',
-    },
-    {
-      'id': 'RAT-005',
-      'mitra': 'Clean Home',
-      'pelanggan': 'Dewi Lestari',
-      'layanan': 'Jasa Kebersihan Rumah',
-      'rating': 1,
-      'komentar': 'Pelayanan kurang memuaskan dan beberapa bagian rumah belum dibersihkan.',
-      'tanggal': '08 September 2026',
-    },
-    {
-      'id': 'RAT-006',
-      'mitra': 'Andi Teknik AC',
-      'pelanggan': 'Fajar Hidayat',
-      'layanan': 'Cuci AC Rumah',
-      'rating': 5,
-      'komentar': 'Sangat profesional. Akan menggunakan jasa ini lagi.',
-      'tanggal': '07 September 2026',
-    },
-  ];
+  // ============================================================
+  // STATE
+  // ============================================================
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  List<Map<String, dynamic>> _ratings = [];
+
+  int _total = 0;
+  double _average = 0;
+  int _highCount = 0;
+  int _lowCount = 0;
 
   String _selectedFilter = 'Semua';
 
-  final List<String> _filterOptions = [
-    'Semua',
-    '5 Bintang',
-    '4 Bintang',
-    '3 Bintang',
-    '2 Bintang',
-    '1 Bintang',
+  final List<Map<String, dynamic>> _filterOptions = [
+    {'label': 'Semua', 'value': null},
+    {'label': '5 Bintang', 'value': 5},
+    {'label': '4 Bintang', 'value': 4},
+    {'label': '3 Bintang', 'value': 3},
+    {'label': '2 Bintang', 'value': 2},
+    {'label': '1 Bintang', 'value': 1},
   ];
 
-  List<Map<String, dynamic>> get _filteredRatings {
-    if (_selectedFilter == 'Semua') {
-      return _ratings;
+  // ============================================================
+  // LIFECYCLE
+  // ============================================================
+  @override
+  void initState() {
+    super.initState();
+    _loadRatings();
+  }
+
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  Future<void> _loadRatings() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      String endpoint = '/admin/ratings';
+      final current = _filterOptions.firstWhere(
+        (e) => e['label'] == _selectedFilter,
+        orElse: () => _filterOptions.first,
+      );
+      final starsValue = current['value'];
+      if (starsValue != null) {
+        endpoint += '?stars=$starsValue';
+      }
+
+      final response = await ApiService.get(endpoint);
+
+      debugPrint('⭐ RATINGS: ${response.statusCode}');
+      debugPrint('⭐ BODY: ${response.body}');
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Gagal memuat (${response.statusCode})';
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded['success'] != true) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = decoded['message']?.toString() ?? 'Gagal memuat.';
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      final s = decoded['summary'] ?? {};
+      final list = (decoded['data'] is List) ? decoded['data'] as List : [];
+
+      setState(() {
+        _total = int.tryParse(s['total']?.toString() ?? '0') ?? 0;
+        _average = double.tryParse(s['average']?.toString() ?? '0') ?? 0;
+        _highCount = int.tryParse(s['high_count']?.toString() ?? '0') ?? 0;
+        _lowCount = int.tryParse(s['low_count']?.toString() ?? '0') ?? 0;
+
+        _ratings = list
+            .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+            .toList();
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('❌ ERROR RATINGS: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error: $e';
+      });
     }
-
-    final selectedRating = int.parse(
-      _selectedFilter.substring(0, 1),
-    );
-
-    return _ratings
-        .where((rating) => rating['rating'] == selectedRating)
-        .toList();
   }
 
-  double get _averageRating {
-    if (_ratings.isEmpty) return 0;
-
-    final total = _ratings.fold<int>(
-      0,
-      (total, item) => total + (item['rating'] as int),
-    );
-
-    return total / _ratings.length;
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  String _code(Map<String, dynamic> r) {
+    final id = r['id'];
+    if (id is int) return 'RAT-${id.toString().padLeft(3, '0')}';
+    return 'RAT-${id.toString()}';
   }
 
-  int get _highRatingCount {
-    return _ratings
-        .where((rating) => rating['rating'] >= 4)
-        .length;
+  String _getNestedValue(
+    Map<String, dynamic> data,
+    String relation,
+    List<String> keys,
+  ) {
+    final rel = data[relation];
+    if (rel is Map) {
+      for (final key in keys) {
+        final value = rel[key];
+        if (value != null &&
+            value.toString().trim().isNotEmpty &&
+            value.toString() != 'null') {
+          return value.toString();
+        }
+      }
+    }
+    return '-';
   }
 
-  int get _lowRatingCount {
-    return _ratings
-        .where((rating) => rating['rating'] <= 2)
-        .length;
+  String _formatTanggal(String? iso) {
+    if (iso == null || iso.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(iso).toLocal();
+      const bulan = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      return '${date.day} ${bulan[date.month - 1]} ${date.year}';
+    } catch (_) {
+      return iso;
+    }
+  }
+
+  int _getStars(Map<String, dynamic> r) {
+    return int.tryParse(r['stars']?.toString() ?? '0') ?? 0;
   }
 
   Color _ratingColor(int rating) {
-    if (rating >= 4) {
-      return Colors.green;
-    }
-
-    if (rating == 3) {
-      return Colors.orange;
-    }
-
+    if (rating >= 4) return Colors.green;
+    if (rating == 3) return Colors.orange;
     return Colors.red;
   }
 
-  Widget _buildStars(
-    int rating, {
-    double size = 18,
-  }) {
+  Widget _buildStars(int rating, {double size = 18}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(
-        5,
-        (index) {
-          return Icon(
-            index < rating ? Icons.star : Icons.star_border,
-            color: Colors.amber,
-            size: size,
-          );
-        },
-      ),
+      children: List.generate(5, (i) {
+        return Icon(
+          i < rating ? Icons.star : Icons.star_border,
+          color: Colors.amber,
+          size: size,
+        );
+      }),
     );
   }
 
   Widget _buildRatingBadge(int rating) {
     final color = _ratingColor(rating);
-
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
@@ -159,11 +191,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.star,
-            size: 15,
-            color: color,
-          ),
+          Icon(Icons.star, size: 15, color: color),
           const SizedBox(width: 4),
           Text(
             '$rating/5',
@@ -175,6 +203,191 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // ============================================================
+  // AKSI ADMIN
+  // ============================================================
+  Future<void> _deleteRating(int id) async {
+    try {
+      final response = await ApiService.delete('/admin/ratings/$id');
+
+      debugPrint('⭐ DELETE RATING: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Rating berhasil dihapus.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadRatings();
+      } else {
+        String message = 'Gagal menghapus rating.';
+        try {
+          final decoded = jsonDecode(response.body);
+          message = decoded['message']?.toString() ?? message;
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _hideRating(int id, String? reason) async {
+    try {
+      final response = await ApiService.put(
+        '/admin/ratings/$id/hide',
+        {'reason': reason ?? ''},
+      );
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Rating berhasil disembunyikan.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        _loadRatings();
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal menyembunyikan rating.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 800;
+
+        return RefreshIndicator(
+          onRefresh: _loadRatings,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Kelola Rating Mitra',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pantau dan kelola penilaian pelanggan terhadap mitra.',
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                if (_isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 80),
+                      child: CircularProgressIndicator(color: Colors.orange),
+                    ),
+                  )
+                else if (_errorMessage != null)
+                  _buildError()
+                else ...[
+                  _buildSummarySection(isMobile),
+                  const SizedBox(height: 24),
+                  _buildFilterSection(),
+                  const SizedBox(height: 18),
+                  if (_ratings.isEmpty)
+                    _buildEmptyState()
+                  else if (isMobile)
+                    _buildMobileList()
+                  else
+                    _buildDesktopTable(),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // SUMMARY
+  // ============================================================
+  Widget _buildSummarySection(bool isMobile) {
+    final cards = [
+      _summaryCard(
+        title: 'Total Rating',
+        value: '$_total',
+        icon: Icons.rate_review_outlined,
+        color: Colors.blue,
+      ),
+      _summaryCard(
+        title: 'Rata-rata Rating',
+        value: _average.toStringAsFixed(1),
+        icon: Icons.star_rate_outlined,
+        color: Colors.amber.shade700,
+      ),
+      _summaryCard(
+        title: 'Rating Positif',
+        value: '$_highCount',
+        icon: Icons.thumb_up_alt_outlined,
+        color: Colors.green,
+      ),
+      _summaryCard(
+        title: 'Rating Rendah',
+        value: '$_lowCount',
+        icon: Icons.warning_amber_outlined,
+        color: Colors.red,
+      ),
+    ];
+
+    if (isMobile) {
+      return Column(
+        children: [
+          for (final c in cards) ...[c, const SizedBox(height: 12)],
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: cards[0]),
+        const SizedBox(width: 12),
+        Expanded(child: cards[1]),
+        const SizedBox(width: 12),
+        Expanded(child: cards[2]),
+        const SizedBox(width: 12),
+        Expanded(child: cards[3]),
+      ],
     );
   }
 
@@ -190,9 +403,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
+          color: Theme.of(context).dividerColor.withOpacity(0.4),
         ),
       ),
       child: Row(
@@ -203,11 +414,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 27,
-            ),
+            child: Icon(icon, color: color, size: 27),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -241,64 +448,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     );
   }
 
-  Widget _buildSummarySection() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 750;
-
-        final cards = [
-          _summaryCard(
-            title: 'Total Rating',
-            value: '${_ratings.length}',
-            icon: Icons.rate_review_outlined,
-            color: Colors.blue,
-          ),
-          _summaryCard(
-            title: 'Rata-rata Rating',
-            value: _averageRating.toStringAsFixed(1),
-            icon: Icons.star_rate_outlined,
-            color: Colors.amber.shade700,
-          ),
-          _summaryCard(
-            title: 'Rating Positif',
-            value: '$_highRatingCount',
-            icon: Icons.thumb_up_alt_outlined,
-            color: Colors.green,
-          ),
-          _summaryCard(
-            title: 'Rating Rendah',
-            value: '$_lowRatingCount',
-            icon: Icons.warning_amber_outlined,
-            color: Colors.red,
-          ),
-        ];
-
-        if (isMobile) {
-          return Column(
-            children: [
-              for (final card in cards) ...[
-                card,
-                const SizedBox(height: 12),
-              ],
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: cards[0]),
-            const SizedBox(width: 12),
-            Expanded(child: cards[1]),
-            const SizedBox(width: 12),
-            Expanded(child: cards[2]),
-            const SizedBox(width: 12),
-            Expanded(child: cards[3]),
-          ],
-        );
-      },
-    );
-  }
-
+  // ============================================================
+  // FILTER
+  // ============================================================
   Widget _buildFilterSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -306,9 +458,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
+          color: Theme.of(context).dividerColor.withOpacity(0.4),
         ),
       ),
       child: Row(
@@ -317,9 +467,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           const SizedBox(width: 10),
           const Text(
             'Filter Rating:',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 15),
           SizedBox(
@@ -330,24 +478,22 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 isDense: true,
                 border: OutlineInputBorder(),
               ),
-              items: _filterOptions.map((filter) {
+              items: _filterOptions.map((f) {
                 return DropdownMenuItem<String>(
-                  value: filter,
-                  child: Text(filter),
+                  value: f['label'] as String,
+                  child: Text(f['label'] as String),
                 );
               }).toList(),
               onChanged: (value) {
                 if (value == null) return;
-
-                setState(() {
-                  _selectedFilter = value;
-                });
+                setState(() => _selectedFilter = value);
+                _loadRatings();
               },
             ),
           ),
           const Spacer(),
           Text(
-            '${_filteredRatings.length} ulasan',
+            '${_ratings.length} ulasan',
             style: TextStyle(
               color: Theme.of(context)
                   .textTheme
@@ -361,7 +507,173 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     );
   }
 
-  void _showRatingDetail(Map<String, dynamic> ratingData) {
+  // ============================================================
+  // TABLE
+  // ============================================================
+  Widget _buildDesktopTable() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.4),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columnSpacing: 25,
+          headingRowColor: MaterialStateProperty.all(
+            Theme.of(context).colorScheme.surface,
+          ),
+          columns: const [
+            DataColumn(label: Text('ID')),
+            DataColumn(label: Text('Mitra')),
+            DataColumn(label: Text('Pelanggan')),
+            DataColumn(label: Text('Layanan')),
+            DataColumn(label: Text('Rating')),
+            DataColumn(label: Text('Tanggal')),
+            DataColumn(label: Text('Aksi')),
+          ],
+          rows: _ratings.map((r) {
+            final rating = _getStars(r);
+            return DataRow(
+              cells: [
+                DataCell(Text(
+                  _code(r),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                )),
+                DataCell(Text(_getNestedValue(r, 'mitra', ['name']))),
+                DataCell(Text(_getNestedValue(r, 'pelanggan', ['name']))),
+                DataCell(Text(_getNestedValue(r, 'job', ['tittle', 'title']))),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildStars(rating, size: 16),
+                    const SizedBox(width: 5),
+                    Text('$rating'),
+                  ],
+                )),
+                DataCell(Text(_formatTanggal(r['created_at']?.toString()))),
+                DataCell(IconButton(
+                  tooltip: 'Lihat Detail',
+                  icon: const Icon(Icons.visibility_outlined),
+                  onPressed: () => _showRatingDetail(r),
+                )),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // MOBILE
+  // ============================================================
+  Widget _buildMobileList() {
+    return Column(
+      children: _ratings.map((r) {
+        final rating = _getStars(r);
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withOpacity(0.4),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _code(r),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  _buildRatingBadge(rating),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _mobileInfoRow(Icons.handshake_outlined, 'Mitra',
+                  _getNestedValue(r, 'mitra', ['name'])),
+              _mobileInfoRow(Icons.person_outline, 'Pelanggan',
+                  _getNestedValue(r, 'pelanggan', ['name'])),
+              _mobileInfoRow(Icons.work_outline, 'Layanan',
+                  _getNestedValue(r, 'job', ['tittle', 'title'])),
+              _mobileInfoRow(Icons.calendar_today_outlined, 'Tanggal',
+                  _formatTanggal(r['created_at']?.toString())),
+              const SizedBox(height: 10),
+              _buildStars(rating),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  r['comment']?.toString() ?? '-',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showRatingDetail(r),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: const Text('Lihat Detail Rating'),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _mobileInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: Colors.grey.shade600),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 85,
+            child: Text(label, style: TextStyle(color: Colors.grey.shade700)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // DETAIL DIALOG
+  // ============================================================
+  void _showRatingDetail(Map<String, dynamic> r) {
+    final rating = _getStars(r);
+
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -379,69 +691,35 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _detailRow(
-                    'ID Rating',
-                    ratingData['id'],
-                  ),
-                  _detailRow(
-                    'Nama Mitra',
-                    ratingData['mitra'],
-                  ),
-                  _detailRow(
-                    'Nama Pelanggan',
-                    ratingData['pelanggan'],
-                  ),
-                  _detailRow(
-                    'Layanan',
-                    ratingData['layanan'],
-                  ),
-                  _detailRow(
-                    'Tanggal',
-                    ratingData['tanggal'],
-                  ),
+                  _detailRow('ID Rating', _code(r)),
+                  _detailRow('Nama Mitra', _getNestedValue(r, 'mitra', ['name'])),
+                  _detailRow('Nama Pelanggan', _getNestedValue(r, 'pelanggan', ['name'])),
+                  _detailRow('Layanan', _getNestedValue(r, 'job', ['tittle', 'title'])),
+                  _detailRow('Tanggal', _formatTanggal(r['created_at']?.toString())),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Rating',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Rating',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 5),
                   Row(
                     children: [
-                      _buildStars(
-                        ratingData['rating'],
-                        size: 25,
-                      ),
+                      _buildStars(rating, size: 25),
                       const SizedBox(width: 10),
-                      Text(
-                        '${ratingData['rating']}/5',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('$rating/5',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 18),
-                  const Text(
-                    'Komentar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Komentar',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 7),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surface,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
-                      ratingData['komentar'],
-                    ),
+                    child: Text(r['comment']?.toString() ?? '-'),
                   ),
                 ],
               ),
@@ -452,13 +730,25 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Tutup'),
             ),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _confirmHideRating(r);
+              },
+              icon: const Icon(Icons.visibility_off_outlined),
+              label: const Text('Sembunyikan'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+              ),
+            ),
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                _confirmDeleteRating(ratingData);
+                _confirmDeleteRating(r);
               },
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Hapus Rating'),
+              label: const Text('Hapus'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
@@ -478,35 +768,45 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         children: [
           SizedBox(
             width: 125,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.grey,
-              ),
-            ),
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(value,
+                style: const TextStyle(fontWeight: FontWeight.w500)),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDeleteRating(Map<String, dynamic> ratingData) {
+  void _confirmHideRating(Map<String, dynamic> r) {
+    final reasonController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Hapus Rating'),
-          content: const Text(
-            'Apakah Anda yakin ingin menghapus rating ini? '
-            'Tindakan ini hanya menghapus data dummy dari tampilan.',
+          title: const Text('Sembunyikan Rating'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Rating akan disembunyikan dari publik. Data tetap tersimpan.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  hintText: 'Alasan (opsional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -515,19 +815,40 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {
-                  _ratings.removeWhere(
-                    (item) => item['id'] == ratingData['id'],
-                  );
-                });
-
                 Navigator.pop(dialogContext);
+                _hideRating(r['id'], reasonController.text.trim());
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sembunyikan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Rating berhasil dihapus.'),
-                  ),
-                );
+  void _confirmDeleteRating(Map<String, dynamic> r) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Hapus Rating'),
+          content: const Text(
+            'Apakah Anda yakin ingin menghapus rating ini? '
+            'Tindakan ini tidak dapat dibatalkan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _deleteRating(r['id']);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -541,285 +862,58 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     );
   }
 
-  Widget _buildDesktopTable() {
+  // ============================================================
+  // EMPTY & ERROR
+  // ============================================================
+  Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(35),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 25,
-          headingRowColor: MaterialStateProperty.all(
-            Theme.of(context).colorScheme.surface,
-          ),
-          columns: const [
-            DataColumn(label: Text('ID Rating')),
-            DataColumn(label: Text('Mitra')),
-            DataColumn(label: Text('Pelanggan')),
-            DataColumn(label: Text('Layanan')),
-            DataColumn(label: Text('Rating')),
-            DataColumn(label: Text('Tanggal')),
-            DataColumn(label: Text('Aksi')),
-          ],
-          rows: _filteredRatings.map((ratingData) {
-            final rating = ratingData['rating'] as int;
-
-            return DataRow(
-              cells: [
-                DataCell(
-                  Text(
-                    ratingData['id'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                DataCell(Text(ratingData['mitra'])),
-                DataCell(Text(ratingData['pelanggan'])),
-                DataCell(Text(ratingData['layanan'])),
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildStars(rating, size: 16),
-                      const SizedBox(width: 5),
-                      Text('$rating'),
-                    ],
-                  ),
-                ),
-                DataCell(Text(ratingData['tanggal'])),
-                DataCell(
-                  IconButton(
-                    tooltip: 'Lihat Detail',
-                    icon: const Icon(
-                      Icons.visibility_outlined,
-                    ),
-                    onPressed: () {
-                      _showRatingDetail(ratingData);
-                    },
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileList() {
-    return Column(
-      children: _filteredRatings.map((ratingData) {
-        final rating = ratingData['rating'] as int;
-
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context)
-                  .dividerColor
-                  .withOpacity(0.4),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      ratingData['id'],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  _buildRatingBadge(rating),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _mobileInfoRow(
-                Icons.handshake_outlined,
-                'Mitra',
-                ratingData['mitra'],
-              ),
-              _mobileInfoRow(
-                Icons.person_outline,
-                'Pelanggan',
-                ratingData['pelanggan'],
-              ),
-              _mobileInfoRow(
-                Icons.work_outline,
-                'Layanan',
-                ratingData['layanan'],
-              ),
-              _mobileInfoRow(
-                Icons.calendar_today_outlined,
-                'Tanggal',
-                ratingData['tanggal'],
-              ),
-              const SizedBox(height: 10),
-              _buildStars(rating),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  ratingData['komentar'],
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    _showRatingDetail(ratingData);
-                  },
-                  icon: const Icon(
-                    Icons.visibility_outlined,
-                  ),
-                  label: const Text('Lihat Detail Rating'),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _mobileInfoRow(
-    IconData icon,
-    String label,
-    String value,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: const Column(
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.color
-                ?.withOpacity(0.6),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 85,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withOpacity(0.7),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          Icon(Icons.rate_review_outlined, size: 55, color: Colors.grey),
+          SizedBox(height: 12),
+          Text('Tidak ada rating yang ditemukan.',
+              style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 800;
-
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Kelola Rating Mitra',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pantau dan kelola penilaian pelanggan terhadap mitra.',
-                style: TextStyle(
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.color
-                      ?.withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildSummarySection(),
-              const SizedBox(height: 24),
-              _buildFilterSection(),
-              const SizedBox(height: 18),
-              if (_filteredRatings.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(35),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(
-                        Icons.rate_review_outlined,
-                        size: 55,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Tidak ada rating yang ditemukan.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
-              else if (isMobile)
-                _buildMobileList()
-              else
-                _buildDesktopTable(),
-            ],
+  Widget _buildError() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(35),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.red.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const SizedBox(height: 12),
+          Text(
+            _errorMessage ?? 'Terjadi kesalahan.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadRatings,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

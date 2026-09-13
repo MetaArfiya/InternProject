@@ -1,3 +1,5 @@
+// lib/sections/customer/customer_complaint_screen.dart
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -5,18 +7,15 @@ import 'package:flutter/material.dart';
 import '../../models/complaint_model.dart';
 import '../../services/api_service.dart';
 
-class PartnerComplaintScreen extends StatefulWidget {
-  const PartnerComplaintScreen({super.key});
+class CustomerComplaintScreen extends StatefulWidget {
+  const CustomerComplaintScreen({super.key});
 
   @override
-  State<PartnerComplaintScreen> createState() =>
-      _PartnerComplaintScreenState();
+  State<CustomerComplaintScreen> createState() =>
+      _CustomerComplaintScreenState();
 }
 
-class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
-  // ============================================================
-  // STATE
-  // ============================================================
+class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -31,17 +30,15 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
 
   String _selectedFilter = 'Semua';
 
+  // Kategori khusus pelanggan
   final List<String> _categories = [
-    'Pelanggan Bermasalah',
+    'Mitra Bermasalah',
+    'Kualitas Pekerjaan',
     'Pembayaran',
-    'Pekerjaan',
     'Aplikasi',
     'Lainnya',
   ];
 
-  // ============================================================
-  // LIFECYCLE
-  // ============================================================
   @override
   void initState() {
     super.initState();
@@ -60,7 +57,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     try {
       final response = await ApiService.get('/complaints/my');
 
-      debugPrint('📢 COMPLAINTS: ${response.statusCode}');
+      debugPrint('📢 CUSTOMER COMPLAINTS: ${response.statusCode}');
       debugPrint('📢 BODY: ${response.body}');
 
       if (response.statusCode != 200) {
@@ -84,7 +81,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       if (!mounted) return;
 
       setState(() {
-        // Summary
         final s = decoded['summary'] ?? {};
         _summary = {
           'total':    int.tryParse(s['total']?.toString() ?? '0') ?? 0,
@@ -94,7 +90,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           'ditolak':  int.tryParse(s['ditolak']?.toString() ?? '0') ?? 0,
         };
 
-        // List
         _complaints = (decoded['data'] is List)
             ? (decoded['data'] as List)
                 .map((e) => ComplaintModel.fromJson(e))
@@ -113,9 +108,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     }
   }
 
-  // ============================================================
-  // FILTER
-  // ============================================================
   List<ComplaintModel> get _filteredComplaints {
     if (_selectedFilter == 'Semua') return _complaints;
     return _complaints.where((c) => c.status == _selectedFilter).toList();
@@ -226,7 +218,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                         enabled: !isSubmitting,
                         decoration: const InputDecoration(
                           labelText: 'Judul Pengaduan',
-                          hintText: 'Contoh: Pembayaran belum diterima',
+                          hintText: 'Contoh: Mitra tidak datang sesuai jadwal',
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -259,7 +251,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
                   child: const Text('Batal'),
                 ),
                 ElevatedButton(
@@ -280,7 +274,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
 
                           setDialogState(() => isSubmitting = true);
 
-                          // Parse job_id
                           int? jobId;
                           final jobIdText = jobIdController.text.trim();
                           if (jobIdText.isNotEmpty) {
@@ -426,7 +419,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(complaint.adminResponse ?? '-'),
+                    child: Text(
+                      complaint.adminResponse ??
+                          'Belum ada tanggapan dari admin.',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -604,47 +600,87 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           color: Theme.of(context).dividerColor.withOpacity(0.4),
         ),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.filter_list),
-          const SizedBox(width: 10),
-          const Text(
-            'Filter Status:',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(width: 15),
-          SizedBox(
-            width: 160,
-            child: DropdownButtonFormField<String>(
-              value: _selectedFilter,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 550;
+
+          final dropdown = DropdownButtonFormField<String>(
+            value: _selectedFilter,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              isDense: true,
+              border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+            items: filters.map((filter) {
+              return DropdownMenuItem<String>(
+                value: filter,
+                child: Text(filter, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedFilter = value);
+            },
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.filter_list, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Filter Status',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_filteredComplaints.length} pengaduan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                dropdown,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              const Icon(Icons.filter_list, size: 20),
+              const SizedBox(width: 10),
+              const Text(
+                'Filter Status:',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              items: filters.map((filter) {
-                return DropdownMenuItem<String>(
-                  value: filter,
-                  child: Text(filter),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _selectedFilter = value);
-              },
-            ),
-          ),
-          const Spacer(),
-          Text(
-            '${_filteredComplaints.length} pengaduan',
-            style: TextStyle(
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withOpacity(0.7),
-            ),
-          ),
-        ],
+              const SizedBox(width: 15),
+              SizedBox(width: 200, child: dropdown),
+              const Spacer(),
+              Text(
+                '${_filteredComplaints.length} pengaduan',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withOpacity(0.7),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -684,10 +720,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           const SizedBox(height: 12),
           Text(
             complaint.title,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -702,7 +735,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           ),
           const SizedBox(height: 12),
           _infoRow(Icons.work_outline, 'ID Pekerjaan', complaint.jobCode),
-          _infoRow(Icons.calendar_today_outlined, 'Tanggal', complaint.formattedDate),
+          _infoRow(
+              Icons.calendar_today_outlined, 'Tanggal', complaint.formattedDate),
           const SizedBox(height: 8),
           Text(
             complaint.description,
@@ -801,10 +835,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                   ),
                 ),
                 DataCell(
-                  SizedBox(
-                    width: 220,
-                    child: Text(complaint.title),
-                  ),
+                  SizedBox(width: 220, child: Text(complaint.title)),
                 ),
                 DataCell(Text(complaint.category)),
                 DataCell(Text(complaint.jobCode)),
@@ -851,9 +882,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ==========================================
-                    // HEADER
-                    // ==========================================
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -897,9 +925,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ==========================================
-                    // LOADING / ERROR / CONTENT
-                    // ==========================================
                     if (_isLoading)
                       const Center(
                         child: Padding(
@@ -935,9 +960,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     );
   }
 
-  // ============================================================
-  // ERROR & EMPTY
-  // ============================================================
   Widget _buildError() {
     return Container(
       width: double.infinity,
@@ -983,10 +1005,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         children: [
           Icon(Icons.report_problem_outlined, size: 55, color: Colors.grey),
           SizedBox(height: 12),
-          Text(
-            'Belum ada pengaduan.',
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text('Belum ada pengaduan.', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );

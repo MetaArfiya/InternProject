@@ -9,6 +9,7 @@ use App\Models\mitra_profiles;
 use App\Models\system_setting;
 use App\Models\SuperAdminActivity;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Helpers\ActivityLogger;
 
 class SuperAdminController extends Controller
@@ -608,6 +609,98 @@ class SuperAdminController extends Controller
             'success' => true,
             'message' =>
                 'Akun Admin berhasil dihapus dari sistem secara permanen.'
+        ], 200);
+    }
+        /**
+     * =========================================================
+     * SUPER ADMIN — Daftar Mitra Aktif (sedang bekerja)
+     * GET /superadmin/active-partners
+     * =========================================================
+     *
+     * Mengembalikan daftar mitra yang sedang punya job dengan status:
+     * - "Sedang Dikerjakan"
+     * - "Menunggu Konfirmasi Selesai"
+     */
+    public function activePartners()
+    {
+        try {
+            $jobs = \App\Models\jobs::with([
+                    'mitra:id,name,email,phone',
+                ])
+                ->whereIn('status', [
+                    'Sedang Dikerjakan',
+                    'Menunggu Konfirmasi Selesai',
+                ])
+                ->whereNotNull('mitra_id')
+                ->latest()
+                ->get();
+
+            $data = $jobs->map(function ($job) {
+                $mitra = $job->mitra;
+
+                return [
+                    'id'            => $job->id,
+                    'mitra_id'      => $job->mitra_id,
+                    'name'          => $mitra?->name ?? 'Mitra',
+                    'email'         => $mitra?->email ?? '-',
+                    'phone'         => $mitra?->phone ?? '-',
+                    'job_title'     => $job->tittle ?? '-',
+                    'job_id'        => $job->id,
+                    'location'      => $job->location ?? '-',
+                    'status'        => $job->status,
+                    'started_at' => $job->started_at,
+                    'final_price'   => $job->final_price,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil mengambil daftar mitra aktif.',
+                'total'   => $data->count(),
+                'data'    => $data,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('SuperAdminController@activePartners: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat mitra aktif: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function updateBankAccount(Request $request)
+    {
+        $request->validate([
+            'platform_bank_name'           => 'required|string|max:100',
+            'platform_bank_account_number' => 'required|string|max:50',
+            'platform_bank_account_name'   => 'required|string|max:100',
+        ]);
+
+        $setting = system_setting::first();
+
+        if (!$setting) {
+            $setting = new system_setting();
+        }
+
+        $setting->platform_bank_name           = $request->platform_bank_name;
+        $setting->platform_bank_account_number = $request->platform_bank_account_number;
+        $setting->platform_bank_account_name   = $request->platform_bank_account_name;
+        $setting->updated_by                   = auth()->id();
+        $setting->save();
+
+        ActivityLogger::log(
+            auth()->id(),
+            'Mengubah rekening platform',
+            'Rekening platform diperbarui menjadi ' . $setting->platform_bank_name,
+            'edit',
+            'Sistem'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rekening platform berhasil diperbarui.',
+            'data'    => $setting,
         ], 200);
     }
 }
