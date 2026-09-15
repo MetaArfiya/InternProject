@@ -23,6 +23,22 @@ class PartnerSettingScreen extends StatefulWidget {
 
 class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // ============================================================
+  // INPUT FORMATTERS
+  // ============================================================
+
+  /// Hanya huruf, spasi, titik, koma, apostrof, dan strip
+  static final List<TextInputFormatter> nameFormatters = [
+    FilteringTextInputFormatter.allow(
+      RegExp(r"[a-zA-Z\s.,'-]"),
+    ),
+  ];
+
+  /// Hanya angka
+  static final List<TextInputFormatter> digitsOnly = [
+    FilteringTextInputFormatter.digitsOnly,
+  ];
+
+  // ============================================================
   // BASIC PROFILE
   // ============================================================
 
@@ -59,7 +75,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   final TextEditingController birthDateController = TextEditingController();
 
   // ============================================================
-  // REKENING BANK (BARU)
+  // REKENING BANK
   // ============================================================
 
   String bankName = '';
@@ -67,8 +83,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   String bankAccountName = '';
 
   final TextEditingController bankNameController = TextEditingController();
-  final TextEditingController bankAccountNumberController = TextEditingController();
-  final TextEditingController bankAccountNameController = TextEditingController();
+  final TextEditingController bankAccountNumberController =
+      TextEditingController();
+  final TextEditingController bankAccountNameController =
+      TextEditingController();
 
   // ============================================================
   // VERIFIKASI
@@ -124,9 +142,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // PASSWORD
   // ============================================================
 
-  final TextEditingController currentPasswordController = TextEditingController();
+  final TextEditingController currentPasswordController =
+      TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   bool obscureCurrentPassword = true;
   bool obscureNewPassword = true;
@@ -297,9 +317,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         });
       }
 
-      // ==========================================================
       // USER PROFILE
-      // ==========================================================
       final userResponse = await ApiService.get('/user');
       if (userResponse.statusCode == 200) {
         final data = jsonDecode(userResponse.body);
@@ -331,10 +349,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           int? nestedPoint;
           bool? nestedVerified;
           if (nestedMitra is Map) {
-            nestedPoint = int.tryParse(nestedMitra['point']?.toString() ?? '0');
+            nestedPoint =
+                int.tryParse(nestedMitra['point']?.toString() ?? '0');
             nestedVerified = nestedMitra['is_verified'] == true ||
                 nestedMitra['is_verified'] == 1 ||
-                nestedMitra['is_verified']?.toString().toLowerCase() == 'true';
+                nestedMitra['is_verified']
+                        ?.toString()
+                        .toLowerCase() ==
+                    'true';
           }
 
           if (mounted) {
@@ -348,7 +370,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               phoneController.text = loadedPhone;
               addressController.text = loadedAddress;
               if (loadedPhoto.isNotEmpty) photoUrl = loadedPhoto;
-              if (loadedNotification != null) jobNotification = loadedNotification;
+              if (loadedNotification != null) {
+                jobNotification = loadedNotification;
+              }
               if (nestedPoint != null) totalPoint = nestedPoint;
               if (nestedVerified != null) isVerified = nestedVerified;
             });
@@ -358,14 +382,16 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           await prefs.setString('email', loadedEmail);
           await prefs.setString('phone', loadedPhone);
           await prefs.setString('address', loadedAddress);
-          if (loadedPhoto.isNotEmpty) await prefs.setString('profile_image_url', loadedPhoto);
-          if (loadedNotification != null) await prefs.setBool('job_notification', loadedNotification);
+          if (loadedPhoto.isNotEmpty) {
+            await prefs.setString('profile_image_url', loadedPhoto);
+          }
+          if (loadedNotification != null) {
+            await prefs.setBool('job_notification', loadedNotification);
+          }
         }
       }
 
-      // ==========================================================
       // MITRA PROFILE
-      // ==========================================================
       final mitraResponse = await ApiService.get('/mitra/profile');
       if (mitraResponse.statusCode == 200) {
         final mitraResponseData = jsonDecode(mitraResponse.body);
@@ -383,10 +409,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               mitra['description']?.toString() ??
               '';
 
-          // Rekening bank
           final loadedBankName = mitra['bank_name']?.toString() ?? '';
-          final loadedBankAccountNumber = mitra['bank_account_number']?.toString() ?? '';
-          final loadedBankAccountName = mitra['bank_account_name']?.toString() ?? '';
+          final loadedBankAccountNumber =
+              mitra['bank_account_number']?.toString() ?? '';
+          final loadedBankAccountName =
+              mitra['bank_account_name']?.toString() ?? '';
 
           String loadedSkill = '';
           final rawSkills = mitra['skills'];
@@ -456,7 +483,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               isVerified = loadedIsVerified;
               totalPoint = loadedPoint;
 
-              // Rekening bank
               bankName = loadedBankName;
               bankAccountNumber = loadedBankAccountNumber;
               bankAccountName = loadedBankAccountName;
@@ -497,14 +523,23 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Nama lengkap wajib diisi.', error: true);
       return;
     }
+    if (newName.length < 3) {
+      _showMessage('Nama minimal 3 karakter.', error: true);
+      return;
+    }
     if (newEmail.isEmpty) {
       _showMessage('Email wajib diisi.', error: true);
       return;
     }
-    // Validasi nomor HP hanya angka
-    if (newPhone.isNotEmpty && !RegExp(r'^[0-9]+$').hasMatch(newPhone)) {
-      _showMessage('Nomor HP hanya boleh berisi angka.', error: true);
-      return;
+    if (newPhone.isNotEmpty) {
+      if (!RegExp(r'^[0-9]+$').hasMatch(newPhone)) {
+        _showMessage('Nomor HP hanya boleh berisi angka.', error: true);
+        return;
+      }
+      if (newPhone.length < 10 || newPhone.length > 15) {
+        _showMessage('Nomor HP harus 10-15 digit.', error: true);
+        return;
+      }
     }
 
     try {
@@ -631,6 +666,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Nama lengkap wajib diisi.', error: true);
       return;
     }
+    if (fullName.length < 3) {
+      _showMessage('Nama minimal 3 karakter.', error: true);
+      return;
+    }
     if (gender.isEmpty) {
       _showMessage('Silakan pilih jenis kelamin.', error: true);
       return;
@@ -647,10 +686,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Alamat lengkap wajib diisi.', error: true);
       return;
     }
-    // Validasi nomor HP hanya angka
-    if (selectedPhone.isNotEmpty && !RegExp(r'^[0-9]+$').hasMatch(selectedPhone)) {
-      _showMessage('Nomor HP hanya boleh berisi angka.', error: true);
+    if (selectedAddress.length < 10) {
+      _showMessage('Alamat minimal 10 karakter.', error: true);
       return;
+    }
+    if (selectedPhone.isNotEmpty) {
+      if (!RegExp(r'^[0-9]+$').hasMatch(selectedPhone)) {
+        _showMessage('Nomor HP hanya boleh berisi angka.', error: true);
+        return;
+      }
+      if (selectedPhone.length < 10 || selectedPhone.length > 15) {
+        _showMessage('Nomor HP harus 10-15 digit.', error: true);
+        return;
+      }
     }
 
     try {
@@ -707,7 +755,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SAVE BANK ACCOUNT (BARU)
+  // SAVE BANK ACCOUNT
   // ============================================================
   Future<void> saveBankAccount() async {
     final newBankName = bankNameController.text.trim();
@@ -718,17 +766,28 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Nama bank wajib diisi.', error: true);
       return;
     }
+    if (newBankName.length < 3) {
+      _showMessage('Nama bank minimal 3 karakter.', error: true);
+      return;
+    }
     if (newAccountNumber.isEmpty) {
       _showMessage('Nomor rekening wajib diisi.', error: true);
       return;
     }
-    // Validasi nomor rekening hanya angka
     if (!RegExp(r'^[0-9]+$').hasMatch(newAccountNumber)) {
       _showMessage('Nomor rekening hanya boleh berisi angka.', error: true);
       return;
     }
+    if (newAccountNumber.length < 8 || newAccountNumber.length > 20) {
+      _showMessage('Nomor rekening harus 8-20 digit.', error: true);
+      return;
+    }
     if (newAccountName.isEmpty) {
       _showMessage('Nama pemilik rekening wajib diisi.', error: true);
+      return;
+    }
+    if (newAccountName.length < 3) {
+      _showMessage('Nama pemilik rekening minimal 3 karakter.', error: true);
       return;
     }
 
@@ -829,37 +888,25 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // SUBMIT VERIFICATION
   // ============================================================
   Future<void> submitVerification() async {
-    print('🔵 SUBMIT VERIFICATION DIPANGGIL');
-
     if (ktpBytes == null) {
-      print('❌ KTP NULL');
       _showMessage('Silakan upload foto KTP terlebih dahulu.', error: true);
       return;
     }
-    print('✅ KTP ada, size: ${ktpBytes!.length}');
-
     if (selfieBytes == null) {
-      print('❌ SELFIE NULL');
-      _showMessage('Silakan upload foto verifikasi diri terlebih dahulu.',
-          error: true);
+      _showMessage(
+          'Silakan upload foto verifikasi diri terlebih dahulu.', error: true);
       return;
     }
-    print('✅ SELFIE ada, size: ${selfieBytes!.length}');
-
     if (fullNameController.text.trim().isEmpty) {
-      print('❌ NAMA LENGKAP KOSONG');
       _showMessage('Lengkapi identitas terlebih dahulu.', error: true);
       return;
     }
-    print('✅ NAMA LENGKAP: ${fullNameController.text.trim()}');
 
     try {
-      print('🔵 MULAI REQUEST...');
       setState(() => isLoading = true);
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      print('🔑 TOKEN: $token');
 
       final request = html.HttpRequest();
       final formData = html.FormData();
@@ -878,23 +925,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
       final completer = Completer<bool>();
       request.onLoad.listen((_) {
-        print('📡 RESPONSE STATUS: ${request.status}');
         if (!completer.isCompleted) {
           completer.complete(request.status == 200 || request.status == 201);
         }
       });
       request.onError.listen((_) {
-        print('❌ REQUEST ERROR');
         if (!completer.isCompleted) completer.complete(false);
       });
 
-      print('📤 SENDING FORM DATA...');
       request.send(formData);
       final success = await completer.future;
 
       if (success) {
         final responseText = request.responseText ?? '';
-        print('📦 RESPONSE BODY: $responseText');
 
         try {
           final responseData = jsonDecode(responseText);
@@ -922,7 +965,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             });
           }
         } catch (e) {
-          print('⚠️ Gagal parsing response: $e');
           if (mounted) {
             setState(() {
               verificationStatus = 'Menunggu Verifikasi';
@@ -948,8 +990,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         _showMessage(message, error: true);
       }
     } catch (e, stack) {
-      print('❌ EXCEPTION: $e');
-      print(stack);
+      debugPrint('EXCEPTION: $e');
+      debugPrint('$stack');
       _showMessage('Gagal mengirim verifikasi: $e', error: true);
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -1218,6 +1260,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Password baru minimal 8 karakter.', error: true);
       return;
     }
+    if (newPassword.length > 100) {
+      _showMessage('Password maksimal 100 karakter.', error: true);
+      return;
+    }
     if (newPassword != confirm) {
       _showMessage('Konfirmasi password tidak sesuai.', error: true);
       return;
@@ -1284,7 +1330,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         const SizedBox(height: 24),
                         _buildIdentitySection(),
                         const SizedBox(height: 24),
-                        _buildBankAccountSection(), // 🆕 SECTION BARU
+                        _buildBankAccountSection(),
                         const SizedBox(height: 24),
                         _buildVerificationSection(),
                         const SizedBox(height: 24),
@@ -1464,7 +1510,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   _textField(
                       controller: nameController,
                       label: 'Nama Lengkap',
-                      icon: Icons.person_outline),
+                      icon: Icons.person_outline,
+                      maxLength: 100,
+                      inputFormatters: nameFormatters),
                   const SizedBox(height: 14),
                   _textField(
                       controller: emailController,
@@ -1477,7 +1525,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     label: 'Nomor HP',
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    maxLength: 15,
+                    inputFormatters: digitsOnly,
                   ),
                   const SizedBox(height: 14),
                   _textField(
@@ -1485,6 +1534,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     label: 'Alamat',
                     icon: Icons.location_on_outlined,
                     maxLines: 3,
+                    maxLength: 500,
                   ),
                 ],
               );
@@ -1497,7 +1547,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         child: _textField(
                             controller: nameController,
                             label: 'Nama Lengkap',
-                            icon: Icons.person_outline)),
+                            icon: Icons.person_outline,
+                            maxLength: 100,
+                            inputFormatters: nameFormatters)),
                     const SizedBox(width: 14),
                     Expanded(
                         child: _textField(
@@ -1517,7 +1569,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         label: 'Nomor HP',
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        maxLength: 15,
+                        inputFormatters: digitsOnly,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -1527,6 +1580,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         label: 'Alamat',
                         icon: Icons.location_on_outlined,
                         maxLines: 3,
+                        maxLength: 500,
                       ),
                     ),
                   ],
@@ -1580,7 +1634,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     _textField(
                         controller: fullNameController,
                         label: 'Nama Lengkap',
-                        icon: Icons.person_outline),
+                        icon: Icons.person_outline,
+                        maxLength: 100,
+                        inputFormatters: nameFormatters),
                     const SizedBox(height: 14),
                     _genderDropdown(),
                     const SizedBox(height: 14),
@@ -1589,7 +1645,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     _textField(
                         controller: cityController,
                         label: 'Kota/Kabupaten',
-                        icon: Icons.location_city_outlined),
+                        icon: Icons.location_city_outlined,
+                        maxLength: 100,
+                        inputFormatters: nameFormatters),
                   ],
                 );
               }
@@ -1601,7 +1659,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         child: _textField(
                             controller: fullNameController,
                             label: 'Nama Lengkap',
-                            icon: Icons.person_outline),
+                            icon: Icons.person_outline,
+                            maxLength: 100,
+                            inputFormatters: nameFormatters),
                       ),
                       const SizedBox(width: 14),
                       Expanded(child: _genderDropdown()),
@@ -1616,7 +1676,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         child: _textField(
                             controller: cityController,
                             label: 'Kota/Kabupaten',
-                            icon: Icons.location_city_outlined),
+                            icon: Icons.location_city_outlined,
+                            maxLength: 100,
+                            inputFormatters: nameFormatters),
                       ),
                     ],
                   ),
@@ -1630,6 +1692,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             label: 'Alamat Lengkap',
             icon: Icons.home_outlined,
             maxLines: 3,
+            maxLength: 500,
           ),
           const SizedBox(height: 14),
           _textField(
@@ -1637,6 +1700,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             label: 'Deskripsi Singkat Tentang Diri',
             icon: Icons.description_outlined,
             maxLines: 5,
+            maxLength: 1000,
             hintText:
                 'Ceritakan pengalaman, kemampuan, dan keunggulan kamu sebagai mitra.',
           ),
@@ -1663,7 +1727,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // 🆕 REKENING BANK SECTION
+  // REKENING BANK SECTION
   // ============================================================
   Widget _buildBankAccountSection() {
     return _sectionCard(
@@ -1688,6 +1752,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       label: 'Nama Bank',
                       icon: Icons.account_balance_outlined,
                       hintText: 'Contoh: BCA, Mandiri, BNI, BRI',
+                      maxLength: 100,
+                      inputFormatters: nameFormatters,
                     ),
                     const SizedBox(height: 14),
                     _textField(
@@ -1696,7 +1762,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       icon: Icons.numbers_outlined,
                       keyboardType: TextInputType.number,
                       hintText: 'Contoh: 1234567890',
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 20,
+                      inputFormatters: digitsOnly,
                     ),
                     const SizedBox(height: 14),
                     _textField(
@@ -1704,6 +1771,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       label: 'Nama Pemilik Rekening',
                       icon: Icons.person_outline,
                       hintText: 'Sesuai dengan nama di buku tabungan',
+                      maxLength: 100,
+                      inputFormatters: nameFormatters,
                     ),
                   ],
                 );
@@ -1718,6 +1787,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                           label: 'Nama Bank',
                           icon: Icons.account_balance_outlined,
                           hintText: 'Contoh: BCA, Mandiri, BNI',
+                          maxLength: 100,
+                          inputFormatters: nameFormatters,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -1728,7 +1799,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                           icon: Icons.numbers_outlined,
                           keyboardType: TextInputType.number,
                           hintText: 'Contoh: 1234567890',
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          maxLength: 20,
+                          inputFormatters: digitsOnly,
                         ),
                       ),
                     ],
@@ -1739,6 +1811,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     label: 'Nama Pemilik Rekening',
                     icon: Icons.person_outline,
                     hintText: 'Sesuai dengan nama di buku tabungan',
+                    maxLength: 100,
+                    inputFormatters: nameFormatters,
                   ),
                 ],
               );
@@ -1746,7 +1820,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Info warning
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -2509,6 +2582,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     String? hintText,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
   }) {
     return TextField(
       controller: controller,
@@ -2516,8 +2590,15 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
-      decoration:
-          _inputDecoration(label: label, icon: icon, hintText: hintText),
+      maxLength: maxLength,
+      decoration: _inputDecoration(
+        label: label,
+        icon: icon,
+        hintText: hintText,
+        // ✅ Sembunyikan counter "0/100" kecuali multi-line
+        showCounter: maxLength != null && maxLines > 1,
+        maxLength: maxLength,
+      ),
     );
   }
 
@@ -2533,8 +2614,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return TextField(
       controller: controller,
       obscureText: obscureText,
+      maxLength: 100,
       decoration:
           _inputDecoration(label: label, icon: Icons.lock_outline).copyWith(
+        counterText: '',
         suffixIcon: IconButton(
           onPressed: onToggle,
           icon: Icon(obscureText
@@ -2552,6 +2635,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     required String label,
     required IconData icon,
     String? hintText,
+    bool showCounter = false,
+    int? maxLength,
   }) {
     return InputDecoration(
       labelText: label,
@@ -2559,6 +2644,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       prefixIcon: Icon(icon, size: 20),
       filled: true,
       fillColor: const Color(0xffF8FAFC),
+      // ✅ Sembunyikan counter kecuali diminta
+      counterText: showCounter ? null : '',
       contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

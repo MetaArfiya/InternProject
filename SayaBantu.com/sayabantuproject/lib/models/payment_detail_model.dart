@@ -1,5 +1,3 @@
-// lib/models/payment_detail_model.dart
-
 import 'payment_model.dart';
 import 'bank_account_model.dart';
 

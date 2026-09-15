@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
@@ -23,6 +24,17 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   String adminName = 'Memuat...';
   String adminEmail = 'Memuat...';
   String adminRole = 'Memuat...';
+
+  // =========================================================
+  // INPUT FORMATTERS
+  // =========================================================
+
+  /// Hanya huruf, spasi, titik, koma, apostrof, dan strip
+  static final List<TextInputFormatter> nameFormatters = [
+    FilteringTextInputFormatter.allow(
+      RegExp(r"[a-zA-Z\s.,'-]"),
+    ),
+  ];
 
   // =========================================================
   // FOTO PROFIL
@@ -53,7 +65,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   }
 
   // =========================================================
-  // PREVIEW IMAGE DIALOG (BARU)
+  // PREVIEW IMAGE DIALOG
   // =========================================================
 
   void _showImageDialog(BuildContext context, ImageProvider imageProvider) {
@@ -113,21 +125,25 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
-
         final user = decodedData['data'] ?? decodedData['user'] ?? decodedData;
 
         if (user is Map) {
           final apiName = user['name']?.toString();
           final apiEmail = user['email']?.toString();
-          final apiRole = user['role']?.toString() ?? user['role_name']?.toString();
+          final apiRole =
+              user['role']?.toString() ?? user['role_name']?.toString();
           final apiPhotoUrl = user['photo_url']?.toString();
 
           setState(() {
-            adminName = apiName != null && apiName.isNotEmpty ? apiName : 'Admin';
-            adminEmail = apiEmail != null && apiEmail.isNotEmpty ? apiEmail : '-';
+            adminName =
+                apiName != null && apiName.isNotEmpty ? apiName : 'Admin';
+            adminEmail =
+                apiEmail != null && apiEmail.isNotEmpty ? apiEmail : '-';
             adminRole = apiRole != null && apiRole.isNotEmpty ? apiRole : 'Admin';
 
-            if (apiPhotoUrl != null && apiPhotoUrl.isNotEmpty && apiPhotoUrl != 'null') {
+            if (apiPhotoUrl != null &&
+                apiPhotoUrl.isNotEmpty &&
+                apiPhotoUrl != 'null') {
               photoUrl = apiPhotoUrl;
             } else {
               photoUrl = null;
@@ -324,7 +340,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       if (request.status == 200) {
         try {
           final decoded = jsonDecode(request.responseText ?? '{}');
-          final returnedPhotoUrl = decoded['photo_url'] ?? decoded['user']?['photo_url'];
+          final returnedPhotoUrl =
+              decoded['photo_url'] ?? decoded['user']?['photo_url'];
 
           setState(() {
             if (returnedPhotoUrl != null &&
@@ -401,7 +418,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       height: double.infinity,
       color: const Color(0xFFF4F7FB),
       child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(isMobile ? 16 : 26, isMobile ? 18 : 28, isMobile ? 16 : 26, 30),
+        padding: EdgeInsets.fromLTRB(
+            isMobile ? 16 : 26, isMobile ? 18 : 28, isMobile ? 16 : 26, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -567,7 +585,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               ),
               const SizedBox(height: 7),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(20),
@@ -616,7 +635,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   }
 
   // =========================================================
-  // EDIT PROFILE DIALOG (DENGAN PREVIEW)
+  // EDIT PROFILE DIALOG
   // =========================================================
 
   void _showEditProfileDialog(BuildContext context) {
@@ -646,125 +665,148 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             width: 420,
             child: Form(
               key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // =========================================
-                  // FOTO PROFIL DI DIALOG – klik untuk preview
-                  // =========================================
-                  GestureDetector(
-                    onTap: () {
-                      if (selectedPhotoBytes != null) {
-                        _showImageDialog(dialogContext, MemoryImage(selectedPhotoBytes!));
-                      } else if (fullPhotoUrl != null) {
-                        _showImageDialog(dialogContext, NetworkImage(fullPhotoUrl));
-                      }
-                    },
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        CircleAvatar(
-                          radius: 45,
-                          backgroundColor: const Color(0xFFF0E9FF),
-                          backgroundImage: selectedPhotoBytes != null
-                              ? MemoryImage(selectedPhotoBytes!)
-                              : fullPhotoUrl != null
-                                  ? NetworkImage(fullPhotoUrl)
-                                  : null,
-                          child: selectedPhotoBytes == null && fullPhotoUrl == null
-                              ? const Icon(
-                                  Icons.shield_outlined,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // =========================================
+                    // FOTO PROFIL DI DIALOG
+                    // =========================================
+                    GestureDetector(
+                      onTap: () {
+                        if (selectedPhotoBytes != null) {
+                          _showImageDialog(
+                              dialogContext,
+                              MemoryImage(selectedPhotoBytes!));
+                        } else if (fullPhotoUrl != null) {
+                          _showImageDialog(
+                              dialogContext, NetworkImage(fullPhotoUrl));
+                        }
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: const Color(0xFFF0E9FF),
+                            backgroundImage: selectedPhotoBytes != null
+                                ? MemoryImage(selectedPhotoBytes!)
+                                : fullPhotoUrl != null
+                                    ? NetworkImage(fullPhotoUrl)
+                                    : null,
+                            child: selectedPhotoBytes == null &&
+                                    fullPhotoUrl == null
+                                ? const Icon(
+                                    Icons.shield_outlined,
+                                    color: Color(0xFF7C3AED),
+                                    size: 42,
+                                  )
+                                : null,
+                          ),
+                          Positioned(
+                            right: -2,
+                            bottom: 0,
+                            child: InkWell(
+                              onTap: isUploadingPhoto
+                                  ? null
+                                  : () async {
+                                      Navigator.of(dialogContext).pop();
+                                      await _pickProfilePhoto();
+                                    },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: const BoxDecoration(
                                   color: Color(0xFF7C3AED),
-                                  size: 42,
-                                )
-                              : null,
-                        ),
-                        Positioned(
-                          right: -2,
-                          bottom: 0,
-                          child: InkWell(
-                            onTap: isUploadingPhoto
-                                ? null
-                                : () async {
-                                    Navigator.of(dialogContext).pop();
-                                    await _pickProfilePhoto();
-                                  },
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF7C3AED),
-                                shape: BoxShape.circle,
-                              ),
-                              child: isUploadingPhoto
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(7),
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: isUploadingPhoto
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(7),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.camera_alt_outlined,
                                         color: Colors.white,
+                                        size: 15,
                                       ),
-                                    )
-                                  : const Icon(
-                                      Icons.camera_alt_outlined,
-                                      color: Colors.white,
-                                      size: 15,
-                                    ),
+                              ),
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Klik ikon kamera untuk mengganti foto',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // =========================================
+                    // NAMA — hanya huruf, max 100
+                    // =========================================
+                    TextFormField(
+                      controller: nameController,
+                      maxLength: 100,
+                      inputFormatters: nameFormatters,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: 'Nama Lengkap',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Klik ikon kamera untuk mengganti foto',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF94A3B8),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // NAMA
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nama Lengkap',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
                       ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Nama tidak boleh kosong';
+                        }
+                        if (value.trim().length < 3) {
+                          return 'Nama minimal 3 karakter';
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Nama tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // EMAIL
-                  TextFormField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 16),
+
+                    // =========================================
+                    // EMAIL — max 100
+                    // =========================================
+                    TextFormField(
+                      controller: emailController,
+                      maxLength: 100,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
+                      validator: (value) {
+                        final trimmed = value?.trim() ?? '';
+                        if (trimmed.isEmpty) {
+                          return 'Email tidak boleh kosong';
+                        }
+                        if (!RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$')
+                            .hasMatch(trimmed)) {
+                          return 'Format email tidak valid';
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Email tidak boleh kosong';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Format email tidak valid';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -847,8 +889,14 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           isSaving = false;
         });
 
+        String message = 'Gagal memperbarui profil.';
+        try {
+          final decoded = jsonDecode(response.body);
+          message = decoded['message']?.toString() ?? message;
+        } catch (_) {}
+
         debugPrint('UPDATE PROFILE ERROR: ${response.statusCode} ${response.body}');
-        _showMessage('Gagal memperbarui profil.', error: true);
+        _showMessage(message, error: true);
       }
     } catch (e) {
       if (!mounted) return;
@@ -902,7 +950,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 const SizedBox(height: 15),
                 _infoItem(Icons.email_outlined, 'Email', adminEmail),
                 const SizedBox(height: 15),
-                _infoItem(Icons.admin_panel_settings_outlined, 'Level Akses', adminRole),
+                _infoItem(
+                    Icons.admin_panel_settings_outlined, 'Level Akses', adminRole),
                 const SizedBox(height: 15),
                 _infoItem(
                   Icons.check_circle_outline,
@@ -918,9 +967,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 Expanded(
                   child: Column(
                     children: [
-                      _infoItem(Icons.person_outline, 'Nama Lengkap', adminName),
+                      _infoItem(
+                          Icons.person_outline, 'Nama Lengkap', adminName),
                       const SizedBox(height: 18),
-                      _infoItem(Icons.admin_panel_settings_outlined, 'Level Akses', adminRole),
+                      _infoItem(Icons.admin_panel_settings_outlined,
+                          'Level Akses', adminRole),
                     ],
                   ),
                 ),
@@ -1114,7 +1165,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           ),
           const SizedBox(width: 10),
           OutlinedButton(
-            onPressed: title == 'Kata Sandi' ? () => _showChangePasswordDialog(context) : null,
+            onPressed: title == 'Kata Sandi'
+                ? () => _showChangePasswordDialog(context)
+                : null,
             style: OutlinedButton.styleFrom(
               foregroundColor: actionColor,
               side: BorderSide(color: actionColor),
@@ -1148,102 +1201,166 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
+    // State untuk show/hide password
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: const Text(
-            'Ubah Kata Sandi',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          content: SizedBox(
-            width: 420,
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: oldPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Kata Sandi Lama',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Masukkan kata sandi lama';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: newPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Kata Sandi Baru',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.length < 6) {
-                        return 'Minimal 6 karakter';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: confirmPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Konfirmasi Kata Sandi',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    validator: (value) {
-                      if (value != newPasswordController.text) {
-                        return 'Kata sandi tidak sama';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) {
-                  return;
-                }
-                await _changePassword(
-                  dialogContext,
-                  oldPasswordController.text,
-                  newPasswordController.text,
-                  confirmPasswordController.text,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
+              title: const Text(
+                'Ubah Kata Sandi',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              child: const Text('Simpan'),
-            ),
-          ],
+              content: SizedBox(
+                width: 420,
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // =========================================
+                        // KATA SANDI LAMA — max 100
+                        // =========================================
+                        TextFormField(
+                          controller: oldPasswordController,
+                          obscureText: obscureOld,
+                          maxLength: 100,
+                          decoration: InputDecoration(
+                            labelText: 'Kata Sandi Lama',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            counterText: '',
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureOld
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () => setDialogState(
+                                  () => obscureOld = !obscureOld),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Masukkan kata sandi lama';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+
+                        // =========================================
+                        // KATA SANDI BARU — min 8, max 100
+                        // =========================================
+                        TextFormField(
+                          controller: newPasswordController,
+                          obscureText: obscureNew,
+                          maxLength: 100,
+                          decoration: InputDecoration(
+                            labelText: 'Kata Sandi Baru',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            counterText: '',
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureNew
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () => setDialogState(
+                                  () => obscureNew = !obscureNew),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Masukkan kata sandi baru';
+                            }
+                            if (value.length < 8) {
+                              return 'Minimal 8 karakter';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+
+                        // =========================================
+                        // KONFIRMASI — harus sama dengan baru, max 100
+                        // =========================================
+                        TextFormField(
+                          controller: confirmPasswordController,
+                          obscureText: obscureConfirm,
+                          maxLength: 100,
+                          decoration: InputDecoration(
+                            labelText: 'Konfirmasi Kata Sandi',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            counterText: '',
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureConfirm
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () => setDialogState(
+                                  () => obscureConfirm = !obscureConfirm),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Konfirmasi kata sandi baru';
+                            }
+                            if (value != newPasswordController.text) {
+                              return 'Kata sandi tidak sama';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) {
+                      return;
+                    }
+                    await _changePassword(
+                      dialogContext,
+                      oldPasswordController.text,
+                      newPasswordController.text,
+                      confirmPasswordController.text,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Simpan'),
+                ),
+              ],
+            );
+          },
         );
       },
     ).whenComplete(() {
@@ -1281,7 +1398,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         }
         _showMessage('Kata sandi berhasil diubah.');
       } else {
-        _showMessage('Gagal mengubah kata sandi.', error: true);
+        String message = 'Gagal mengubah kata sandi.';
+        try {
+          final decoded = jsonDecode(response.body);
+          message = decoded['message']?.toString() ?? message;
+        } catch (_) {}
+        _showMessage(message, error: true);
       }
     } catch (e) {
       if (!mounted) return;
@@ -1299,7 +1421,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: error ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+        backgroundColor:
+            error ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

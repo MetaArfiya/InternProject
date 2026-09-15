@@ -1,5 +1,3 @@
-// lib/models/monthly_earning_model.dart
-
 class MonthlyEarningModel {
   final String bulan;        // "2026-04"
   final String bulanLabel;   // "Apr"

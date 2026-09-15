@@ -598,7 +598,7 @@ void _showImageSourceOptions() {
               ),
               const SizedBox(height: 5),
               const Text(
-                'Kamera atau Galeri',
+                'Foto dari perangkat kamu',
                 style: TextStyle(
                   color: Color(0xff6B7280),
                   fontSize: 13,
