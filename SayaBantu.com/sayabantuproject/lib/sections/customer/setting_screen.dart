@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -922,6 +923,20 @@ class _CustomerSettingScreenState
     String newAddress,
   ) async {
 
+    // Validasi: Nomor HP hanya boleh angka
+    final trimmedPhone = newPhone.trim();
+    if (trimmedPhone.isNotEmpty &&
+        !RegExp(r'^[0-9]+$').hasMatch(trimmedPhone)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nomor HP hanya boleh berisi angka.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
 
       final response =
@@ -930,7 +945,7 @@ class _CustomerSettingScreenState
         {
           'name': newName,
           'email': newEmail,
-          'phone': newPhone,
+          'phone': trimmedPhone,
           'address': newAddress,
         },
       );
@@ -1464,6 +1479,13 @@ class _CustomerSettingScreenState
                                       TextField(
                                         controller:
                                             phoneController,
+
+                                        keyboardType:
+                                            TextInputType.phone,
+
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                        ],
 
                                         decoration:
                                             const InputDecoration(

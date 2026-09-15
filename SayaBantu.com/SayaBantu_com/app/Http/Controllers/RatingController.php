@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\Rating;
 use App\Models\mitra_profiles;
+use App\Models\Payment;
 
 class RatingController extends Controller
 {
@@ -236,6 +237,89 @@ class RatingController extends Controller
      *  - stars    : int 1-5 (required)
      *  - comment  : string (nullable)
      */
+    // public function storeFromPelanggan(Request $request)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'job_id'  => 'required|integer|exists:jobs,id',
+    //             'stars'   => 'required|integer|min:1|max:5',
+    //             'comment' => 'nullable|string|max:1000',
+    //         ]);
+
+    //         $userId = auth()->id();
+
+    //         // Cek job milik pelanggan ini
+    //         $job = \App\Models\jobs::find($request->job_id);
+
+    //         if (!$job) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Pekerjaan tidak ditemukan.',
+    //             ], 404);
+    //         }
+
+    //         if ($job->pelanggan_id !== $userId) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Anda bukan pemilik pekerjaan ini.',
+    //             ], 403);
+    //         }
+
+    //         if ($job->status !== 'Selesai') {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Pekerjaan belum selesai.',
+    //             ], 400);
+    //         }
+
+    //         if (!$job->mitra_id) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Pekerjaan tidak memiliki mitra.',
+    //             ], 400);
+    //         }
+
+    //         // Cek sudah pernah dirating
+    //         $existing = Rating::where('job_id', $job->id)
+    //             ->where('pelanggan_id', $userId)
+    //             ->first();
+
+    //         if ($existing) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Anda sudah memberi rating untuk pekerjaan ini.',
+    //             ], 400);
+    //         }
+
+    //         $rating = Rating::create([
+    //             'job_id'       => $job->id,
+    //             'mitra_id'     => $job->mitra_id,
+    //             'pelanggan_id' => $userId,
+    //             'stars'        => $request->stars,
+    //             'comment'      => $request->comment,
+    //             'is_hidden'    => 0,
+    //         ]);
+
+    //         // Update aggregate rating mitra
+    //         $this->recalculateMitraRating($job->mitra_id);
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Terima kasih! Rating berhasil dikirim.',
+    //             'data'    => $rating,
+    //         ], 201);
+
+    //     } catch (\Illuminate\Validation\ValidationException $e) {
+    //         throw $e;
+    //     } catch (\Exception $e) {
+    //         Log::error('RatingController@storeFromPelanggan: ' . $e->getMessage());
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Gagal mengirim rating: ' . $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function storeFromPelanggan(Request $request)
     {
         try {
@@ -247,7 +331,6 @@ class RatingController extends Controller
 
             $userId = auth()->id();
 
-            // Cek job milik pelanggan ini
             $job = \App\Models\jobs::find($request->job_id);
 
             if (!$job) {
@@ -278,6 +361,19 @@ class RatingController extends Controller
                 ], 400);
             }
 
+            // ============================================================
+            // 🆕 WAJIB: pelanggan harus sudah upload bukti transfer
+            // ============================================================
+            $payment = \App\Models\Payment::where('job_id', $job->id)->first();
+
+            if (!$payment || empty($payment->customer_proof_url)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda harus mengirim bukti pembayaran ke admin '
+                            . 'terlebih dahulu sebelum memberi rating.',
+                ], 400);
+            }
+
             // Cek sudah pernah dirating
             $existing = Rating::where('job_id', $job->id)
                 ->where('pelanggan_id', $userId)
@@ -299,7 +395,6 @@ class RatingController extends Controller
                 'is_hidden'    => 0,
             ]);
 
-            // Update aggregate rating mitra
             $this->recalculateMitraRating($job->mitra_id);
 
             return response()->json([

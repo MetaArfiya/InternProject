@@ -22,10 +22,11 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   List<ActivityData> _activities = [];
 
   bool _isLoading = true;
+  bool _isDeleting = false;
   String? _errorMessage;
 
   // ============================================================
-  // FILTER OPTIONS — BEDA PER ROLE
+  // FILTER OPTIONS
   // ============================================================
   final List<Map<String, dynamic>> _filterOptions = [
     {'label': 'Semua Aktivitas', 'value': 'Semua'},
@@ -108,7 +109,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           activity.detail.toLowerCase().contains(query) ||
           activity.role.toLowerCase().contains(query);
 
-      // Filter by ROLE (bukan type)
       final matchesFilter = _selectedFilter == 'Semua' ||
           activity.role.toLowerCase() == _selectedFilter.toLowerCase();
 
@@ -166,26 +166,59 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   Widget _buildHeader(bool isMobile) {
     return Padding(
       padding: EdgeInsets.only(top: isMobile ? 16 : 20),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Log Aktivitas',
-            style: TextStyle(
-              fontSize: isMobile ? 24 : 30,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF1E293B),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Log Aktivitas',
+                  style: TextStyle(
+                    fontSize: isMobile ? 24 : 30,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Pantau seluruh aktivitas pengguna, mitra, admin, dan sistem.',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 5),
-          Text(
-            'Pantau seluruh aktivitas pengguna, mitra, admin, dan sistem.',
-            style: TextStyle(
-              fontSize: isMobile ? 12 : 14,
-              color: const Color(0xFF64748B),
-            ),
-          ),
+          if (!isMobile) ...[
+            const SizedBox(width: 16),
+            _buildDeleteButton(),
+          ],
         ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // TOMBOL HAPUS
+  // ============================================================
+  Widget _buildDeleteButton() {
+    return OutlinedButton.icon(
+      onPressed: _isDeleting ? null : _showDeleteRangeDialog,
+      icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+      label: const Text(
+        'Hapus Log',
+        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFDC2626),
+        side: const BorderSide(color: Color(0xFFDC2626)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
@@ -201,6 +234,8 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           _buildSearchField(),
           const SizedBox(height: 10),
           _buildFilterDropdown(),
+          const SizedBox(height: 10),
+          _buildDeleteButton(),
         ],
       );
     }
@@ -512,7 +547,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // ROLE BADGE — dibedakan per role
+  // ROLE BADGE
   // ============================================================
   Widget _buildRoleBadge(String role) {
     Color background;
@@ -658,6 +693,498 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         ],
       ),
     );
+  }
+
+  // ============================================================
+  // DIALOG: HAPUS LOG
+  // ============================================================
+  void _showDeleteRangeDialog() {
+    DateTime? startDate;
+    DateTime? endDate;
+    String scope = 'range'; // 'range' | 'all'
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.delete_sweep_outlined,
+                      color: Color(0xFFDC2626), size: 22),
+                  SizedBox(width: 10),
+                  Text(
+                    'Hapus Log Aktivitas',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 18),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 440,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pilih metode penghapusan:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // RADIO: RENTANG WAKTU
+                      RadioListTile<String>(
+                        value: 'range',
+                        groupValue: scope,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        activeColor: const Color(0xFF2563EB),
+                        title: const Text(
+                          'Berdasarkan rentang waktu',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setDialogState(() => scope = v);
+                        },
+                      ),
+
+                      if (scope == 'range') ...[
+                        const SizedBox(height: 4),
+                        _buildDatePickerTile(
+                          label: 'Dari Tanggal',
+                          value: startDate,
+                          onPick: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: startDate ??
+                                  DateTime.now().subtract(
+                                      const Duration(days: 30)),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() => startDate = picked);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDatePickerTile(
+                          label: 'Sampai Tanggal',
+                          value: endDate,
+                          onPick: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  endDate ?? DateTime.now(),
+                              firstDate: startDate ?? DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() => endDate = picked);
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Quick pick
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _quickRangeChip('7 hari terakhir', 7, (s, e) {
+                              setDialogState(() {
+                                startDate = s;
+                                endDate = e;
+                              });
+                            }),
+                            _quickRangeChip('30 hari terakhir', 30, (s, e) {
+                              setDialogState(() {
+                                startDate = s;
+                                endDate = e;
+                              });
+                            }),
+                            _quickRangeChip('90 hari terakhir', 90, (s, e) {
+                              setDialogState(() {
+                                startDate = s;
+                                endDate = e;
+                              });
+                            }),
+                          ],
+                        ),
+                      ],
+
+                      // RADIO: SEMUA LOG
+                      RadioListTile<String>(
+                        value: 'all',
+                        groupValue: scope,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        activeColor: const Color(0xFFDC2626),
+                        title: const Text(
+                          'Semua log',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        subtitle: const Text(
+                          'Menghapus seluruh riwayat aktivitas',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setDialogState(() => scope = v);
+                        },
+                      ),
+
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                color: Color(0xFFDC2626), size: 18),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Data yang sudah dihapus tidak dapat dikembalikan.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF991B1B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isDeleting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isDeleting
+                      ? null
+                      : () async {
+                          // Validasi
+                          if (scope == 'range' &&
+                              (startDate == null || endDate == null)) {
+                            _showMessage(
+                              'Pilih tanggal mulai dan tanggal akhir.',
+                              isError: true,
+                            );
+                            return;
+                          }
+
+                          // Konfirmasi
+                          final ok = await _confirmDelete(
+                            dialogContext,
+                            scope: scope,
+                            startDate: startDate,
+                            endDate: endDate,
+                          );
+                          if (ok != true) return;
+
+                          setDialogState(() => _isDeleting = true);
+
+                          final success = scope == 'all'
+                              ? await _deleteAllLogs()
+                              : await _deleteLogsByRange(
+                                  startDate!, endDate!);
+
+                          if (!mounted) return;
+                          setDialogState(() => _isDeleting = false);
+
+                          if (success && dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                        },
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.delete_outline, size: 18),
+                  label: Text(_isDeleting ? 'Menghapus...' : 'Hapus'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // DATE PICKER TILE
+  // ============================================================
+  Widget _buildDatePickerTile({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onPick,
+  }) {
+    final text = value == null
+        ? 'Pilih tanggal'
+        : _formatDateId(value);
+
+    return InkWell(
+      onTap: onPick,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_outlined,
+                size: 18, color: Color(0xFF64748B)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                        fontSize: 10, color: Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: value == null
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // QUICK RANGE CHIP
+  // ============================================================
+  Widget _quickRangeChip(
+    String label,
+    int days,
+    void Function(DateTime start, DateTime end) onSelect,
+  ) {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      onPressed: () {
+        final end = DateTime.now();
+        final start = end.subtract(Duration(days: days));
+        onSelect(start, end);
+      },
+      backgroundColor: const Color(0xFFEFF6FF),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
+  // ============================================================
+  // KONFIRMASI
+  // ============================================================
+  Future<bool?> _confirmDelete(
+    BuildContext dialogContext, {
+    required String scope,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    final String desc = scope == 'all'
+        ? 'SEMUA log aktivitas akan dihapus permanen.'
+        : 'Log dari ${_formatDateId(startDate!)} '
+            'sampai ${_formatDateId(endDate!)} '
+            'akan dihapus permanen.';
+
+    return showDialog<bool>(
+      context: dialogContext,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text(
+            'Konfirmasi Penghapusan',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          content: Text(desc),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Hapus'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // API CALL — HAPUS BY RANGE
+  // ============================================================
+  Future<bool> _deleteLogsByRange(DateTime start, DateTime end) async {
+    try {
+      final startStr = _formatDateApi(start);
+      final endStr = _formatDateApi(end);
+
+      final url =
+          '/activity-logs/by-range?start_date=$startStr&end_date=$endStr';
+
+      debugPrint('🗑️ DELETE BY RANGE: $url');
+
+      final response = await ApiService.delete(url);
+
+      debugPrint('🗑️ STATUS: ${response.statusCode}');
+      debugPrint('🗑️ BODY: ${response.body}');
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final deleted = body['deleted'] ?? 0;
+        _showMessage('$deleted log berhasil dihapus.');
+        await _loadActivities();
+        return true;
+      }
+
+      _showMessage(
+        body['message']?.toString() ?? 'Gagal menghapus log.',
+        isError: true,
+      );
+      return false;
+
+    } catch (e) {
+      debugPrint('❌ DELETE BY RANGE ERROR: $e');
+      _showMessage('Terjadi kesalahan: $e', isError: true);
+      return false;
+    }
+  }
+
+  // ============================================================
+  // API CALL — HAPUS SEMUA
+  // ============================================================
+  Future<bool> _deleteAllLogs() async {
+    try {
+      debugPrint('🗑️ DELETE ALL');
+
+      final response = await ApiService.delete('/activity-logs/all');
+
+      debugPrint('🗑️ STATUS: ${response.statusCode}');
+      debugPrint('🗑️ BODY: ${response.body}');
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final deleted = body['deleted'] ?? 0;
+        _showMessage('$deleted log berhasil dihapus.');
+        await _loadActivities();
+        return true;
+      }
+
+      _showMessage(
+        body['message']?.toString() ?? 'Gagal menghapus semua log.',
+        isError: true,
+      );
+      return false;
+
+    } catch (e) {
+      debugPrint('❌ DELETE ALL ERROR: $e');
+      _showMessage('Terjadi kesalahan: $e', isError: true);
+      return false;
+    }
+  }
+
+  // ============================================================
+  // FORMAT TANGGAL (untuk UI — "15 Sep 2026")
+  // ============================================================
+  String _formatDateId(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    return '${d.day.toString().padLeft(2, '0')} '
+        '${months[d.month - 1]} ${d.year}';
+  }
+
+  // ============================================================
+  // FORMAT TANGGAL (untuk API — "2026-09-15")
+  // ============================================================
+  String _formatDateApi(DateTime d) {
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  // ============================================================
+  // SNACKBAR
+  // ============================================================
+  void _showMessage(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor:
+              isError ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   // ============================================================
@@ -820,14 +1347,12 @@ class ActivityData {
   }
 
   // ============================================================
-  // ICON MAPPER — berdasarkan role + icon name dari backend
+  // ICON MAPPER
   // ============================================================
   static IconData _getIconFromRole(String role, dynamic iconName) {
-    // Prioritas: custom icon dari backend
     final custom = _getCustomIcon(iconName);
     if (custom != null) return custom;
 
-    // Fallback: icon default per role
     switch (role) {
       case 'Super Admin':
         return Icons.admin_panel_settings_outlined;

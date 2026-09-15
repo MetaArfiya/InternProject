@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
@@ -90,15 +91,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   String selectedCategory = '';
 
   final List<String> categories = [
-    'Service AC',
-    'Plumbing',
-    'Listrik',
-    'Cat Rumah',
+    'Perbaikan & Perawatan Rumah',
     'Kebersihan',
-    'Pertukangan',
-    'Tukang Kebun',
-    'Lainnya',
+    'Konstruksi & Renovasi',
     'Instalasi & Teknisi',
+    'Jasa Rumah Tangga',
+    'Jasa Umum',
+    'Lainnya',
   ];
 
   final List<Uint8List> skillPhotoBytes = [];
@@ -502,6 +501,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Email wajib diisi.', error: true);
       return;
     }
+    // Validasi nomor HP hanya angka
+    if (newPhone.isNotEmpty && !RegExp(r'^[0-9]+$').hasMatch(newPhone)) {
+      _showMessage('Nomor HP hanya boleh berisi angka.', error: true);
+      return;
+    }
 
     try {
       setState(() => isLoading = true);
@@ -621,6 +625,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     final selectedCity = cityController.text.trim();
     final selectedDescription = descriptionController.text.trim();
     final selectedAddress = addressController.text.trim();
+    final selectedPhone = phoneController.text.trim();
 
     if (fullName.isEmpty) {
       _showMessage('Nama lengkap wajib diisi.', error: true);
@@ -642,6 +647,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Alamat lengkap wajib diisi.', error: true);
       return;
     }
+    // Validasi nomor HP hanya angka
+    if (selectedPhone.isNotEmpty && !RegExp(r'^[0-9]+$').hasMatch(selectedPhone)) {
+      _showMessage('Nomor HP hanya boleh berisi angka.', error: true);
+      return;
+    }
 
     try {
       setState(() => isLoading = true);
@@ -649,7 +659,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final userResponse = await ApiService.put('/user/profile', {
         'name': fullName,
         'email': emailController.text.trim(),
-        'phone': phoneController.text.trim(),
+        'phone': selectedPhone,
         'address': selectedAddress,
       });
       if (userResponse.statusCode != 200 && userResponse.statusCode != 201) {
@@ -671,18 +681,20 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('name', fullName);
       await prefs.setString('email', emailController.text.trim());
-      await prefs.setString('phone', phoneController.text.trim());
+      await prefs.setString('phone', selectedPhone);
       await prefs.setString('address', selectedAddress);
 
       if (mounted) {
         setState(() {
           name = fullName;
           email = emailController.text.trim();
+          phone = selectedPhone;
           city = selectedCity;
           description = selectedDescription;
           address = selectedAddress;
           nameController.text = fullName;
           addressController.text = selectedAddress;
+          phoneController.text = selectedPhone;
         });
       }
       widget.onProfileUpdate();
@@ -708,6 +720,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
     if (newAccountNumber.isEmpty) {
       _showMessage('Nomor rekening wajib diisi.', error: true);
+      return;
+    }
+    // Validasi nomor rekening hanya angka
+    if (!RegExp(r'^[0-9]+$').hasMatch(newAccountNumber)) {
+      _showMessage('Nomor rekening hanya boleh berisi angka.', error: true);
       return;
     }
     if (newAccountName.isEmpty) {
@@ -1460,6 +1477,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     label: 'Nomor HP',
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                   const SizedBox(height: 14),
                   _textField(
@@ -1499,6 +1517,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         label: 'Nomor HP',
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -1677,6 +1696,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       icon: Icons.numbers_outlined,
                       keyboardType: TextInputType.number,
                       hintText: 'Contoh: 1234567890',
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                     const SizedBox(height: 14),
                     _textField(
@@ -1708,6 +1728,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                           icon: Icons.numbers_outlined,
                           keyboardType: TextInputType.number,
                           hintText: 'Contoh: 1234567890',
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         ),
                       ),
                     ],
@@ -2487,12 +2508,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     int maxLines = 1,
     String? hintText,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       readOnly: readOnly,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration:
           _inputDecoration(label: label, icon: icon, hintText: hintText),
     );

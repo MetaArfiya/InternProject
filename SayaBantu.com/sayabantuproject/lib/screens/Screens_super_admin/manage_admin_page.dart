@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
 
@@ -1225,6 +1226,9 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                             'Nomor Telepon',
                         keyboardType:
                             TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                       ),
 
                       const SizedBox(
@@ -1285,6 +1289,17 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                   password.isEmpty) {
                                 _showMessage(
                                   'Nama, email, dan password wajib diisi.',
+                                  isError: true,
+                                );
+                                return;
+                              }
+
+                              // Validasi nomor telepon hanya angka
+                              if (phone.isNotEmpty &&
+                                  !RegExp(r'^[0-9]+$')
+                                      .hasMatch(phone)) {
+                                _showMessage(
+                                  'Nomor telepon hanya boleh berisi angka.',
                                   isError: true,
                                 );
                                 return;
@@ -1525,6 +1540,9 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                           'Nomor Telepon',
                       keyboardType:
                           TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
                     ),
 
                     const SizedBox(
@@ -1593,6 +1611,17 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                   email.isEmpty) {
                                 _showMessage(
                                   'Nama dan email wajib diisi.',
+                                  isError: true,
+                                );
+                                return;
+                              }
+
+                              // Validasi nomor telepon hanya angka
+                              if (phone.isNotEmpty &&
+                                  !RegExp(r'^[0-9]+$')
+                                      .hasMatch(phone)) {
+                                _showMessage(
+                                  'Nomor telepon hanya boleh berisi angka.',
                                   isError: true,
                                 );
                                 return;
@@ -1921,11 +1950,13 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     required String label,
     bool obscureText = false,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration:
           InputDecoration(
         labelText: label,

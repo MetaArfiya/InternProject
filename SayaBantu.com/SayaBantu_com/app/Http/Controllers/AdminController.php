@@ -345,4 +345,101 @@ class AdminController extends Controller
             ], 500);
         }
     }
+    /**
+ * =============================================================
+ * ADMIN — Daftar Mitra Terverifikasi
+ * GET /admin/verified-mitra
+ * =============================================================
+ */
+    /**
+ * =============================================================
+ * ADMIN — Daftar Mitra Terverifikasi
+ * GET /admin/verified-mitra
+ * =============================================================
+ */
+    public function verifiedMitra()
+    {
+        try {
+            $mitras = mitra_profiles::with([
+                    'user:id,name,email,phone,address,photo_profile',
+                ])
+                ->where('is_verified', 1)
+                ->orderBy('verified_at', 'desc')
+                ->get()
+                ->map(function ($mitra) {
+                    $user = $mitra->user;
+
+                    // skill_photos disimpan sebagai JSON di DB
+                    $skillPhotos = [];
+                    if (!empty($mitra->skill_photos)) {
+                        if (is_string($mitra->skill_photos)) {
+                            $decoded = json_decode($mitra->skill_photos, true);
+                            if (is_array($decoded)) {
+                                $skillPhotos = $decoded;
+                            }
+                        } elseif (is_array($mitra->skill_photos)) {
+                            $skillPhotos = $mitra->skill_photos;
+                        }
+                    }
+
+                    return [
+                        'id'                  => $mitra->id,
+                        'user_id'             => $mitra->user_id,
+
+                        // Data user
+                        'name'                => $user->name ?? 'Tanpa Nama',
+                        'email'               => $user->email ?? 'Tanpa Email',
+                        'phone'               => $user->phone ?? '-',
+                        'address'             => $user->address ?? '-',
+                        'profile_photo'       => $user->photo_profile ?? null,
+
+                        // Identitas mitra
+                        'gender'              => $mitra->gender,
+                        'birth_date'          => $mitra->birth_date,
+                        'city'                => $mitra->city,
+                        'bio'                 => $mitra->bio,
+                        'skills'              => $mitra->skills,
+                        'category'            => $mitra->skills, // alias untuk frontend
+
+                        // Berkas
+                        'certificate'         => $mitra->certificate,
+                        'skill_photos'        => $skillPhotos,
+                        'verification_image'  => $mitra->verification_image,
+                        'selfie_image'        => $mitra->selfie_image,
+
+                        // Rekening bank
+                        'bank_name'           => $mitra->bank_name,
+                        'bank_account_number' => $mitra->bank_account_number,
+                        'bank_account_name'   => $mitra->bank_account_name,
+
+                        // Statistik
+                        'point'               => (int) ($mitra->point ?? 0),
+                        'rating'              => (float) ($mitra->rating ?? 0),
+                        'jobs_completed'      => (int) ($mitra->jobs_completed ?? 0),
+
+                        // Status verifikasi
+                        'is_verified'         => (bool) $mitra->is_verified,
+                        'verified_by'         => $mitra->verified_by,
+                        'verified_at'         => $mitra->verified_at,
+                        'created_at'          => $mitra->created_at,
+
+                        // User lengkap (untuk kompatibilitas frontend)
+                        'user'                => $user,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'total'   => $mitras->count(),
+                'data'    => $mitras,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('AdminController@verifiedMitra: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat mitra terverifikasi.',
+            ], 500);
+        }
+    }
 }

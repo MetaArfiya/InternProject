@@ -94,6 +94,61 @@ class JobController extends Controller
      * PEKERJAAN MILIK PELANGGAN
      * =========================================================
      */
+    // public function myJobs()
+    // {
+    //     try {
+    //         $pelangganId = auth()->id();
+
+    //         $jobs = jobs::withCount('bids')
+    //             ->with([
+    //                 'mitra:id,name',
+    //                 'pelanggan:id,name',
+    //             ])
+    //             ->where('pelanggan_id', $pelangganId)
+    //             ->latest()
+    //             ->get();
+
+    //         // Ambil semua rating pelanggan ini (untuk cek has_rated)
+    //         $myRatings = \App\Models\Rating::where('pelanggan_id', $pelangganId)
+    //             ->pluck('stars', 'job_id');
+
+    //         // Transform data — tambahkan can_rate, has_rated, my_rating
+    //         $jobsTransformed = $jobs->map(function ($job) use ($myRatings) {
+    //             $data = $job->toArray();
+
+    //             $hasRated = $myRatings->has($job->id);
+
+    //             $data['has_rated'] = $hasRated;
+    //             $data['my_rating'] = $hasRated ? $myRatings[$job->id] : null;
+    //             $data['can_rate'] = $job->status === 'Selesai' && !$hasRated;
+
+    //             return $data;
+    //         });
+
+    //         $totalPosting = $jobs->count();
+    //         $sedangBerjalan = $jobs->where('status', 'Sedang Dikerjakan')->count();
+    //         $selesai = $jobs->where('status', 'Selesai')->count();
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
+    //             'statistics' => [
+    //                 'total_posting' => $totalPosting,
+    //                 'sedang_berjalan' => $sedangBerjalan,
+    //                 'selesai' => $selesai,
+    //             ],
+    //             'data' => $jobsTransformed,
+    //         ], 200);
+
+    //     } catch (\Exception $e) {
+    //         Log::error('Error JobController@myJobs: ' . $e->getMessage());
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Terjadi kesalahan pada server.',
+    //         ], 500);
+    //     }
+    // }
+
     public function myJobs()
     {
         try {
@@ -108,34 +163,53 @@ class JobController extends Controller
                 ->latest()
                 ->get();
 
-            // Ambil semua rating pelanggan ini (untuk cek has_rated)
+            // Rating pelanggan ini
             $myRatings = \App\Models\Rating::where('pelanggan_id', $pelangganId)
                 ->pluck('stars', 'job_id');
 
-            // Transform data — tambahkan can_rate, has_rated, my_rating
-            $jobsTransformed = $jobs->map(function ($job) use ($myRatings) {
+            // 🆕 Ambil payment untuk semua job pelanggan ini
+            $payments = Payment::whereIn('job_id', $jobs->pluck('id'))
+                ->get()
+                ->keyBy('job_id');
+
+            $jobsTransformed = $jobs->map(function ($job) use ($myRatings, $payments) {
                 $data = $job->toArray();
 
                 $hasRated = $myRatings->has($job->id);
+                $payment  = $payments->get($job->id);
 
-                $data['has_rated'] = $hasRated;
-                $data['my_rating'] = $hasRated ? $myRatings[$job->id] : null;
-                $data['can_rate'] = $job->status === 'Selesai' && !$hasRated;
+                // 🆕 Syarat: pelanggan sudah upload bukti transfer
+                $customerProofUploaded = $payment && !empty($payment->customer_proof_url);
+
+                $data['has_rated']  = $hasRated;
+                $data['my_rating']  = $hasRated ? $myRatings[$job->id] : null;
+
+                // 🆕 RATING HANYA BISA KALAU:
+                //  - status job = Selesai
+                //  - pelanggan SUDAH upload bukti transfer
+                //  - belum pernah kasih rating
+                $data['can_rate'] = $job->status === 'Selesai'
+                    && $customerProofUploaded
+                    && !$hasRated;
+
+                // Info bantu frontend
+                $data['payment_status']          = $payment->status ?? null;
+                $data['customer_proof_uploaded'] = $customerProofUploaded;
 
                 return $data;
             });
 
-            $totalPosting = $jobs->count();
+            $totalPosting   = $jobs->count();
             $sedangBerjalan = $jobs->where('status', 'Sedang Dikerjakan')->count();
-            $selesai = $jobs->where('status', 'Selesai')->count();
+            $selesai        = $jobs->where('status', 'Selesai')->count();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
                 'statistics' => [
-                    'total_posting' => $totalPosting,
+                    'total_posting'   => $totalPosting,
                     'sedang_berjalan' => $sedangBerjalan,
-                    'selesai' => $selesai,
+                    'selesai'         => $selesai,
                 ],
                 'data' => $jobsTransformed,
             ], 200);
@@ -520,40 +594,40 @@ class JobController extends Controller
      * PEKERJAAN SELESAI (manual oleh pelanggan)
      * =========================================================
      */
-    public function completeJob(Request $request, $id)
-    {
-        $job = jobs::find($id);
+    // public function completeJob(Request $request, $id)
+    // {
+    //     $job = jobs::find($id);
 
-        if (!$job) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pekerjaan tidak ditemukan.'
-            ], 404);
-        }
+    //     if (!$job) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Pekerjaan tidak ditemukan.'
+    //         ], 404);
+    //     }
 
-        if ($job->pelanggan_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki izin untuk menandai pekerjaan ini sebagai selesai.'
-            ], 403);
-        }
+    //     if ($job->pelanggan_id !== auth()->id()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Anda tidak memiliki izin untuk menandai pekerjaan ini sebagai selesai.'
+    //         ], 403);
+    //     }
 
-        $job->update(['status' => 'Selesai']);
+    //     $job->update(['status' => 'Selesai']);
 
-        ActivityLogger::log(
-            auth()->id(),
-            'Pekerjaan selesai',
-            'Pekerjaan "' . $job->tittle . '" telah ditandai sebagai selesai oleh pelanggan.',
-            'check_circle',
-            'Sistem'
-        );
+    //     ActivityLogger::log(
+    //         auth()->id(),
+    //         'Pekerjaan selesai',
+    //         'Pekerjaan "' . $job->tittle . '" telah ditandai sebagai selesai oleh pelanggan.',
+    //         'check_circle',
+    //         'Sistem'
+    //     );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pekerjaan berhasil ditandai sebagai selesai.',
-            'data' => $job
-        ], 200);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Pekerjaan berhasil ditandai sebagai selesai.',
+    //         'data' => $job
+    //     ], 200);
+    // }
 
     /**
      * =========================================================

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/api_service.dart';
 
 // ================================================================
@@ -73,39 +73,44 @@ class _CompletionProofDialogState
   // PILIH SUMBER FOTO
   // ============================================================
 
-  void _showImageSourceOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 45,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xffD1D5DB),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                const Text(
-                  'Pilih Sumber Foto',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
+void _showImageSourceOptions() {
+  // Di Web desktop, kamera via image_picker tidak reliable
+  // → sembunyikan opsi kamera
+  final showCamera = !kIsWeb;
 
-                // Kamera
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (bottomSheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 45,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xffD1D5DB),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                showCamera ? 'Pilih Sumber Foto' : 'Pilih Foto',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ✅ Kamera — hanya di mobile native
+              if (showCamera) ...[
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -130,58 +135,57 @@ class _CompletionProofDialogState
                     _pickImage(ImageSource.camera);
                   },
                 ),
-
                 const SizedBox(height: 8),
-
-                // Galeri
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xffDBEAFE),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.photo_library_outlined,
-                      color: Color(0xff2563EB),
-                    ),
-                  ),
-                  title: const Text(
-                    'Galeri',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Pilih foto dari galeri perangkat'),
-                  onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-
-                const SizedBox(height: 8),
-
-                // Batal
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(bottomSheetContext),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Batal'),
-                  ),
-                ),
               ],
-            ),
+
+              // ✅ Galeri — selalu tampil
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xffDBEAFE),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Color(0xff2563EB),
+                  ),
+                ),
+                title: const Text(
+                  'Galeri',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text('Pilih foto dari galeri perangkat'),
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+
+              const SizedBox(height: 8),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(bottomSheetContext),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Batal'),
+                ),
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   // ============================================================
   // HAPUS FOTO

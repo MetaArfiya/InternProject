@@ -21,27 +21,20 @@ return new class extends Migration
             $table->decimal('total_paid', 15, 2);
             $table->decimal('mitra_earning', 15, 2);
 
-            // pending | waiting_verification | paid | settled | refunded | failed
             $table->string('status', 30)->default('pending');
             $table->string('payment_method', 50)->nullable();
             $table->string('reference_code', 50)->unique();
 
-            // =====================================================
-            // BUKTI DARI PELANGGAN (transfer ke platform)
-            // =====================================================
+
             $table->string('customer_proof_url', 255)->nullable();
             $table->timestamp('customer_proof_uploaded_at')->nullable();
             $table->string('customer_bank_name', 100)->nullable();
             $table->string('customer_account_name', 100)->nullable();
 
-            // =====================================================
-            // BUKTI DARI ADMIN (transfer ke mitra)
-            // =====================================================
             $table->string('mitra_proof_url', 255)->nullable();
             $table->timestamp('mitra_proof_uploaded_at')->nullable();
             $table->string('admin_note', 500)->nullable();
 
-            // Timestamps status
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('settled_at')->nullable();
 
