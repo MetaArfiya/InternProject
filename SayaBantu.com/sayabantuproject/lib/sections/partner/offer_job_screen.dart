@@ -35,9 +35,60 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     super.dispose();
   }
 
+  // ============================================================
+  // 🆕 FORMAT WAKTU RELATIF
+  // Hanya tampilkan yang perlu saja
+  // ============================================================
+  String _formatRelativeTime(String rawTime) {
+    if (rawTime.isEmpty) return 'Waktu fleksibel';
+
+    try {
+      // Coba parse sebagai DateTime
+      final DateTime dateTime = DateTime.parse(rawTime);
+      final DateTime now = DateTime.now();
+      final Duration diff = now.difference(dateTime);
+
+      // Waktu di masa depan → anggap "Baru saja"
+      if (diff.isNegative) return 'Baru saja';
+
+      // < 1 menit
+      if (diff.inMinutes < 1) return 'Baru saja';
+
+      // < 1 jam
+      if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} menit lalu';
+      }
+
+      // < 1 hari
+      if (diff.inHours < 24) {
+        return '${diff.inHours} jam lalu';
+      }
+
+      // < 7 hari
+      if (diff.inDays < 7) {
+        return '${diff.inDays} hari lalu';
+      }
+
+      // >= 7 hari → tampilkan tanggal saja
+      const bulan = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      ];
+      return '${dateTime.day} ${bulan[dateTime.month - 1]} ${dateTime.year}';
+    } catch (_) {
+      // Kalau bukan format DateTime (misal sudah "2 hari lalu" dari DB)
+      // pakai apa adanya
+      return rawTime;
+    }
+  }
+
+  // ============================================================
+  // SUBMIT OFFER
+  // ============================================================
   Future<void> _submitOfferToApi() async {
     if (_parsedPrice <= 0 && _priceController.text.isNotEmpty) {
-      final String cleanDigits = _priceController.text.replaceAll(RegExp(r'[^\d]'), '');
+      final String cleanDigits =
+          _priceController.text.replaceAll(RegExp(r'[^\d]'), '');
       _parsedPrice = int.tryParse(cleanDigits) ?? 0;
     }
 
@@ -118,6 +169,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     }
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -126,7 +180,6 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         final padding = isMobile ? 16.0 : 30.0;
 
         return Scaffold(
-          // Menggunakan sistem tema dinamis agar mendukung Dark Mode
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             leading: IconButton(
@@ -144,11 +197,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Menggunakan widget terpisah agar struktur kode bersih dan rapi
                 _buildJobInfo(context, isMobile),
                 const SizedBox(height: 25),
 
-                // Form Input Harga
+                // FORM HARGA
                 Text(
                   "Harga Penawaran",
                   style: TextStyle(
@@ -162,7 +214,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                   enabled: !_isSubmitting,
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
-                    final String cleanDigits = value.replaceAll(RegExp(r'[^\d]'), '');
+                    final String cleanDigits =
+                        value.replaceAll(RegExp(r'[^\d]'), '');
                     setState(() {
                       _parsedPrice = int.tryParse(cleanDigits) ?? 0;
                     });
@@ -186,7 +239,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
                 const SizedBox(height: 22),
 
-                // Form Input Pesan
+                // FORM PESAN
                 Text(
                   "Pesan untuk Pelanggan",
                   style: TextStyle(
@@ -199,10 +252,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                   controller: _messageController,
                   enabled: !_isSubmitting,
                   maxLines: 4,
+                  maxLength: 500,
                   decoration: InputDecoration(
-                    hintText: "Contoh: Saya siap mengerjakan hari ini dengan garansi servis.",
+                    hintText:
+                        "Contoh: Saya siap mengerjakan hari ini dengan garansi servis.",
                     filled: true,
                     fillColor: Theme.of(context).cardColor,
+                    counterText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -211,7 +267,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
                 const SizedBox(height: 30),
 
-                // Tombol Submit
+                // TOMBOL SUBMIT
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -229,7 +285,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                         : const Icon(Icons.send),
                     label: Text(
                       _isSubmitting ? "Mengirim..." : "Kirim Penawaran",
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xffF97316),
@@ -248,7 +305,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     );
   }
 
-  // Method khusus untuk menampilkan informasi lowongan secara rapi & responsif
+  // ============================================================
+  // JOB INFO
+  // ============================================================
   Widget _buildJobInfo(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
@@ -264,7 +323,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.job.title, // Pastikan menggunakan 'title' sesuai model Anda
+            widget.job.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -286,6 +345,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             style: const TextStyle(height: 1.6),
           ),
           const SizedBox(height: 22),
+
+          // ============================================
+          // ✅ INFO: LOKASI + WAKTU RELATIF
+          // ============================================
           Wrap(
             spacing: 18,
             runSpacing: 10,
@@ -296,14 +359,14 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                     ? widget.job.location
                     : "Lokasi tidak ditentukan",
               ),
+              // ✅ Ganti timestamp penuh jadi waktu relatif
               _infoItem(
                 Icons.access_time,
-                widget.job.time.isNotEmpty
-                    ? widget.job.time
-                    : "Waktu fleksibel",
+                _formatRelativeTime(widget.job.time),
               ),
             ],
           ),
+
           const Divider(height: 35),
           const Text(
             "Budget Pelanggan",
