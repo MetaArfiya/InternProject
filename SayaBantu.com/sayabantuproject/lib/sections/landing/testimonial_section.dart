@@ -61,43 +61,54 @@ class TestimonialSection extends StatelessWidget {
 
               SizedBox(height: isMobile ? 40 : 70),
 
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: columnCount,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: isMobile ? .85 : .75,
-                children: [
-                  const TestimonialCard(
-                    category: "🔧 Service AC Bocor",
-                    review:
-                        "\"Baru posting 10 menit, sudah ada 4 mitra yang nawar! Saya tinggal pilih yang poinnya paling tinggi. Kerjanya rapi dan profesional.\"",
-                    name: "Anisa Rahmawati",
-                    job: "Ibu Rumah Tangga, Cilandak",
-                    avatar: "AR",
-                  ).animate().fadeIn().slideY(begin: .3),
+              GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columnCount,
+                    crossAxisSpacing: 24,
+                    mainAxisSpacing: 24,
+                    mainAxisExtent: isMobile ? 245 : 225,
+                  ),
+                  itemCount: 3,
+                  itemBuilder: (context, index) {
+                    final cards = [
+                      const TestimonialCard(
+                        category: "🔧 Service AC Bocor",
+                        review:
+                            "\"Baru posting 10 menit, sudah ada 4 mitra yang nawar! Saya tinggal pilih yang poinnya paling tinggi. Kerjanya rapi dan profesional.\"",
+                        name: "Anisa Rahmawati",
+                        job: "Ibu Rumah Tangga, Cilandak",
+                        avatar: "AR",
+                      ),
+                      const TestimonialCard(
+                        category: "🪜 Cat Ulang 8 Kamar Kos",
+                        review:
+                            "\"Sebagai pemilik kos saya sering butuh tukang mendadak. Sekarang tinggal posting di SayaBantu dan tunggu penawaran masuk.\"",
+                        name: "Rendra Kusuma",
+                        job: "Pemilik Kos, Mampang",
+                        avatar: "RK",
+                        avatarColor: Color(0xff64748B),
+                      ),
+                      const TestimonialCard(
+                        category: "💡 Instalasi Wallpaper & Lampu",
+                        review:
+                            "\"Yang saya suka adalah transparansinya. Semua penawaran langsung terlihat sehingga saya bebas membandingkan harga.\"",
+                        name: "Sari Dewi Putri",
+                        job: "Desainer Interior, Jakarta Selatan",
+                        avatar: "SD",
+                      ),
+                    ];
 
-                  const TestimonialCard(
-                    category: "🪜 Cat Ulang 8 Kamar Kos",
-                    review:
-                        "\"Sebagai pemilik kos saya sering butuh tukang mendadak. Sekarang tinggal posting di SayaBantu dan tunggu penawaran masuk.\"",
-                    name: "Rendra Kusuma",
-                    job: "Pemilik Kos, Mampang",
-                    avatar: "RK",
-                    avatarColor: Color(0xff64748B),
-                  ).animate(delay: 200.ms).fadeIn().slideY(begin: .3),
-
-                  const TestimonialCard(
-                    category: "💡 Instalasi Wallpaper & Lampu",
-                    review:
-                        "\"Yang saya suka adalah transparansinya. Semua penawaran langsung terlihat sehingga saya bebas membandingkan harga.\"",
-                    name: "Sari Dewi Putri",
-                    job: "Desainer Interior, Jakarta Selatan",
-                    avatar: "SD",
-                  ).animate(delay: 400.ms).fadeIn().slideY(begin: .3),
-                ],
-              ),
+                    return cards[index]
+                        .animate(
+                          delay: Duration(milliseconds: index * 200),
+                        )
+                        .fadeIn()
+                        .slideY(begin: .25);
+                  },
+                ),
+              
 
               SizedBox(height: isMobile ? 35 : 55),
 

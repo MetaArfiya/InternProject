@@ -16,7 +16,8 @@ class FooterSection extends StatelessWidget {
 
         return Container(
           width: double.infinity,
-          color: const Color(0xff0F172A),
+          height: 1,
+          color: const Color(0xff0B1220),
           padding: EdgeInsets.symmetric(
             horizontal: isMobile
                 ? 20

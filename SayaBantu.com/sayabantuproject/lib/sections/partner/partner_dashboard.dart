@@ -31,7 +31,10 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     _fetchDashboardData();
   }
 
-  // 🚀 Fetch data lowongan pekerjaan untuk Mitra dari Laravel API
+  // ============================================================
+  // FETCH DATA DASHBOARD
+  // ============================================================
+
   Future<void> _fetchDashboardData() async {
     setState(() {
       _isLoading = true;
@@ -39,10 +42,15 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     });
 
     try {
-      final response = await ApiService.get('/mitra/available-jobs');
+      final response =
+          await ApiService.get('/mitra/available-jobs');
 
-      debugPrint("🔎 STATUS CODE: ${response.statusCode}");
-      debugPrint("🔎 RAW RESPONSE BODY: ${response.body}");
+      debugPrint(
+        "🔎 STATUS CODE: ${response.statusCode}",
+      );
+      debugPrint(
+        "🔎 RAW RESPONSE BODY: ${response.body}",
+      );
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
@@ -50,35 +58,57 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         List<dynamic> jobListJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          var target = decodedData['jobs'] ?? decodedData['data'] ?? [];
+          var target =
+              decodedData['jobs'] ??
+              decodedData['data'] ??
+              [];
 
           if (target is List) {
             jobListJson = target;
-          } else if (target is Map && target.containsKey('data')) {
-            // Menangani jika Laravel memakai pagination
-            jobListJson = target['data'] is List ? target['data'] : [];
+          } else if (target is Map &&
+              target.containsKey('data')) {
+            jobListJson =
+                target['data'] is List
+                    ? target['data']
+                    : [];
           }
         } else if (decodedData is List) {
           jobListJson = decodedData;
         }
 
-        final List<PartnerJobModel> loadedJobs = jobListJson
-            .map((json) => PartnerJobModel.fromJson(json))
-            .where((job) => !job.hasOffered)
-            .toList();
+        final List<PartnerJobModel> loadedJobs =
+            jobListJson
+                .map(
+                  (json) =>
+                      PartnerJobModel.fromJson(json),
+                )
+                .where(
+                  (job) => !job.hasOffered,
+                )
+                .toList();
 
         if (mounted) {
           setState(() {
             _jobs = loadedJobs;
 
-            // Ekstrak statistik dari response API backend
             if (decodedData is Map) {
-              _activeOffersCount = int.tryParse(
-                      decodedData['active_offers_count']?.toString() ?? '0') ??
-                  0;
-              _userPoints = int.tryParse(
-                      decodedData['user_points']?.toString() ?? '0') ??
-                  0;
+              _activeOffersCount =
+                  int.tryParse(
+                        decodedData[
+                                  'active_offers_count'
+                                ]
+                                ?.toString() ??
+                            '0',
+                      ) ??
+                      0;
+
+              _userPoints =
+                  int.tryParse(
+                        decodedData['user_points']
+                                ?.toString() ??
+                            '0',
+                      ) ??
+                      0;
             }
 
             _isLoading = false;
@@ -99,25 +129,35 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
 
       if (mounted) {
         setState(() {
-          _errorMessage = 'Terjadi kesalahan koneksi: $e';
+          _errorMessage =
+              'Terjadi kesalahan koneksi: $e';
           _isLoading = false;
         });
       }
     }
   }
 
-  // 🤝 Popup Dialog Konfirmasi sebelum Mengambil / Melamar Pekerjaan
-  void _showTakeOfferConfirmation(PartnerJobModel job) {
+  // ============================================================
+  // KONFIRMASI PENAWARAN
+  // ============================================================
+
+  void _showTakeOfferConfirmation(
+    PartnerJobModel job,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Konfirmasi Penawaran"),
+        title: const Text(
+          "Konfirmasi Penawaran",
+        ),
         content: Text(
-          "Apakah Anda yakin ingin mengajukan penawaran untuk pekerjaan '${job.title}'?",
+          "Apakah Anda yakin ingin mengajukan penawaran "
+          "untuk pekerjaan '${job.title}'?",
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () =>
+                Navigator.pop(ctx),
             child: const Text("Batal"),
           ),
           ElevatedButton(
@@ -136,6 +176,10 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     );
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -143,7 +187,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         final width = constraints.maxWidth;
 
         final isMobile = width < 600;
-        final isTablet = width >= 600 && width < 1000;
+        final isTablet =
+            width >= 600 && width < 1000;
 
         final padding = isMobile
             ? 16.0
@@ -151,21 +196,67 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                 ? 24.0
                 : 30.0;
 
+        // Jumlah kolom
+        final columnCount = isMobile
+            ? 1
+            : isTablet
+                ? 2
+                : 3;
+
+        // Jarak antar card
+        const double cardSpacing = 16;
+
+        // Tinggi card dibuat tetap agar sama
+        // dengan card pada Dashboard Pelanggan.
+        const double cardHeight = 110;
+
+        // Hitung lebar setiap card.
+        final availableWidth =
+            width - (padding * 2);
+
+        final cardWidth =
+            (availableWidth -
+                    (cardSpacing *
+                        (columnCount - 1))) /
+                columnCount;
+
+        // childAspectRatio = lebar / tinggi
+        final cardAspectRatio =
+            cardWidth / cardHeight;
+
+        // Jumlah baris
+        final rowCount =
+            (3 / columnCount).ceil();
+
+        // Tinggi keseluruhan Grid
+        final gridHeight =
+            (cardHeight * rowCount) +
+                (cardSpacing *
+                    (rowCount - 1));
+
         return Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: Theme.of(context)
+              .scaffoldBackgroundColor,
           padding: EdgeInsets.all(padding),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
-              // Header Section (Tombol Refresh sudah dihapus dari sini)
+              // ==================================================
+              // HEADER
+              // ==================================================
+
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     "Lowongan Tersedia",
                     style: TextStyle(
-                      fontSize: isMobile ? 24 : 32,
-                      fontWeight: FontWeight.bold,
+                      fontSize:
+                          isMobile ? 24 : 32,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -177,7 +268,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                           .bodyMedium
                           ?.color
                           ?.withOpacity(0.6),
-                      fontSize: isMobile ? 13 : 15,
+                      fontSize:
+                          isMobile ? 13 : 15,
                     ),
                   ),
                 ],
@@ -185,47 +277,54 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
 
               const SizedBox(height: 20),
 
-              // 📈 Stat Cards Section (Grid Responsif)
-              GridView.count(
-                crossAxisCount: isMobile
-                    ? 1
-                    : isTablet
-                        ? 2
-                        : 3,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: isMobile
-                    ? 3.8
-                    : isTablet
-                        ? 2.8
-                        : 2.4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _statCard(
-                    Icons.work_outline,
-                    "Total Lowongan",
-                    _jobs.length.toString(),
-                    Colors.blue,
-                  ),
-                  _statCard(
-                    Icons.description_outlined,
-                    "Penawaran Aktif",
-                    _activeOffersCount.toString(),
-                    Colors.orange,
-                  ),
-                  _statCard(
-                    Icons.stars,
-                    "Total Poin",
-                    _userPoints.toString(),
-                    Colors.green,
-                  ),
-                ],
+              // ==================================================
+              // STATISTIC CARDS
+              // ==================================================
+
+              SizedBox(
+                height: gridHeight,
+                child: GridView.count(
+                  crossAxisCount:
+                      columnCount,
+                  crossAxisSpacing:
+                      cardSpacing,
+                  mainAxisSpacing:
+                      cardSpacing,
+                  childAspectRatio:
+                      cardAspectRatio,
+                  shrinkWrap: true,
+                  physics:
+                      const NeverScrollableScrollPhysics(),
+                  children: [
+                    _statCard(
+                      Icons.work_outline,
+                      "Total Lowongan",
+                      _jobs.length.toString(),
+                      Colors.blue,
+                    ),
+                    _statCard(
+                      Icons.description_outlined,
+                      "Penawaran Aktif",
+                      _activeOffersCount
+                          .toString(),
+                      Colors.orange,
+                    ),
+                    _statCard(
+                      Icons.stars,
+                      "Total Poin",
+                      _userPoints.toString(),
+                      Colors.green,
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 24),
 
-              // 📋 Main Content List Section
+              // ==================================================
+              // MAIN CONTENT
+              // ==================================================
+
               Expanded(
                 child: _buildContent(),
               ),
@@ -235,6 +334,10 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
       },
     );
   }
+
+  // ============================================================
+  // CONTENT
+  // ============================================================
 
   Widget _buildContent() {
     if (_isLoading) {
@@ -246,18 +349,25 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     if (_errorMessage.isNotEmpty) {
       return Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment:
+              MainAxisAlignment.center,
           children: [
             Text(
               _errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              textAlign:
+                  TextAlign.center,
+              style: const TextStyle(
+                color: Colors.red,
+              ),
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: _fetchDashboardData,
-              icon: const Icon(Icons.refresh),
-              label: const Text("Coba Lagi"),
+              onPressed:
+                  _fetchDashboardData,
+              icon:
+                  const Icon(Icons.refresh),
+              label:
+                  const Text("Coba Lagi"),
             ),
           ],
         ),
@@ -266,15 +376,20 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
 
     if (_jobs.isEmpty) {
       return RefreshIndicator(
-        onRefresh: _fetchDashboardData,
+        onRefresh:
+            _fetchDashboardData,
         child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
+          physics:
+              const AlwaysScrollableScrollPhysics(),
           children: const [
             SizedBox(height: 80),
             Center(
               child: Text(
                 "Belum ada lowongan pekerjaan saat ini.",
-                style: TextStyle(color: Colors.grey, fontSize: 16),
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
@@ -283,21 +398,34 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     }
 
     return RefreshIndicator(
-      onRefresh: _fetchDashboardData,
+      onRefresh:
+          _fetchDashboardData,
       child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics:
+            const AlwaysScrollableScrollPhysics(),
         itemCount: _jobs.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
+        separatorBuilder:
+            (_, __) =>
+                const SizedBox(height: 16),
+        itemBuilder:
+            (context, index) {
           final job = _jobs[index];
+
           return PartnerJobCard(
             job: job,
-            onTakeOffer: () => _showTakeOfferConfirmation(job),
+            onTakeOffer: () =>
+                _showTakeOfferConfirmation(
+              job,
+            ),
           );
         },
       ),
     );
   }
+
+  // ============================================================
+  // STAT CARD
+  // ============================================================
 
   Widget _statCard(
     IconData icon,
@@ -306,47 +434,87 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 22,
+        vertical: 16,
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
+        color: Theme.of(context)
+            .cardColor,
+        borderRadius:
+            BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).dividerColor,
+          color: Theme.of(context)
+              .dividerColor,
         ),
       ),
       child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: color.withOpacity(0.15),
+          // ======================================================
+          // ICON
+          // ======================================================
+
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color:
+                  color.withOpacity(0.12),
+              borderRadius:
+                  BorderRadius.circular(12),
+            ),
             child: Icon(
               icon,
               color: color,
-              size: 20,
+              size: 26,
             ),
           ),
-          const SizedBox(width: 14),
+
+          const SizedBox(width: 16),
+
+          // ======================================================
+          // VALUE + TITLE
+          // ======================================================
+
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
                   value,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight:
+                        FontWeight.bold,
+                    color: color,
+                    height: 1.1,
                   ),
                 ),
+
+                const SizedBox(height: 5),
+
                 Text(
                   title,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withOpacity(0.55),
+                    fontSize: 13,
+                    height: 1.2,
                   ),
                 ),
               ],

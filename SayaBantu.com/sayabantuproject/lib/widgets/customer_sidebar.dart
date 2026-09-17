@@ -5,7 +5,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../screens/Screens_Landing/landing_page.dart';
+import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
+
 import '../models/sidebar_menu.dart';
 import '../services/api_service.dart';
 
@@ -24,16 +25,12 @@ class CustomerSidebar extends StatefulWidget {
 }
 
 class CustomerSidebarState extends State<CustomerSidebar> {
-  // =========================================================
-  // STATE
-  // =========================================================
   String name = 'Pengguna';
   String role = 'Pelanggan';
   String? photoUrl;
 
-  // =========================================================
-  // INIT
-  // =========================================================
+  bool isLoggingOut = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,80 +40,119 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
   // REFRESH PROFILE
   // =========================================================
+
   void refreshProfile() {
     loadUser();
   }
 
   // =========================================================
-  // LOAD USER
+  // LOAD DATA USER
   // =========================================================
+
   Future<void> loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedName = prefs.getString("name") ?? "Pengguna";
+    final savedRole = prefs.getString("role") ?? "Pelanggan";
+
+    if (!mounted) return;
+
+    setState(() {
+      name = savedName;
+      role = savedRole;
+    });
+
+    // =======================================================
+    // AMBIL DATA USER
+    // =======================================================
+
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final response = await ApiService.get('/user');
 
-      String savedName = prefs.getString('name') ?? 'Pengguna';
-      String savedRole = prefs.getString('role') ?? 'Pelanggan';
+      debugPrint("===== CUSTOMER SIDEBAR USER =====");
+      debugPrint("STATUS : ${response.statusCode}");
+      debugPrint("BODY   : ${response.body}");
 
-      try {
-        final response = await ApiService.get('/user');
+      if (response.statusCode == 200) {
+        final decodedData = jsonDecode(response.body);
 
-        debugPrint('====================================');
-        debugPrint('CUSTOMER SIDEBAR - GET /user');
-        debugPrint('STATUS: ${response.statusCode}');
-        debugPrint('BODY: ${response.body}');
-        debugPrint('====================================');
+        final dynamic userData =
+            decodedData is Map<String, dynamic>
+                ? (decodedData['user'] ?? decodedData)
+                : null;
 
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
+        if (userData is Map<String, dynamic>) {
+          final apiName = userData['name']?.toString();
+          final dynamic apiPhoto = userData['photo_url'];
+          final apiPhotoUrl = apiPhoto?.toString();
 
-          final userData = data is Map<String, dynamic>
-              ? (data['user'] is Map<String, dynamic>
-                  ? data['user'] as Map<String, dynamic>
-                  : data)
-              : <String, dynamic>{};
+          if (!mounted) return;
 
-          savedName = userData['name']?.toString().trim().isNotEmpty == true
-              ? userData['name'].toString()
-              : savedName;
+          setState(() {
+            if (apiName != null && apiName.trim().isNotEmpty) {
+              name = apiName.trim();
+            }
 
-          final apiPhoto = userData['photo_url'];
+            if (apiPhotoUrl != null &&
+                apiPhotoUrl.trim().isNotEmpty &&
+                apiPhotoUrl != 'null') {
+              photoUrl = apiPhotoUrl.trim();
+            } else {
+              photoUrl = null;
+            }
+          });
 
-          if (apiPhoto != null &&
-              apiPhoto.toString().trim().isNotEmpty &&
-              apiPhoto.toString() != 'null') {
-            photoUrl = apiPhoto.toString().trim();
-          } else {
-            photoUrl = null;
-          }
+          debugPrint("NAMA USER        : $name");
+          debugPrint("PHOTO URL STATE  : $photoUrl");
+          debugPrint("FULL PHOTO URL   : ${getFullPhotoUrl()}");
         }
-      } catch (e) {
-        debugPrint('Gagal mengambil data user dari API: $e');
+      } else {
+        debugPrint(
+          "GAGAL MEMUAT USER: ${response.statusCode}",
+        );
       }
-
-      if (!mounted) return;
-
-      setState(() {
-        name = savedName;
-        role = savedRole;
-      });
     } catch (e) {
-      debugPrint('ERROR LOAD USER SIDEBAR: $e');
+      debugPrint(
+        "ERROR LOAD USER CUSTOMER SIDEBAR: $e",
+      );
     }
   }
 
   // =========================================================
-  // FULL PHOTO URL
+  // INITIAL
   // =========================================================
+
+  String getInitials(String text) {
+    final trimmed = text.trim();
+
+    if (trimmed.isEmpty) {
+      return "P";
+    }
+
+    final words = trimmed.split(RegExp(r'\s+'));
+
+    if (words.length >= 2) {
+      return "${words.first[0]}${words.last[0]}".toUpperCase();
+    }
+
+    return words.first[0].toUpperCase();
+  }
+
+  // =========================================================
+  // PHOTO URL
+  // =========================================================
+
   String? getFullPhotoUrl() {
     if (photoUrl == null ||
         photoUrl!.trim().isEmpty ||
-        photoUrl!.trim() == 'null') {
+        photoUrl == 'null') {
       return null;
     }
 
     String path = photoUrl!.trim();
 
-    if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (path.startsWith('http://') ||
+        path.startsWith('https://')) {
       return path;
     }
 
@@ -124,7 +160,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
       path = path.substring(1);
     }
 
-    final filename = path.split('/').last.trim();
+    final filename = path.split('/').last;
 
     if (filename.isEmpty) {
       return null;
@@ -134,190 +170,288 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   }
 
   // =========================================================
-  // INITIAL NAMA
+  // PROFILE IMAGE
   // =========================================================
-  String getInitials(String text) {
-    final cleanedText = text.trim();
 
-    if (cleanedText.isEmpty) {
-      return 'P';
+  Widget _buildProfileImage() {
+    final fullPhotoUrl = getFullPhotoUrl();
+
+    if (fullPhotoUrl == null) {
+      return Container(
+        width: 52,
+        height: 52,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.orange,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          getInitials(name),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
     }
 
-    final words = cleanedText
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .toList();
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.orange,
+      ),
+      child: ClipOval(
+        child: Image.network(
+          fullPhotoUrl,
+          width: 52,
+          height: 52,
+          fit: BoxFit.cover,
+          cacheWidth: 120,
+          cacheHeight: 120,
+          loadingBuilder: (
+            context,
+            child,
+            loadingProgress,
+          ) {
+            if (loadingProgress == null) {
+              return child;
+            }
 
-    if (words.isEmpty) {
-      return 'P';
-    }
+            return Container(
+              width: 52,
+              height: 52,
+              color: Colors.orange,
+              alignment: Alignment.center,
+              child: const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (
+            context,
+            error,
+            stackTrace,
+          ) {
+            debugPrint(
+              "GAGAL MENAMPILKAN FOTO CUSTOMER SIDEBAR",
+            );
 
-    if (words.length == 1) {
-      return words.first[0].toUpperCase();
-    }
+            debugPrint(
+              "URL FOTO: $fullPhotoUrl",
+            );
 
-    return '${words[0][0]}${words[1][0]}'.toUpperCase();
+            debugPrint(
+              "ERROR: $error",
+            );
+
+            return Container(
+              width: 52,
+              height: 52,
+              color: Colors.orange,
+              alignment: Alignment.center,
+              child: Text(
+                getInitials(name),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   // =========================================================
   // LOGOUT
   // =========================================================
+
   Future<void> _logout() async {
-    final confirmLogout = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        final colorScheme = Theme.of(dialogContext).colorScheme;
+    if (isLoggingOut) return;
 
-        return AlertDialog(
-          title: const Text(
-            'Keluar',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'Apakah Anda yakin ingin keluar dari akun?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: Text(
-                'Batal',
-                style: TextStyle(color: colorScheme.onSurfaceVariant),
+    final confirm = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              title: const Row(
+                children: [
+                  Icon(
+                    Icons.logout,
+                    color: Colors.red,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Keluar',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Apakah kamu yakin ingin keluar dari akun?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogContext,
+                      false,
+                    );
+                  },
+                  child: const Text(
+                    'Batal',
+                  ),
                 ),
-              ),
-              child: const Text('Keluar'),
-            ),
-          ],
-        );
-      },
-    );
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogContext,
+                      true,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Keluar',
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
 
-    if (confirmLogout != true) {
-      return;
+    if (!confirm) return;
+
+    if (mounted) {
+      setState(() {
+        isLoggingOut = true;
+      });
     }
 
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      await prefs.remove('auth_token');
       await prefs.remove('token');
-      await prefs.remove('access_token');
+
+      await prefs.setBool(
+        'isLoggedIn',
+        false,
+      );
+
       await prefs.remove('name');
       await prefs.remove('email');
       await prefs.remove('phone');
       await prefs.remove('address');
-      await prefs.remove('profile_image');
-      await prefs.remove('role');
-      await prefs.remove('user_id');
-      await prefs.remove('userId');
-
-      await prefs.setBool('isLoggedIn', false);
+      await prefs.remove('profile_image_url');
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LandingPage()),
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LandingPage(),
+        ),
         (route) => false,
       );
     } catch (e) {
-      debugPrint('ERROR LOGOUT: $e');
-
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal keluar dari akun: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() {
+        isLoggingOut = false;
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Gagal keluar dari akun: $e',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
     }
   }
 
   // =========================================================
-  // BUILD
+  // BUILD SIDEBAR
   // =========================================================
+
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 700;
+    return Container(
+      width: 250,
+      height: double.infinity,
 
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+      // SAMA DENGAN PARTNER
+      color: const Color(0xff111827),
 
-    final fullPhotoUrl = getFullPhotoUrl();
-
-    return SafeArea(
-      child: Container(
-        width: isMobile ? 240 : 260,
-        color: colorScheme.surface,
+      child: SafeArea(
         child: Column(
           children: [
+            const SizedBox(height: 20),
+
             // =================================================
-            // PROFILE HEADER
+            // PROFILE USER
             // =================================================
-            const SizedBox(height: 24),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+              ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: isMobile ? 22 : 24,
-                    backgroundColor: colorScheme.primary,
-                    backgroundImage: fullPhotoUrl != null
-                        ? NetworkImage(fullPhotoUrl)
-                        : null,
-                    child: fullPhotoUrl == null
-                        ? Text(
-                            getInitials(name),
-                            style: TextStyle(
-                              color: colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isMobile ? 14 : 16,
-                            ),
-                          )
-                        : null,
-                  ),
+                  _buildProfileImage(),
 
                   const SizedBox(width: 12),
 
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
                         Text(
                           name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                          style: const TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: isMobile ? 14 : 15,
-                            color: colorScheme.onSurface,
+                            fontSize: 16,
                           ),
                         ),
-                        const SizedBox(height: 4),
+
+                        const SizedBox(height: 3),
+
                         Text(
                           role,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: isMobile ? 12 : 13,
-                            color: colorScheme.onSurfaceVariant,
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -327,115 +461,110 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            Divider(height: 1, color: colorScheme.outlineVariant),
+            const SizedBox(height: 20),
 
             // =================================================
             // MENU
             // =================================================
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  children: [
-                    // BERANDA
-                    _menu(
-                      context,
-                      icon: Icons.home_outlined,
-                      title: 'Beranda',
-                      menu: SidebarMenu.beranda,
-                    ),
 
-                    // PEMBAYARAN
-                    _menu(
-                      context,
-                      icon: Icons.payment_outlined,
-                      title: 'Pembayaran',
-                      menu: SidebarMenu.pembayaran,
-                    ),
-
-                    // 🆕 PENGADUAN
-                    _menu(
-                      context,
-                      icon: Icons.report_problem_outlined,
-                      title: 'Pengaduan',
-                      menu: SidebarMenu.pengaduan,
-                    ),
-
-                    // NOTIFIKASI
-                    _menu(
-                      context,
-                      icon: Icons.notifications_none_outlined,
-                      title: 'Notifikasi',
-                      menu: SidebarMenu.notifikasi,
-                    ),
-
-                    // PENGATURAN
-                    _menu(
-                      context,
-                      icon: Icons.settings_outlined,
-                      title: 'Pengaturan',
-                      menu: SidebarMenu.pengaturan,
-                    ),
-                  ],
-                ),
-              ),
+            _menu(
+              context,
+              icon: Icons.home_outlined,
+              title: "Beranda",
+              menu: SidebarMenu.beranda,
             ),
+
+            _menu(
+              context,
+              icon: Icons.payment_outlined,
+              title: "Pembayaran",
+              menu: SidebarMenu.pembayaran,
+            ),
+
+            _menu(
+              context,
+              icon: Icons.report_problem_outlined,
+              title: "Pengaduan",
+              menu: SidebarMenu.pengaduan,
+            ),
+
+            _menu(
+              context,
+              icon: Icons.notifications_none_outlined,
+              title: "Notifikasi",
+              menu: SidebarMenu.notifikasi,
+            ),
+
+            _menu(
+              context,
+              icon: Icons.settings_outlined,
+              title: "Pengaturan",
+              menu: SidebarMenu.pengaturan,
+            ),
+
+            const Spacer(),
 
             // =================================================
             // LOGOUT
             // =================================================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: InkWell(
-                onTap: _logout,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  height: isMobile ? 52 : 56,
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.logout_rounded,
-                        size: isMobile ? 22 : 24,
-                        color: colorScheme.error,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          'Keluar',
-                          style: TextStyle(
-                            fontSize: isMobile ? 14 : 15,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+
+            _buildLogoutButton(),
+
+            const SizedBox(height: 15),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // MENU ITEM
+  // =========================================================
+
+  Widget _menu(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required SidebarMenu menu,
+  }) {
+    final active = widget.activeMenu == menu;
+
+    return InkWell(
+      onTap: () {
+        widget.onMenuSelected(menu);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
+        ),
+        color: active
+            ? Colors.orange.withValues(alpha: 0.2)
+            : Colors.transparent,
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: active
+                  ? Colors.orange
+                  : Colors.white70,
             ),
 
-            // =================================================
-            // VERSION
-            // =================================================
-            Padding(
-              padding: EdgeInsets.only(
-                top: 2,
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-              ),
+            const SizedBox(width: 15),
+
+            Expanded(
               child: Text(
-                'SayaBantu v1.0',
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 12,
+                  color: active
+                      ? Colors.orange
+                      : Colors.white,
+                  fontWeight: active
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                 ),
               ),
             ),
@@ -446,62 +575,62 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   }
 
   // =========================================================
-  // MENU WIDGET
+  // LOGOUT BUTTON
   // =========================================================
-  Widget _menu(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required SidebarMenu menu,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 700;
 
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    final active = widget.activeMenu == menu;
-
-    return InkWell(
-      onTap: () {
-        if (!active) {
-          widget.onMenuSelected(menu);
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: isMobile ? 52 : 56,
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: active
-              ? colorScheme.primary.withOpacity(0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: isMobile ? 22 : 24,
-              color: active
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
+  Widget _buildLogoutButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+      ),
+      child: InkWell(
+        onTap: isLoggingOut ? null : _logout,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 13,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: Colors.red.withValues(alpha: 0.25),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: isMobile ? 14 : 15,
-                  fontWeight: active ? FontWeight.bold : FontWeight.w600,
-                  color: active ? colorScheme.primary : colorScheme.onSurface,
+          ),
+          child: Row(
+            children: [
+              if (isLoggingOut)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.red,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.logout,
+                  color: Colors.red,
+                  size: 20,
+                ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Text(
+                  isLoggingOut ? 'Keluar...' : 'Keluar',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
