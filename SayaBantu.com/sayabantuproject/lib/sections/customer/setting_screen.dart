@@ -1097,7 +1097,7 @@ class _CustomerSettingScreenState
             ),
           ],
         );
-      },
+      }, 
     );
   }
 

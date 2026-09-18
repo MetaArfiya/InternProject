@@ -11,13 +11,35 @@ class TestimonialSection extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isMobile = width < 700;
-        final isTablet = width >= 700 && width < 1100;
 
-        final columnCount = isMobile
-            ? 1
-            : isTablet
-                ? 2
-                : 3;
+        // Definisikan data card di sini agar lebih rapi
+        final List<Widget> cards = [
+          const TestimonialCard(
+            category: "🔧 Service AC Bocor",
+            review:
+                "\"Baru posting 10 menit, sudah ada 4 mitra yang nawar! Saya tinggal pilih yang poinnya paling tinggi. Kerjanya rapi dan profesional.\"",
+            name: "Anisa Rahmawati",
+            job: "Ibu Rumah Tangga, Cilandak",
+            avatar: "AR",
+          ),
+          const TestimonialCard(
+            category: "🪜 Cat Ulang 8 Kamar Kos",
+            review:
+                "\"Sebagai pemilik kos saya sering butuh tukang mendadak. Sekarang tinggal posting di SayaBantu dan tunggu penawaran masuk.\"",
+            name: "Rendra Kusuma",
+            job: "Pemilik Kos, Mampang",
+            avatar: "RK",
+            avatarColor: Color(0xff64748B),
+          ),
+          const TestimonialCard(
+            category: "💡 Instalasi Wallpaper & Lampu",
+            review:
+                "\"Yang saya suka adalah transparansinya. Semua penawaran langsung terlihat sehingga saya bebas membandingkan harga.\"",
+            name: "Sari Dewi Putri",
+            job: "Desainer Interior, Jakarta Selatan",
+            avatar: "SD",
+          ),
+        ];
 
         return Container(
           width: double.infinity,
@@ -61,54 +83,46 @@ class TestimonialSection extends StatelessWidget {
 
               SizedBox(height: isMobile ? 40 : 70),
 
-              GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columnCount,
-                    crossAxisSpacing: 24,
-                    mainAxisSpacing: 24,
-                    mainAxisExtent: isMobile ? 245 : 225,
+              // --- PERUBAHAN DI SINI: MENGGANTIKAN GRIDVIEW ---
+              if (isMobile)
+                // Jika Mobile, pakai Column (ke bawah)
+                Column(
+                  children: cards.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    Widget card = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: card
+                          .animate(delay: Duration(milliseconds: index * 200))
+                          .fadeIn()
+                          .slideY(begin: .25),
+                    );
+                  }).toList(),
+                )
+              else
+                // Jika Desktop/Tablet, pakai Row + IntrinsicHeight
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: cards.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      Widget card = entry.value;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: index == 0 ? 0 : 12,
+                            right: index == cards.length - 1 ? 0 : 12,
+                          ),
+                          child: card
+                              .animate(delay: Duration(milliseconds: index * 200))
+                              .fadeIn()
+                              .slideY(begin: .25),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  itemCount: 3,
-                  itemBuilder: (context, index) {
-                    final cards = [
-                      const TestimonialCard(
-                        category: "🔧 Service AC Bocor",
-                        review:
-                            "\"Baru posting 10 menit, sudah ada 4 mitra yang nawar! Saya tinggal pilih yang poinnya paling tinggi. Kerjanya rapi dan profesional.\"",
-                        name: "Anisa Rahmawati",
-                        job: "Ibu Rumah Tangga, Cilandak",
-                        avatar: "AR",
-                      ),
-                      const TestimonialCard(
-                        category: "🪜 Cat Ulang 8 Kamar Kos",
-                        review:
-                            "\"Sebagai pemilik kos saya sering butuh tukang mendadak. Sekarang tinggal posting di SayaBantu dan tunggu penawaran masuk.\"",
-                        name: "Rendra Kusuma",
-                        job: "Pemilik Kos, Mampang",
-                        avatar: "RK",
-                        avatarColor: Color(0xff64748B),
-                      ),
-                      const TestimonialCard(
-                        category: "💡 Instalasi Wallpaper & Lampu",
-                        review:
-                            "\"Yang saya suka adalah transparansinya. Semua penawaran langsung terlihat sehingga saya bebas membandingkan harga.\"",
-                        name: "Sari Dewi Putri",
-                        job: "Desainer Interior, Jakarta Selatan",
-                        avatar: "SD",
-                      ),
-                    ];
-
-                    return cards[index]
-                        .animate(
-                          delay: Duration(milliseconds: index * 200),
-                        )
-                        .fadeIn()
-                        .slideY(begin: .25);
-                  },
                 ),
-              
+              // -------------------------------------------------
 
               SizedBox(height: isMobile ? 35 : 55),
 
