@@ -11,136 +11,133 @@ class DashboardHeader extends StatelessWidget {
     this.onAddJob,
   });
 
+  // ============================================================
+  // STANDARD UI
+  // ============================================================
+
+  static const double _buttonFontSize = 13;
+  static const double _buttonRadius = 12;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 700;
 
-        return isMobile
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Pekerjaan Saya",
-                    style: TextStyle(
-                      fontSize: 28,
+        // ========================================================
+        // MOBILE
+        // ========================================================
+
+        if (isMobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Pekerjaan Saya',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xff1E293B),
                     ),
-                  ),
+              ),
 
-                  const SizedBox(height: 8),
+              const SizedBox(height: 6),
 
-                  const Text(
-                    "Pantau status semua jasa yang kamu posting",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
+              Text(
+                'Pantau status semua jasa yang kamu posting',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
                     ),
-                  ),
+              ),
 
-                  const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final JobModel? job =
-                            await showDialog<JobModel>(
-                          context: context,
-                          builder: (_) =>
-                              const PostingJasaDialog(),
-                        );
+              SizedBox(
+                width: double.infinity,
+                child: _buildPostButton(context),
+              ),
+            ],
+          );
+        }
 
-                        if (job != null) {
-                          onAddJob?.call(job);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffF97316),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
-                      ),
-                      icon: const Icon(Icons.add),
-                      label: const Text(
-                        "Posting Jasa Baru",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Row(
+        // ========================================================
+        // DESKTOP / TABLET
+        // ========================================================
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Pekerjaan Saya",
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xff1E293B),
-                          ),
-                        ),
-
-                        SizedBox(height: 8),
-
-                        Text(
-                          "Pantau status semua jasa yang kamu posting",
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
+                  Text(
+                    'Pekerjaan Saya',
+                    style:
+                        Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                   ),
 
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final JobModel? job =
-                          await showDialog<JobModel>(
-                        context: context,
-                        builder: (_) =>
-                            const PostingJasaDialog(),
-                      );
+                  const SizedBox(height: 6),
 
-                      if (job != null) {
-                        onAddJob?.call(job);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xffF97316),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 18,
-                      ),
-                    ),
-                    icon: const Icon(Icons.add),
-                    label: const Text(
-                      "Posting Jasa Baru",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  Text(
+                    'Pantau status semua jasa yang kamu posting',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
                   ),
                 ],
-              );
+              ),
+            ),
+
+            const SizedBox(width: 20),
+
+            _buildPostButton(context),
+          ],
+        );
       },
+    );
+  }
+
+  // ============================================================
+  // BUTTON POSTING JASA
+  // ============================================================
+
+  Widget _buildPostButton(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        final JobModel? job = await showDialog<JobModel>(
+          context: context,
+          builder: (_) => const PostingJasaDialog(),
+        );
+
+        if (job != null) {
+          onAddJob?.call(job);
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xffF97316),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        minimumSize: const Size(0, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_buttonRadius),
+        ),
+      ),
+      icon: const Icon(
+        Icons.add,
+        size: 18,
+      ),
+      label: const Text(
+        'Posting Jasa Baru',
+        style: TextStyle(
+          fontSize: _buttonFontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

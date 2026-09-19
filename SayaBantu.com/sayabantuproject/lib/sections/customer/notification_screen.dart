@@ -1,171 +1,261 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
-import '../../models/notification_model.dart';
-import '../../widgets/page_header.dart';
-import '../../widgets/notification_card.dart';
 
-class NotificationScreen extends StatefulWidget {
+class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
-  @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
-}
+  // ==========================================================
+  // DATA NOTIFIKASI
+  // ==========================================================
 
-class _NotificationScreenState extends State<NotificationScreen> {
-  bool _isLoading = true;
-  List<NotificationModel> _notifications = [];
-  String _errorMessage = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchNotifications();
-  }
-
-  Future<void> _fetchNotifications() async {
-    try {
-      final response = await ApiService.get('/notifications');
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        
-        // 🛠️ AMBIL LIST DARI KEY 'notifications' SESUAI DEBUG
-        List dataList = [];
-        if (jsonResponse is Map && jsonResponse['notifications'] is List) {
-          dataList = jsonResponse['notifications'];
-        } else if (jsonResponse is List) {
-          dataList = jsonResponse;
-        }
-
-        setState(() {
-          _notifications = dataList.map((item) {
-            final notificationData = item is Map ? (item['data'] ?? {}) : {};
-            final String dbType = item is Map ? (item['type'] ?? '') : '';
-
-            // 🛠️ AMBIL TITLE & MESSAGE (Utamakan dari data database, jika kosong gunakan fallback)
-            String title = notificationData['title'] ?? notificationData['tittle'] ?? '';
-            String message = notificationData['message'] ?? '';
-
-            // Jika judul kosong, tentukan berdasarkan tipe notifikasi
-            if (title.isEmpty) {
-              if (dbType.contains('NewBidReceived')) {
-                title = 'Penawaran Baru';
-              } else if (dbType.contains('BidAccepted')) {
-                title = 'Penawaran Diterima';
-              } else if (dbType.contains('JobProcessedNotification')) {
-                title = 'Pekerjaan Diproses';
-              } else if (dbType.contains('JobCompletedNotification')) {
-                title = 'Pekerjaan Selesai';
-              } else if (dbType.contains('WelcomeNotification')) {
-                title = 'Selamat Datang';
-              } else {
-                title = 'Notifikasi Baru';
-              }
-            }
-
-            // Jika message kosong di data, berikan pesan default
-            if (message.isEmpty) {
-              message = 'Anda memiliki aktivitas baru.';
-            }
-            
-            return NotificationModel(
-              title: title,
-              message: message,
-              time: _formatTimestamp(item is Map ? item['created_at'] : null),
-              type: _mapNotificationType(dbType),
-            );
-          }).toList();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = "Gagal memuat notifikasi (Kode: ${response.statusCode})";
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = "Terjadi kesalahan: $e";
-        _isLoading = false;
-      });
-    }
-  }
-
-  String _mapNotificationType(String? dbType) {
-    if (dbType == null) return 'system';
-    if (dbType.contains('NewBidReceived')) return 'offer';
-    if (dbType.contains('JobProcessedNotification')) return 'progress';
-    if (dbType.contains('JobCompletedNotification')) return 'done';
-    return 'system';
-  }
-
-  String _formatTimestamp(String? dateStr) {
-    if (dateStr == null) return 'Baru saja';
-    try {
-      DateTime dateTime = DateTime.parse(dateStr);
-      Duration diff = DateTime.now().difference(dateTime);
-      if (diff.inMinutes < 60) {
-        return "${diff.inMinutes} menit lalu";
-      } else if (diff.inHours < 24) {
-        return "${diff.inHours} jam lalu";
-      } else {
-        return "${diff.inDays} hari lalu";
-      }
-    } catch (_) {
-      return 'Baru saja';
-    }
-  }
+  List<Map<String, dynamic>> get notifications => [
+        {
+          'icon': Icons.local_offer_outlined,
+          'iconColor': const Color(0xff2196F3),
+          'iconBackground': const Color(0xffE8F3FF),
+          'title': 'Penawaran Baru',
+          'message':
+              'Budi Teknik AC mengirim penawaran untuk pekerjaan Anda.',
+          'time': '2 menit lalu',
+        },
+        {
+          'icon': Icons.engineering_outlined,
+          'iconColor': const Color(0xffF59E0B),
+          'iconBackground': const Color(0xffFFF4DE),
+          'title': 'Pekerjaan Diproses',
+          'message':
+              'Andi Service mulai mengerjakan pekerjaan Anda.',
+          'time': '1 jam lalu',
+        },
+        {
+          'icon': Icons.check_circle_outline,
+          'iconColor': const Color(0xff22C55E),
+          'iconBackground': const Color(0xffEAF9F0),
+          'title': 'Pekerjaan Selesai',
+          'message': 'Service AC Bocor telah selesai.',
+          'time': 'Kemarin',
+        },
+        {
+          'icon': Icons.notifications_none_outlined,
+          'iconColor': const Color(0xff8B5CF6),
+          'iconBackground': const Color(0xffF1ECFF),
+          'title': 'Selamat Datang',
+          'message':
+              'Terima kasih telah bergabung di SayaBantu.',
+          'time': '3 hari lalu',
+        },
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      padding: const EdgeInsets.all(30),
-      child: Column(
+      color: theme.scaffoldBackgroundColor,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 700;
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 16 : 28,
+              vertical: isMobile ? 16 : 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ==================================================
+                // HEADER
+                // ==================================================
+
+                Text(
+                  'Notifikasi',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  'Semua aktivitas terbaru akan muncul di sini.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ==================================================
+                // LIST NOTIFIKASI
+                // ==================================================
+
+                if (notifications.isEmpty)
+                  _buildEmptyState(context)
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: notifications.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return _buildNotificationCard(
+                        context,
+                        notifications[index],
+                      );
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ==========================================================
+  // NOTIFICATION CARD
+  // ==========================================================
+
+  Widget _buildNotificationCard(
+    BuildContext context,
+    Map<String, dynamic> notification,
+  ) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xffE5E7EB),
+        ),
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ======================================================
+          // ICON
+          // ======================================================
+
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: notification['iconBackground'] as Color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              notification['icon'] as IconData,
+              color: notification['iconColor'] as Color,
+              size: 22,
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          // ======================================================
+          // CONTENT
+          // ======================================================
+
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const PageHeader(
-                    title: "Notifikasi",
-                    subtitle: "Semua aktivitas terbaru akan muncul di sini.",
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification['title'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 30),
-                  Expanded(
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _errorMessage.isNotEmpty
-                            ? Center(
-                                child: Text(
-                                  _errorMessage,
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              )
-                            : _notifications.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      "Belum ada notifikasi.",
-                                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                                    ),
-                                  )
-                                : ListView.separated(
-                                    itemCount: _notifications.length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(height: 16),
-                                    itemBuilder: (context, index) {
-                                      return NotificationCard(
-                                        notification: _notifications[index],
-                                      );
-                                    },
-                                  ),
+                ),
+
+                const SizedBox(height: 5),
+
+                Text(
+                  notification['message'] as String,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    height: 1.4,
                   ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  notification['time'] as String,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // EMPTY STATE
+  // ==========================================================
+
+  Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 48,
+      ),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xffE5E7EB),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xffF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.notifications_none_outlined,
+              size: 24,
+              color: Colors.grey,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          const Text(
+            'Belum ada notifikasi',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          const Text(
+            'Semua aktivitas terbaru akan muncul di sini.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey,
             ),
           ),
         ],
