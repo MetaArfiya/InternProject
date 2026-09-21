@@ -1,18 +1,20 @@
-// lib/screens/Screens_Customer/customer_main_dashboard.dart
-
 import 'package:flutter/material.dart';
 
-import '../../../models/sidebar_menu.dart';
-import '../../../widgets/customer_sidebar.dart';
+import '../../models/sidebar_menu.dart';
+import '../../widgets/customer_sidebar.dart';
+
 import '../../models/job_model.dart';
 import '../../models/offer_model.dart';
+
 import '../../screens/Screens_Customer/offer_screen.dart';
 import '../../screens/Screens_Customer/partner_profile_screen.dart';
-import '../../sections/payment/payment_screen.dart';
-import '../../sections/customer/customer_complaint_screen.dart'; // 🆕
+
 import 'customer_dashboard.dart';
+import 'customer_complaint_screen.dart';
 import 'notification_screen.dart';
 import 'setting_screen.dart';
+
+import '../../sections/payment/payment_screen.dart';
 
 class CustomerMainDashboard extends StatefulWidget {
   const CustomerMainDashboard({super.key});
@@ -23,97 +25,151 @@ class CustomerMainDashboard extends StatefulWidget {
 }
 
 class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
+  // ==========================================================
+  // STATE
+  // ==========================================================
+
   SidebarMenu selectedMenu = SidebarMenu.beranda;
 
   JobModel? selectedJob;
   OfferModel? selectedOffer;
-  String? profilePhotoUrl;
 
   final GlobalKey<CustomerSidebarState> _sidebarKey =
       GlobalKey<CustomerSidebarState>();
 
-  // =========================================================
-  // CURRENT PAGE
-  // =========================================================
-  Widget currentPage() {
+  // ==========================================================
+  // MENU
+  // ==========================================================
+
+  void _onMenuSelected(SidebarMenu menu) {
+    setState(() {
+      selectedMenu = menu;
+
+      if (menu != SidebarMenu.penawaran) {
+        selectedOffer = null;
+      }
+
+      if (menu != SidebarMenu.profilMitra) {
+        selectedJob = null;
+      }
+    });
+
+    // Tutup drawer pada mobile.
+    final scaffoldState = Scaffold.maybeOf(context);
+
+    if (scaffoldState != null && scaffoldState.isDrawerOpen) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  // ==========================================================
+  // HALAMAN AKTIF
+  // ==========================================================
+
+  Widget _currentPage() {
     switch (selectedMenu) {
-      // =====================================================
+      // ========================================================
       // BERANDA
-      // =====================================================
+      // ========================================================
+
       case SidebarMenu.beranda:
         return CustomerDashboard(
           onOpenOffer: (job) {
             setState(() {
               selectedJob = job;
+              selectedOffer = null;
               selectedMenu = SidebarMenu.penawaran;
             });
           },
         );
 
-      // =====================================================
+      // ========================================================
       // PEMBAYARAN
-      // =====================================================
-      case SidebarMenu.pembayaran:
-        return const PaymentScreen(role: 'pengguna');
+      // ========================================================
 
-      // =====================================================
-      // 🆕 PENGADUAN
-      // =====================================================
+      case SidebarMenu.pembayaran:
+        return const PaymentScreen(
+          role: 'pengguna',
+        );
+
+      // ========================================================
+      // PENGADUAN
+      // ========================================================
+
       case SidebarMenu.pengaduan:
         return const CustomerComplaintScreen();
 
-      // =====================================================
+      // ========================================================
       // PENAWARAN
-      // =====================================================
+      // ========================================================
+
       case SidebarMenu.penawaran:
         if (selectedJob == null) {
-          return const Center(
-            child: Text(
-              'Belum ada pekerjaan yang dipilih.\n'
-              'Silakan pilih pekerjaan dari Beranda.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
+          return _buildEmptyPage(
+            icon: Icons.local_offer_outlined,
+            title: 'Penawaran',
+            message: 'Belum ada pekerjaan yang dipilih.',
           );
         }
 
         return OfferScreen(
           job: selectedJob!,
+
+          // ----------------------------------------------------
+          // KEMBALI
+          // ----------------------------------------------------
+
           onBack: () {
             setState(() {
               selectedMenu = SidebarMenu.beranda;
+              selectedJob = null;
+              selectedOffer = null;
             });
           },
+
+          // ----------------------------------------------------
+          // BUKA PROFIL MITRA
+          // ----------------------------------------------------
+
           onOpenProfile: (offer) {
             setState(() {
               selectedOffer = offer;
               selectedMenu = SidebarMenu.profilMitra;
             });
           },
+
+          // ----------------------------------------------------
+          // TERIMA PENAWARAN
+          // ----------------------------------------------------
+
           onAccept: (offer) {
             setState(() {
+              selectedOffer = offer;
               selectedMenu = SidebarMenu.beranda;
             });
           },
+
+          // ----------------------------------------------------
+          // TOLAK PENAWARAN
+          // ----------------------------------------------------
+
           onReject: (offer) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Penawaran ${offer.name} berhasil ditolak.'),
-              ),
-            );
+            setState(() {
+              selectedOffer = offer;
+            });
           },
         );
 
-      // =====================================================
+      // ========================================================
       // PROFIL MITRA
-      // =====================================================
+      // ========================================================
+
       case SidebarMenu.profilMitra:
         if (selectedOffer == null) {
-          return const Center(
-            child: Text(
-              'Belum ada profil mitra yang dipilih.',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
+          return _buildEmptyPage(
+            icon: Icons.person_outline,
+            title: 'Profil Mitra',
+            message: 'Belum ada mitra yang dipilih.',
           );
         }
 
@@ -126,73 +182,190 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
           },
         );
 
-      // =====================================================
+      // ========================================================
       // NOTIFIKASI
-      // =====================================================
-      case SidebarMenu.notifikasi:
-        return NotificationScreen();
+      // ========================================================
 
-      // =====================================================
+      case SidebarMenu.notifikasi:
+        return const NotificationScreen();
+
+      // ========================================================
       // PENGATURAN
-      // =====================================================
+      // ========================================================
+
       case SidebarMenu.pengaturan:
         return CustomerSettingScreen(
           onProfileUpdate: () {
-            setState(() {});
             _sidebarKey.currentState?.refreshProfile();
           },
         );
     }
   }
 
-  // =========================================================
+  // ==========================================================
+  // EMPTY PAGE
+  // ==========================================================
+
+  Widget _buildEmptyPage({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+
+            const SizedBox(height: 6),
+
+            Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey,
+                  ),
+            ),
+
+            const SizedBox(height: 24),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 48,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xffE5E7EB),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 24,
+                      color: Colors.grey,
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================================
+  // DESKTOP
+  // ==========================================================
+
+  Widget _buildDesktopLayout() {
+    return Scaffold(
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ====================================================
+          // SIDEBAR
+          // ====================================================
+
+          CustomerSidebar(
+            key: _sidebarKey,
+            activeMenu: selectedMenu,
+            onMenuSelected: _onMenuSelected,
+          ),
+
+          // ====================================================
+          // CONTENT
+          // ====================================================
+
+          Expanded(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: _currentPage(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // MOBILE / TABLET
+  // ==========================================================
+
+  Widget _buildMobileLayout() {
+    return Scaffold(
+      drawer: CustomerSidebar(
+        key: _sidebarKey,
+        activeMenu: selectedMenu,
+        onMenuSelected: _onMenuSelected,
+      ),
+
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+
+        title: const Text(
+          'Dashboard Pelanggan',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
+
+      body: _currentPage(),
+    );
+  }
+
+  // ==========================================================
   // BUILD
-  // =========================================================
+  // ==========================================================
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool isDesktop = constraints.maxWidth >= 1000;
+        final isDesktop = constraints.maxWidth >= 1000;
 
-        return Scaffold(
-          drawer: isDesktop
-              ? null
-              : Drawer(
-                  child: SafeArea(
-                    child: CustomerSidebar(
-                      key: _sidebarKey,
-                      activeMenu: selectedMenu,
-                      onMenuSelected: (menu) {
-                        setState(() {
-                          selectedMenu = menu;
-                        });
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                ),
+        if (isDesktop) {
+          return _buildDesktopLayout();
+        }
 
-          appBar: isDesktop
-              ? null
-              : AppBar(title: const Text('Dashboard Pelanggan')),
-
-          body: isDesktop
-              ? Row(
-                  children: [
-                    CustomerSidebar(
-                      key: _sidebarKey,
-                      activeMenu: selectedMenu,
-                      onMenuSelected: (menu) {
-                        setState(() {
-                          selectedMenu = menu;
-                        });
-                      },
-                    ),
-                    Expanded(child: currentPage()),
-                  ],
-                )
-              : currentPage(),
-        );
+        return _buildMobileLayout();
       },
     );
   }

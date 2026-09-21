@@ -21,23 +21,31 @@ class StatisticCard extends StatelessWidget {
         final isSmall = constraints.maxWidth < 220;
 
         return Container(
-          height: isSmall ? 100 : 110,
-          padding: EdgeInsets.symmetric(
-            horizontal: isSmall ? 16 : 22,
-            vertical: isSmall ? 16 : 18,
-          ),
+          height: isSmall ? 96 : 104,
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: const Color(0xffE5E7EB),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
+              // ==================================================
+              // ICON
+              // ==================================================
+
               Container(
-                width: isSmall ? 46 : 52,
-                height: isSmall ? 46 : 52,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -45,11 +53,15 @@ class StatisticCard extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: color,
-                  size: isSmall ? 24 : 28,
+                  size: 23,
                 ),
               ),
 
-              SizedBox(width: isSmall ? 12 : 18),
+              const SizedBox(width: 16),
+
+              // ==================================================
+              // VALUE & TITLE
+              // ==================================================
 
               Expanded(
                 child: Column(
@@ -62,7 +74,7 @@ class StatisticCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: color,
-                        fontSize: isSmall ? 22 : 28,
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -74,8 +86,9 @@ class StatisticCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: isSmall ? 12 : 14,
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
