@@ -238,12 +238,55 @@ class _CustomerSettingScreenState
         debugPrint("Size: ${file.size}");
         debugPrint("====================================");
 
-        // VALIDASI IMAGE
+        // ===================================================
+        // ✅ VALIDASI IMAGE
+        // ===================================================
         if (!file.type.startsWith('image/')) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("File yang dipilih harus berupa gambar."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // ===================================================
+        // ✅ VALIDASI EKSTENSI
+        // ===================================================
+        final lowerName = file.name.toLowerCase();
+        final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+        final hasValidExtension =
+            allowedExtensions.any((ext) => lowerName.endsWith(ext));
+
+        if (!hasValidExtension) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Format foto harus JPG, JPEG, PNG, atau WEBP.",
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // ===================================================
+        // ✅ VALIDASI UKURAN (maks 5 MB, sesuai Laravel max:5120)
+        // ===================================================
+        const int maxSizeInBytes = 5 * 1024 * 1024;
+        if (file.size > maxSizeInBytes) {
+          if (!mounted) return;
+          final sizeMb = (file.size / 1024 / 1024).toStringAsFixed(2);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Ukuran foto terlalu besar ($sizeMb MB).\nMaksimal 5 MB.",
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
           return;
@@ -416,10 +459,54 @@ class _CustomerSettingScreenState
 
           if (!mounted) return;
           setState(() => isUploadingPhoto = false);
+
+          // ===================================================
+          // ✅ PARSE PESAN ERROR DARI LARAVEL
+          // ===================================================
+          String errorMessage = "Gagal upload foto.";
+
+          try {
+            final errorData = jsonDecode(request.responseText ?? '{}');
+
+            if (errorData['errors'] is Map) {
+              final errors = errorData['errors'] as Map;
+
+              if (errors['photo_profile'] is List &&
+                  (errors['photo_profile'] as List).isNotEmpty) {
+                errorMessage =
+                    errors['photo_profile'][0].toString();
+              } else if (errors.isNotEmpty) {
+                final firstKey = errors.keys.first;
+                if (errors[firstKey] is List &&
+                    (errors[firstKey] as List).isNotEmpty) {
+                  errorMessage =
+                      (errors[firstKey] as List)[0].toString();
+                }
+              }
+            } else if (errorData['message'] != null) {
+              errorMessage = errorData['message'].toString();
+            }
+          } catch (e) {
+            debugPrint("Gagal parse error response: $e");
+
+            if (request.status == 422) {
+              errorMessage =
+                  "File tidak valid. Cek format & ukuran foto.";
+            } else if (request.status == 401) {
+              errorMessage =
+                  "Sesi login berakhir. Silakan login ulang.";
+            } else if (request.status == 413) {
+              errorMessage = "File terlalu besar untuk server.";
+            } else if (request.status == 500) {
+              errorMessage = "Terjadi kesalahan di server.";
+            }
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Gagal upload foto. Status: ${request.status}"),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -1097,7 +1184,7 @@ class _CustomerSettingScreenState
             ),
           ],
         );
-      }, 
+      },
     );
   }
 

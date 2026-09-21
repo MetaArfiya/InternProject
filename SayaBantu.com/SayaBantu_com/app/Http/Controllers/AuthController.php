@@ -595,7 +595,7 @@ class AuthController extends Controller
             }
 
             // =================================================
-            // VALIDASI FILE
+            // VALIDASI FILE + CUSTOM MESSAGE
             // =================================================
 
             $request->validate([
@@ -605,6 +605,19 @@ class AuthController extends Controller
                     'mimes:jpg,jpeg,png,webp',
                     'max:5120',
                 ],
+            ], [
+                // ✅ Custom message Bahasa Indonesia
+                'photo_profile.required' =>
+                    'Foto profil wajib dipilih.',
+
+                'photo_profile.image' =>
+                    'File yang diunggah harus berupa gambar.',
+
+                'photo_profile.mimes' =>
+                    'Format foto harus JPG, JPEG, PNG, atau WEBP.',
+
+                'photo_profile.max' =>
+                    'Ukuran foto maksimal 5 MB. Silakan kompres foto Anda terlebih dahulu.',
             ]);
 
             // =================================================

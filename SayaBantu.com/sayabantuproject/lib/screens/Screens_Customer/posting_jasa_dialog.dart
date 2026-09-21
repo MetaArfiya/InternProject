@@ -42,6 +42,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   XFile? _pickedFile;
   Uint8List? _imageBytes;
 
+  // ✅ Batas ukuran foto (sesuaikan dengan Laravel max:2048)
+  static const int _maxImageSizeInBytes = 2 * 1024 * 1024; // 2 MB
+
   // =========================================================
   // STATE
   // =========================================================
@@ -69,7 +72,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   String _waktuPengerjaan = "1–2 Jam";
- 
+
   final List<String> waktuPengerjaanList = [
     "1–2 Jam",
     "3–5 Jam",
@@ -102,7 +105,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // PILIH FOTO
+  // PILIH FOTO — DENGAN VALIDASI FORMAT & UKURAN
   // =========================================================
 
   Future<void> _pickImage() async {
@@ -116,7 +119,34 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
       if (image == null) return;
 
+      // ✅ VALIDASI EKSTENSI (image_picker sudah filter, tapi untuk jaga-jaga)
+      final lowerName = image.name.toLowerCase();
+      final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+      final hasValidExtension =
+          allowedExtensions.any((ext) => lowerName.endsWith(ext));
+
+      if (!hasValidExtension) {
+        if (!mounted) return;
+        _showMessage(
+          "Format foto harus JPG, JPEG, PNG, atau WEBP.",
+          backgroundColor: Colors.red,
+        );
+        return;
+      }
+
+      // Baca bytes
       final bytes = await image.readAsBytes();
+
+      // ✅ VALIDASI UKURAN FILE (maks 2 MB)
+      if (bytes.length > _maxImageSizeInBytes) {
+        if (!mounted) return;
+        final sizeMb = (bytes.length / 1024 / 1024).toStringAsFixed(2);
+        _showMessage(
+          "Ukuran foto terlalu besar ($sizeMb MB). Maksimal 2 MB.",
+          backgroundColor: Colors.red,
+        );
+        return;
+      }
 
       if (!mounted) return;
 
@@ -124,6 +154,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         _pickedFile = image;
         _imageBytes = bytes;
       });
+
+      debugPrint("FOTO DIPILIH: ${image.name} (${bytes.length} bytes)");
     } catch (e) {
       if (!mounted) return;
 
@@ -645,7 +677,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       }
 
       // =====================================================
-      // GAGAL
+      // GAGAL — PARSE PESAN ERROR DARI LARAVEL
       // =====================================================
 
       if (!mounted) return;
@@ -654,18 +686,37 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           "Gagal membuat pekerjaan. "
           "Status: ${response.statusCode}";
 
-      // Coba ambil pesan error dari API
       try {
-        final errorData =
-            jsonDecode(response.body);
+        final errorData = jsonDecode(response.body);
 
-        if (errorData is Map &&
+        // ✅ Cek dulu apakah ada 'errors' (validasi Laravel)
+        if (errorData is Map && errorData['errors'] is Map) {
+          final errors = errorData['errors'] as Map;
+          if (errors.isNotEmpty) {
+            final firstKey = errors.keys.first;
+            if (errors[firstKey] is List &&
+                (errors[firstKey] as List).isNotEmpty) {
+              errorMessage =
+                  (errors[firstKey] as List)[0].toString();
+            }
+          }
+        } else if (errorData is Map &&
             errorData['message'] != null) {
-          errorMessage =
-              errorData['message'].toString();
+          errorMessage = errorData['message'].toString();
         }
       } catch (_) {
-        // Abaikan jika response bukan JSON
+        // Fallback generic berdasarkan status code
+        if (response.statusCode == 422) {
+          errorMessage =
+              "Data yang dikirim tidak valid. Periksa kembali form Anda.";
+        } else if (response.statusCode == 401) {
+          errorMessage =
+              "Sesi login berakhir. Silakan login ulang.";
+        } else if (response.statusCode == 413) {
+          errorMessage = "File terlalu besar untuk server.";
+        } else if (response.statusCode == 500) {
+          errorMessage = "Terjadi kesalahan di server.";
+        }
       }
 
       _showMessage(
@@ -1285,6 +1336,19 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 style: TextStyle(
                   fontWeight:
                       FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(
+                height: 4,
+              ),
+
+              // ✅ Info limit ukuran
+              Text(
+                "Format: JPG, PNG, WEBP. Maksimal 2 MB.",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
                 ),
               ),
 

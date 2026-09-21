@@ -23,6 +23,18 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
 
   final ImagePicker _picker = ImagePicker();
 
+  // ✅ Batas ukuran (sesuaikan dengan Laravel max:xxxx)
+  // Kalau Laravel pakai max:2048 → 2 MB, kalau max:5120 → 5 MB
+  static const int _maxImageSizeInBytes = 5 * 1024 * 1024; // 5 MB
+
+  // ✅ Format yang diizinkan
+  static const List<String> _allowedExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+  ];
+
   // ✅ Pakai Uint8List (bytes) — cocok dengan ApiService.postMultipart
   Uint8List? _imageBytes;
   String? _imageName;
@@ -37,7 +49,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
   }
 
   // ============================================================
-  // PILIH FOTO
+  // PILIH FOTO — DENGAN VALIDASI FORMAT & UKURAN
   // ============================================================
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -50,7 +62,34 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
 
       if (picked == null) return;
 
+      // ✅ VALIDASI EKSTENSI
+      final lowerName = picked.name.toLowerCase();
+      final hasValidExtension =
+          _allowedExtensions.any((ext) => lowerName.endsWith(ext));
+
+      if (!hasValidExtension) {
+        if (!mounted) return;
+        _showSnack(
+          'Format foto harus JPG, JPEG, PNG, atau WEBP.',
+          Colors.red,
+        );
+        return;
+      }
+
+      // Baca bytes
       final bytes = await picked.readAsBytes();
+
+      // ✅ VALIDASI UKURAN (setelah compress, jadi ukurannya sudah kecil)
+      if (bytes.length > _maxImageSizeInBytes) {
+        if (!mounted) return;
+        final sizeMb = (bytes.length / 1024 / 1024).toStringAsFixed(2);
+        final maxMb = (_maxImageSizeInBytes / 1024 / 1024).toStringAsFixed(0);
+        _showSnack(
+          'Ukuran foto terlalu besar ($sizeMb MB). Maksimal $maxMb MB.',
+          Colors.red,
+        );
+        return;
+      }
 
       if (!mounted) return;
 
@@ -58,6 +97,10 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
         _imageBytes = bytes;
         _imageName = picked.name;
       });
+
+      debugPrint(
+        "FOTO BUKTI DIPILIH: ${picked.name} (${bytes.length} bytes)",
+      );
     } catch (e) {
       if (!mounted) return;
       _showSnack('Gagal memilih foto: $e', Colors.red);
@@ -110,6 +153,16 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
                   style: const TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                // ✅ Info limit
+                Text(
+                  'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -198,7 +251,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
   }
 
   // ============================================================
-  // UPLOAD
+  // UPLOAD — DENGAN PARSING ERROR DARI BACKEND
   // ============================================================
   Future<void> _upload() async {
     if (_imageBytes == null) {
@@ -216,9 +269,11 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
 
     setState(() => _isUploading = true);
 
-    final success = await PaymentService.uploadCustomerProof(
+    // ✅ Panggil service versi baru yang return UploadResult
+    final result = await PaymentService.uploadCustomerProof(
       paymentId: widget.payment.id,
       imageBytes: _imageBytes!,
+      imageName: _imageName,
       bankName: _bankNameCtrl.text.trim(),
       accountName: _accountNameCtrl.text.trim(),
       note: _noteCtrl.text.trim(),
@@ -228,11 +283,15 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
 
     setState(() => _isUploading = false);
 
-    if (success) {
+    if (result.success) {
       Navigator.pop(context, true);
       _showSnack('Bukti transfer berhasil dikirim!', Colors.green);
     } else {
-      _showSnack('Gagal mengirim bukti. Coba lagi.', Colors.red);
+      // ✅ Tampilkan pesan error asli dari backend
+      _showSnack(
+        result.message ?? 'Gagal mengirim bukti. Coba lagi.',
+        Colors.red,
+      );
     }
   }
 
@@ -243,6 +302,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
         content: Text(msg),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -423,6 +483,14 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
                 style: const TextStyle(
                   color: Color(0xff6B7280),
                   fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'JPG, JPEG, PNG, WEBP · Maks 5 MB',
+                style: TextStyle(
+                  color: Color(0xff9CA3AF),
+                  fontSize: 11,
                 ),
               ),
             ],

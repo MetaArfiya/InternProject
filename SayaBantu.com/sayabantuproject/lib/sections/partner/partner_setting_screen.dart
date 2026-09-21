@@ -137,6 +137,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
   int totalPoint = 0;
   bool isVerified = false;
+  double rating = 0.0;
+  int reviewsCount = 0;
 
   // ============================================================
   // PASSWORD
@@ -302,6 +304,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           verificationStatus = 'Belum Diverifikasi';
           totalPoint = 0;
           isVerified = false;
+          rating = 0.0;
+          reviewsCount = 0;
           ktpUrl = '';
           selfieUrl = '';
           ktpBytes = null;
@@ -454,6 +458,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       '0') ??
               0;
 
+          final loadedRating = double.tryParse(
+                  mitra['rating']?.toString().replaceAll(',', '.') ?? '0') ??
+              0.0;
+          final loadedReviewsCount = int.tryParse(
+                  mitra['reviews_count']?.toString() ?? '0') ??
+              0;
+
           final rawKtp = mitra['verification_image']?.toString() ?? '';
           final rawSelfie = mitra['selfie_image']?.toString() ?? '';
 
@@ -482,6 +493,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               verificationStatus = loadedVerificationStatus;
               isVerified = loadedIsVerified;
               totalPoint = loadedPoint;
+              rating = loadedRating;
+              reviewsCount = loadedReviewsCount;
 
               bankName = loadedBankName;
               bankAccountNumber = loadedBankAccountNumber;
@@ -587,7 +600,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // PROFILE PHOTO
   // ============================================================
   Future<void> pickProfilePhoto() async {
-    final image = await _pickImageFile();
+    // ✅ Limit 5 MB, sesuai Laravel max:5120 untuk foto profil
+    final image = await _pickImageFile(
+      maxSizeInBytes: 5 * 1024 * 1024,
+      uploadLabel: 'foto profil',
+    );
     if (image == null) return;
     if (mounted) {
       setState(() {
@@ -603,7 +620,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       setState(() => isUploadingPhoto = true);
       final request = html.HttpRequest();
       final formData = html.FormData();
-      final blob = html.Blob([bytes], 'image/jpeg');
+
+      // Tentukan MIME berdasarkan ekstensi
+      String mimeType = 'image/jpeg';
+      final lowerName = fileName.toLowerCase();
+      if (lowerName.endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (lowerName.endsWith('.webp')) {
+        mimeType = 'image/webp';
+      } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+        mimeType = 'image/jpeg';
+      }
+
+      final blob = html.Blob([bytes], mimeType);
       formData.appendBlob('photo_profile', blob, fileName);
 
       request.open('POST', 'http://127.0.0.1:8000/api/user/profile/photo');
@@ -614,40 +643,73 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         request.setRequestHeader('Authorization', 'Bearer $token');
       }
 
-      final completer = Completer<bool>();
-      request.onLoad.listen((_) {
-        if (!completer.isCompleted) {
-          completer.complete(request.status == 200 || request.status == 201);
+      // ✅ Ganti Completer pattern → langsung pakai onLoad
+      request.onLoad.listen((_) async {
+        if (request.status == 200 || request.status == 201) {
+          try {
+            final responseData = jsonDecode(request.responseText ?? '');
+            final returnedUrl = responseData['photo_url'] ??
+                responseData['url'] ??
+                responseData['photo'] ??
+                responseData['user']?['photo_url'];
+            if (returnedUrl != null) {
+              final fullUrl = getFullPhotoUrl(returnedUrl.toString());
+              if (mounted) setState(() => photoUrl = fullUrl);
+              await prefs.setString('profile_image_url', fullUrl);
+            }
+          } catch (_) {}
+          widget.onProfileUpdate();
+          _showMessage('Foto profil berhasil diperbarui.');
+        } else {
+          // ✅ Parse pesan error dari Laravel
+          String errorMessage = 'Gagal mengunggah foto profil.';
+
+          try {
+            final errorData = jsonDecode(request.responseText ?? '{}');
+
+            if (errorData['errors'] is Map) {
+              final errors = errorData['errors'] as Map;
+              if (errors['photo_profile'] is List &&
+                  (errors['photo_profile'] as List).isNotEmpty) {
+                errorMessage =
+                    errors['photo_profile'][0].toString();
+              } else if (errors.isNotEmpty) {
+                final firstKey = errors.keys.first;
+                if (errors[firstKey] is List &&
+                    (errors[firstKey] as List).isNotEmpty) {
+                  errorMessage =
+                      (errors[firstKey] as List)[0].toString();
+                }
+              }
+            } else if (errorData['message'] != null) {
+              errorMessage = errorData['message'].toString();
+            }
+          } catch (_) {
+            if (request.status == 422) {
+              errorMessage =
+                  'File tidak valid. Cek format & ukuran foto.';
+            } else if (request.status == 401) {
+              errorMessage =
+                  'Sesi login berakhir. Silakan login ulang.';
+            } else if (request.status == 413) {
+              errorMessage = 'File terlalu besar untuk server.';
+            } else if (request.status == 500) {
+              errorMessage = 'Terjadi kesalahan di server.';
+            }
+          }
+          _showMessage(errorMessage, error: true);
         }
+        if (mounted) setState(() => isUploadingPhoto = false);
       });
+
       request.onError.listen((_) {
-        if (!completer.isCompleted) completer.complete(false);
+        _showMessage('Tidak dapat terhubung ke server.', error: true);
+        if (mounted) setState(() => isUploadingPhoto = false);
       });
 
       request.send(formData);
-      final success = await completer.future;
-
-      if (success) {
-        try {
-          final responseData = jsonDecode(request.responseText ?? '');
-          final returnedUrl = responseData['photo_url'] ??
-              responseData['url'] ??
-              responseData['photo'] ??
-              responseData['user']?['photo_url'];
-          if (returnedUrl != null) {
-            final fullUrl = getFullPhotoUrl(returnedUrl.toString());
-            if (mounted) setState(() => photoUrl = fullUrl);
-            await prefs.setString('profile_image_url', fullUrl);
-          }
-        } catch (_) {}
-        widget.onProfileUpdate();
-        _showMessage('Foto profil berhasil diperbarui.');
-      } else {
-        _showMessage('Gagal mengunggah foto profil.', error: true);
-      }
     } catch (e) {
       _showMessage('Gagal mengunggah foto: $e', error: true);
-    } finally {
       if (mounted) setState(() => isUploadingPhoto = false);
     }
   }
@@ -859,7 +921,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // KTP & SELFIE
   // ============================================================
   Future<void> pickKtp() async {
-    final image = await _pickImageFile();
+    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk KTP
+    final image = await _pickImageFile(
+      maxSizeInBytes: 2 * 1024 * 1024,
+      uploadLabel: 'foto KTP',
+    );
     if (image == null) return;
     if (mounted) {
       setState(() {
@@ -872,7 +938,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   Future<void> pickSelfie() async {
-    final image = await _pickImageFile(capture: 'user');
+    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk selfie
+    final image = await _pickImageFile(
+      capture: 'user',
+      maxSizeInBytes: 2 * 1024 * 1024,
+      uploadLabel: 'foto verifikasi diri',
+    );
     if (image == null) return;
     if (mounted) {
       setState(() {
@@ -1140,7 +1211,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // PICK SERTIFIKAT
   // ============================================================
   Future<void> pickCertificate() async {
-    final image = await _pickImageFile();
+    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk sertifikat
+    final image = await _pickImageFile(
+      maxSizeInBytes: 2 * 1024 * 1024,
+      uploadLabel: 'sertifikat',
+    );
     if (image == null) return;
     if (mounted) {
       setState(() {
@@ -1160,7 +1235,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Maksimal 6 foto keahlian.', error: true);
       return;
     }
-    final image = await _pickImageFile();
+    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk skill photo
+    final image = await _pickImageFile(
+      maxSizeInBytes: 2 * 1024 * 1024,
+      uploadLabel: 'foto keahlian',
+    );
     if (image == null) return;
     if (mounted) {
       setState(() {
@@ -1180,9 +1259,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // IMAGE PICKER WEB
+  // IMAGE PICKER WEB — DENGAN VALIDASI UKURAN & FORMAT
   // ============================================================
-  Future<_PickedImage?> _pickImageFile({String? capture}) async {
+  Future<_PickedImage?> _pickImageFile({
+    String? capture,
+    int maxSizeInBytes = 5 * 1024 * 1024, // default 5 MB
+    String uploadLabel = 'file',
+  }) async {
     final input = html.FileUploadInputElement();
     input.accept = 'image/*';
     if (capture != null) input.setAttribute('capture', capture);
@@ -1195,10 +1278,50 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         return;
       }
       final file = files.first;
+
+      // ✅ VALIDASI MIME TYPE
       if (!file.type.startsWith('image/')) {
+        if (mounted) {
+          _showMessage(
+            'File yang dipilih harus berupa gambar.',
+            error: true,
+          );
+        }
         if (!completer.isCompleted) completer.complete(null);
         return;
       }
+
+      // ✅ VALIDASI EKSTENSI
+      final lowerName = file.name.toLowerCase();
+      final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+      final hasValidExtension =
+          allowedExtensions.any((ext) => lowerName.endsWith(ext));
+
+      if (!hasValidExtension) {
+        if (mounted) {
+          _showMessage(
+            'Format foto harus JPG, JPEG, PNG, atau WEBP.',
+            error: true,
+          );
+        }
+        if (!completer.isCompleted) completer.complete(null);
+        return;
+      }
+
+      // ✅ VALIDASI UKURAN
+      if (file.size > maxSizeInBytes) {
+        if (mounted) {
+          final sizeMb = (file.size / 1024 / 1024).toStringAsFixed(2);
+          final maxMb = (maxSizeInBytes / 1024 / 1024).toStringAsFixed(0);
+          _showMessage(
+            'Ukuran $uploadLabel terlalu besar ($sizeMb MB). Maksimal $maxMb MB.',
+            error: true,
+          );
+        }
+        if (!completer.isCompleted) completer.complete(null);
+        return;
+      }
+
       final reader = html.FileReader();
       reader.readAsArrayBuffer(file);
       reader.onLoadEnd.listen((event) {
@@ -1466,6 +1589,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                             icon: Icons.stars,
                             label: '$totalPoint Poin',
                             color: Colors.orange),
+                        _badge(
+                          icon: Icons.star,
+                          label: rating > 0
+                              ? '${rating.toStringAsFixed(1)} ($reviewsCount ulasan)'
+                              : 'Belum ada ulasan',
+                          color: const Color(0xffFBBF24),
+                        ),
                         _badge(
                           icon: isVerified
                               ? Icons.verified
@@ -2595,7 +2725,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         label: label,
         icon: icon,
         hintText: hintText,
-        // ✅ Sembunyikan counter "0/100" kecuali multi-line
         showCounter: maxLength != null && maxLines > 1,
         maxLength: maxLength,
       ),
@@ -2644,7 +2773,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       prefixIcon: Icon(icon, size: 20),
       filled: true,
       fillColor: const Color(0xffF8FAFC),
-      // ✅ Sembunyikan counter kecuali diminta
       counterText: showCounter ? null : '',
       contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
       border: OutlineInputBorder(

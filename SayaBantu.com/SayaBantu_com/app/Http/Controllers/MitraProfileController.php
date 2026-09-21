@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\mitra_profiles;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use App\Models\users;
 use App\Notifications\NewMitraRegistered;
 
@@ -269,6 +270,23 @@ class MitraProfileController extends Controller
                 );
             }
 
+            // ✅ TAMBAHAN: Hitung jumlah ulasan dari tabel ratings
+            $reviewsCount = DB::table('ratings')
+                ->where('mitra_id', $user->id)
+                ->where('is_hidden', 0)
+                ->count();
+
+            // ✅ TAMBAHAN (opsional tapi disarankan): Hitung rata-rata dari tabel ratings
+            // Supaya nilai rating selalu konsisten dengan jumlah ulasan
+            $avgRating = DB::table('ratings')
+                ->where('mitra_id', $user->id)
+                ->where('is_hidden', 0)
+                ->avg('stars');
+
+            $ratingValue = $avgRating !== null
+                ? round((float) $avgRating, 1)
+                : (float) ($profile->rating ?? 0);
+
             return response()->json([
                 'status' => 'success',
 
@@ -290,21 +308,22 @@ class MitraProfileController extends Controller
                     // Skills tetap dikirim sebagai array
                     'skills' => $skillsArray,
 
-                    // 🆕 Rekening bank
+                    // Rekening bank
                     'bank_name'           => $profile->bank_name,
                     'bank_account_number' => $profile->bank_account_number,
                     'bank_account_name'   => $profile->bank_account_name,
 
                     // Statistik
-                    'point' => $profile->point ?? 0,
-                    'rating' => $profile->rating ?? 0,
-                    'is_verified' => (int)$profile->is_verified === 1,
+                    'point'          => $profile->point ?? 0,
+                    'rating'         => $ratingValue,
+                    'reviews_count'  => $reviewsCount,   // ✅ TAMBAHAN
+                    'is_verified'    => (int)$profile->is_verified === 1,
 
                     // Berkas jika nanti diperlukan frontend
                     'verification_image' => $profile->verification_image,
-                    'selfie_image' => $profile->selfie_image,
-                    'certificate' => $profile->certificate,
-                    'skill_photos' => $profile->skill_photos,
+                    'selfie_image'       => $profile->selfie_image,
+                    'certificate'        => $profile->certificate,
+                    'skill_photos'       => $profile->skill_photos,
                 ]
             ], 200);
 
