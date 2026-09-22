@@ -2403,8 +2403,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // ============================================================
   // SKILL SECTION
   // ============================================================
+    // ============================================================
+  // SKILL SECTION
+  // ============================================================
   Widget _buildSkillSection() {
     final validCategory = categories.contains(selectedCategory);
+    final int totalPhotos = skillPhotoUrls.length + skillPhotoBytes.length;
+
     return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2441,81 +2446,143 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 15),
-          if (skillPhotoUrls.isNotEmpty) ...[
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: skillPhotoUrls.map((url) {
-                return GestureDetector(
-                  onTap: () => _showImageDialog(context, NetworkImage(url)),
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: NetworkImage(url),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-          ],
-          if (skillPhotoBytes.isNotEmpty)
+
+          // ============================================================
+          // ✅ GRID FOTO — 1 full, 2 bagi 2, 3+ bagi 3 (tinggi fix 180)
+          // ============================================================
+          if (totalPhotos > 0) ...[
             LayoutBuilder(
               builder: (context, constraints) {
-                int columns = constraints.maxWidth < 500 ? 2 : 3;
+                // Tentukan jumlah kolom
+                int columns;
+                if (totalPhotos == 1) {
+                  columns = 1;
+                } else if (totalPhotos == 2) {
+                  columns = 2;
+                } else {
+                  columns = 3;
+                }
+
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: skillPhotoBytes.length,
+                  itemCount: totalPhotos,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: columns,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 1,
+                    mainAxisExtent: 180, // ✅ tinggi fix seragam
                   ),
                   itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _showImageDialog(
-                              context, MemoryImage(skillPhotoBytes[index])),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.memory(
-                              skillPhotoBytes[index],
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
+                    // Index < urls.length → foto lama (URL)
+                    // sisanya → foto baru (bytes)
+                    final bool isUrl = index < skillPhotoUrls.length;
+
+                    final String? url =
+                        isUrl ? skillPhotoUrls[index] : null;
+                    final Uint8List? bytes = isUrl
+                        ? null
+                        : skillPhotoBytes[index - skillPhotoUrls.length];
+
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // ==========================================
+                          // FOTO — full memenuhi tile (cover)
+                          // ==========================================
+                          GestureDetector(
+                            onTap: () => _showImageDialog(
+                              context,
+                              isUrl
+                                  ? NetworkImage(url!)
+                                  : MemoryImage(bytes!),
                             ),
+                            child: isUrl
+                                ? Image.network(
+                                    url!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover, // ✅ full
+                                    errorBuilder: (context, error,
+                                        stackTrace) {
+                                      return Container(
+                                        color: Colors.grey.shade100,
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          size: 40,
+                                          color: Colors.grey,
+                                        ),
+                                      );
+                                    },
+                                    loadingBuilder: (context, child,
+                                        loadingProgress) {
+                                      if (loadingProgress == null) {
+                                        return child;
+                                      }
+                                      return Container(
+                                        color: Colors.grey.shade100,
+                                        child: const Center(
+                                          child:
+                                              CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Image.memory(
+                                    bytes!,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover, // ✅ full
+                                  ),
                           ),
-                        ),
-                        Positioned(
-                          right: 6,
-                          top: 6,
-                          child: GestureDetector(
-                            onTap: () => removeSkillPhoto(index),
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: const BoxDecoration(
-                                  color: Colors.red, shape: BoxShape.circle),
-                              child: const Icon(Icons.close,
-                                  size: 17, color: Colors.white),
+
+                          // ==========================================
+                          // TOMBOL HAPUS — hanya untuk foto baru (bytes)
+                          // ==========================================
+                          if (!isUrl)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: GestureDetector(
+                                onTap: () => removeSkillPhoto(
+                                    index - skillPhotoUrls.length),
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 17,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                 );
               },
             ),
-          if (skillPhotoBytes.isNotEmpty) const SizedBox(height: 15),
+            const SizedBox(height: 15),
+          ],
+
+          // ============================================================
+          // TOMBOL TAMBAH FOTO
+          // ============================================================
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -2532,6 +2599,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             ),
           ),
           const SizedBox(height: 16),
+
+          // ============================================================
+          // TOMBOL SIMPAN
+          // ============================================================
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
