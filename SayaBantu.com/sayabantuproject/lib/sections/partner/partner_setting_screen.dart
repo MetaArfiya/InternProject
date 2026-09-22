@@ -38,6 +38,27 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     FilteringTextInputFormatter.digitsOnly,
   ];
 
+  /// Daftar bank umum + opsi "Lainnya"
+  static const List<String> bankList = [
+    'BCA',
+    'Mandiri',
+    'BNI',
+    'BRI',
+    'BSI (Syariah)',
+    'CIMB Niaga',
+    'Permata',
+    'Danamon',
+    'BTN',
+    'OCBC',
+    'Panin',
+    'Maybank',
+    'Bank Mega',
+    'Bukopin',
+    'Bank Jago',
+    'SeaBank',
+    'Lainnya',
+  ];
+
   // ============================================================
   // BASIC PROFILE
   // ============================================================
@@ -81,6 +102,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   String bankName = '';
   String bankAccountNumber = '';
   String bankAccountName = '';
+
+  bool isCustomBank = false; // ✅ apakah pakai input manual
 
   final TextEditingController bankNameController = TextEditingController();
   final TextEditingController bankAccountNumberController =
@@ -300,6 +323,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           bankName = '';
           bankAccountNumber = '';
           bankAccountName = '';
+          isCustomBank = false;
           selectedCategory = '';
           verificationStatus = 'Belum Diverifikasi';
           totalPoint = 0;
@@ -499,7 +523,20 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               bankName = loadedBankName;
               bankAccountNumber = loadedBankAccountNumber;
               bankAccountName = loadedBankAccountName;
-              bankNameController.text = loadedBankName;
+
+              // ✅ Deteksi apakah bank dari database termasuk daftar umum
+              if (loadedBankName.isEmpty) {
+                isCustomBank = false;
+                bankNameController.text = '';
+              } else if (bankList.contains(loadedBankName) &&
+                  loadedBankName != 'Lainnya') {
+                isCustomBank = false;
+                bankNameController.text = loadedBankName;
+              } else {
+                isCustomBank = true;
+                bankNameController.text = loadedBankName;
+              }
+
               bankAccountNumberController.text = loadedBankAccountNumber;
               bankAccountNameController.text = loadedBankAccountName;
 
@@ -643,7 +680,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         request.setRequestHeader('Authorization', 'Bearer $token');
       }
 
-      // ✅ Ganti Completer pattern → langsung pakai onLoad
       request.onLoad.listen((_) async {
         if (request.status == 200 || request.status == 201) {
           try {
@@ -820,7 +856,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // SAVE BANK ACCOUNT
   // ============================================================
   Future<void> saveBankAccount() async {
-    final newBankName = bankNameController.text.trim();
+    // ✅ Ambil nama bank dari dropdown atau input manual
+    final newBankName = isCustomBank
+        ? bankNameController.text.trim()
+        : bankName.trim();
+
     final newAccountNumber = bankAccountNumberController.text.trim();
     final newAccountName = bankAccountNameController.text.trim();
 
@@ -868,6 +908,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             bankName = newBankName;
             bankAccountNumber = newAccountNumber;
             bankAccountName = newAccountName;
+            bankNameController.text = newBankName;
           });
         }
         _showMessage('Rekening bank berhasil disimpan.');
@@ -1877,14 +1918,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               if (!twoColumn) {
                 return Column(
                   children: [
-                    _textField(
-                      controller: bankNameController,
-                      label: 'Nama Bank',
-                      icon: Icons.account_balance_outlined,
-                      hintText: 'Contoh: BCA, Mandiri, BNI, BRI',
-                      maxLength: 100,
-                      inputFormatters: nameFormatters,
-                    ),
+                    _bankNameDropdown(),
                     const SizedBox(height: 14),
                     _textField(
                       controller: bankAccountNumberController,
@@ -1910,17 +1944,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               return Column(
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _textField(
-                          controller: bankNameController,
-                          label: 'Nama Bank',
-                          icon: Icons.account_balance_outlined,
-                          hintText: 'Contoh: BCA, Mandiri, BNI',
-                          maxLength: 100,
-                          inputFormatters: nameFormatters,
-                        ),
-                      ),
+                      Expanded(child: _bankNameDropdown()),
                       const SizedBox(width: 14),
                       Expanded(
                         child: _textField(
@@ -1995,7 +2021,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // GENDER
+  // GENDER DROPDOWN
   // ============================================================
   Widget _genderDropdown() {
     final validGender = ['Laki-laki', 'Perempuan'].contains(gender);
@@ -2012,6 +2038,71 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         if (value == null) return;
         setState(() => gender = value);
       },
+    );
+  }
+
+  // ============================================================
+  // BANK NAME DROPDOWN
+  // ============================================================
+  Widget _bankNameDropdown() {
+    // Tentukan value dropdown
+    String? dropdownValue;
+    if (isCustomBank) {
+      dropdownValue = 'Lainnya';
+    } else if (bankName.isNotEmpty &&
+        bankName != 'Lainnya' &&
+        bankList.contains(bankName)) {
+      dropdownValue = bankName;
+    } else {
+      dropdownValue = null;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          value: dropdownValue,
+          isExpanded: true,
+          decoration: _inputDecoration(
+            label: 'Nama Bank',
+            icon: Icons.account_balance_outlined,
+          ),
+          hint: const Text('Pilih bank'),
+          items: bankList
+              .map((bank) => DropdownMenuItem(
+                    value: bank,
+                    child: Text(bank),
+                  ))
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() {
+              if (value == 'Lainnya') {
+                isCustomBank = true;
+                bankName = '';
+                bankNameController.clear();
+              } else {
+                isCustomBank = false;
+                bankName = value;
+                bankNameController.text = value;
+              }
+            });
+          },
+        ),
+
+        // ✅ Kalau "Lainnya" dipilih → tampilkan input manual
+        if (isCustomBank) ...[
+          const SizedBox(height: 14),
+          _textField(
+            controller: bankNameController,
+            label: 'Nama Bank Lainnya',
+            icon: Icons.edit_outlined,
+            hintText: 'Masukkan nama bank kamu',
+            maxLength: 100,
+            inputFormatters: nameFormatters,
+          ),
+        ],
+      ],
     );
   }
 

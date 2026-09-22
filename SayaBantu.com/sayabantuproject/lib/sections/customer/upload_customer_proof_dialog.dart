@@ -6,6 +6,29 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/payment_model.dart';
 import '../../services/payment_service.dart';
 
+// ============================================================
+// DAFTAR BANK
+// ============================================================
+const List<String> bankList = [
+  'BCA',
+  'Mandiri',
+  'BNI',
+  'BRI',
+  'BSI (Syariah)',
+  'CIMB Niaga',
+  'Permata',
+  'Danamon',
+  'BTN',
+  'OCBC',
+  'Panin',
+  'Maybank',
+  'Bank Mega',
+  'Bukopin',
+  'Bank Jago',
+  'SeaBank',
+  'Lainnya',
+];
+
 class UploadCustomerProofDialog extends StatefulWidget {
   final PaymentModel payment;
 
@@ -17,14 +40,18 @@ class UploadCustomerProofDialog extends StatefulWidget {
 }
 
 class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
-  final TextEditingController _bankNameCtrl = TextEditingController();
+  // === BANK ===
+  String? _selectedBank;
+  bool _isCustomBank = false;
+  final TextEditingController _customBankCtrl = TextEditingController();
+
+  // === REKENING ===
   final TextEditingController _accountNameCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
 
   // ✅ Batas ukuran (sesuaikan dengan Laravel max:xxxx)
-  // Kalau Laravel pakai max:2048 → 2 MB, kalau max:5120 → 5 MB
   static const int _maxImageSizeInBytes = 5 * 1024 * 1024; // 5 MB
 
   // ✅ Format yang diizinkan
@@ -35,17 +62,25 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
     '.webp',
   ];
 
-  // ✅ Pakai Uint8List (bytes) — cocok dengan ApiService.postMultipart
+  // ✅ Pakai Uint8List (bytes)
   Uint8List? _imageBytes;
   String? _imageName;
   bool _isUploading = false;
 
   @override
   void dispose() {
-    _bankNameCtrl.dispose();
+    _customBankCtrl.dispose();
     _accountNameCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
+  }
+
+  // ============================================================
+  // HELPER: nama bank final
+  // ============================================================
+  String get _finalBankName {
+    if (_isCustomBank) return _customBankCtrl.text.trim();
+    return _selectedBank?.trim() ?? '';
   }
 
   // ============================================================
@@ -79,7 +114,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
       // Baca bytes
       final bytes = await picked.readAsBytes();
 
-      // ✅ VALIDASI UKURAN (setelah compress, jadi ukurannya sudah kecil)
+      // ✅ VALIDASI UKURAN
       if (bytes.length > _maxImageSizeInBytes) {
         if (!mounted) return;
         final sizeMb = (bytes.length / 1024 / 1024).toStringAsFixed(2);
@@ -121,7 +156,6 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
   // BOTTOM SHEET SUMBER FOTO
   // ============================================================
   void _showSourceSheet() {
-    // ✅ Kamera hanya di native (Android/iOS), tidak di Web
     final showCamera = !kIsWeb;
 
     showModalBottomSheet(
@@ -157,7 +191,6 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
                 ),
                 const SizedBox(height: 6),
 
-                // ✅ Info limit
                 Text(
                   'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
                   style: TextStyle(
@@ -167,9 +200,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
                 ),
                 const SizedBox(height: 20),
 
-                // ============================================
-                // KAMERA — hanya tampil di native
-                // ============================================
+                // KAMERA
                 if (showCamera) ...[
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -198,9 +229,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
                   const SizedBox(height: 8),
                 ],
 
-                // ============================================
-                // GALERI — selalu tampil
-                // ============================================
+                // GALERI
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -258,8 +287,13 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
       _showSnack('Pilih foto bukti transfer terlebih dahulu.', Colors.red);
       return;
     }
-    if (_bankNameCtrl.text.trim().isEmpty) {
-      _showSnack('Isi nama bank pengirim.', Colors.red);
+    if (_finalBankName.isEmpty) {
+      _showSnack(
+        _isCustomBank
+            ? 'Isi nama bank pengirim.'
+            : 'Pilih bank pengirim terlebih dahulu.',
+        Colors.red,
+      );
       return;
     }
     if (_accountNameCtrl.text.trim().isEmpty) {
@@ -269,12 +303,11 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
 
     setState(() => _isUploading = true);
 
-    // ✅ Panggil service versi baru yang return UploadResult
     final result = await PaymentService.uploadCustomerProof(
       paymentId: widget.payment.id,
       imageBytes: _imageBytes!,
       imageName: _imageName,
-      bankName: _bankNameCtrl.text.trim(),
+      bankName: _finalBankName,
       accountName: _accountNameCtrl.text.trim(),
       note: _noteCtrl.text.trim(),
     );
@@ -287,7 +320,6 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
       Navigator.pop(context, true);
       _showSnack('Bukti transfer berhasil dikirim!', Colors.green);
     } else {
-      // ✅ Tampilkan pesan error asli dari backend
       _showSnack(
         result.message ?? 'Gagal mengirim bukti. Coba lagi.',
         Colors.red,
@@ -336,20 +368,57 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
               const SizedBox(height: 16),
 
               // ============================================
-              // INPUT BANK
+              // DROPDOWN BANK PENGIRIM
               // ============================================
-              TextField(
-                controller: _bankNameCtrl,
-                enabled: !_isUploading,
+              DropdownButtonFormField<String>(
+                value: _selectedBank,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Bank Pengirim',
-                  hintText: 'Contoh: BCA, Mandiri, BNI',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.account_balance),
                 ),
+                items: bankList
+                    .map((bank) => DropdownMenuItem<String>(
+                          value: bank,
+                          child: Text(bank),
+                        ))
+                    .toList(),
+                onChanged: _isUploading
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _selectedBank = value;
+                          _isCustomBank = value == 'Lainnya';
+                          if (!_isCustomBank) {
+                            _customBankCtrl.clear();
+                          }
+                        });
+                      },
               ),
+
+              // ============================================
+              // INPUT MANUAL — hanya kalau pilih "Lainnya"
+              // ============================================
+              if (_isCustomBank) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _customBankCtrl,
+                  enabled: !_isUploading,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Bank (Manual)',
+                    hintText: 'Contoh: Bank Daerah, Koperasi, dll',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.edit_outlined),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 12),
 
+              // ============================================
+              // NAMA PEMILIK REKENING
+              // ============================================
               TextField(
                 controller: _accountNameCtrl,
                 enabled: !_isUploading,
@@ -361,6 +430,9 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
               ),
               const SizedBox(height: 12),
 
+              // ============================================
+              // CATATAN
+              // ============================================
               TextField(
                 controller: _noteCtrl,
                 enabled: !_isUploading,
@@ -434,7 +506,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
   }
 
   // ============================================================
-  // IMAGE SECTION — beda tampilan kalau ada / belum ada foto
+  // IMAGE SECTION
   // ============================================================
   Widget _buildImageSection() {
     // Belum ada foto
