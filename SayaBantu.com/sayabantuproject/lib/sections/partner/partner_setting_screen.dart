@@ -2297,7 +2297,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           const SizedBox(height: 10),
 
           // ============================================================
-          // PREVIEW - SEMUA UPLOAD FIELD MENGGUNAKAN UKURAN YANG SAMA
+          // PREVIEW - FULL (cover) - SEMUA UPLOAD FIELD
           // ============================================================
           GestureDetector(
             onTap: hasImage
@@ -2320,20 +2320,20 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               child: Container(
                 width: double.infinity,
                 height: 150,
-                color: Colors.white,
+                color: Colors.grey.shade100,
                 child: hasFile
                     ? Image.memory(
                         bytes!,
                         width: double.infinity,
                         height: 150,
-                        fit: BoxFit.contain,
+                        fit: BoxFit.cover, // ✅ full
                       )
                     : hasUrl
                         ? Image.network(
                             url,
                             width: double.infinity,
                             height: 150,
-                            fit: BoxFit.contain,
+                            fit: BoxFit.cover, // ✅ full
                             errorBuilder: (context, error, stackTrace) {
                               return const Center(
                                 child: Icon(
@@ -2426,104 +2426,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // GENERIC PHOTO FIELD FOR SKILL PHOTOS
-  // ============================================================
-  Widget _photoFieldContainer({
-    required String title,
-    required String description,
-    required Widget image,
-    required String fileText,
-    required String buttonText,
-    required IconData buttonIcon,
-    required VoidCallback onTap,
-    Color buttonColor = Colors.orange,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xffF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xffE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xff1F2937),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 10),
-          GestureDetector(
-            onTap: () {
-              if (image is Image && image.image is MemoryImage) {
-                _showImageDialog(context, image.image as MemoryImage);
-              } else if (image is Image && image.image is NetworkImage) {
-                _showImageDialog(context, image.image as NetworkImage);
-              }
-            },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: double.infinity,
-                height: 150,
-                child: image,
-              ),
-            ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            fileText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.green.shade600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: double.infinity,
-            height: 34,
-            child: OutlinedButton.icon(
-              onPressed: onTap,
-              icon: Icon(buttonIcon, size: 14),
-              label: Text(
-                buttonText,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: buttonColor,
-                side: BorderSide(color: buttonColor),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
   // VERIFICATION STATUS
   // ============================================================
   Widget _verificationStatusCard() {
@@ -2573,15 +2475,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // ============================================================
   // SKILL SECTION
   // ============================================================
-    // ============================================================
-  // SKILL SECTION
-  // ============================================================
   Widget _buildSkillSection() {
     final validCategory = categories.contains(selectedCategory);
-<<<<<<< HEAD
-=======
     final int totalPhotos = skillPhotoUrls.length + skillPhotoBytes.length;
->>>>>>> 48c3fde199c82b19320c89e7cbe6054bd7c8ed43
 
     return _sectionCard(
       child: Column(
@@ -2635,33 +2531,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
           const SizedBox(height: 15),
 
-<<<<<<< HEAD
-          // FOTO KEAHLIAN YANG SUDAH TERSIMPAN
-          if (skillPhotoUrls.isNotEmpty)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 800 ? 2 : 1;
-                final width = columns == 2
-                    ? (constraints.maxWidth - 14) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  children: skillPhotoUrls.map((url) {
-                    return SizedBox(
-                      width: width,
-                      child: _savedPhotoField(
-                        title: 'Foto Keahlian / Hasil Pekerjaan',
-                        url: url,
-=======
           // ============================================================
-          // ✅ GRID FOTO — 1 full, 2 bagi 2, 3+ bagi 3 (tinggi fix 180)
+          // ✅ GRID FOTO — 1 full, 2 bagi 2, 3+ bagi 3 (rapi & penuh)
           // ============================================================
           if (totalPhotos > 0) ...[
             LayoutBuilder(
               builder: (context, constraints) {
-                // Tentukan jumlah kolom
                 int columns;
                 if (totalPhotos == 1) {
                   columns = 1;
@@ -2679,7 +2554,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     crossAxisCount: columns,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    mainAxisExtent: 180, // ✅ tinggi fix seragam
+                    mainAxisExtent: 180,
                   ),
                   itemBuilder: (context, index) {
                     // Index < urls.length → foto lama (URL)
@@ -2712,7 +2587,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                     url!,
                                     width: double.infinity,
                                     height: double.infinity,
-                                    fit: BoxFit.cover, // ✅ full
+                                    fit: BoxFit.cover,
                                     errorBuilder: (context, error,
                                         stackTrace) {
                                       return Container(
@@ -2742,7 +2617,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                     bytes!,
                                     width: double.infinity,
                                     height: double.infinity,
-                                    fit: BoxFit.cover, // ✅ full
+                                    fit: BoxFit.cover,
                                   ),
                           ),
 
@@ -2779,50 +2654,18 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                               ),
                             ),
                         ],
->>>>>>> 48c3fde199c82b19320c89e7cbe6054bd7c8ed43
                       ),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),
-<<<<<<< HEAD
-
-          // FOTO KEAHLIAN BARU YANG BELUM DIUPLOAD
-          if (skillPhotoBytes.isNotEmpty) ...[
-            if (skillPhotoUrls.isNotEmpty) const SizedBox(height: 14),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 800 ? 2 : 1;
-                final width = columns == 2
-                    ? (constraints.maxWidth - 14) / 2
-                    : constraints.maxWidth;
-
-                return Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  children: List.generate(skillPhotoBytes.length, (index) {
-                    return SizedBox(
-                      width: width,
-                      child: _localSkillPhotoField(index),
-                    );
-                  }),
-                );
-              },
-            ),
-          ],
-
-          const SizedBox(height: 14),
-
-          // TOMBOL TAMBAH FOTO MENGGUNAKAN STYLE FIELD YANG SAMA
-=======
             const SizedBox(height: 15),
           ],
 
           // ============================================================
           // TOMBOL TAMBAH FOTO
           // ============================================================
->>>>>>> 48c3fde199c82b19320c89e7cbe6054bd7c8ed43
           SizedBox(
             width: double.infinity,
             height: 38,
@@ -2852,12 +2695,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
           const SizedBox(height: 16),
 
-<<<<<<< HEAD
-=======
           // ============================================================
           // TOMBOL SIMPAN
           // ============================================================
->>>>>>> 48c3fde199c82b19320c89e7cbe6054bd7c8ed43
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
@@ -2879,70 +2719,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  // ============================================================
-  // SAVED SKILL PHOTO FIELD
-  // ============================================================
-  Widget _savedPhotoField({
-    required String title,
-    required String url,
-  }) {
-    return _photoFieldContainer(
-      title: title,
-      description: 'Foto keahlian yang sudah tersimpan.',
-      image: Image.network(
-        url,
-        width: double.infinity,
-        height: 150,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return const Center(
-            child: Icon(
-              Icons.broken_image_outlined,
-              size: 40,
-              color: Colors.grey,
-            ),
-          );
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          );
-        },
-      ),
-      fileText: 'File tersimpan',
-      buttonText: 'Lihat Foto',
-      buttonIcon: Icons.visibility_outlined,
-      onTap: () => _showImageDialog(context, NetworkImage(url)),
-    );
-  }
-
-  // ============================================================
-  // LOCAL SKILL PHOTO FIELD
-  // ============================================================
-  Widget _localSkillPhotoField(int index) {
-    final bytes = skillPhotoBytes[index];
-    final fileName = index < skillPhotoNames.length
-        ? skillPhotoNames[index]
-        : 'Foto keahlian';
-
-    return _photoFieldContainer(
-      title: 'Foto Keahlian / Hasil Pekerjaan',
-      description: 'Foto baru yang akan diupload.',
-      image: Image.memory(
-        bytes,
-        width: double.infinity,
-        height: 150,
-        fit: BoxFit.cover,
-      ),
-      fileText: fileName,
-      buttonText: 'Hapus Foto',
-      buttonIcon: Icons.delete_outline,
-      buttonColor: Colors.red,
-      onTap: () => removeSkillPhoto(index),
     );
   }
 
