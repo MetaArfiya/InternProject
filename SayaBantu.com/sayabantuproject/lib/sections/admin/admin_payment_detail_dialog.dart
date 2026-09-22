@@ -84,7 +84,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
     setState(() => _isProcessing = true);
 
-    final success = await PaymentService.verifyCustomerProof(
+    // ✅ Sekarang return UploadResult
+    final result = await PaymentService.verifyCustomerProof(
       paymentId: widget.payment.id,
       action: action,
       note: noteCtrl.text.trim(),
@@ -93,7 +94,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    if (success) {
+    // ✅ Pakai result.success
+    if (result.success) {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -107,8 +109,10 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gagal memproses. Coba lagi.'),
+        SnackBar(
+          content: Text(
+            result.message ?? 'Gagal memproses. Coba lagi.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -189,7 +193,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
     setState(() => _isProcessing = true);
 
-    final success = await PaymentService.refund(
+    // ✅ Sekarang return UploadResult
+    final result = await PaymentService.refund(
       paymentId: widget.payment.id,
       reason: reasonCtrl.text.trim(),
     );
@@ -197,7 +202,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    if (success) {
+    // ✅ Pakai result.success
+    if (result.success) {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -207,8 +213,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gagal refund. Coba lagi.'),
+        SnackBar(
+          content: Text(result.message ?? 'Gagal refund. Coba lagi.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -253,7 +259,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   }
 
   // ============================================================
-  // WIDGET GAMBAR BUKTI (KLIK UNTUK FULLSCREEN)
+  // WIDGET GAMBAR BUKTI
   // ============================================================
   Widget _buildProofImage(
     String? path, {
@@ -662,7 +668,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 }
 
 // ================================================================
-// FULLSCREEN IMAGE VIEWER — FIX: HANYA 1 TOMBOL X
+// FULLSCREEN IMAGE VIEWER
 // ================================================================
 class _FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
@@ -720,9 +726,6 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
           style: const TextStyle(fontSize: 16),
         ),
         actions: [
-          // ✅ HANYA tampilkan Reset Zoom kalau sedang di-zoom
-          // Tombol X TIDAK perlu karena fullscreenDialog sudah otomatis
-          // menampilkan tombol close di kiri AppBar
           if (_isZoomed)
             IconButton(
               tooltip: 'Reset Zoom',

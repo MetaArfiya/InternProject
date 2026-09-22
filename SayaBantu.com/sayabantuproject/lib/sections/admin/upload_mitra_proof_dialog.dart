@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/payment_model.dart';
@@ -17,7 +18,19 @@ class UploadMitraProofDialog extends StatefulWidget {
 class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
   final TextEditingController _noteCtrl = TextEditingController();
   Uint8List? _imageBytes;
+  String? _imageName;
   bool _isUploading = false;
+
+  // ✅ Batas ukuran (sesuaikan dengan Laravel max:xxxx)
+  static const int _maxImageSizeInBytes = 5 * 1024 * 1024; // 5 MB
+
+  // ✅ Format yang diizinkan
+  static const List<String> _allowedExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+  ];
 
   @override
   void dispose() {
@@ -25,50 +38,195 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
     super.dispose();
   }
 
+  // ============================================================
+  // PILIH FOTO — DENGAN VALIDASI FORMAT & UKURAN
+  // ============================================================
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: source,
-      imageQuality: 75,
-      maxWidth: 1600,
-    );
-    if (picked == null) return;
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        imageQuality: 75,
+        maxWidth: 1600,
+      );
 
-    final bytes = await picked.readAsBytes();
+      if (picked == null) return;
 
-    if (!mounted) return;
-    setState(() => _imageBytes = bytes);
+      // ✅ VALIDASI EKSTENSI
+      final lowerName = picked.name.toLowerCase();
+      final hasValidExtension =
+          _allowedExtensions.any((ext) => lowerName.endsWith(ext));
+
+      if (!hasValidExtension) {
+        if (!mounted) return;
+        _showSnack(
+          'Format foto harus JPG, JPEG, PNG, atau WEBP.',
+          Colors.red,
+        );
+        return;
+      }
+
+      // Baca bytes
+      final bytes = await picked.readAsBytes();
+
+      // ✅ VALIDASI UKURAN
+      if (bytes.length > _maxImageSizeInBytes) {
+        if (!mounted) return;
+        final sizeMb = (bytes.length / 1024 / 1024).toStringAsFixed(2);
+        final maxMb = (_maxImageSizeInBytes / 1024 / 1024).toStringAsFixed(0);
+        _showSnack(
+          'Ukuran foto terlalu besar ($sizeMb MB). Maksimal $maxMb MB.',
+          Colors.red,
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _imageBytes = bytes;
+        _imageName = picked.name;
+      });
+
+      debugPrint(
+        "FOTO BUKTI MITRA DIPILIH: ${picked.name} (${bytes.length} bytes)",
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Gagal memilih foto: $e', Colors.red);
+    }
   }
 
+  // ============================================================
+  // BOTTOM SHEET SUMBER FOTO
+  // ============================================================
   void _showSourceSheet() {
+    // ✅ Kamera hanya di native (Android/iOS), tidak di Web
+    final showCamera = !kIsWeb;
+
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Kamera'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Galeri'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 45,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xffD1D5DB),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                Text(
+                  showCamera ? 'Pilih Sumber Foto' : 'Pilih Foto',
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                // ✅ Info limit
+                Text(
+                  'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // KAMERA
+                if (showCamera) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xffDCFCE7),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: Color(0xff16A34A),
+                      ),
+                    ),
+                    title: const Text(
+                      'Kamera',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text('Ambil foto bukti transfer sekarang'),
+                    onTap: () {
+                      Navigator.pop(bottomSheetContext);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // GALERI
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffDBEAFE),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library_outlined,
+                      color: Color(0xff2563EB),
+                    ),
+                  ),
+                  title: const Text(
+                    'Galeri',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text('Pilih foto dari galeri perangkat'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+
+                const SizedBox(height: 8),
+
+                // Batal
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(bottomSheetContext),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Batal'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
+  // ============================================================
+  // UPLOAD — DENGAN PARSING ERROR DARI BACKEND
+  // ============================================================
   Future<void> _upload() async {
     if (_imageBytes == null) {
       _showSnack(
@@ -80,9 +238,11 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
 
     setState(() => _isUploading = true);
 
-    final success = await PaymentService.settleToMitra(
+    // ✅ Panggil service versi baru yang return UploadResult
+    final result = await PaymentService.settleToMitra(
       paymentId: widget.payment.id,
       imageBytes: _imageBytes!,
+      imageName: _imageName,
       note: _noteCtrl.text.trim(),
     );
 
@@ -90,20 +250,32 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
 
     setState(() => _isUploading = false);
 
-    if (success) {
+    if (result.success) {
       Navigator.pop(context, true);
       _showSnack('Bukti transfer ke mitra berhasil dikirim!', Colors.green);
     } else {
-      _showSnack('Gagal mengirim bukti. Coba lagi.', Colors.red);
+      _showSnack(
+        result.message ?? 'Gagal mengirim bukti. Coba lagi.',
+        Colors.red,
+      );
     }
   }
 
   void _showSnack(String msg, Color color) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
     );
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     final bank = widget.payment.mitraBank ?? {};
@@ -179,6 +351,18 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
               ),
 
               const SizedBox(height: 20),
+
+              // Label + info limit
+              const Text(
+                'Bukti Transfer',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 10),
 
               // Pilih gambar
               GestureDetector(
@@ -280,8 +464,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label,
-                style: const TextStyle(color: Colors.grey)),
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
           ),
           const Text(': ', style: TextStyle(color: Colors.grey)),
           Expanded(
