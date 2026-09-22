@@ -2017,113 +2017,283 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }) {
     final hasFile = bytes != null;
     final hasUrl = url.isNotEmpty;
+    final hasImage = hasFile || hasUrl;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xffF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xffE2E8F0)),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xffE2E8F0),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ============================================================
+          // FIELD TITLE
+          // ============================================================
           Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(icon, color: Colors.orange, size: 22),
+                child: Icon(
+                  icon,
+                  color: Colors.orange,
+                  size: 20,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xff1F2937),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+
+          const SizedBox(height: 7),
+
           Text(
             description,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
           ),
-          const SizedBox(height: 14),
+
+          const SizedBox(height: 10),
+
+          // ============================================================
+          // PREVIEW - SEMUA UPLOAD FIELD MENGGUNAKAN UKURAN YANG SAMA
+          // ============================================================
           GestureDetector(
-            onTap: () {
-              if (hasFile) {
-                _showImageDialog(context, MemoryImage(bytes!));
-              } else if (hasUrl) {
-                _showImageDialog(context, NetworkImage(url));
-              }
-            },
+            onTap: hasImage
+                ? () {
+                    if (hasFile) {
+                      _showImageDialog(
+                        context,
+                        MemoryImage(bytes!),
+                      );
+                    } else {
+                      _showImageDialog(
+                        context,
+                        NetworkImage(url),
+                      );
+                    }
+                  }
+                : null,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 width: double.infinity,
                 height: 150,
-                color: Colors.grey.shade100,
+                color: Colors.white,
                 child: hasFile
-                    ? Image.memory(bytes!, fit: BoxFit.cover)
+                    ? Image.memory(
+                        bytes!,
+                        width: double.infinity,
+                        height: 150,
+                        fit: BoxFit.contain,
+                      )
                     : hasUrl
                         ? Image.network(
                             url,
-                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 150,
+                            fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.broken_image,
-                                  size: 40, color: Colors.grey);
+                              return const Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 40,
+                                  color: Colors.grey,
+                                ),
+                              );
                             },
                             loadingBuilder:
                                 (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return const Center(
-                                  child: CircularProgressIndicator());
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
                             },
                           )
-                        : const Icon(Icons.image_not_supported,
-                            size: 40, color: Colors.grey),
+                        : const Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          ),
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          if (hasFile && fileName != null)
-            Text(
-              fileName!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            )
-          else if (hasUrl)
-            Text(
-              'File tersimpan',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: Colors.green.shade700),
+
+          const SizedBox(height: 7),
+
+          // ============================================================
+          // FILE STATUS
+          // ============================================================
+          Text(
+            hasFile
+                ? (fileName ?? 'File dipilih')
+                : hasUrl
+                    ? 'File tersimpan'
+                    : 'Belum ada file',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              color: hasUrl || hasFile
+                  ? Colors.green.shade600
+                  : Colors.grey.shade500,
             ),
-          const SizedBox(height: 10),
+          ),
+
+          const SizedBox(height: 6),
+
+          // ============================================================
+          // BUTTON - SEMUA SAMA
+          // ============================================================
           SizedBox(
             width: double.infinity,
+            height: 34,
             child: OutlinedButton.icon(
               onPressed: onTap,
               icon: Icon(
-                (hasFile || hasUrl)
-                    ? Icons.refresh_outlined
+                hasImage
+                    ? Icons.refresh_rounded
                     : Icons.cloud_upload_outlined,
-                size: 18,
+                size: 14,
               ),
-              label: Text((hasFile || hasUrl) ? 'Ganti Foto' : 'Pilih Foto'),
+              label: Text(
+                hasImage ? 'Ganti Foto' : 'Pilih Foto',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
+                side: const BorderSide(
+                  color: Colors.orange,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9)),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // GENERIC PHOTO FIELD FOR SKILL PHOTOS
+  // ============================================================
+  Widget _photoFieldContainer({
+    required String title,
+    required String description,
+    required Widget image,
+    required String fileText,
+    required String buttonText,
+    required IconData buttonIcon,
+    required VoidCallback onTap,
+    Color buttonColor = Colors.orange,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xffF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xffE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xff1F2937),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () {
+              if (image is Image && image.image is MemoryImage) {
+                _showImageDialog(context, image.image as MemoryImage);
+              } else if (image is Image && image.image is NetworkImage) {
+                _showImageDialog(context, image.image as NetworkImage);
+              }
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: double.infinity,
+                height: 150,
+                child: image,
+              ),
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            fileText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.green.shade600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            height: 34,
+            child: OutlinedButton.icon(
+              onPressed: onTap,
+              icon: Icon(buttonIcon, size: 14),
+              label: Text(
+                buttonText,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: buttonColor,
+                side: BorderSide(color: buttonColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                padding: EdgeInsets.zero,
               ),
             ),
           ),
@@ -2184,6 +2354,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // ============================================================
   Widget _buildSkillSection() {
     final validCategory = categories.contains(selectedCategory);
+
     return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2195,122 +2366,128 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 'Tambahkan kategori keahlian dan foto hasil pekerjaan kamu.',
           ),
           const SizedBox(height: 22),
+
           DropdownButtonFormField<String>(
             value: validCategory ? selectedCategory : null,
             decoration: _inputDecoration(
-                label: 'Kategori Keahlian', icon: Icons.category_outlined),
+              label: 'Kategori Keahlian',
+              icon: Icons.category_outlined,
+            ),
             hint: const Text('Pilih kategori keahlian'),
             items: categories
-                .map((category) =>
-                    DropdownMenuItem(value: category, child: Text(category)))
+                .map(
+                  (category) => DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  ),
+                )
                 .toList(),
             onChanged: (value) {
               if (value == null) return;
               setState(() => selectedCategory = value);
             },
           ),
+
           const SizedBox(height: 20),
+
           const Text(
             'Foto Keahlian / Hasil Pekerjaan',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
             'Tambahkan foto hasil pekerjaan untuk meningkatkan kepercayaan pelanggan.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
           ),
           const SizedBox(height: 15),
-          if (skillPhotoUrls.isNotEmpty) ...[
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: skillPhotoUrls.map((url) {
-                return GestureDetector(
-                  onTap: () => _showImageDialog(context, NetworkImage(url)),
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: NetworkImage(url),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-          ],
-          if (skillPhotoBytes.isNotEmpty)
+
+          // FOTO KEAHLIAN YANG SUDAH TERSIMPAN
+          if (skillPhotoUrls.isNotEmpty)
             LayoutBuilder(
               builder: (context, constraints) {
-                int columns = constraints.maxWidth < 500 ? 2 : 3;
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: skillPhotoBytes.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1,
-                  ),
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _showImageDialog(
-                              context, MemoryImage(skillPhotoBytes[index])),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.memory(
-                              skillPhotoBytes[index],
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 6,
-                          top: 6,
-                          child: GestureDetector(
-                            onTap: () => removeSkillPhoto(index),
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: const BoxDecoration(
-                                  color: Colors.red, shape: BoxShape.circle),
-                              child: const Icon(Icons.close,
-                                  size: 17, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
+                final columns = constraints.maxWidth >= 800 ? 2 : 1;
+                final width = columns == 2
+                    ? (constraints.maxWidth - 14) / 2
+                    : constraints.maxWidth;
+
+                return Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: skillPhotoUrls.map((url) {
+                    return SizedBox(
+                      width: width,
+                      child: _savedPhotoField(
+                        title: 'Foto Keahlian / Hasil Pekerjaan',
+                        url: url,
+                      ),
                     );
-                  },
+                  }).toList(),
                 );
               },
             ),
-          if (skillPhotoBytes.isNotEmpty) const SizedBox(height: 15),
+
+          // FOTO KEAHLIAN BARU YANG BELUM DIUPLOAD
+          if (skillPhotoBytes.isNotEmpty) ...[
+            if (skillPhotoUrls.isNotEmpty) const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 800 ? 2 : 1;
+                final width = columns == 2
+                    ? (constraints.maxWidth - 14) / 2
+                    : constraints.maxWidth;
+
+                return Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: List.generate(skillPhotoBytes.length, (index) {
+                    return SizedBox(
+                      width: width,
+                      child: _localSkillPhotoField(index),
+                    );
+                  }),
+                );
+              },
+            ),
+          ],
+
+          const SizedBox(height: 14),
+
+          // TOMBOL TAMBAH FOTO MENGGUNAKAN STYLE FIELD YANG SAMA
           SizedBox(
             width: double.infinity,
+            height: 38,
             child: OutlinedButton.icon(
               onPressed: pickSkillPhoto,
-              icon: const Icon(Icons.add_photo_alternate_outlined, size: 19),
-              label: const Text('Tambah Foto Keahlian'),
+              icon: const Icon(
+                Icons.add_photo_alternate_outlined,
+                size: 16,
+              ),
+              label: const Text(
+                'Tambah Foto Keahlian',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.orange,
                 side: const BorderSide(color: Colors.orange),
-                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: EdgeInsets.zero,
               ),
             ),
           ),
+
           const SizedBox(height: 16),
+
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
@@ -2320,10 +2497,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -2333,7 +2513,71 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SERTIFIKAT SECTION
+  // SAVED SKILL PHOTO FIELD
+  // ============================================================
+  Widget _savedPhotoField({
+    required String title,
+    required String url,
+  }) {
+    return _photoFieldContainer(
+      title: title,
+      description: 'Foto keahlian yang sudah tersimpan.',
+      image: Image.network(
+        url,
+        width: double.infinity,
+        height: 150,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 40,
+              color: Colors.grey,
+            ),
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
+          );
+        },
+      ),
+      fileText: 'File tersimpan',
+      buttonText: 'Lihat Foto',
+      buttonIcon: Icons.visibility_outlined,
+      onTap: () => _showImageDialog(context, NetworkImage(url)),
+    );
+  }
+
+  // ============================================================
+  // LOCAL SKILL PHOTO FIELD
+  // ============================================================
+  Widget _localSkillPhotoField(int index) {
+    final bytes = skillPhotoBytes[index];
+    final fileName = index < skillPhotoNames.length
+        ? skillPhotoNames[index]
+        : 'Foto keahlian';
+
+    return _photoFieldContainer(
+      title: 'Foto Keahlian / Hasil Pekerjaan',
+      description: 'Foto baru yang akan diupload.',
+      image: Image.memory(
+        bytes,
+        width: double.infinity,
+        height: 150,
+        fit: BoxFit.cover,
+      ),
+      fileText: fileName,
+      buttonText: 'Hapus Foto',
+      buttonIcon: Icons.delete_outline,
+      buttonColor: Colors.red,
+      onTap: () => removeSkillPhoto(index),
+    );
+  }
+
+  // ============================================================
+  // CERTIFICATE SECTION
   // ============================================================
   Widget _buildCertificateSection() {
     return _sectionCard(
@@ -2345,7 +2589,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             title: 'Sertifikat',
             subtitle: 'Upload sertifikat keahlian atau pelatihan.',
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           _documentUploadCard(
             title: 'Sertifikat',
             description: 'Upload sertifikat keahlian (opsional).',
@@ -2359,20 +2603,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
-              onPressed: certificateBytes == null && certificateUrl.isEmpty
-                  ? null
-                  : certificateBytes != null
-                      ? uploadCertificate
-                      : null,
+              onPressed: certificateBytes != null ? uploadCertificate : null,
               icon: const Icon(Icons.upload_file, size: 18),
               label: const Text('Upload Sertifikat'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),

@@ -642,6 +642,17 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             ),
 
             // =================================================
+            // NOTIFIKASI
+            // =================================================
+
+            _menu(
+              context,
+              icon: Icons.notifications_outlined,
+              title: "Notifikasi",
+              menu: PartnerSidebarMenu.notifikasi,
+            ),
+
+            // =================================================
             // PENGADUAN
             // =================================================
 
@@ -655,7 +666,6 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             // =================================================
             // PROFIL
             // =================================================
-
 
             // =================================================
             // PENGATURAN

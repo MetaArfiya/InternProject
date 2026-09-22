@@ -3,348 +3,423 @@ import 'package:flutter/material.dart';
 import '../models/active_offer_model.dart';
 import '../sections/partner/completion_proof_dialog.dart';
 
-class ActiveOfferCard extends StatelessWidget {
-  final ActiveOfferModel offer;
+/// Membuat satu baris tabel untuk penawaran aktif.
+TableRow buildActiveOfferRow(
+  BuildContext context,
+  ActiveOfferModel offer,
+  int number,
+){
+  return TableRow(
+    decoration: const BoxDecoration(
+      border: Border(
+        bottom: BorderSide(
+          color: Color(0xffE5E7EB),
+          width: 1,
+        ),
+      ),
+    ),
+    children: [
+      // ============================================================
+      // NO
+      // ============================================================
+      _tableCell(
+        Center(
+          child: Text(
+            '$number',
+            style: const TextStyle(
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
 
-  const ActiveOfferCard({
-    super.key,
-    required this.offer,
-  });
+      // ============================================================
+      // NAMA PEKERJAAN
+      // ============================================================
+      _tableCell(
+        Text(
+          offer.title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
 
-  @override
-  Widget build(BuildContext context) {
-    // ==========================================================
-    // PERBAIKAN LOGIKA STATUS:
-    // Backend Laravel mengirim status dari tabel 'jobs', bukan 'job_bids'.
-    // Status yang mungkin: 'Menunggu', 'Sedang Dikerjakan', 
-    // 'Menunggu Konfirmasi Selesai', 'Selesai'.
-    // ==========================================================
-    
-    // Mitra sedang mengerjakan (sudah diterima pelanggan)
-    final bool isWorking = offer.status == 'Sedang Dikerjakan';
-    
-    // Mitra sudah upload bukti, menunggu pelanggan verifikasi
-    final bool waitingConfirmation = offer.status == 'Menunggu Konfirmasi Selesai';
-    
-    // Pekerjaan sudah selesai dan diverifikasi pelanggan
-    final bool completed = offer.status == 'Selesai';
-    
-    // Penawaran masih diajukan (belum diterima pelanggan)
-    final bool isPending = offer.status == 'Menunggu' || offer.status == 'Mencari Mitra';
+      // ============================================================
+      // HARGA
+      // ============================================================
+      _tableCell(
+        Text(
+          offer.price,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 22),
-      padding: const EdgeInsets.all(25),
+      // ============================================================
+      // PERINGKAT
+      // ============================================================
+      _tableCell(
+        _buildRanking(offer),
+      ),
+
+      // ============================================================
+      // STATUS
+      // ============================================================
+      _tableCell(
+        _buildStatus(offer),
+      ),
+
+      // ============================================================
+      // BUKTI PEKERJAAN
+      // ============================================================
+      _tableCell(
+        _buildProofButton(
+          context,
+          offer,
+        ),
+      ),
+
+      // ============================================================
+      // ACC PELANGGAN
+      // ============================================================
+      _tableCell(
+        _buildApproval(offer),
+      ),
+
+      // ============================================================
+      // AKSI
+      // ============================================================
+      _tableCell(
+        _buildAction(
+          context,
+          offer,
+        ),
+      ),
+    ],
+  );
+}
+
+// ================================================================
+// CELL TABEL
+// ================================================================
+
+Widget _tableCell(Widget child) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 18,
+    ),
+    child: child,
+  );
+}
+
+// ================================================================
+// PERINGKAT
+// ================================================================
+
+Widget _buildRanking(ActiveOfferModel offer) {
+  final bool isTop =
+      offer.queuePosition == 1 || offer.isTop;
+
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        '#${offer.queuePosition}',
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      if (isTop) ...[
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xffDCFCE7),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            'Teratas',
+            style: TextStyle(
+              color: Color(0xff15803D),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+// ================================================================
+// STATUS PEKERJAAN
+// ================================================================
+
+Widget _buildStatus(ActiveOfferModel offer) {
+  final bool isWorking =
+      offer.status == 'Sedang Dikerjakan';
+
+  final bool waiting =
+      offer.status == 'Menunggu Konfirmasi Selesai';
+
+  final bool completed =
+      offer.status == 'Selesai';
+
+  Color backgroundColor;
+  Color textColor;
+  String text;
+
+  if (completed) {
+    backgroundColor = const Color(0xffDBEAFE);
+    textColor = const Color(0xff2563EB);
+    text = 'Selesai';
+  } else if (waiting) {
+    backgroundColor = const Color(0xffFEF3C7);
+    textColor = const Color(0xffB45309);
+    text = 'Menunggu Konfirmasi';
+  } else if (isWorking) {
+    backgroundColor = const Color(0xffDCFCE7);
+    textColor = const Color(0xff15803D);
+    text = 'Sedang Dikerjakan';
+  } else {
+    backgroundColor = const Color(0xffF3F4F6);
+    textColor = const Color(0xff6B7280);
+    text = 'Menunggu';
+  }
+
+  return Align(
+    alignment: Alignment.centerLeft,
+    child: Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 11,
+        vertical: 7,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+}
+
+// ================================================================
+// BUKTI PEKERJAAN
+// ================================================================
+
+Widget _buildProofButton(
+  BuildContext context,
+  ActiveOfferModel offer,
+) {
+  return InkWell(
+    onTap: () => _showCompletionProofDialog(
+      context,
+      offer,
+    ),
+    borderRadius: BorderRadius.circular(8),
+    child: Container(
+      width: 130,
+      height: 75,
+      decoration: BoxDecoration(
+        color: const Color(0xffF8FAFC),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isWorking
-              ? const Color(0xff16A34A)
-              : waitingConfirmation
-                  ? const Color(0xffF59E0B)
-                  : completed
-                      ? const Color(0xff2563EB)
-                      : const Color(0xffE5E7EB),
-          width: isWorking || waitingConfirmation || completed ? 2 : 1,
+          color: const Color(0xffE5E7EB),
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Judul Pekerjaan
+          Icon(
+            Icons.image_outlined,
+            size: 26,
+            color: Colors.grey.shade500,
+          ),
+          const SizedBox(height: 4),
           Text(
-            offer.title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
+            'Lihat / Upload',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Info Harga & Posisi
-          Row(
-            children: [
-              const Icon(Icons.attach_money, color: Colors.orange),
-              const SizedBox(width: 6),
-              Text(
-                offer.price,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17,
-                ),
-              ),
-              const SizedBox(width: 35),
-              const Icon(Icons.groups_outlined, color: Colors.blue),
-              const SizedBox(width: 6),
-              Text(
-                'Posisi #${offer.queuePosition}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              if (offer.queuePosition == 1 || offer.isTop) ...[
-                const SizedBox(width: 10),
-                const Text(
-                  'TERATAS!',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              _buildStatusBadge(
-                isWorking: isWorking,
-                waitingConfirmation: waitingConfirmation,
-                completed: completed,
-                isPending: isPending,
-              ),
-            ],
-          ),
-
-          // ==========================================================
-          // KONDISI 1: SEDANG DIKERJAKAN
-          // Menampilkan tombol upload bukti
-          // ==========================================================
-          if (isWorking) ...[
-            const SizedBox(height: 24),
-            const Divider(color: Color(0xffE5E7EB)),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xffF0FDF4),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xffBBF7D0)),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline, color: Color(0xff16A34A), size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Pekerjaan kamu telah diterima pelanggan. Setelah pekerjaan selesai, kirimkan bukti pekerjaan.',
-                      style: TextStyle(
-                        color: Color(0xff166534),
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Tombol Kirim Bukti
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _showCompletionProofDialog(context),
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text(
-                  'Pekerjaan Selesai',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff16A34A),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
-
-          // ==========================================================
-          // KONDISI 2: MENUNGGU KONFIRMASI
-          // Tombol upload sudah hilang, berganti pesan tunggu
-          // ==========================================================
-          if (waitingConfirmation) ...[
-            const SizedBox(height: 20),
-            _buildWaitingConfirmation(),
-          ],
-
-          // ==========================================================
-          // KONDISI 3: SELESAI
-          // Pekerjaan sudah dikonfirmasi pelanggan
-          // ==========================================================
-          if (completed) ...[
-            const SizedBox(height: 20),
-            _buildCompleted(),
-          ],
         ],
       ),
-    );
+    ),
+  );
+}
+
+// ================================================================
+// ACC PELANGGAN
+// ================================================================
+
+Widget _buildApproval(ActiveOfferModel offer) {
+  String text;
+  Color backgroundColor;
+  Color textColor;
+
+  if (offer.status == 'Selesai') {
+    text = 'Sudah ACC';
+    backgroundColor = const Color(0xffDCFCE7);
+    textColor = const Color(0xff15803D);
+  } else if (offer.status ==
+      'Menunggu Konfirmasi Selesai') {
+    text = 'Menunggu ACC';
+    backgroundColor = const Color(0xffFEF3C7);
+    textColor = const Color(0xffB45309);
+  } else {
+    text = 'Belum ACC';
+    backgroundColor = const Color(0xffF3F4F6);
+    textColor = const Color(0xff6B7280);
   }
 
-  // --------------------------------------------------------------
-  // Status Badge
-  // --------------------------------------------------------------
-  Widget _buildStatusBadge({
-    required bool isWorking,
-    required bool waitingConfirmation,
-    required bool completed,
-    required bool isPending,
-  }) {
-    Color backgroundColor;
-    Color textColor;
-    IconData icon;
-    String textStatus;
-
-    if (completed) {
-      backgroundColor = const Color(0xffDBEAFE);
-      textColor = const Color(0xff2563EB);
-      icon = Icons.check_circle;
-      textStatus = 'Selesai';
-    } else if (waitingConfirmation) {
-      backgroundColor = const Color(0xffFFF7ED);
-      textColor = const Color(0xffEA580C);
-      icon = Icons.hourglass_top_rounded;
-      textStatus = 'Menunggu Konfirmasi';
-    } else if (isWorking) {
-      backgroundColor = const Color(0xffDCFCE7);
-      textColor = const Color(0xff16A34A);
-      icon = Icons.engineering; // Ikon alat kerja
-      textStatus = 'Sedang Dikerjakan';
-    } else {
-      backgroundColor = const Color(0xffFFF7ED);
-      textColor = const Color(0xffEA580C);
-      icon = Icons.access_time;
-      textStatus = 'Menunggu';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+  return Align(
+    alignment: Alignment.centerLeft,
+    child: Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 11,
+        vertical: 7,
+      ),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: textColor),
-          const SizedBox(width: 6),
-          Text(
-            textStatus,
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------
-  // Menunggu Konfirmasi
-  // --------------------------------------------------------------
-  Widget _buildWaitingConfirmation() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xffFFF7ED),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xffFED7AA)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.hourglass_top_rounded, color: Color(0xffEA580C)),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Bukti pekerjaan telah dikirim dan sedang menunggu konfirmasi pelanggan.',
-              style: TextStyle(
-                color: Color(0xff9A3412),
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------
-  // Selesai
-  // --------------------------------------------------------------
-  Widget _buildCompleted() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xffEFF6FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xffBFDBFE)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.check_circle_outline, color: Color(0xff2563EB)),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Pekerjaan telah selesai dan dikonfirmasi pelanggan.',
-              style: TextStyle(
-                color: Color(0xff1D4ED8),
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------
-  // Dialog Bukti Pekerjaan (dengan jobId)
-  // --------------------------------------------------------------
-  Future<void> _showCompletionProofDialog(BuildContext context) async {
-    // Validasi jobId tersedia
-    if (offer.jobId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ID pekerjaan tidak ditemukan.'),
-          backgroundColor: Colors.red,
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
         ),
-      );
-      return;
-    }
+      ),
+    ),
+  );
+}
 
-    final result = await showDialog<CompletionProofResult>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return CompletionProofDialog(
-          jobId: offer.jobId, // <-- kirim job ID, bukan bid ID
-        );
-      },
+// ================================================================
+// AKSI
+// ================================================================
+
+Widget _buildAction(
+  BuildContext context,
+  ActiveOfferModel offer,
+) {
+  final bool isWorking =
+      offer.status == 'Sedang Dikerjakan';
+
+  if (isWorking) {
+    return SizedBox(
+      height: 38,
+      child: ElevatedButton.icon(
+        onPressed: () => _showCompletionProofDialog(
+          context,
+          offer,
+        ),
+        icon: const Icon(
+          Icons.camera_alt_outlined,
+          size: 17,
+        ),
+        label: const Text(
+          'Pekerjaan Selesai',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xff16A34A),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
+  }
 
-    if (result == null) return;
+  return OutlinedButton(
+    onPressed: null,
+    style: OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 10,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    ),
+    child: const Text(
+      'Detail',
+      style: TextStyle(
+        fontSize: 12,
+      ),
+    ),
+  );
+}
 
-    if (!context.mounted) return;
+// ================================================================
+// DIALOG BUKTI PEKERJAAN
+// ================================================================
 
+Future<void> _showCompletionProofDialog(
+  BuildContext context,
+  ActiveOfferModel offer,
+) async {
+  if (offer.jobId == 0) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Bukti pekerjaan berhasil dikirim.'),
-        backgroundColor: Color(0xff16A34A),
-        behavior: SnackBarBehavior.floating,
+        content: Text(
+          'ID pekerjaan tidak ditemukan.',
+        ),
+        backgroundColor: Colors.red,
       ),
     );
+    return;
   }
+
+  final result =
+      await showDialog<CompletionProofResult>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return CompletionProofDialog(
+        jobId: offer.jobId,
+      );
+    },
+  );
+
+  if (result == null) return;
+
+  if (!context.mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Bukti pekerjaan berhasil dikirim.',
+      ),
+      backgroundColor: Color(0xff16A34A),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
 }

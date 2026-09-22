@@ -197,97 +197,98 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           height: double.infinity,
           color: Theme.of(context).scaffoldBackgroundColor,
           padding: EdgeInsets.all(isMobile ? 16 : 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ======================================================
-              // HEADER
-              // ======================================================
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ======================================================
+                // HEADER
+                // ======================================================
 
-              DashboardHeader(
-                onAddJob: (newJob) {
-                  addJob(newJob);
-                  _fetchMyJobs();
-                },
-              ),
+                DashboardHeader(
+                  onAddJob: (newJob) {
+                    addJob(newJob);
+                    _fetchMyJobs();
+                  },
+                ),
 
-              SizedBox(
-                height: isMobile ? 20 : 24,
-              ),
+                SizedBox(
+                  height: isMobile ? 20 : 24,
+                ),
 
-              // ======================================================
-              // STATISTIC
-              // ======================================================
+                // ======================================================
+                // STATISTIC
+                // ======================================================
 
-              if (isMobile)
-                Column(
-                  children: [
-                    StatisticCard(
-                      icon: Icons.assignment,
-                      value: totalJobs.toString(),
-                      title: 'Total Posting',
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(height: 12),
-                    StatisticCard(
-                      icon: Icons.settings,
-                      value: runningJobs.toString(),
-                      title: 'Sedang Berjalan',
-                      color: Colors.orange,
-                    ),
-                    const SizedBox(height: 12),
-                    StatisticCard(
-                      icon: Icons.check_circle,
-                      value: completedJobs.toString(),
-                      title: 'Selesai',
-                      color: Colors.green,
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatisticCard(
+                if (isMobile)
+                  Column(
+                    children: [
+                      StatisticCard(
                         icon: Icons.assignment,
                         value: totalJobs.toString(),
                         title: 'Total Posting',
                         color: Colors.blue,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: StatisticCard(
+                      const SizedBox(height: 12),
+                      StatisticCard(
                         icon: Icons.settings,
                         value: runningJobs.toString(),
                         title: 'Sedang Berjalan',
                         color: Colors.orange,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: StatisticCard(
+                      const SizedBox(height: 12),
+                      StatisticCard(
                         icon: Icons.check_circle,
                         value: completedJobs.toString(),
                         title: 'Selesai',
                         color: Colors.green,
                       ),
-                    ),
-                  ],
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatisticCard(
+                          icon: Icons.assignment,
+                          value: totalJobs.toString(),
+                          title: 'Total Posting',
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: StatisticCard(
+                          icon: Icons.settings,
+                          value: runningJobs.toString(),
+                          title: 'Sedang Berjalan',
+                          color: Colors.orange,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: StatisticCard(
+                          icon: Icons.check_circle,
+                          value: completedJobs.toString(),
+                          title: 'Selesai',
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                SizedBox(
+                  height: isMobile ? 20 : 24,
                 ),
 
-              SizedBox(
-                height: isMobile ? 20 : 24,
-              ),
+                // ======================================================
+                // DAFTAR PEKERJAAN
+                // ======================================================
 
-              // ======================================================
-              // DAFTAR PEKERJAAN
-              // ======================================================
-
-              Expanded(
-                child: _buildJobContent(isMobile),
-              ),
-            ],
+                _buildJobContent(isMobile),
+              ],
+            ),
           ),
         );
       },
@@ -300,9 +301,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
   Widget _buildJobContent(bool isMobile) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Colors.orange,
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Colors.orange,
+          ),
         ),
       );
     }
@@ -315,23 +319,29 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       return _buildEmptyState();
     }
 
-    return ListView.separated(
-      itemCount: _jobs.length,
-      separatorBuilder: (_, __) => SizedBox(
-        height: isMobile ? 12 : 16,
-      ),
-      itemBuilder: (context, index) {
-        final job = _jobs[index];
+    // ==========================================================
+    // PENTING:
+    // Tidak menggunakan ListView di sini.
+    // Semua JobCard menjadi bagian dari SingleChildScrollView
+    // utama sehingga Header + Statistik + JobCard ikut scroll.
+    // ==========================================================
 
-        return JobCard(
-          job: job,
-          onRefresh: _fetchMyJobs,
-          onOpenOffer: widget.onOpenOffer,
-          onComplete: (selectedJob) {
-            _showCompleteConfirmation(selectedJob);
-          },
+    return Column(
+      children: _jobs.map((job) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: isMobile ? 12 : 16,
+          ),
+          child: JobCard(
+            job: job,
+            onRefresh: _fetchMyJobs,
+            onOpenOffer: widget.onOpenOffer,
+            onComplete: (selectedJob) {
+              _showCompleteConfirmation(selectedJob);
+            },
+          ),
         );
-      },
+      }).toList(),
     );
   }
 

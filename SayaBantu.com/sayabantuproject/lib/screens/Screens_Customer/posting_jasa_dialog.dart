@@ -28,6 +28,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   final _judulController = TextEditingController();
   final _deskripsiController = TextEditingController();
   final _budgetController = TextEditingController();
+  final _kategoriLainnyaController = TextEditingController();
 
   // Alamat otomatis dari OpenStreetMap
   final _lokasiController = TextEditingController();
@@ -95,6 +96,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     _judulController.dispose();
     _deskripsiController.dispose();
     _budgetController.dispose();
+    _kategoriLainnyaController.dispose();
     _lokasiController.dispose();
     _detailAlamatController.dispose();
 
@@ -337,6 +339,19 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     }
 
     // =======================================================
+    // VALIDASI KATEGORI LAINNYA
+    // =======================================================
+
+    if (_kategori == "Lainnya" &&
+        _kategoriLainnyaController.text.trim().isEmpty) {
+      _showMessage(
+        "Kategori lainnya wajib diisi.",
+      );
+
+      return;
+    }
+
+    // =======================================================
     // VALIDASI DESKRIPSI
     // =======================================================
 
@@ -498,7 +513,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       // =====================================================
 
       request.fields['category'] =
-          _kategori;
+          _kategori == "Lainnya"
+              ? _kategoriLainnyaController.text.trim()
+              : _kategori;
 
       // =====================================================
       // WAKTU PENGERJAAN
@@ -551,7 +568,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       debugPrint("----------------------------------------");
       debugPrint("POSTING JASA");
       debugPrint("Judul       : ${_judulController.text.trim()}");
-      debugPrint("Kategori    : $_kategori");
+      debugPrint(
+        "Kategori    : ${_kategori == "Lainnya" ? _kategoriLainnyaController.text.trim() : _kategori}",
+      );
       debugPrint("Deskripsi   : ${_deskripsiController.text.trim()}");
       debugPrint("Budget      : $rawBudget");
       debugPrint("Durasi      : $_waktuPengerjaan");
@@ -832,9 +851,45 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                             setState(() {
                               _kategori =
                                   value;
+
+                              if (value !=
+                                  "Lainnya") {
+                                _kategoriLainnyaController
+                                    .clear();
+                              }
                             });
                           },
               ),
+
+              if (_kategori == "Lainnya") ...[
+                const SizedBox(height: 12),
+
+                const Text(
+                  "Kategori lainnya",
+                  style: TextStyle(
+                    fontWeight:
+                        FontWeight.w500,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                TextField(
+                  controller:
+                      _kategoriLainnyaController,
+                  enabled:
+                      !_isSubmitting,
+                  textInputAction:
+                      TextInputAction.next,
+                  decoration:
+                      const InputDecoration(
+                    hintText:
+                        "Contoh: Jasa Pindahan",
+                    border:
+                        OutlineInputBorder(),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 

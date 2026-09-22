@@ -13,6 +13,7 @@ import '../../sections/customer/customer_complaint_screen.dart';
 
 import '../../sections/payment/payment_screen.dart';
 import 'income_screen.dart';
+import '../../sections/partner/partner_notification_screen.dart';
 
 class PartnerMainDashboard extends StatefulWidget {
   const PartnerMainDashboard({super.key});
@@ -118,6 +119,13 @@ class _PartnerMainDashboardState
         );
 
       // --------------------------------------------------------
+      // NOTIFIKASI
+      // --------------------------------------------------------
+
+      case PartnerSidebarMenu.notifikasi:
+        return const PartnerNotificationScreen();
+
+      // --------------------------------------------------------
       // PENGADUAN
       // --------------------------------------------------------
 
@@ -125,7 +133,7 @@ class _PartnerMainDashboardState
         return const CustomerComplaintScreen();
 
       // --------------------------------------------------------
-      // PROFIL — ✅ SUDAH DIAKTIFKAN
+      // PROFIL — BELUM DIAKTIFKAN
       // --------------------------------------------------------
 
       // case PartnerSidebarMenu.profile:
