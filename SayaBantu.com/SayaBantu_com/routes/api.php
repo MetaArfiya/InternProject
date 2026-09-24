@@ -319,9 +319,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // =====================================================
     // ADMIN
     // =====================================================
-        // =====================================================
-    // ADMIN
-    // =====================================================
     Route::middleware('role:Admin')->group(function () {
         Route::get('/admin/unverified-mitra', [AdminController::class, 'unverifiedMitra']);
         Route::post('/admin/verify-mitra/{id}', [AdminController::class, 'verifyMitra']);
@@ -383,6 +380,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/mitra/earnings', [PaymentController::class, 'mitraIndex']);
         Route::get('/mitra/earnings/monthly', [PaymentController::class, 'mitraMonthlyStats']);
+
+        Route::get('/mitra/my-jobs/complaint-eligible', [JobController::class, 'myJobsForComplaintMitra']);
     });
 
 
@@ -392,6 +391,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:Pelanggan')->group(function () {
         Route::post('/jobs', [JobController::class, 'store']);
         Route::get('/pelanggan/my-jobs', [JobController::class, 'myJobs']);
+
+        // 🆕 DAFTAR PEKERJAAN UNTUK DROPDOWN PENGADUAN
+        Route::get('/pelanggan/my-jobs/complaint-eligible', [JobController::class, 'myJobsForComplaint']);
+
         Route::post('/jobs/accept-bid/{bidId}', [JobController::class, 'acceptBid']);
 
         Route::post('/jobs/{id}/verify-proof', [JobController::class, 'verifyProof']);

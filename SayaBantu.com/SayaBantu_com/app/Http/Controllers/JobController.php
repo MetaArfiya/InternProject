@@ -157,7 +157,6 @@ class JobController extends Controller
                 ],
                 'data' => $jobsTransformed,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('Error JobController@myJobs: ' . $e->getMessage());
             return response()->json([
@@ -789,5 +788,91 @@ class JobController extends Controller
             'message' => 'Bukti berhasil diverifikasi.',
             'data'    => $job->fresh()
         ], 200);
+    }
+
+    public function myJobsForComplaint()
+    {
+        try {
+            $pelangganId = auth()->id();
+
+            $eligibleStatuses = [
+                'Sedang Dikerjakan',
+                'Menunggu Konfirmasi Selesai',
+                'Selesai',
+            ];
+
+            $jobs = jobs::with('mitra:id,name')
+                ->where('pelanggan_id', $pelangganId)
+                ->whereIn('status', $eligibleStatuses)
+                ->orderByDesc('updated_at')
+                ->get()
+                ->map(function ($job) {
+                    return [
+                        'id'         => $job->id,
+                        'code'       => '#JOB-' . str_pad((string) $job->id, 4, '0', STR_PAD_LEFT),
+                        'tittle'     => $job->tittle,
+                        'status'     => $job->status,
+                        'mitra_name' => optional($job->mitra)->name,
+                        'final_price' => $job->final_price,
+                        'started_at' => $job->started_at,
+                        'completed_at' => $job->completed_at,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil mengambil daftar pekerjaan untuk pengaduan.',
+                'total'   => $jobs->count(),
+                'data'    => $jobs,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error JobController@myJobsForComplaint: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server.',
+            ], 500);
+        }
+    }
+
+    public function myJobsForComplaintMitra()
+    {
+        try {
+            $mitraId = auth()->id();
+
+            $eligibleStatuses = [
+                'Sedang Dikerjakan',
+                'Menunggu Konfirmasi Selesai',
+                'Selesai',
+            ];
+
+            $jobs = jobs::with('pelanggan:id,name')
+                ->where('mitra_id', $mitraId)  // ← kunci: mitra_id
+                ->whereIn('status', $eligibleStatuses)
+                ->orderByDesc('updated_at')
+                ->get()
+                ->map(function ($job) {
+                    return [
+                        'id'             => $job->id,
+                        'code'           => '#JOB-' . str_pad((string) $job->id, 4, '0', STR_PAD_LEFT),
+                        'tittle'         => $job->tittle,
+                        'status'         => $job->status,
+                        'pelanggan_name' => optional($job->pelanggan)->name,
+                        'final_price'    => $job->final_price,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil mengambil daftar pekerjaan untuk pengaduan.',
+                'total'   => $jobs->count(),
+                'data'    => $jobs,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('JobController@myJobsForComplaintMitra: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server.',
+            ], 500);
+        }
     }
 }

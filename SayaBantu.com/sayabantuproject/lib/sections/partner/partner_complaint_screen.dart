@@ -1,5 +1,3 @@
-// lib/sections/customer/customer_complaint_screen.dart
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,15 +5,15 @@ import 'package:flutter/material.dart';
 import '../../models/complaint_model.dart';
 import '../../services/api_service.dart';
 
-class CustomerComplaintScreen extends StatefulWidget {
-  const CustomerComplaintScreen({super.key});
+class PartnerComplaintScreen extends StatefulWidget {
+  const PartnerComplaintScreen({super.key});
 
   @override
-  State<CustomerComplaintScreen> createState() =>
-      _CustomerComplaintScreenState();
+  State<PartnerComplaintScreen> createState() =>
+      _PartnerComplaintScreenState();
 }
 
-class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
+class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -31,17 +29,19 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
   String _selectedFilter = 'Semua';
 
-  final List<String> _categories = [
-    'Mitra Bermasalah',
-    'Kualitas Pekerjaan',
-    'Pembayaran',
+  // ============================================================
+  // KATEGORI KHUSUS MITRA
+  // Pakai nilai ENUM yang sudah ada di DB:
+  //   - 'Aplikasi'  → lapor bug / error
+  //   - 'Lainnya'   → saran fitur / umum
+  // ============================================================
+  final List<String> _categories = const [
     'Aplikasi',
     'Lainnya',
   ];
 
   // ============================================================
   // STANDARD UI
-  // Mengikuti PaymentScreen
   // ============================================================
 
   static const double _bodyFontSize = 13;
@@ -53,6 +53,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   static const double _cardRadius = 16;
   static const double _smallRadius = 12;
 
+  // ============================================================
+  // INIT
+  // ============================================================
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +64,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // LOAD DATA
+  // LOAD COMPLAINTS
   // ============================================================
 
   Future<void> _loadComplaints() async {
@@ -74,9 +78,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     try {
       final response = await ApiService.get('/complaints/my');
 
-      debugPrint(
-        '📢 CUSTOMER COMPLAINTS: ${response.statusCode}',
-      );
+      debugPrint('📢 MITRA COMPLAINTS: ${response.statusCode}');
       debugPrint('📢 BODY: ${response.body}');
 
       if (response.statusCode != 200) {
@@ -142,6 +144,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       });
     }
   }
+
+  // ============================================================
+  // FILTER
+  // ============================================================
 
   List<ComplaintModel> get _filteredComplaints {
     if (_selectedFilter == 'Semua') {
@@ -230,13 +236,12 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // CREATE COMPLAINT
+  // CREATE COMPLAINT DIALOG (tanpa field job)
   // ============================================================
 
   void _showCreateComplaintDialog() {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    final jobIdController = TextEditingController();
 
     String selectedCategory = _categories.first;
     bool isSubmitting = false;
@@ -249,7 +254,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
               title: Text(
-                'Buat Pengaduan',
+                'Lapor Masalah Aplikasi',
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
@@ -263,10 +268,45 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Info kecil di atas
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: Colors.blue,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Gunakan form ini untuk melaporkan bug atau memberi saran tentang aplikasi.',
+                                style: TextStyle(
+                                  fontSize: _bodyFontSize - 1,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // KATEGORI
                       _buildDialogDropdown(
                         value: selectedCategory,
                         items: _categories,
-                        label: 'Kategori Pengaduan',
+                        label: 'Kategori',
                         enabled: !isSubmitting,
                         onChanged: (value) {
                           if (value == null) return;
@@ -279,33 +319,24 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
                       const SizedBox(height: 14),
 
+                      // JUDUL
                       _buildDialogField(
                         controller: titleController,
-                        label: 'Judul Pengaduan',
-                        hint:
-                            'Contoh: Mitra tidak datang sesuai jadwal',
+                        label: 'Judul Laporan',
+                        hint: 'Contoh: Tombol kirim tawaran tidak berfungsi',
                         enabled: !isSubmitting,
                       ),
 
                       const SizedBox(height: 14),
 
-                      _buildDialogField(
-                        controller: jobIdController,
-                        label: 'ID Pekerjaan (opsional)',
-                        hint: 'Contoh: 5',
-                        enabled: !isSubmitting,
-                        keyboardType: TextInputType.number,
-                      ),
-
-                      const SizedBox(height: 14),
-
+                      // DESKRIPSI
                       _buildDialogField(
                         controller: descriptionController,
-                        label: 'Deskripsi Pengaduan',
+                        label: 'Deskripsi',
                         hint:
-                            'Jelaskan masalah yang terjadi...',
+                            'Jelaskan detail masalah atau saran Anda...',
                         enabled: !isSubmitting,
-                        maxLines: 4,
+                        maxLines: 5,
                         alignLabelWithHint: true,
                       ),
                     ],
@@ -344,6 +375,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                     fontSize: _bodyFontSize,
                                   ),
                                 ),
+                                backgroundColor: Colors.orange,
                               ),
                             );
 
@@ -354,21 +386,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                             isSubmitting = true;
                           });
 
-                          int? jobId;
-
-                          final jobIdText =
-                              jobIdController.text.trim();
-
-                          if (jobIdText.isNotEmpty) {
-                            jobId = int.tryParse(jobIdText);
-                          }
-
-                          final success =
-                              await _submitComplaint(
+                          final success = await _submitComplaint(
                             category: selectedCategory,
                             title: title,
                             description: desc,
-                            jobId: jobId,
                           );
 
                           if (!mounted) return;
@@ -402,7 +423,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                           ),
                         )
                       : const Text(
-                          'Kirim Pengaduan',
+                          'Kirim Laporan',
                           style: TextStyle(
                             fontSize: _buttonFontSize,
                             fontWeight: FontWeight.bold,
@@ -416,6 +437,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       },
     );
   }
+
+  // ============================================================
+  // DIALOG HELPERS
+  // ============================================================
 
   Widget _buildDialogDropdown({
     required String value,
@@ -507,21 +532,20 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // SUBMIT
+  // SUBMIT (tanpa job_id)
   // ============================================================
 
   Future<bool> _submitComplaint({
     required String category,
     required String title,
     required String description,
-    int? jobId,
   }) async {
     try {
       final body = {
         'category': category,
         'title': title,
         'description': description,
-        if (jobId != null) 'job_id': jobId,
+        // ⚠️ Tidak ada job_id — ini tentang aplikasi
       };
 
       final response = await ApiService.post(
@@ -541,7 +565,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Pengaduan berhasil dibuat.',
+              'Laporan berhasil dikirim. Terima kasih!',
               style: TextStyle(
                 fontSize: _bodyFontSize,
               ),
@@ -553,7 +577,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         return true;
       }
 
-      String message = 'Gagal mengirim pengaduan.';
+      String message = 'Gagal mengirim laporan.';
 
       try {
         final decoded = jsonDecode(response.body);
@@ -615,7 +639,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Detail Pengaduan',
+                'Detail Laporan',
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
@@ -633,16 +657,12 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                     CrossAxisAlignment.start,
                 children: [
                   _detailRow(
-                    'ID Pengaduan',
+                    'ID Laporan',
                     complaint.code,
                   ),
                   _detailRow(
                     'Kategori',
                     complaint.category,
-                  ),
-                  _detailRow(
-                    'ID Pekerjaan',
-                    complaint.jobCode,
                   ),
                   _detailRow(
                     'Tanggal',
@@ -861,7 +881,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
         final cards = [
           _summaryCard(
-            title: 'Total Pengaduan',
+            title: 'Total Laporan',
             value:
                 '${_summary['total'] ?? 0}',
             icon:
@@ -1050,7 +1070,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      '${_filteredComplaints.length} pengaduan',
+                      '${_filteredComplaints.length} laporan',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight:
@@ -1098,7 +1118,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               const Spacer(),
 
               Text(
-                '${_filteredComplaints.length} pengaduan',
+                '${_filteredComplaints.length} laporan',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1117,7 +1137,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // COMPLAINT CARD
+  // COMPLAINT CARD (tanpa info job)
   // ============================================================
 
   Widget _buildComplaintCard(
@@ -1188,12 +1208,6 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           const SizedBox(height: 12),
 
           _infoRow(
-            Icons.work_outline,
-            'ID Pekerjaan',
-            complaint.jobCode,
-          ),
-
-          _infoRow(
             Icons.calendar_today_outlined,
             'Tanggal',
             complaint.formattedDate,
@@ -1224,7 +1238,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 size: 18,
               ),
               label: const Text(
-                'Lihat Detail Pengaduan',
+                'Lihat Detail',
                 style: TextStyle(
                   fontSize: _buttonFontSize,
                   fontWeight: FontWeight.bold,
@@ -1305,181 +1319,170 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // DESKTOP TABLE
+  // DESKTOP TABLE — FULL WIDTH (tanpa kolom job)
   // ============================================================
 
   Widget _buildDesktopTable() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(
-          _cardRadius,
-        ),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 25,
-          headingRowColor:
-              MaterialStateProperty.all(
-            Theme.of(context)
-                .colorScheme
-                .surface,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(
+              _cardRadius,
+            ),
+            border: Border.all(
+              color: Theme.of(context)
+                  .dividerColor
+                  .withOpacity(0.4),
+            ),
           ),
-          columns: const [
-            DataColumn(
-              label: Text(
-                'ID',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              // ✅ KUNCI: paksa tabel minimal selebar layar
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
               ),
-            ),
-            DataColumn(
-              label: Text(
-                'Judul Pengaduan',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
+              child: DataTable(
+                columnSpacing: 25,
+                headingRowColor:
+                    MaterialStateProperty.all(
+                  Theme.of(context)
+                      .colorScheme
+                      .surface,
                 ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Kategori',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'ID Pekerjaan',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Tanggal',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Status',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Aksi',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-          rows: _filteredComplaints.map(
-            (complaint) {
-              return DataRow(
-                cells: [
-                  DataCell(
-                    Text(
-                      complaint.code,
-                      style: const TextStyle(
+                columns: const [
+                  DataColumn(
+                    label: Text(
+                      'ID',
+                      style: TextStyle(
                         fontSize: _bodyFontSize,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-
-                  DataCell(
-                    SizedBox(
-                      width: 220,
-                      child: Text(
-                        complaint.title,
-                        style: const TextStyle(
-                          fontSize:
-                              _bodyFontSize,
-                        ),
+                  DataColumn(
+                    label: Text(
+                      'Judul Laporan',
+                      style: TextStyle(
+                        fontSize: _bodyFontSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-
-                  DataCell(
-                    Text(
-                      complaint.category,
-                      style: const TextStyle(
-                        fontSize:
-                            _bodyFontSize,
+                  DataColumn(
+                    label: Text(
+                      'Kategori',
+                      style: TextStyle(
+                        fontSize: _bodyFontSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-
-                  DataCell(
-                    Text(
-                      complaint.jobCode,
-                      style: const TextStyle(
-                        fontSize:
-                            _bodyFontSize,
+                  DataColumn(
+                    label: Text(
+                      'Tanggal',
+                      style: TextStyle(
+                        fontSize: _bodyFontSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-
-                  DataCell(
-                    Text(
-                      complaint.formattedDate,
-                      style: const TextStyle(
-                        fontSize:
-                            _bodyFontSize,
+                  DataColumn(
+                    label: Text(
+                      'Status',
+                      style: TextStyle(
+                        fontSize: _bodyFontSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-
-                  DataCell(
-                    _statusBadge(
-                      complaint.status,
-                    ),
-                  ),
-
-                  DataCell(
-                    IconButton(
-                      tooltip: 'Lihat Detail',
-                      icon: const Icon(
-                        Icons.visibility_outlined,
-                        size: 20,
-                      ),
-                      onPressed: () =>
-                          _showComplaintDetail(
-                        complaint,
+                  DataColumn(
+                    label: Text(
+                      'Aksi',
+                      style: TextStyle(
+                        fontSize: _bodyFontSize,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ],
-              );
-            },
-          ).toList(),
-        ),
-      ),
+                rows: _filteredComplaints.map(
+                  (complaint) {
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            complaint.code,
+                            style: const TextStyle(
+                              fontSize: _bodyFontSize,
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          ),
+                        ),
+
+                        DataCell(
+                          Text(
+                            complaint.title,
+                            style: const TextStyle(
+                              fontSize:
+                                  _bodyFontSize,
+                            ),
+                          ),
+                        ),
+
+                        DataCell(
+                          Text(
+                            complaint.category,
+                            style: const TextStyle(
+                              fontSize:
+                                  _bodyFontSize,
+                            ),
+                          ),
+                        ),
+
+                        DataCell(
+                          Text(
+                            complaint.formattedDate,
+                            style: const TextStyle(
+                              fontSize:
+                                  _bodyFontSize,
+                            ),
+                          ),
+                        ),
+
+                        DataCell(
+                          _statusBadge(
+                            complaint.status,
+                          ),
+                        ),
+
+                        DataCell(
+                          IconButton(
+                            tooltip: 'Lihat Detail',
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 20,
+                            ),
+                            onPressed: () =>
+                                _showComplaintDetail(
+                              complaint,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ).toList(),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1530,7 +1533,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                 CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Pengaduan Saya',
+                                'Lapor Masalah Aplikasi',
                                 style: Theme.of(
                                   context,
                                 )
@@ -1545,7 +1548,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                               const SizedBox(height: 6),
 
                               Text(
-                                'Ajukan dan pantau pengaduan kepada Admin.',
+                                'Laporkan bug atau kirim saran untuk pengembangan aplikasi.',
                                 style: Theme.of(
                                   context,
                                 )
@@ -1578,8 +1581,8 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                           ),
                           label: Text(
                             isMobile
-                                ? 'Buat'
-                                : 'Buat Pengaduan',
+                                ? 'Lapor'
+                                : 'Lapor Sekarang',
                             style: const TextStyle(
                               fontSize:
                                   _buttonFontSize,
@@ -1630,7 +1633,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                       _buildError()
                     else ...[
                       Text(
-                        'Ringkasan Pengaduan',
+                        'Ringkasan Laporan',
                         style: Theme.of(context)
                             .textTheme
                             .titleLarge
@@ -1647,7 +1650,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                       const SizedBox(height: 24),
 
                       Text(
-                        'Riwayat Pengaduan',
+                        'Riwayat Laporan',
                         style: Theme.of(context)
                             .textTheme
                             .titleLarge
@@ -1784,7 +1787,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           SizedBox(height: 12),
 
           Text(
-            'Belum ada pengaduan.',
+            'Belum ada laporan.',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey,

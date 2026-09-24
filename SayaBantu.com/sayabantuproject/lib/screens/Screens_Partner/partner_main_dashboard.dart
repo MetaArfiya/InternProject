@@ -9,7 +9,9 @@ import '../../sections/partner/active_offer_screen.dart';
 // import '../../sections/partner/partner_profile_section.dart';
 import '../../sections/partner/partner_setting_screen.dart';
 import '../../sections/partner/offer_job_screen.dart';
-import '../../sections/customer/customer_complaint_screen.dart';
+
+// ✅ GANTI INI — dari customer ke partner
+import '../../sections/partner/partner_complaint_screen.dart';
 
 import '../../sections/payment/payment_screen.dart';
 import 'income_screen.dart';
@@ -130,7 +132,7 @@ class _PartnerMainDashboardState
       // --------------------------------------------------------
 
       case PartnerSidebarMenu.pengaduan:
-        return const CustomerComplaintScreen();
+        return const PartnerComplaintScreen();  // ✅ FIX DI SINI
 
       // --------------------------------------------------------
       // PROFIL — BELUM DIAKTIFKAN
