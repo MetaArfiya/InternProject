@@ -65,7 +65,6 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     "Instalasi & Teknisi",
     "Jasa Rumah Tangga",
     "Jasa Umum",
-    "Lainnya",
   ];
 
   // =========================================================

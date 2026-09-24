@@ -25,9 +25,6 @@ use App\Models\AppReview;
 // JALUR UMUM / PUBLIC
 // =========================================================
 
-// =========================================================
-// SERVE GAMBAR JOB DENGAN CORS
-// =========================================================
 Route::get('/images/jobs/{filename}', function ($filename) {
     $path = 'jobs/' . $filename;
 
@@ -54,9 +51,6 @@ Route::get('/images/jobs/{filename}', function ($filename) {
 });
 
 
-// =========================================================
-// SERVE GAMBAR PROFILE DENGAN CORS
-// =========================================================
 Route::get('/images/profile/{filename}', function ($filename) {
     $path = 'profile_photos/' . $filename;
 
@@ -84,9 +78,6 @@ Route::get('/images/profile/{filename}', function ($filename) {
 });
 
 
-// =========================================================
-// SERVE GAMBAR SKILL PHOTOS DENGAN CORS
-// =========================================================
 Route::get('/images/skill_photos/{filename}', function ($filename) {
     $path = 'skill_photos/' . $filename;
 
@@ -113,9 +104,6 @@ Route::get('/images/skill_photos/{filename}', function ($filename) {
 });
 
 
-// =========================================================
-// SERVE GAMBAR SERTIFIKAT DENGAN CORS
-// =========================================================
 Route::get('/images/certificates/{filename}', function ($filename) {
     $path = 'certificates/' . $filename;
 
@@ -142,9 +130,6 @@ Route::get('/images/certificates/{filename}', function ($filename) {
 });
 
 
-// =========================================================
-// SERVE GAMBAR BUKTI PEKERJAAN (COMPLETION PROOFS)
-// =========================================================
 Route::get('/images/completion_proofs/{filename}', function ($filename) {
     $path = 'completion_proofs/' . $filename;
 
@@ -171,9 +156,6 @@ Route::get('/images/completion_proofs/{filename}', function ($filename) {
 });
 
 
-// =========================================================
-// SERVE GAMBAR BUKTI PEMBAYARAN (PAYMENT PROOFS)
-// =========================================================
 Route::get('/images/payment_proofs/{folder}/{filename}', function ($folder, $filename) {
     if (!in_array($folder, ['customer', 'mitra'])) {
         return response()->json([
@@ -206,10 +188,6 @@ Route::get('/images/payment_proofs/{folder}/{filename}', function ($folder, $fil
         ->header('Access-Control-Allow-Headers', '*');
 });
 
-
-// =========================================================
-// TESTIMONIALS
-// =========================================================
 
 Route::get('/testimonials', function () {
     try {
@@ -288,50 +266,31 @@ Route::get('/landing-stats', [StatsController::class, 'getLandingStats']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // =====================================================
-    // USER PROFILE
-    // =====================================================
     Route::get('/user', [AuthController::class, 'me']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/user/profile/photo', [AuthController::class, 'uploadProfilePhoto']);
 
 
-    // =====================================================
-    // ACTIVITY LOG
-    // =====================================================
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
     Route::post('/activity-logs', [ActivityLogController::class, 'store']);
 
-    // ✅ BARU: Hapus log — taruh di atas route lain agar tidak bentrok
     Route::delete('/activity-logs/by-range', [ActivityLogController::class, 'deleteByRange']);
     Route::delete('/activity-logs/all',      [ActivityLogController::class, 'deleteAll']);
 
 
-    // =====================================================
-    // COMPLAINTS — SEMUA ROLE YANG LOGIN
-    // =====================================================
     Route::get('/complaints/my',    [ComplaintController::class, 'myComplaints']);
     Route::post('/complaints',      [ComplaintController::class, 'store']);
     Route::get('/complaints/{id}',  [ComplaintController::class, 'show']);
 
 
-    // =====================================================
-    // PAYMENT DETAIL — SEMUA ROLE YANG LOGIN
-    // =====================================================
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
 
 
-    // =====================================================
-    // NOTIFICATION
-    // =====================================================
     Route::get('/notifications', [NotificationController::class, 'getNotifications']);
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
     Route::put('/user/notification-setting', [AuthController::class, 'updateNotificationSetting']);
 
 
-    // =====================================================
-    // CHANGE PASSWORD
-    // =====================================================
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
 
@@ -347,13 +306,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/superadmin/system-settings', [SuperAdminController::class, 'getSystemSettings']);
         Route::put('/superadmin/system-settings', [SuperAdminController::class, 'updateSystemSettings']);
 
-        // Update rekening platform
         Route::post('/superadmin/settings/bank-account', [SuperAdminController::class, 'updateBankAccount']);
 
-        // Active mitra
         Route::get('/superadmin/active-partners', [SuperAdminController::class, 'activePartners']);
 
-        // PEMBAYARAN — SUPER ADMIN
         Route::get('/superadmin/payments/overview',  [PaymentController::class, 'superOverview']);
         Route::get('/superadmin/payments/chart',     [PaymentController::class, 'superChart']);
         Route::get('/superadmin/payments/top-mitra', [PaymentController::class, 'superTopMitra']);
@@ -361,6 +317,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // =====================================================
+    // ADMIN
+    // =====================================================
+        // =====================================================
     // ADMIN
     // =====================================================
     Route::middleware('role:Admin')->group(function () {
@@ -393,6 +352,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/ratings/{id}/unhide', [RatingController::class, 'unhide']);
 
         Route::get('/admin/verified-mitra', [AdminController::class, 'verifiedMitra']);
+
+        // 🆕 PERUBAHAN KEAHLIAN MITRA
+        Route::get('/admin/pending-skills', [MitraProfileController::class, 'pendingSkills']);
+        Route::post('/admin/approve-skill/{mitraId}', [MitraProfileController::class, 'approveSkill']);
+        Route::post('/admin/reject-skill/{mitraId}',  [MitraProfileController::class, 'rejectSkill']);
     });
 
 
@@ -400,29 +364,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // MITRA
     // =====================================================
     Route::middleware('role:Mitra')->group(function () {
-        // Verifikasi & Upload
         Route::post('/mitra/verification', [MitraProfileController::class, 'submitVerification']);
         Route::post('/mitra/skill-photos', [MitraProfileController::class, 'uploadSkillPhotos']);
         Route::post('/mitra/certificate', [MitraProfileController::class, 'uploadCertificate']);
 
-        // Profile
         Route::get('/mitra/profile', [MitraProfileController::class, 'getProfile']);
         Route::put('/mitra/profile', [MitraProfileController::class, 'updateProfile']);
 
-        // Verifikasi lama
         Route::post('/mitra/upload-ktp', [MitraProfileController::class, 'uploadKtp']);
 
-        // Job
         Route::get('/mitra/available-jobs', [JobController::class, 'availableJobs']);
         Route::get('/mitra/my-offers', [JobController::class, 'myOffers']);
         Route::get('/jobs', [JobController::class, 'index']);
         Route::post('/jobs/{id}/apply', [JobController::class, 'applyJob']);
         Route::post('/jobs/{id}/cancel', [JobController::class, 'cancelJob']);
 
-        // Upload bukti selesai
         Route::post('/jobs/{id}/upload-proof', [JobController::class, 'uploadProof']);
 
-        // Pembayaran — Pendapatan Mitra
         Route::get('/mitra/earnings', [PaymentController::class, 'mitraIndex']);
         Route::get('/mitra/earnings/monthly', [PaymentController::class, 'mitraMonthlyStats']);
     });
@@ -433,22 +391,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // =====================================================
     Route::middleware('role:Pelanggan')->group(function () {
         Route::post('/jobs', [JobController::class, 'store']);
-        //Route::post('/jobs/{id}/complete', [JobController::class, 'completeJob']);
         Route::get('/pelanggan/my-jobs', [JobController::class, 'myJobs']);
         Route::post('/jobs/accept-bid/{bidId}', [JobController::class, 'acceptBid']);
 
-        // Verifikasi bukti
         Route::post('/jobs/{id}/verify-proof', [JobController::class, 'verifyProof']);
 
         Route::get('/mitra/{id}', [MitraProfileController::class, 'show']);
         Route::get('/jobs/{id}', [JobController::class, 'show']);
 
-        // PEMBAYARAN — PELANGGAN
         Route::get('/pelanggan/payments',                   [PaymentController::class, 'pelangganIndex']);
         Route::get('/pelanggan/payments/{id}',              [PaymentController::class, 'showForPelanggan']);
         Route::post('/pelanggan/payments/{id}/upload-proof',[PaymentController::class, 'uploadCustomerProof']);
 
-        // RATING — PELANGGAN
         Route::post('/pelanggan/ratings',              [RatingController::class, 'storeFromPelanggan']);
         Route::get('/pelanggan/ratings/job/{jobId}',   [RatingController::class, 'checkJobRating']);
     });

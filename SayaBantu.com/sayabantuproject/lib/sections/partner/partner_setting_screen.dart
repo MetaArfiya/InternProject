@@ -12,33 +12,21 @@ import '../../services/api_service.dart';
 class PartnerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
 
-  const PartnerSettingScreen({
-    super.key,
-    required this.onProfileUpdate,
-  });
+  const PartnerSettingScreen({super.key, required this.onProfileUpdate});
 
   @override
   State<PartnerSettingScreen> createState() => _PartnerSettingScreenState();
 }
 
 class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
-  // ============================================================
-  // INPUT FORMATTERS
-  // ============================================================
-
-  /// Hanya huruf, spasi, titik, koma, apostrof, dan strip
   static final List<TextInputFormatter> nameFormatters = [
-    FilteringTextInputFormatter.allow(
-      RegExp(r"[a-zA-Z\s.,'-]"),
-    ),
+    FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s.,'-]")),
   ];
 
-  /// Hanya angka
   static final List<TextInputFormatter> digitsOnly = [
     FilteringTextInputFormatter.digitsOnly,
   ];
 
-  /// Daftar bank umum + opsi "Lainnya"
   static const List<String> bankList = [
     'BCA',
     'Mandiri',
@@ -59,10 +47,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     'Lainnya',
   ];
 
-  // ============================================================
-  // BASIC PROFILE
-  // ============================================================
-
   bool isLoading = true;
   bool isUploadingPhoto = false;
   bool jobNotification = true;
@@ -81,10 +65,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
-  // ============================================================
-  // IDENTITAS MITRA
-  // ============================================================
-
   String gender = '';
   String birthDate = '';
   String city = '';
@@ -95,25 +75,17 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController birthDateController = TextEditingController();
 
-  // ============================================================
-  // REKENING BANK
-  // ============================================================
-
   String bankName = '';
   String bankAccountNumber = '';
   String bankAccountName = '';
 
-  bool isCustomBank = false; // ✅ apakah pakai input manual
+  bool isCustomBank = false;
 
   final TextEditingController bankNameController = TextEditingController();
   final TextEditingController bankAccountNumberController =
       TextEditingController();
   final TextEditingController bankAccountNameController =
       TextEditingController();
-
-  // ============================================================
-  // VERIFIKASI
-  // ============================================================
 
   Uint8List? ktpBytes;
   String? ktpFileName;
@@ -125,11 +97,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
   String verificationStatus = 'Belum Diverifikasi';
 
-  // ============================================================
-  // KEAHLIAN
-  // ============================================================
-
   String selectedCategory = '';
+  String pendingSkills = '';
+  List<String> pendingSkillPhotoUrls = [];
+  String pendingCertificateUrl = '';
+  DateTime? skillsUpdatedAt;
 
   final List<String> categories = [
     'Perbaikan & Perawatan Rumah',
@@ -138,7 +110,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     'Instalasi & Teknisi',
     'Jasa Rumah Tangga',
     'Jasa Umum',
-    'Lainnya',
   ];
 
   final List<Uint8List> skillPhotoBytes = [];
@@ -146,26 +117,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
   List<String> skillPhotoUrls = [];
 
-  // ============================================================
-  // SERTIFIKAT
-  // ============================================================
-
   Uint8List? certificateBytes;
   String? certificateFileName;
   String certificateUrl = '';
-
-  // ============================================================
-  // DATA MITRA
-  // ============================================================
 
   int totalPoint = 0;
   bool isVerified = false;
   double rating = 0.0;
   int reviewsCount = 0;
-
-  // ============================================================
-  // PASSWORD
-  // ============================================================
 
   final TextEditingController currentPasswordController =
       TextEditingController();
@@ -177,19 +136,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   bool obscureNewPassword = true;
   bool obscureConfirmPassword = true;
 
-  // ============================================================
-  // INIT
-  // ============================================================
-
   @override
   void initState() {
     super.initState();
     loadProfileFromApi();
   }
-
-  // ============================================================
-  // DISPOSE
-  // ============================================================
 
   @override
   void dispose() {
@@ -213,10 +164,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
     super.dispose();
   }
-
-  // ============================================================
-  // FULL PHOTO URL
-  // ============================================================
 
   String getFullPhotoUrl(String value) {
     String raw = value.trim();
@@ -252,9 +199,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // PREVIEW IMAGE DIALOG
-  // ============================================================
   void _showImageDialog(BuildContext context, ImageProvider imageProvider) {
     showDialog(
       context: context,
@@ -269,10 +213,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 panEnabled: true,
                 minScale: 0.5,
                 maxScale: 4.0,
-                child: Image(
-                  image: imageProvider,
-                  fit: BoxFit.contain,
-                ),
+                child: Image(image: imageProvider, fit: BoxFit.contain),
               ),
               Positioned(
                 top: 8,
@@ -300,10 +241,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // LOAD PROFILE
-  // ============================================================
-
   Future<void> loadProfileFromApi() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -325,6 +262,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           bankAccountName = '';
           isCustomBank = false;
           selectedCategory = '';
+          pendingSkills = '';
+          pendingSkillPhotoUrls = [];
+          pendingCertificateUrl = '';
+          skillsUpdatedAt = null;
           verificationStatus = 'Belum Diverifikasi';
           totalPoint = 0;
           isVerified = false;
@@ -345,7 +286,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         });
       }
 
-      // USER PROFILE
       final userResponse = await ApiService.get('/user');
       if (userResponse.statusCode == 200) {
         final data = jsonDecode(userResponse.body);
@@ -368,7 +308,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           bool? loadedNotification;
           final apiNotification = userData['is_notification_enabled'];
           if (apiNotification != null) {
-            loadedNotification = apiNotification == true ||
+            loadedNotification =
+                apiNotification == true ||
                 apiNotification == 1 ||
                 apiNotification.toString().toLowerCase() == 'true';
           }
@@ -377,14 +318,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           int? nestedPoint;
           bool? nestedVerified;
           if (nestedMitra is Map) {
-            nestedPoint =
-                int.tryParse(nestedMitra['point']?.toString() ?? '0');
-            nestedVerified = nestedMitra['is_verified'] == true ||
+            nestedPoint = int.tryParse(nestedMitra['point']?.toString() ?? '0');
+            nestedVerified =
+                nestedMitra['is_verified'] == true ||
                 nestedMitra['is_verified'] == 1 ||
-                nestedMitra['is_verified']
-                        ?.toString()
-                        .toLowerCase() ==
-                    'true';
+                nestedMitra['is_verified']?.toString().toLowerCase() == 'true';
           }
 
           if (mounted) {
@@ -419,21 +357,23 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         }
       }
 
-      // MITRA PROFILE
       final mitraResponse = await ApiService.get('/mitra/profile');
       if (mitraResponse.statusCode == 200) {
         final mitraResponseData = jsonDecode(mitraResponse.body);
-        final mitra = mitraResponseData['data'] ??
+        final mitra =
+            mitraResponseData['data'] ??
             mitraResponseData['mitra'] ??
             mitraResponseData;
 
         if (mitra is Map) {
           final loadedGender = mitra['gender']?.toString() ?? '';
-          final loadedBirthDate = mitra['birth_date']?.toString() ??
+          final loadedBirthDate =
+              mitra['birth_date']?.toString() ??
               mitra['birthDate']?.toString() ??
               '';
           final loadedCity = mitra['city']?.toString() ?? '';
-          final loadedBio = mitra['bio']?.toString() ??
+          final loadedBio =
+              mitra['bio']?.toString() ??
               mitra['description']?.toString() ??
               '';
 
@@ -465,29 +405,40 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             }
           }
 
-          final loadedIsVerified = mitra['is_verified'] == true ||
+          final loadedPending = mitra['pending_skills']?.toString() ?? '';
+          final rawUpdated = mitra['skills_updated_at']?.toString();
+          final loadedUpdatedAt = (rawUpdated != null && rawUpdated.isNotEmpty)
+              ? DateTime.tryParse(rawUpdated)
+              : null;
+
+          final loadedIsVerified =
+              mitra['is_verified'] == true ||
               mitra['is_verified'] == 1 ||
               mitra['is_verified']?.toString().toLowerCase() == 'true';
 
           String loadedVerificationStatus =
               mitra['verification_status']?.toString() ?? '';
           if (loadedVerificationStatus.isEmpty) {
-            loadedVerificationStatus =
-                loadedIsVerified ? 'Terverifikasi' : 'Belum Diverifikasi';
+            loadedVerificationStatus = loadedIsVerified
+                ? 'Terverifikasi'
+                : 'Belum Diverifikasi';
           }
 
-          final loadedPoint = int.tryParse(
-                  mitra['point']?.toString() ??
-                      mitra['total_point']?.toString() ??
-                      '0') ??
+          final loadedPoint =
+              int.tryParse(
+                mitra['point']?.toString() ??
+                    mitra['total_point']?.toString() ??
+                    '0',
+              ) ??
               0;
 
-          final loadedRating = double.tryParse(
-                  mitra['rating']?.toString().replaceAll(',', '.') ?? '0') ??
+          final loadedRating =
+              double.tryParse(
+                mitra['rating']?.toString().replaceAll(',', '.') ?? '0',
+              ) ??
               0.0;
-          final loadedReviewsCount = int.tryParse(
-                  mitra['reviews_count']?.toString() ?? '0') ??
-              0;
+          final loadedReviewsCount =
+              int.tryParse(mitra['reviews_count']?.toString() ?? '0') ?? 0;
 
           final rawKtp = mitra['verification_image']?.toString() ?? '';
           final rawSelfie = mitra['selfie_image']?.toString() ?? '';
@@ -504,8 +455,31 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 .toList();
           }
 
-          final rawCert = mitra['certificate']?.toString() ?? '';
-          final certFullUrl = getFullPhotoUrl(rawCert);
+          List<String> loadedPendingPhotos = [];
+          final rawPendingPhotos = mitra['pending_skill_photos'];
+          if (rawPendingPhotos is List) {
+            loadedPendingPhotos = rawPendingPhotos
+                .map((e) => getFullPhotoUrl(e.toString()))
+                .where((e) => e.isNotEmpty)
+                .toList();
+          }
+
+          String loadedPendingCert = '';
+          final rawPendingCert = mitra['pending_certificate']?.toString() ?? '';
+          if (rawPendingCert.isNotEmpty && rawPendingCert != 'null') {
+            loadedPendingCert = getFullPhotoUrl(rawPendingCert);
+          }
+
+          // ✅ Handle certificate bisa String ATAU List
+          String certFullUrl = '';
+          final rawCert = mitra['certificate'];
+          if (rawCert is List && rawCert.isNotEmpty) {
+            certFullUrl = getFullPhotoUrl(rawCert.first.toString());
+          } else if (rawCert is String &&
+              rawCert.isNotEmpty &&
+              rawCert != 'null') {
+            certFullUrl = getFullPhotoUrl(rawCert);
+          }
 
           if (mounted) {
             setState(() {
@@ -514,6 +488,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               city = loadedCity;
               description = loadedBio;
               selectedCategory = loadedSkill;
+
+              pendingSkills = loadedPending;
+              pendingSkillPhotoUrls = loadedPendingPhotos;
+              pendingCertificateUrl = loadedPendingCert;
+              skillsUpdatedAt = loadedUpdatedAt;
+
               verificationStatus = loadedVerificationStatus;
               isVerified = loadedIsVerified;
               totalPoint = loadedPoint;
@@ -524,7 +504,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               bankAccountNumber = loadedBankAccountNumber;
               bankAccountName = loadedBankAccountName;
 
-              // ✅ Deteksi apakah bank dari database termasuk daftar umum
               if (loadedBankName.isEmpty) {
                 isCustomBank = false;
                 bankNameController.text = '';
@@ -560,9 +539,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // SAVE BASIC PROFILE
-  // ============================================================
   Future<void> saveBasicProfile() async {
     final newName = nameController.text.trim();
     final newEmail = emailController.text.trim();
@@ -633,11 +609,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // PROFILE PHOTO
-  // ============================================================
   Future<void> pickProfilePhoto() async {
-    // ✅ Limit 5 MB, sesuai Laravel max:5120 untuk foto profil
     final image = await _pickImageFile(
       maxSizeInBytes: 5 * 1024 * 1024,
       uploadLabel: 'foto profil',
@@ -658,7 +630,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final request = html.HttpRequest();
       final formData = html.FormData();
 
-      // Tentukan MIME berdasarkan ekstensi
       String mimeType = 'image/jpeg';
       final lowerName = fileName.toLowerCase();
       if (lowerName.endsWith('.png')) {
@@ -684,7 +655,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         if (request.status == 200 || request.status == 201) {
           try {
             final responseData = jsonDecode(request.responseText ?? '');
-            final returnedUrl = responseData['photo_url'] ??
+            final returnedUrl =
+                responseData['photo_url'] ??
                 responseData['url'] ??
                 responseData['photo'] ??
                 responseData['user']?['photo_url'];
@@ -697,24 +669,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           widget.onProfileUpdate();
           _showMessage('Foto profil berhasil diperbarui.');
         } else {
-          // ✅ Parse pesan error dari Laravel
           String errorMessage = 'Gagal mengunggah foto profil.';
-
           try {
             final errorData = jsonDecode(request.responseText ?? '{}');
-
             if (errorData['errors'] is Map) {
               final errors = errorData['errors'] as Map;
               if (errors['photo_profile'] is List &&
                   (errors['photo_profile'] as List).isNotEmpty) {
-                errorMessage =
-                    errors['photo_profile'][0].toString();
+                errorMessage = errors['photo_profile'][0].toString();
               } else if (errors.isNotEmpty) {
                 final firstKey = errors.keys.first;
                 if (errors[firstKey] is List &&
                     (errors[firstKey] as List).isNotEmpty) {
-                  errorMessage =
-                      (errors[firstKey] as List)[0].toString();
+                  errorMessage = (errors[firstKey] as List)[0].toString();
                 }
               }
             } else if (errorData['message'] != null) {
@@ -722,11 +689,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             }
           } catch (_) {
             if (request.status == 422) {
-              errorMessage =
-                  'File tidak valid. Cek format & ukuran foto.';
+              errorMessage = 'File tidak valid. Cek format & ukuran foto.';
             } else if (request.status == 401) {
-              errorMessage =
-                  'Sesi login berakhir. Silakan login ulang.';
+              errorMessage = 'Sesi login berakhir. Silakan login ulang.';
             } else if (request.status == 413) {
               errorMessage = 'File terlalu besar untuk server.';
             } else if (request.status == 500) {
@@ -750,9 +715,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // IDENTITAS MITRA
-  // ============================================================
   Future<void> saveIdentity() async {
     final fullName = fullNameController.text.trim();
     final selectedCity = cityController.text.trim();
@@ -852,11 +814,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // SAVE BANK ACCOUNT
-  // ============================================================
   Future<void> saveBankAccount() async {
-    // ✅ Ambil nama bank dari dropdown atau input manual
     final newBankName = isCustomBank
         ? bankNameController.text.trim()
         : bankName.trim();
@@ -927,12 +885,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // DATE PICKER
-  // ============================================================
   Future<void> selectBirthDate() async {
-    DateTime initialDate =
-        DateTime.now().subtract(const Duration(days: 365 * 20));
+    DateTime initialDate = DateTime.now().subtract(
+      const Duration(days: 365 * 20),
+    );
     if (birthDate.isNotEmpty) {
       try {
         initialDate = DateTime.parse(birthDate);
@@ -958,11 +914,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // KTP & SELFIE
-  // ============================================================
   Future<void> pickKtp() async {
-    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk KTP
     final image = await _pickImageFile(
       maxSizeInBytes: 2 * 1024 * 1024,
       uploadLabel: 'foto KTP',
@@ -979,7 +931,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   Future<void> pickSelfie() async {
-    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk selfie
     final image = await _pickImageFile(
       capture: 'user',
       maxSizeInBytes: 2 * 1024 * 1024,
@@ -996,9 +947,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     _showMessage('Foto verifikasi berhasil dipilih.');
   }
 
-  // ============================================================
-  // SUBMIT VERIFICATION
-  // ============================================================
   Future<void> submitVerification() async {
     if (ktpBytes == null) {
       _showMessage('Silakan upload foto KTP terlebih dahulu.', error: true);
@@ -1006,7 +954,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
     if (selfieBytes == null) {
       _showMessage(
-          'Silakan upload foto verifikasi diri terlebih dahulu.', error: true);
+        'Silakan upload foto verifikasi diri terlebih dahulu.',
+        error: true,
+      );
       return;
     }
     if (fullNameController.text.trim().isEmpty) {
@@ -1028,7 +978,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
       final selfieBlob = html.Blob([selfieBytes!], 'image/jpeg');
       formData.appendBlob(
-          'selfie_file', selfieBlob, selfieFileName ?? 'selfie.jpg');
+        'selfie_file',
+        selfieBlob,
+        selfieFileName ?? 'selfie.jpg',
+      );
 
       request.open('POST', 'http://127.0.0.1:8000/api/mitra/verification');
       if (token != null && token.isNotEmpty) {
@@ -1058,9 +1011,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
           if (mounted) {
             setState(() {
-              if (newKtp.isNotEmpty &&
-                  newKtp != 'null' &&
-                  newKtp != '(NUUL)') {
+              if (newKtp.isNotEmpty && newKtp != 'null' && newKtp != '(NUUL)') {
                 ktpUrl = getFullPhotoUrl(newKtp);
                 ktpBytes = null;
                 ktpFileName = null;
@@ -1092,7 +1043,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         await prefs.setString('verification_status', 'Menunggu Verifikasi');
         widget.onProfileUpdate();
         _showMessage(
-            'Data verifikasi berhasil dikirim dan menunggu pemeriksaan admin.');
+          'Data verifikasi berhasil dikirim dan menunggu pemeriksaan admin.',
+        );
       } else {
         String message = 'Gagal mengirim data verifikasi.';
         try {
@@ -1110,9 +1062,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // SAVE SKILL
-  // ============================================================
   Future<void> saveSkill() async {
     if (selectedCategory.isEmpty) {
       _showMessage('Silakan pilih kategori keahlian.', error: true);
@@ -1126,8 +1075,43 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         'skills': selectedCategory,
       });
 
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 429) {
+        _showMessage(
+          body['message']?.toString() ??
+              'Masih ada pengajuan yang menunggu ACC admin.',
+          error: true,
+        );
+        return;
+      }
+
       if (response.statusCode != 200 && response.statusCode != 201) {
-        _showMessage('Gagal menyimpan kategori keahlian.', error: true);
+        _showMessage(
+          body['message']?.toString() ?? 'Gagal menyimpan kategori keahlian.',
+          error: true,
+        );
+        return;
+      }
+
+      final bool isPending = body['pending'] == true;
+
+      if (isPending) {
+        if (mounted) {
+          setState(() {
+            pendingSkills = selectedCategory;
+            skillsUpdatedAt = DateTime.now();
+          });
+        }
+
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (skillPhotoBytes.isNotEmpty) {
+          await uploadSkillPhotos();
+        }
+
+        _showMessage('Pengajuan keahlian dikirim. Menunggu persetujuan admin.');
+        widget.onProfileUpdate();
         return;
       }
 
@@ -1149,9 +1133,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // UPLOAD SKILL PHOTOS
-  // ============================================================
   Future<void> uploadSkillPhotos() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1165,13 +1146,23 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         formData.appendBlob('photos[]', blob, skillPhotoNames[i]);
       }
 
+      formData.append(
+        'is_pending',
+        pendingSkills.isNotEmpty ? 'true' : 'false',
+      );
+
       request.open('POST', 'http://127.0.0.1:8000/api/mitra/skill-photos');
+      request.setRequestHeader('Accept', 'application/json');
       if (token != null && token.isNotEmpty) {
         request.setRequestHeader('Authorization', 'Bearer $token');
       }
 
       final completer = Completer<bool>();
       request.onLoad.listen((_) {
+        debugPrint('=== UPLOAD SKILL PHOTOS ===');
+        debugPrint('STATUS: ${request.status}');
+        debugPrint('BODY: ${request.responseText}');
+
         if (!completer.isCompleted) {
           completer.complete(request.status == 200 || request.status == 201);
         }
@@ -1185,9 +1176,20 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
       if (success) {
         _showMessage('Foto keahlian berhasil diupload.');
+        if (mounted) {
+          setState(() {
+            skillPhotoBytes.clear();
+            skillPhotoNames.clear();
+          });
+        }
         await loadProfileFromApi();
       } else {
-        _showMessage('Gagal mengupload foto keahlian.', error: true);
+        String errMsg = 'Gagal mengupload foto keahlian.';
+        try {
+          final err = jsonDecode(request.responseText ?? '{}');
+          errMsg = err['message']?.toString() ?? errMsg;
+        } catch (_) {}
+        _showMessage(errMsg, error: true);
       }
     } catch (e) {
       _showMessage('Error upload skill photos: $e', error: true);
@@ -1195,13 +1197,16 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // UPLOAD CERTIFICATE
+  // ✅ FIXED: uploadCertificate — tentukan is_pending di sini
   // ============================================================
   Future<void> uploadCertificate() async {
     if (certificateBytes == null) {
       _showMessage('Silakan pilih sertifikat terlebih dahulu.', error: true);
       return;
     }
+
+    // ✅ Cek pending di sini, bukan di pickCertificate
+    final bool isPendingUpload = pendingSkills.isNotEmpty;
 
     try {
       setState(() => isLoading = true);
@@ -1212,17 +1217,38 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final request = html.HttpRequest();
       final formData = html.FormData();
 
-      final blob = html.Blob([certificateBytes!], 'image/jpeg');
+      // Deteksi MIME type berdasarkan extension
+      String mimeType = 'image/jpeg';
+      final lowerName = (certificateFileName ?? '').toLowerCase();
+      if (lowerName.endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (lowerName.endsWith('.webp')) {
+        mimeType = 'image/webp';
+      }
+
+      final blob = html.Blob([certificateBytes!], mimeType);
       formData.appendBlob(
-          'certificate', blob, certificateFileName ?? 'certificate.jpg');
+        'certificate',
+        blob,
+        certificateFileName ?? 'certificate.jpg',
+      );
+
+      if (isPendingUpload) {
+        formData.append('is_pending', 'true');
+      }
 
       request.open('POST', 'http://127.0.0.1:8000/api/mitra/certificate');
+      request.setRequestHeader('Accept', 'application/json');
       if (token != null && token.isNotEmpty) {
         request.setRequestHeader('Authorization', 'Bearer $token');
       }
 
       final completer = Completer<bool>();
       request.onLoad.listen((_) {
+        debugPrint('=== UPLOAD CERTIFICATE ===');
+        debugPrint('STATUS: ${request.status}');
+        debugPrint('BODY: ${request.responseText}');
+
         if (!completer.isCompleted) {
           completer.complete(request.status == 200 || request.status == 201);
         }
@@ -1235,11 +1261,26 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final success = await completer.future;
 
       if (success) {
-        _showMessage('Sertifikat berhasil diupload.');
+        _showMessage(
+          isPendingUpload
+              ? 'Sertifikat baru berhasil diupload. Menunggu ACC admin.'
+              : 'Sertifikat berhasil diupload.',
+        );
+        if (mounted) {
+          setState(() {
+            certificateBytes = null;
+            certificateFileName = null;
+          });
+        }
         await loadProfileFromApi();
         widget.onProfileUpdate();
       } else {
-        _showMessage('Gagal mengupload sertifikat.', error: true);
+        String errMsg = 'Gagal mengupload sertifikat.';
+        try {
+          final err = jsonDecode(request.responseText ?? '{}');
+          errMsg = err['message']?.toString() ?? errMsg;
+        } catch (_) {}
+        _showMessage(errMsg, error: true);
       }
     } catch (e) {
       _showMessage('Error upload certificate: $e', error: true);
@@ -1249,15 +1290,17 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // PICK SERTIFIKAT
+  // ✅ FIXED: pickCertificate — hanya simpan di memory, TIDAK auto upload
   // ============================================================
   Future<void> pickCertificate() async {
-    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk sertifikat
     final image = await _pickImageFile(
       maxSizeInBytes: 2 * 1024 * 1024,
       uploadLabel: 'sertifikat',
     );
     if (image == null) return;
+
+    // ✅ FIX: Selalu simpan dulu di memory, JANGAN auto-upload.
+    // User harus klik "Upload Sertifikat" baru dikirim ke server.
     if (mounted) {
       setState(() {
         certificateBytes = image.bytes;
@@ -1265,23 +1308,40 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         certificateUrl = '';
       });
     }
-    _showMessage('Sertifikat berhasil dipilih.');
+    _showMessage(
+      'Sertifikat berhasil dipilih. Klik "Upload Sertifikat" untuk menyimpan.',
+    );
   }
 
-  // ============================================================
-  // SKILL PHOTO (LOKAL)
-  // ============================================================
   Future<void> pickSkillPhoto() async {
+    if (pendingSkills.isNotEmpty) {
+      final int currentPendingCount = pendingSkillPhotoUrls.length;
+      if (currentPendingCount >= 6) {
+        _showMessage('Maksimal 6 foto keahlian baru.', error: true);
+        return;
+      }
+
+      final image = await _pickImageFile(
+        maxSizeInBytes: 2 * 1024 * 1024,
+        uploadLabel: 'foto keahlian',
+      );
+      if (image == null) return;
+
+      await _uploadSinglePendingPhoto(image);
+      return;
+    }
+
     if (skillPhotoBytes.length >= 6) {
       _showMessage('Maksimal 6 foto keahlian.', error: true);
       return;
     }
-    // ✅ Limit 2 MB, sesuai Laravel max:2048 untuk skill photo
+
     final image = await _pickImageFile(
       maxSizeInBytes: 2 * 1024 * 1024,
       uploadLabel: 'foto keahlian',
     );
     if (image == null) return;
+
     if (mounted) {
       setState(() {
         skillPhotoBytes.add(image.bytes);
@@ -1289,6 +1349,69 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       });
     }
     _showMessage('Foto keahlian berhasil ditambahkan.');
+  }
+
+  Future<void> _uploadSinglePendingPhoto(_PickedImage image) async {
+    try {
+      setState(() => isLoading = true);
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final request = html.HttpRequest();
+      final formData = html.FormData();
+
+      String mimeType = 'image/jpeg';
+      final lowerName = image.name.toLowerCase();
+      if (lowerName.endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (lowerName.endsWith('.webp')) {
+        mimeType = 'image/webp';
+      }
+
+      final blob = html.Blob([image.bytes], mimeType);
+      formData.appendBlob('photos[]', blob, image.name);
+      formData.append('is_pending', 'true');
+
+      request.open('POST', 'http://127.0.0.1:8000/api/mitra/skill-photos');
+      request.setRequestHeader('Accept', 'application/json');
+      if (token != null && token.isNotEmpty) {
+        request.setRequestHeader('Authorization', 'Bearer $token');
+      }
+
+      final completer = Completer<bool>();
+      request.onLoad.listen((_) {
+        debugPrint('=== UPLOAD PENDING PHOTO ===');
+        debugPrint('STATUS: ${request.status}');
+        debugPrint('BODY: ${request.responseText}');
+
+        if (!completer.isCompleted) {
+          completer.complete(request.status == 200 || request.status == 201);
+        }
+      });
+      request.onError.listen((_) {
+        if (!completer.isCompleted) completer.complete(false);
+      });
+
+      request.send(formData);
+      final success = await completer.future;
+
+      if (success) {
+        _showMessage('Foto keahlian baru berhasil diupload.');
+        await loadProfileFromApi();
+      } else {
+        String errMsg = 'Gagal mengupload foto keahlian.';
+        try {
+          final err = jsonDecode(request.responseText ?? '{}');
+          errMsg = err['message']?.toString() ?? errMsg;
+        } catch (_) {}
+        _showMessage(errMsg, error: true);
+      }
+    } catch (e) {
+      _showMessage('Error upload foto pending: $e', error: true);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   void removeSkillPhoto(int index) {
@@ -1299,12 +1422,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     });
   }
 
-  // ============================================================
-  // IMAGE PICKER WEB — DENGAN VALIDASI UKURAN & FORMAT
-  // ============================================================
   Future<_PickedImage?> _pickImageFile({
     String? capture,
-    int maxSizeInBytes = 5 * 1024 * 1024, // default 5 MB
+    int maxSizeInBytes = 5 * 1024 * 1024,
     String uploadLabel = 'file',
   }) async {
     final input = html.FileUploadInputElement();
@@ -1320,23 +1440,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       }
       final file = files.first;
 
-      // ✅ VALIDASI MIME TYPE
       if (!file.type.startsWith('image/')) {
         if (mounted) {
-          _showMessage(
-            'File yang dipilih harus berupa gambar.',
-            error: true,
-          );
+          _showMessage('File yang dipilih harus berupa gambar.', error: true);
         }
         if (!completer.isCompleted) completer.complete(null);
         return;
       }
 
-      // ✅ VALIDASI EKSTENSI
       final lowerName = file.name.toLowerCase();
       final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-      final hasValidExtension =
-          allowedExtensions.any((ext) => lowerName.endsWith(ext));
+      final hasValidExtension = allowedExtensions.any(
+        (ext) => lowerName.endsWith(ext),
+      );
 
       if (!hasValidExtension) {
         if (mounted) {
@@ -1349,7 +1465,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         return;
       }
 
-      // ✅ VALIDASI UKURAN
       if (file.size > maxSizeInBytes) {
         if (mounted) {
           final sizeMb = (file.size / 1024 / 1024).toStringAsFixed(2);
@@ -1389,9 +1504,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return completer.future;
   }
 
-  // ============================================================
-  // NOTIFICATION
-  // ============================================================
   Future<void> updateNotification(bool value) async {
     setState(() => jobNotification = value);
     try {
@@ -1408,9 +1520,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // PASSWORD
-  // ============================================================
   Future<void> changePassword() async {
     final current = currentPasswordController.text.trim();
     final newPassword = newPasswordController.text.trim();
@@ -1452,9 +1561,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // MESSAGE
-  // ============================================================
   void _showMessage(String message, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -1468,9 +1574,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       );
   }
 
-  // ============================================================
-  // BUILD
-  // ============================================================
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -1481,10 +1584,15 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           body: SafeArea(
             child: isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: Colors.orange))
+                    child: CircularProgressIndicator(color: Colors.orange),
+                  )
                 : SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
-                        isMobile ? 16 : 30, 24, isMobile ? 16 : 30, 40),
+                      isMobile ? 16 : 30,
+                      24,
+                      isMobile ? 16 : 30,
+                      40,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -1514,9 +1622,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // PAGE HEADER
-  // ============================================================
   Widget _buildPageHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1524,9 +1629,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         const Text(
           'Pengaturan',
           style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(0xff111827)),
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Color(0xff111827),
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -1537,9 +1643,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // PROFILE HEADER
-  // ============================================================
   Widget _buildProfileHeader() {
     return _sectionCard(
       child: Column(
@@ -1565,24 +1668,33 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         shape: BoxShape.circle,
                         color: Colors.orange.shade50,
                         border: Border.all(
-                            color: Colors.orange.shade200, width: 2),
+                          color: Colors.orange.shade200,
+                          width: 2,
+                        ),
                       ),
                       child: ClipOval(
                         child: selectedPhotoBytes != null
-                            ? Image.memory(selectedPhotoBytes!,
-                                fit: BoxFit.cover)
+                            ? Image.memory(
+                                selectedPhotoBytes!,
+                                fit: BoxFit.cover,
+                              )
                             : photoUrl.isNotEmpty
-                                ? Image.network(
-                                    photoUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) {
-                                      return const Icon(Icons.person,
-                                          size: 42, color: Colors.orange);
-                                    },
-                                  )
-                                : const Icon(Icons.person,
-                                    size: 42, color: Colors.orange),
+                            ? Image.network(
+                                photoUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 42,
+                                    color: Colors.orange,
+                                  );
+                                },
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 42,
+                                color: Colors.orange,
+                              ),
                       ),
                     ),
                     GestureDetector(
@@ -1591,15 +1703,22 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         width: 30,
                         height: 30,
                         decoration: const BoxDecoration(
-                            color: Colors.orange, shape: BoxShape.circle),
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
                         child: isUploadingPhoto
                             ? const Padding(
                                 padding: EdgeInsets.all(7),
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : const Icon(Icons.camera_alt,
-                                size: 16, color: Colors.white),
+                            : const Icon(
+                                Icons.camera_alt,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                       ),
                     ),
                   ],
@@ -1613,13 +1732,17 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     Text(
                       name.isEmpty ? 'Mitra' : name,
                       style: const TextStyle(
-                          fontSize: 21, fontWeight: FontWeight.bold),
+                        fontSize: 21,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       email.isEmpty ? 'Email belum tersedia' : email,
-                      style:
-                          TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
@@ -1627,9 +1750,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       runSpacing: 8,
                       children: [
                         _badge(
-                            icon: Icons.stars,
-                            label: '$totalPoint Poin',
-                            color: Colors.orange),
+                          icon: Icons.stars,
+                          label: '$totalPoint Poin',
+                          color: Colors.orange,
+                        ),
                         _badge(
                           icon: Icons.star,
                           label: rating > 0
@@ -1662,15 +1786,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // BASIC PROFILE FORM
-  // ============================================================
   Widget _profileBasicForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Profil Dasar',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+        const Text(
+          'Profil Dasar',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -1679,17 +1802,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               return Column(
                 children: [
                   _textField(
-                      controller: nameController,
-                      label: 'Nama Lengkap',
-                      icon: Icons.person_outline,
-                      maxLength: 100,
-                      inputFormatters: nameFormatters),
+                    controller: nameController,
+                    label: 'Nama Lengkap',
+                    icon: Icons.person_outline,
+                    maxLength: 100,
+                    inputFormatters: nameFormatters,
+                  ),
                   const SizedBox(height: 14),
                   _textField(
-                      controller: emailController,
-                      label: 'Email',
-                      icon: Icons.email_outlined,
-                      readOnly: true),
+                    controller: emailController,
+                    label: 'Email',
+                    icon: Icons.email_outlined,
+                    readOnly: true,
+                  ),
                   const SizedBox(height: 14),
                   _textField(
                     controller: phoneController,
@@ -1715,19 +1840,23 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 Row(
                   children: [
                     Expanded(
-                        child: _textField(
-                            controller: nameController,
-                            label: 'Nama Lengkap',
-                            icon: Icons.person_outline,
-                            maxLength: 100,
-                            inputFormatters: nameFormatters)),
+                      child: _textField(
+                        controller: nameController,
+                        label: 'Nama Lengkap',
+                        icon: Icons.person_outline,
+                        maxLength: 100,
+                        inputFormatters: nameFormatters,
+                      ),
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
-                        child: _textField(
-                            controller: emailController,
-                            label: 'Email',
-                            icon: Icons.email_outlined,
-                            readOnly: true)),
+                      child: _textField(
+                        controller: emailController,
+                        label: 'Email',
+                        icon: Icons.email_outlined,
+                        readOnly: true,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -1770,10 +1899,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ),
@@ -1781,9 +1910,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // IDENTITAS MITRA
-  // ============================================================
   Widget _buildIdentitySection() {
     return _sectionCard(
       child: Column(
@@ -1803,22 +1929,24 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 return Column(
                   children: [
                     _textField(
-                        controller: fullNameController,
-                        label: 'Nama Lengkap',
-                        icon: Icons.person_outline,
-                        maxLength: 100,
-                        inputFormatters: nameFormatters),
+                      controller: fullNameController,
+                      label: 'Nama Lengkap',
+                      icon: Icons.person_outline,
+                      maxLength: 100,
+                      inputFormatters: nameFormatters,
+                    ),
                     const SizedBox(height: 14),
                     _genderDropdown(),
                     const SizedBox(height: 14),
                     _birthDateField(),
                     const SizedBox(height: 14),
                     _textField(
-                        controller: cityController,
-                        label: 'Kota/Kabupaten',
-                        icon: Icons.location_city_outlined,
-                        maxLength: 100,
-                        inputFormatters: nameFormatters),
+                      controller: cityController,
+                      label: 'Kota/Kabupaten',
+                      icon: Icons.location_city_outlined,
+                      maxLength: 100,
+                      inputFormatters: nameFormatters,
+                    ),
                   ],
                 );
               }
@@ -1828,11 +1956,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     children: [
                       Expanded(
                         child: _textField(
-                            controller: fullNameController,
-                            label: 'Nama Lengkap',
-                            icon: Icons.person_outline,
-                            maxLength: 100,
-                            inputFormatters: nameFormatters),
+                          controller: fullNameController,
+                          label: 'Nama Lengkap',
+                          icon: Icons.person_outline,
+                          maxLength: 100,
+                          inputFormatters: nameFormatters,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(child: _genderDropdown()),
@@ -1845,11 +1974,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       const SizedBox(width: 14),
                       Expanded(
                         child: _textField(
-                            controller: cityController,
-                            label: 'Kota/Kabupaten',
-                            icon: Icons.location_city_outlined,
-                            maxLength: 100,
-                            inputFormatters: nameFormatters),
+                          controller: cityController,
+                          label: 'Kota/Kabupaten',
+                          icon: Icons.location_city_outlined,
+                          maxLength: 100,
+                          inputFormatters: nameFormatters,
+                        ),
                       ),
                     ],
                   ),
@@ -1885,10 +2015,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -1897,9 +2030,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // REKENING BANK SECTION
-  // ============================================================
   Widget _buildBankAccountSection() {
     return _sectionCard(
       child: Column(
@@ -1975,7 +2105,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             },
           ),
           const SizedBox(height: 14),
-
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1997,7 +2126,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 18),
           Align(
             alignment: Alignment.centerRight,
@@ -2008,10 +2136,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -2020,15 +2151,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // GENDER DROPDOWN
-  // ============================================================
   Widget _genderDropdown() {
     final validGender = ['Laki-laki', 'Perempuan'].contains(gender);
     return DropdownButtonFormField<String>(
       value: validGender ? gender : null,
-      decoration:
-          _inputDecoration(label: 'Jenis Kelamin', icon: Icons.wc_outlined),
+      decoration: _inputDecoration(
+        label: 'Jenis Kelamin',
+        icon: Icons.wc_outlined,
+      ),
       hint: const Text('Pilih jenis kelamin'),
       items: const [
         DropdownMenuItem(value: 'Laki-laki', child: Text('Laki-laki')),
@@ -2041,11 +2171,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // BANK NAME DROPDOWN
-  // ============================================================
   Widget _bankNameDropdown() {
-    // Tentukan value dropdown
     String? dropdownValue;
     if (isCustomBank) {
       dropdownValue = 'Lainnya';
@@ -2069,10 +2195,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
           hint: const Text('Pilih bank'),
           items: bankList
-              .map((bank) => DropdownMenuItem(
-                    value: bank,
-                    child: Text(bank),
-                  ))
+              .map((bank) => DropdownMenuItem(value: bank, child: Text(bank)))
               .toList(),
           onChanged: (value) {
             if (value == null) return;
@@ -2089,8 +2212,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             });
           },
         ),
-
-        // ✅ Kalau "Lainnya" dipilih → tampilkan input manual
         if (isCustomBank) ...[
           const SizedBox(height: 14),
           _textField(
@@ -2106,25 +2227,21 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // DATE FIELD
-  // ============================================================
   Widget _birthDateField() {
     return TextField(
       controller: birthDateController,
       readOnly: true,
       onTap: selectBirthDate,
-      decoration: _inputDecoration(
-              label: 'Tanggal Lahir', icon: Icons.calendar_month_outlined)
-          .copyWith(
-        suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-      ),
+      decoration:
+          _inputDecoration(
+            label: 'Tanggal Lahir',
+            icon: Icons.calendar_month_outlined,
+          ).copyWith(
+            suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+          ),
     );
   }
 
-  // ============================================================
-  // VERIFICATION SECTION
-  // ============================================================
   Widget _buildVerificationSection() {
     return _sectionCard(
       child: Column(
@@ -2212,10 +2329,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -2224,9 +2344,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // DOCUMENT UPLOAD CARD
-  // ============================================================
   Widget _documentUploadCard({
     required String title,
     required String description,
@@ -2245,16 +2362,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       decoration: BoxDecoration(
         color: const Color(0xffF8FAFC),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xffE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xffE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ============================================================
-          // FIELD TITLE
-          // ============================================================
           Row(
             children: [
               Container(
@@ -2264,11 +2376,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.orange,
-                  size: 20,
-                ),
+                child: Icon(icon, color: Colors.orange, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2283,35 +2391,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 7),
-
           Text(
             description,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
-
           const SizedBox(height: 10),
-
-          // ============================================================
-          // PREVIEW - FULL (cover) - SEMUA UPLOAD FIELD
-          // ============================================================
           GestureDetector(
             onTap: hasImage
                 ? () {
                     if (hasFile) {
-                      _showImageDialog(
-                        context,
-                        MemoryImage(bytes!),
-                      );
+                      _showImageDialog(context, MemoryImage(bytes!));
                     } else {
-                      _showImageDialog(
-                        context,
-                        NetworkImage(url),
-                      );
+                      _showImageDialog(context, NetworkImage(url));
                     }
                   }
                 : null,
@@ -2326,55 +2418,47 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         bytes!,
                         width: double.infinity,
                         height: 150,
-                        fit: BoxFit.cover, // ✅ full
+                        fit: BoxFit.cover,
                       )
                     : hasUrl
-                        ? Image.network(
-                            url,
-                            width: double.infinity,
-                            height: 150,
-                            fit: BoxFit.cover, // ✅ full
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.broken_image_outlined,
-                                  size: 40,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
-                            loadingBuilder:
-                                (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              );
-                            },
-                          )
-                        : const Center(
+                    ? Image.network(
+                        url,
+                        width: double.infinity,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
                             child: Icon(
-                              Icons.image_outlined,
+                              Icons.broken_image_outlined,
                               size: 40,
                               color: Colors.grey,
                             ),
-                          ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        },
+                      )
+                    : const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
+                      ),
               ),
             ),
           ),
-
           const SizedBox(height: 7),
-
-          // ============================================================
-          // FILE STATUS
-          // ============================================================
           Text(
             hasFile
                 ? (fileName ?? 'File dipilih')
                 : hasUrl
-                    ? 'File tersimpan'
-                    : 'Belum ada file',
+                ? 'File tersimpan'
+                : 'Belum ada file',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -2384,21 +2468,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   : Colors.grey.shade500,
             ),
           ),
-
           const SizedBox(height: 6),
-
-          // ============================================================
-          // BUTTON - SEMUA SAMA
-          // ============================================================
           SizedBox(
             width: double.infinity,
             height: 34,
             child: OutlinedButton.icon(
               onPressed: onTap,
               icon: Icon(
-                hasImage
-                    ? Icons.refresh_rounded
-                    : Icons.cloud_upload_outlined,
+                hasImage ? Icons.refresh_rounded : Icons.cloud_upload_outlined,
                 size: 14,
               ),
               label: Text(
@@ -2410,9 +2487,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.orange,
-                side: const BorderSide(
-                  color: Colors.orange,
-                ),
+                side: const BorderSide(color: Colors.orange),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(7),
                 ),
@@ -2425,19 +2500,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // VERIFICATION STATUS
-  // ============================================================
   Widget _verificationStatusCard() {
     final waiting = verificationStatus == 'Menunggu Verifikasi';
     final verified = verificationStatus == 'Terverifikasi';
-    final statusColor =
-        verified ? Colors.green : waiting ? Colors.orange : Colors.grey;
+    final statusColor = verified
+        ? Colors.green
+        : waiting
+        ? Colors.orange
+        : Colors.grey;
     final statusIcon = verified
         ? Icons.verified
         : waiting
-            ? Icons.hourglass_top
-            : Icons.info_outline;
+        ? Icons.hourglass_top
+        : Icons.info_outline;
 
     return Container(
       padding: const EdgeInsets.all(15),
@@ -2462,7 +2537,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 Text(
                   verificationStatus,
                   style: TextStyle(
-                      fontWeight: FontWeight.bold, color: statusColor),
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
                 ),
               ],
             ),
@@ -2473,11 +2550,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SKILL SECTION
+  // ✅ SKILL SECTION — HANYA SKILL, TANPA SERTIFIKAT PENDING
   // ============================================================
   Widget _buildSkillSection() {
     final validCategory = categories.contains(selectedCategory);
     final int totalPhotos = skillPhotoUrls.length + skillPhotoBytes.length;
+    final bool hasPending = pendingSkills.isNotEmpty;
 
     return _sectionCard(
       child: Column(
@@ -2500,40 +2578,147 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             hint: const Text('Pilih kategori keahlian'),
             items: categories
                 .map(
-                  (category) => DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  ),
+                  (category) =>
+                      DropdownMenuItem(value: category, child: Text(category)),
                 )
                 .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() => selectedCategory = value);
-            },
+            onChanged: hasPending
+                ? null
+                : (value) {
+                    if (value == null) return;
+                    setState(() => selectedCategory = value);
+                  },
           ),
+
+          if (hasPending) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.hourglass_top,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Menunggu Persetujuan Admin',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Keahlian baru: "$pendingSkills"\n'
+                          'Keahlian aktif saat ini tetap "$selectedCategory" sampai disetujui admin.',
+                          style: const TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                        if (skillsUpdatedAt != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Diajukan: ${skillsUpdatedAt!.day}/${skillsUpdatedAt!.month}/${skillsUpdatedAt!.year}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (hasPending && pendingSkillPhotoUrls.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3E8FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFC4B5FD)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.photo_library_outlined,
+                        size: 16,
+                        color: Color(0xFF7C3AED),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Foto Keahlian Baru (Menunggu ACC)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF7C3AED),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: pendingSkillPhotoUrls.map((url) {
+                      return GestureDetector(
+                        onTap: () =>
+                            _showImageDialog(context, NetworkImage(url)),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            color: Colors.grey.shade100,
+                            child: Image.network(
+                              url,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 20),
 
           const Text(
             'Foto Keahlian / Hasil Pekerjaan',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 5),
           Text(
             'Tambahkan foto hasil pekerjaan untuk meningkatkan kepercayaan pelanggan.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 15),
 
-          // ============================================================
-          // ✅ GRID FOTO — 1 full, 2 bagi 2, 3+ bagi 3 (rapi & penuh)
-          // ============================================================
           if (totalPhotos > 0) ...[
             LayoutBuilder(
               builder: (context, constraints) {
@@ -2557,12 +2742,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     mainAxisExtent: 180,
                   ),
                   itemBuilder: (context, index) {
-                    // Index < urls.length → foto lama (URL)
-                    // sisanya → foto baru (bytes)
                     final bool isUrl = index < skillPhotoUrls.length;
-
-                    final String? url =
-                        isUrl ? skillPhotoUrls[index] : null;
+                    final String? url = isUrl ? skillPhotoUrls[index] : null;
                     final Uint8List? bytes = isUrl
                         ? null
                         : skillPhotoBytes[index - skillPhotoUrls.length];
@@ -2572,15 +2753,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          // ==========================================
-                          // FOTO — full memenuhi tile (cover)
-                          // ==========================================
                           GestureDetector(
                             onTap: () => _showImageDialog(
                               context,
-                              isUrl
-                                  ? NetworkImage(url!)
-                                  : MemoryImage(bytes!),
+                              isUrl ? NetworkImage(url!) : MemoryImage(bytes!),
                             ),
                             child: isUrl
                                 ? Image.network(
@@ -2588,8 +2764,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                     width: double.infinity,
                                     height: double.infinity,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error,
-                                        stackTrace) {
+                                    errorBuilder: (context, error, stackTrace) {
                                       return Container(
                                         color: Colors.grey.shade100,
                                         child: const Icon(
@@ -2599,19 +2774,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                         ),
                                       );
                                     },
-                                    loadingBuilder: (context, child,
-                                        loadingProgress) {
-                                      if (loadingProgress == null) {
-                                        return child;
-                                      }
-                                      return Container(
-                                        color: Colors.grey.shade100,
-                                        child: const Center(
-                                          child:
-                                              CircularProgressIndicator(),
-                                        ),
-                                      );
-                                    },
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null) {
+                                            return child;
+                                          }
+                                          return Container(
+                                            color: Colors.grey.shade100,
+                                            child: const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                          );
+                                        },
                                   )
                                 : Image.memory(
                                     bytes!,
@@ -2620,17 +2795,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                     fit: BoxFit.cover,
                                   ),
                           ),
-
-                          // ==========================================
-                          // TOMBOL HAPUS — hanya untuk foto baru (bytes)
-                          // ==========================================
                           if (!isUrl)
                             Positioned(
                               right: 6,
                               top: 6,
                               child: GestureDetector(
                                 onTap: () => removeSkillPhoto(
-                                    index - skillPhotoUrls.length),
+                                  index - skillPhotoUrls.length,
+                                ),
                                 child: Container(
                                   width: 28,
                                   height: 28,
@@ -2663,24 +2835,15 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             const SizedBox(height: 15),
           ],
 
-          // ============================================================
-          // TOMBOL TAMBAH FOTO
-          // ============================================================
           SizedBox(
             width: double.infinity,
             height: 38,
             child: OutlinedButton.icon(
               onPressed: pickSkillPhoto,
-              icon: const Icon(
-                Icons.add_photo_alternate_outlined,
-                size: 16,
-              ),
+              icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
               label: const Text(
                 'Tambah Foto Keahlian',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.orange,
@@ -2695,13 +2858,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
           const SizedBox(height: 16),
 
-          // ============================================================
-          // TOMBOL SIMPAN
-          // ============================================================
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
-              onPressed: saveSkill,
+              onPressed: hasPending ? null : saveSkill,
               icon: const Icon(Icons.save_outlined, size: 18),
               label: const Text('Simpan Keahlian'),
               style: ElevatedButton.styleFrom(
@@ -2723,9 +2883,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // CERTIFICATE SECTION
+  // ✅ CERTIFICATE SECTION — SERTIFIKAT PENDING PINDAH KE SINI
   // ============================================================
   Widget _buildCertificateSection() {
+    final bool hasPendingCert = pendingCertificateUrl.isNotEmpty;
+    final bool isInPendingMode =
+        hasPendingCert || (pendingSkills.isNotEmpty && certificateBytes != null);
+
     return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2736,43 +2900,166 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             subtitle: 'Upload sertifikat keahlian atau pelatihan.',
           ),
           const SizedBox(height: 18),
+
+          // ============================================================
+          // SERTIFIKAT BARU (PENDING)
+          // ============================================================
+          if (hasPendingCert) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFCD34D)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.hourglass_top,
+                        size: 16,
+                        color: Color(0xFFB45309),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Sertifikat Baru (Menunggu ACC Admin)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => _showImageDialog(
+                      context,
+                      NetworkImage(pendingCertificateUrl),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: double.infinity,
+                        height: 180,
+                        color: Colors.grey.shade100,
+                        child: Image.network(
+                          pendingCertificateUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.broken_image_outlined,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sertifikat ini akan menggantikan sertifikat lama setelah disetujui admin.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade700,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // ============================================================
+          // INFO: Mode pending (belum upload tapi ada pending skills)
+          // ============================================================
+          if (!hasPendingCert && pendingSkills.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFCD34D)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFFB45309)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Kamu sedang mengajukan perubahan keahlian. Sertifikat yang kamu upload akan disimpan sebagai sertifikat baru dan menunggu ACC admin.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFFB45309),
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ============================================================
+          // SERTIFIKAT SAAT INI (AKTIF)
+          // ============================================================
+          const Text(
+            'Sertifikat Aktif',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
           _documentUploadCard(
             title: 'Sertifikat',
-            description: 'Upload sertifikat keahlian (opsional).',
+            description: hasPendingCert
+                ? 'Sertifikat ini akan diganti setelah admin menyetujui pengajuan baru.'
+                : isInPendingMode
+                ? 'Pilih sertifikat baru untuk diajukan bersama perubahan keahlian.'
+                : 'Upload sertifikat keahlian (opsional).',
             bytes: certificateBytes,
             fileName: certificateFileName,
             url: certificateUrl,
             icon: Icons.assignment_outlined,
             onTap: pickCertificate,
           ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: certificateBytes != null ? uploadCertificate : null,
-              icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Upload Sertifikat'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 13,
+
+          // Tombol Upload
+          // - Sembunyikan jika sudah ada pending cert di server
+          // - Munculkan jika ada certificateBytes (siap upload)
+          if (!hasPendingCert && certificateBytes != null) ...[
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: isLoading ? null : uploadCertificate,
+                icon: const Icon(Icons.upload_file, size: 18),
+                label: Text(
+                  isInPendingMode
+                      ? 'Ajukan Sertifikat Baru'
+                      : 'Upload Sertifikat',
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 13,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  // ============================================================
-  // NOTIFICATION SECTION
-  // ============================================================
   Widget _buildNotificationSection() {
     return _sectionCard(
       child: Column(
@@ -2832,9 +3119,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // SECURITY SECTION
-  // ============================================================
   Widget _buildSecuritySection() {
     return _sectionCard(
       child: Column(
@@ -2843,8 +3127,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           _sectionTitle(
             icon: Icons.lock_outline,
             title: 'Keamanan',
-            subtitle:
-                'Ubah password akun untuk menjaga keamanan akun kamu.',
+            subtitle: 'Ubah password akun untuk menjaga keamanan akun kamu.',
           ),
           const SizedBox(height: 20),
           _passwordField(
@@ -2852,7 +3135,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             label: 'Password Saat Ini',
             obscureText: obscureCurrentPassword,
             onToggle: () => setState(
-                () => obscureCurrentPassword = !obscureCurrentPassword),
+              () => obscureCurrentPassword = !obscureCurrentPassword,
+            ),
           ),
           const SizedBox(height: 14),
           _passwordField(
@@ -2868,7 +3152,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             label: 'Konfirmasi Password Baru',
             obscureText: obscureConfirmPassword,
             onToggle: () => setState(
-                () => obscureConfirmPassword = !obscureConfirmPassword),
+              () => obscureConfirmPassword = !obscureConfirmPassword,
+            ),
           ),
           const SizedBox(height: 18),
           Align(
@@ -2880,10 +3165,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -2892,9 +3180,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // SECTION CARD
-  // ============================================================
   Widget _sectionCard({required Widget child}) {
     return Container(
       width: double.infinity,
@@ -2915,9 +3200,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // SECTION TITLE
-  // ============================================================
   Widget _sectionTitle({
     required IconData icon,
     required String title,
@@ -2943,9 +3225,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff111827)),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff111827),
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -2959,9 +3242,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // TEXT FIELD
-  // ============================================================
   Widget _textField({
     required TextEditingController controller,
     required String label,
@@ -2990,9 +3270,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // PASSWORD FIELD
-  // ============================================================
   Widget _passwordField({
     required TextEditingController controller,
     required String label,
@@ -3003,22 +3280,21 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       controller: controller,
       obscureText: obscureText,
       maxLength: 100,
-      decoration:
-          _inputDecoration(label: label, icon: Icons.lock_outline).copyWith(
-        counterText: '',
-        suffixIcon: IconButton(
-          onPressed: onToggle,
-          icon: Icon(obscureText
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined),
-        ),
-      ),
+      decoration: _inputDecoration(label: label, icon: Icons.lock_outline)
+          .copyWith(
+            counterText: '',
+            suffixIcon: IconButton(
+              onPressed: onToggle,
+              icon: Icon(
+                obscureText
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+              ),
+            ),
+          ),
     );
   }
 
-  // ============================================================
-  // INPUT DECORATION
-  // ============================================================
   InputDecoration _inputDecoration({
     required String label,
     required IconData icon,
@@ -3049,9 +3325,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // BADGE
-  // ============================================================
   Widget _badge({
     required IconData icon,
     required String label,
@@ -3071,7 +3344,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Text(
             label,
             style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w600, color: color),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -3079,9 +3355,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 }
 
-// ============================================================
-// PICKED IMAGE
-// ============================================================
 class _PickedImage {
   final Uint8List bytes;
   final String name;

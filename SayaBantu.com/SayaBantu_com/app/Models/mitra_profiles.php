@@ -19,6 +19,11 @@ class mitra_profiles extends Model
         'bank_account_name',
         'bio',
         'skills',
+        'pending_skill_photos',
+        'pending_skills',
+        'pending_certificate',
+        'skills_updated_at',
+        'skill_admin_note',
         'skill_photos',
         'verification_image',
         'selfie_image',
@@ -34,10 +39,13 @@ class mitra_profiles extends Model
     protected $casts = [
         'certificate' => 'array',
         'skill_photos' => 'array',
+        'pending_skill_photos' => 'array',
         'rating' => 'float',
         'point' => 'integer',
         'is_verified' => 'boolean',
         'birth_date' => 'date:Y-m-d',
+        
+        'skills_updated_at' => 'datetime',
     ];
 
     public function user()

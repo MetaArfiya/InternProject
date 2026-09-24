@@ -46,7 +46,6 @@ class JobController extends Controller
                 'message' => 'Detail pekerjaan berhasil diambil.',
                 'data' => $job
             ], 200);
-
         } catch (\Exception $e) {
             Log::error("Error pada JobController@show: " . $e->getMessage());
             return response()->json([
@@ -94,61 +93,6 @@ class JobController extends Controller
      * PEKERJAAN MILIK PELANGGAN
      * =========================================================
      */
-    // public function myJobs()
-    // {
-    //     try {
-    //         $pelangganId = auth()->id();
-
-    //         $jobs = jobs::withCount('bids')
-    //             ->with([
-    //                 'mitra:id,name',
-    //                 'pelanggan:id,name',
-    //             ])
-    //             ->where('pelanggan_id', $pelangganId)
-    //             ->latest()
-    //             ->get();
-
-    //         // Ambil semua rating pelanggan ini (untuk cek has_rated)
-    //         $myRatings = \App\Models\Rating::where('pelanggan_id', $pelangganId)
-    //             ->pluck('stars', 'job_id');
-
-    //         // Transform data — tambahkan can_rate, has_rated, my_rating
-    //         $jobsTransformed = $jobs->map(function ($job) use ($myRatings) {
-    //             $data = $job->toArray();
-
-    //             $hasRated = $myRatings->has($job->id);
-
-    //             $data['has_rated'] = $hasRated;
-    //             $data['my_rating'] = $hasRated ? $myRatings[$job->id] : null;
-    //             $data['can_rate'] = $job->status === 'Selesai' && !$hasRated;
-
-    //             return $data;
-    //         });
-
-    //         $totalPosting = $jobs->count();
-    //         $sedangBerjalan = $jobs->where('status', 'Sedang Dikerjakan')->count();
-    //         $selesai = $jobs->where('status', 'Selesai')->count();
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Berhasil mengambil riwayat pekerjaan kamu.',
-    //             'statistics' => [
-    //                 'total_posting' => $totalPosting,
-    //                 'sedang_berjalan' => $sedangBerjalan,
-    //                 'selesai' => $selesai,
-    //             ],
-    //             'data' => $jobsTransformed,
-    //         ], 200);
-
-    //     } catch (\Exception $e) {
-    //         Log::error('Error JobController@myJobs: ' . $e->getMessage());
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Terjadi kesalahan pada server.',
-    //         ], 500);
-    //     }
-    // }
-
     public function myJobs()
     {
         try {
@@ -167,7 +111,7 @@ class JobController extends Controller
             $myRatings = \App\Models\Rating::where('pelanggan_id', $pelangganId)
                 ->pluck('stars', 'job_id');
 
-            // 🆕 Ambil payment untuk semua job pelanggan ini
+            // Ambil payment untuk semua job pelanggan ini
             $payments = Payment::whereIn('job_id', $jobs->pluck('id'))
                 ->get()
                 ->keyBy('job_id');
@@ -178,13 +122,13 @@ class JobController extends Controller
                 $hasRated = $myRatings->has($job->id);
                 $payment  = $payments->get($job->id);
 
-                // 🆕 Syarat: pelanggan sudah upload bukti transfer
+                // Syarat: pelanggan sudah upload bukti transfer
                 $customerProofUploaded = $payment && !empty($payment->customer_proof_url);
 
                 $data['has_rated']  = $hasRated;
                 $data['my_rating']  = $hasRated ? $myRatings[$job->id] : null;
 
-                // 🆕 RATING HANYA BISA KALAU:
+                // RATING HANYA BISA KALAU:
                 //  - status job = Selesai
                 //  - pelanggan SUDAH upload bukti transfer
                 //  - belum pernah kasih rating
@@ -387,22 +331,16 @@ class JobController extends Controller
         $higherPointsCount = mitra_profiles::where('point', '>', $profile ? $profile->point : 0)->count();
         $ranking = $higherPointsCount + 1;
 
-        // Ambil semua bid yang relevan (tambahkan status agar data tidak hilang)
+        // Ambil semua bid yang relevan
         $myBids = job_bids::where('mitra_id', $userId)
             ->whereIn('status', ['Menunggu', 'Diterima Pelanggan'])
             ->with('job')
             ->get();
 
-        // =========================================================
-        // SORTING: Pekerjaan aktif di atas, selesai/menunggu di bawah
-        // =========================================================
+        // Sorting: pekerjaan aktif di atas
         $myBids = $myBids->sortBy(function ($bid) {
             $jobStatus = $bid->job ? $bid->job->status : 'Menunggu';
-            
-            // Prioritas 1: Masih berjalan / sedang dikerjakan
-            // Prioritas 2: Menunggu konfirmasi atau sudah selesai
             $priority = in_array($jobStatus, ['Sedang Dikerjakan', 'Diterima Pelanggan', 'Mencari Mitra', 'Menunggu']) ? 1 : 2;
-            
             return $priority . '-' . $bid->created_at->timestamp;
         })->values();
 
@@ -412,19 +350,37 @@ class JobController extends Controller
                 ->where('id', '<=', $bid->id)
                 ->count();
 
-            // =========================================================
-            // KUNCI UTAMA: Ambil status dari tabel JOBS, bukan dari BIDS
-            // =========================================================
             $jobStatus = $bid->job ? $bid->job->status : ($bid->status ?? 'Menunggu');
+            $job = $bid->job;
 
             return [
                 'id' => $bid->id,
                 'job_id' => $bid->job_id,
-                'tittle' => optional($bid->job)->tittle ?? 'Pekerjaan Tidak Diketahui',
+                'tittle' => optional($job)->tittle ?? 'Pekerjaan Tidak Diketahui',
                 'price' => (float) ($bid->offered_price ?? 0),
                 'queue_position' => $jobStatus === 'Diterima Pelanggan' ? 1 : ($queuePosition ?: 1),
                 'is_top' => ($jobStatus === 'Diterima Pelanggan' || $queuePosition === 1),
-                'status' => $jobStatus // <--- Kirim status pekerjaan ke Flutter
+                'status' => $jobStatus,
+
+                // =========================================================
+                // FIELD BUKTI PEKERJAAN — dari tabel jobs
+                // =========================================================
+                'completion_photo_url' => $job->completion_photo_url ?? null,
+                'completion_status'    => $job->completion_status ?? null,
+                'is_verified'          => (bool) ($job->is_verified ?? false),
+
+                'proof_image'          => $job->completion_photo_url ?? null,
+                'proof_submitted'      => !empty($job->completion_photo_url),
+                'can_submit_proof'     => $jobStatus === 'Sedang Dikerjakan',
+                'proof_description'    => $job->completion_admin_note ?? null,
+
+                // =========================================================
+                // 🆕 TIMELINE PEKERJAAN
+                // =========================================================
+                'started_at'              => optional($job)->started_at,
+                'completed_at'            => optional($job)->completed_at,
+                'completion_submitted_at' => optional($job)->completion_submitted_at,
+                'completion_verified_at'  => optional($job)->completion_verified_at,
             ];
         });
 
@@ -455,7 +411,6 @@ class JobController extends Controller
         $mitraId = auth()->id();
         $mitraProfile = mitra_profiles::where('user_id', $mitraId)->first();
 
-        // ✅ Gunakan truthy check, karena is_verified sudah boolean
         if (!$mitraProfile || !$mitraProfile->is_verified) {
             return response()->json([
                 'success' => false,
@@ -515,7 +470,6 @@ class JobController extends Controller
      * =========================================================
      * PELANGGAN MENERIMA PENAWARAN MITRA
      * =========================================================
-     * Set started_at saat pelanggan klik "Setujui"
      */
     public function acceptBid($bidId)
     {
@@ -591,46 +545,6 @@ class JobController extends Controller
 
     /**
      * =========================================================
-     * PEKERJAAN SELESAI (manual oleh pelanggan)
-     * =========================================================
-     */
-    // public function completeJob(Request $request, $id)
-    // {
-    //     $job = jobs::find($id);
-
-    //     if (!$job) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Pekerjaan tidak ditemukan.'
-    //         ], 404);
-    //     }
-
-    //     if ($job->pelanggan_id !== auth()->id()) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Anda tidak memiliki izin untuk menandai pekerjaan ini sebagai selesai.'
-    //         ], 403);
-    //     }
-
-    //     $job->update(['status' => 'Selesai']);
-
-    //     ActivityLogger::log(
-    //         auth()->id(),
-    //         'Pekerjaan selesai',
-    //         'Pekerjaan "' . $job->tittle . '" telah ditandai sebagai selesai oleh pelanggan.',
-    //         'check_circle',
-    //         'Sistem'
-    //     );
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Pekerjaan berhasil ditandai sebagai selesai.',
-    //         'data' => $job
-    //     ], 200);
-    // }
-
-    /**
-     * =========================================================
      * HERO RIGHT
      * =========================================================
      */
@@ -703,7 +617,6 @@ class JobController extends Controller
                     'active_mitra_count' => $activeMitraCount,
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -716,7 +629,6 @@ class JobController extends Controller
      * =========================================================
      * MITRA UPLOAD BUKTI SELESAI
      * =========================================================
-     * Set completed_at ketika mitra upload bukti
      */
     public function uploadProof(Request $request, $id)
     {
@@ -780,9 +692,6 @@ class JobController extends Controller
      * =========================================================
      * PELANGGAN VERIFIKASI BUKTI + AUTO-CREATE PAYMENT
      * =========================================================
-     * Model A: Komisi dipotong dari mitra.
-     *  - total_paid    = job_amount                (pelanggan bayar sesuai deal)
-     *  - mitra_earning = job_amount - commission   (mitra terima setelah dipotong)
      */
     public function verifyProof(Request $request, $id)
     {
@@ -829,9 +738,6 @@ class JobController extends Controller
         // =====================================================
         if ($request->status === 'approved') {
 
-            // -------------------------------------------------
-            // 1. Ambil setting dari system_settings
-            // -------------------------------------------------
             $settings = DB::table('system_settings')->first();
 
             $commissionPercent = $settings
@@ -842,18 +748,12 @@ class JobController extends Controller
                 ? (int) $settings->points_on_completion
                 : 10;
 
-            // -------------------------------------------------
-            // 2. Hitung nominal (MODEL A)
-            // -------------------------------------------------
             $jobAmount        = (float) $job->final_price;
             $commissionAmount = round($jobAmount * ($commissionPercent / 100), 2);
 
-            $totalPaid    = $jobAmount;                       // pelanggan bayar = nilai deal
-            $mitraEarning = $jobAmount - $commissionAmount;   // mitra terima setelah dipotong
+            $totalPaid    = $jobAmount;
+            $mitraEarning = $jobAmount - $commissionAmount;
 
-            // -------------------------------------------------
-            // 3. Buat baris Payment (hindari duplikat)
-            // -------------------------------------------------
             if (!Payment::where('job_id', $job->id)->exists()) {
                 Payment::create([
                     'job_id'             => $job->id,
@@ -870,18 +770,12 @@ class JobController extends Controller
                 ]);
             }
 
-            // -------------------------------------------------
-            // 4. Tambah poin mitra
-            // -------------------------------------------------
             $mitraProfile = mitra_profiles::where('user_id', $job->mitra_id)->first();
             if ($mitraProfile) {
                 $mitraProfile->increment('point', $pointsToAdd);
             }
         }
 
-        // =====================================================
-        // LOG AKTIVITAS
-        // =====================================================
         ActivityLogger::log(
             auth()->id(),
             'Pelanggan verifikasi bukti',

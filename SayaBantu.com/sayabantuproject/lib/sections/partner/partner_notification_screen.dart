@@ -1,7 +1,79 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
-class PartnerNotificationScreen extends StatelessWidget {
+import '../../models/notification_model.dart';
+import '../../services/api_service.dart';
+import '../../widgets/notification_card.dart';
+
+class PartnerNotificationScreen extends StatefulWidget {
   const PartnerNotificationScreen({super.key});
+
+  @override
+  State<PartnerNotificationScreen> createState() =>
+      _PartnerNotificationScreenState();
+}
+
+class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
+  List<NotificationModel> _notifications = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  // ============================================================
+  // FETCH NOTIFIKASI DARI API (endpoint sama: /notifications)
+  // Backend filter otomatis berdasarkan role yang login
+  // ============================================================
+  Future<void> _loadNotifications() async {
+  if (!mounted) return;
+
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
+
+  try {
+    final response = await ApiService.get('/notifications');
+
+    debugPrint('🔔 [MITRA] NOTIFICATIONS STATUS: ${response.statusCode}');
+    debugPrint('🔔 [MITRA] NOTIFICATIONS BODY: ${response.body}');
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      // ✅ SESUAI CONTROLLER: pakai key 'notifications'
+      final List<dynamic> rawData = body['notifications'] ?? [];
+
+      final loaded = rawData
+          .whereType<Map<String, dynamic>>()
+          .map((json) => NotificationModel.fromJson(json))
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _notifications = loaded;
+        _isLoading = false;
+      });
+    } else {
+      throw Exception('Gagal memuat notifikasi (${response.statusCode})');
+    }
+  } catch (e) {
+    debugPrint('❌ [MITRA] NOTIFICATIONS ERROR: $e');
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      _errorMessage = e.toString();
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -12,273 +84,163 @@ class PartnerNotificationScreen extends StatelessWidget {
       alignment: Alignment.topLeft,
       child: SizedBox(
         width: double.infinity,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            28,
-            20,
-            28,
-            28,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ============================================================
-              // HEADER
-              // ============================================================
-              Text(
-                'Notifikasi',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? Colors.white
-                      : const Color(0xFF172B4D),
+        child: RefreshIndicator(
+          onRefresh: _loadNotifications,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ============================================
+                // HEADER
+                // ============================================
+                Text(
+                  'Notifikasi',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF172B4D),
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Lihat informasi terbaru mengenai pekerjaan dan akun kamu.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 14,
-                  color: isDark
-                      ? Colors.white70
-                      : const Color(0xFF718096),
+                const SizedBox(height: 6),
+                Text(
+                  'Lihat informasi terbaru mengenai pekerjaan dan akun kamu.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    color: isDark
+                        ? Colors.white70
+                        : const Color(0xFF718096),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
-
-              // ============================================================
-              // NOTIFICATION 1
-              // ============================================================
-              _NotificationCard(
-                icon: Icons.business_center_outlined,
-                title: 'Penawaran diterima',
-                description:
-                    'Penawaran jasa kamu telah diterima oleh pelanggan.',
-                time: 'Baru saja',
-                isNew: true,
-              ),
-
-              const SizedBox(height: 16),
-
-              // ============================================================
-              // NOTIFICATION 2
-              // ============================================================
-              _NotificationCard(
-                icon: Icons.credit_card_outlined,
-                title: 'Pembayaran diterima',
-                description:
-                    'Pembayaran dari pelanggan telah diterima.',
-                time: '1 jam yang lalu',
-              ),
-
-              const SizedBox(height: 16),
-
-              // ============================================================
-              // NOTIFICATION 3
-              // ============================================================
-              _NotificationCard(
-                icon: Icons.info_outline_rounded,
-                title: 'Informasi',
-                description:
-                    'Pastikan pekerjaan diselesaikan sesuai pesanan pelanggan.',
-                time: 'Kemarin',
-              ),
-
-              const SizedBox(height: 20),
-            ],
+                // ============================================
+                // CONTENT
+                // ============================================
+                _buildContent(isDark),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-// ============================================================================
-// NOTIFICATION CARD
-// ============================================================================
+  Widget _buildContent(bool isDark) {
+    if (_isLoading) return _buildLoadingState();
+    if (_errorMessage != null) return _buildErrorState(isDark);
+    if (_notifications.isEmpty) return _buildEmptyState(isDark);
 
-class _NotificationCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-  final String time;
-  final bool isNew;
+    return Column(
+      children: _notifications.map((notif) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: PartnerNotificationCard(notification: notif),
+        );
+      }).toList(),
+    );
+  }
 
-  const _NotificationCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.time,
-    this.isNew = false,
-  });
+  // ==========================================================
+  // LOADING
+  // ==========================================================
+  Widget _buildLoadingState() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 60),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final primaryColor = theme.colorScheme.primary;
-
+  // ==========================================================
+  // ERROR
+  // ==========================================================
+  Widget _buildErrorState(bool isDark) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 22,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E1E)
-            : Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.08)
               : const Color(0xFFE2E8F0),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(
-              isDark ? 0.12 : 0.025,
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.cloud_off_outlined,
+              size: 48, color: Color(0xFFEF4444)),
+          const SizedBox(height: 12),
+          Text(
+            'Gagal memuat notifikasi',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF172B4D),
             ),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _errorMessage ?? 'Terjadi kesalahan.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white70 : const Color(0xFF718096),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadNotifications,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba Lagi'),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    );
+  }
+
+  // ==========================================================
+  // EMPTY
+  // ==========================================================
+  Widget _buildEmptyState(bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
         children: [
-          // ================================================================
-          // ICON
-          // ================================================================
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? primaryColor.withOpacity(0.12)
-                  : const Color(0xFFFFF1E8),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              icon,
-              size: 28,
-              color: primaryColor,
-            ),
-          ),
-
-          const SizedBox(width: 18),
-
-          // ================================================================
-          // CONTENT
-          // ================================================================
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF172B4D),
-                        ),
-                      ),
-                    ),
-
-                    // ======================================================
-                    // BADGE BARU
-                    // ======================================================
-                    if (isNew)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? primaryColor.withOpacity(0.15)
-                              : const Color(0xFFFFF0E8),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Baru',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: primaryColor,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 6),
-
-                // ==========================================================
-                // DESCRIPTION
-                // ==========================================================
-                Text(
-                  description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 14,
-                    height: 1.35,
-                    color: isDark
-                        ? Colors.white70
-                        : const Color(0xFF718096),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // ==========================================================
-                // TIME
-                // ==========================================================
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 15,
-                      color: isDark
-                          ? Colors.white54
-                          : const Color(0xFF9AA4B2),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      time,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 13,
-                        color: isDark
-                            ? Colors.white54
-                            : const Color(0xFF9AA4B2),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // ================================================================
-          // ARROW
-          // ================================================================
           Icon(
-            Icons.chevron_right_rounded,
-            size: 26,
-            color: isDark
-                ? Colors.white54
-                : const Color(0xFF718096),
+            Icons.notifications_none_outlined,
+            size: 52,
+            color: isDark ? Colors.white38 : const Color(0xFFCBD5E1),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Belum ada notifikasi',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF172B4D),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Semua aktivitas terbaru akan muncul di sini.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
+            ),
           ),
         ],
       ),

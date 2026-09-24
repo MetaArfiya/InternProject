@@ -22,15 +22,13 @@ class AdminVerificationScreen extends StatefulWidget {
 }
 
 class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
-  // =========================================================
-  // STATE
-  // =========================================================
-
   List<Map<String, dynamic>> partners = [];
   List<Map<String, dynamic>> verifiedPartners = [];
+  List<Map<String, dynamic>> pendingSkillsList = [];
 
   bool isLoading = true;
   bool isLoadingVerified = false;
+  bool isLoadingPendingSkills = false;
   bool isProcessing = false;
 
   int waitingCount = 0;
@@ -39,15 +37,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
   int? adminId;
 
-  // ✅ Tab aktif: 'pending' | 'verified'
   String _selectedTab = 'pending';
 
-  // ✅ Auto-refresh timer
   Timer? _autoRefreshTimer;
-
-  // =========================================================
-  // INIT STATE
-  // =========================================================
 
   @override
   void initState() {
@@ -56,19 +48,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     _startAutoRefresh();
   }
 
-  // =========================================================
-  // DISPOSE
-  // =========================================================
-
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
     super.dispose();
   }
-
-  // =========================================================
-  // AUTO-REFRESH TIMER
-  // =========================================================
 
   void _startAutoRefresh() {
     _autoRefreshTimer?.cancel();
@@ -76,32 +60,25 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       const Duration(seconds: 15),
       (_) async {
         if (!mounted) return;
-
-        // Jangan ganggu saat admin sedang proses approve/reject
         if (isProcessing) return;
 
         if (_selectedTab == 'pending') {
           await _fetchUnverifiedMitra();
-        } else {
+        } else if (_selectedTab == 'verified') {
           await _fetchVerifiedMitra();
+        } else if (_selectedTab == 'pendingSkills') {
+          await _fetchPendingSkills();
         }
       },
     );
   }
 
-  // =========================================================
-  // INITIALIZE
-  // =========================================================
-
   Future<void> _initialize() async {
     await _getAdminId();
     await _fetchUnverifiedMitra();
     await _fetchVerifiedMitra();
+    await _fetchPendingSkills();
   }
-
-  // =========================================================
-  // GET ADMIN LOGIN
-  // =========================================================
 
   Future<void> _getAdminId() async {
     try {
@@ -127,14 +104,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
-  // =========================================================
-  // GET MITRA BELUM TERVERIFIKASI
-  // =========================================================
-
   Future<void> _fetchUnverifiedMitra() async {
     if (!mounted) return;
 
-    // ✅ Hanya tampil loading kalau list kosong (fetch pertama)
     if (partners.isEmpty) {
       setState(() {
         isLoading = true;
@@ -153,7 +125,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           throw Exception('Format response API tidak valid.');
         }
 
-        // STATISTIK
         final dynamic statistics = decoded['statistics'];
 
         if (statistics is Map) {
@@ -173,7 +144,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               0;
         }
 
-        // DATA MITRA
         final dynamic rawData = decoded['data'];
         final List<dynamic> data = rawData is List ? rawData : [];
 
@@ -227,14 +197,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           }
 
           final List<Map<String, dynamic>> documents = [
-            {
-              'title': 'KTP / Identitas',
-              'valid': hasKtp,
-            },
-            {
-              'title': 'Bukti Keahlian',
-              'valid': hasCertificate,
-            },
+            {'title': 'KTP / Identitas', 'valid': hasKtp},
+            {'title': 'Bukti Keahlian', 'valid': hasCertificate},
           ];
 
           return {
@@ -272,32 +236,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _syncPending();
       } else {
         if (!mounted) return;
-        setState(() {
-          isLoading = false;
-        });
-
+        setState(() => isLoading = false);
         _message(_getErrorMessage(response), error: true);
       }
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
-
+      setState(() => isLoading = false);
       _message('Gagal terhubung ke server.', error: true);
       debugPrint('FETCH UNVERIFIED MITRA ERROR: $e');
     }
   }
 
-  // =========================================================
-  // GET MITRA TERVERIFIKASI
-  // =========================================================
-
   Future<void> _fetchVerifiedMitra() async {
     if (!mounted) return;
 
-    // ✅ Hanya tampil loading kalau list kosong (fetch pertama)
     if (verifiedPartners.isEmpty) {
       setState(() => isLoadingVerified = true);
     }
@@ -322,13 +274,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               ? Map<String, dynamic>.from(rawUser)
               : {};
 
-          // decode skill_photos kalau masih string JSON
           List<dynamic> skillPhotos = [];
           if (mitra['skill_photos'] is List) {
             skillPhotos = mitra['skill_photos'] as List;
           } else if (mitra['skill_photos'] is String) {
             try {
-              final decodedPhotos = jsonDecode(mitra['skill_photos'].toString());
+              final decodedPhotos =
+                  jsonDecode(mitra['skill_photos'].toString());
               if (decodedPhotos is List) skillPhotos = decodedPhotos;
             } catch (_) {}
           }
@@ -389,9 +341,91 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
-  // =========================================================
-  // BUILD IMAGE URL
-  // =========================================================
+  // ============================================================
+  // ✅ FIX: JANGAN paksa .toString() pada certificate yang bisa List
+  // ============================================================
+  Future<void> _fetchPendingSkills() async {
+    if (!mounted) return;
+
+    if (pendingSkillsList.isEmpty) {
+      setState(() => isLoadingPendingSkills = true);
+    }
+
+    try {
+      final response = await ApiService.get('/admin/pending-skills');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final dynamic rawData = decoded['data'];
+        final List<dynamic> data = rawData is List ? rawData : [];
+
+        final mapped = data.map<Map<String, dynamic>>((item) {
+          final Map<String, dynamic> mitra = item is Map<String, dynamic>
+              ? item
+              : Map<String, dynamic>.from(item);
+
+          List<dynamic> pendingPhotos = [];
+          if (mitra['pending_skill_photos'] is List) {
+            pendingPhotos = mitra['pending_skill_photos'] as List;
+          } else if (mitra['pending_skill_photos'] is String) {
+            try {
+              final decoded =
+                  jsonDecode(mitra['pending_skill_photos'].toString());
+              if (decoded is List) pendingPhotos = decoded;
+            } catch (_) {}
+          }
+
+          List<dynamic> oldPhotos = [];
+          if (mitra['skill_photos'] is List) {
+            oldPhotos = mitra['skill_photos'] as List;
+          } else if (mitra['skill_photos'] is String) {
+            try {
+              final decoded = jsonDecode(mitra['skill_photos'].toString());
+              if (decoded is List) oldPhotos = decoded;
+            } catch (_) {}
+          }
+
+          return {
+            'id': mitra['id'],
+            'user_id': mitra['user_id'],
+            'name': mitra['name']?.toString() ?? 'Tanpa Nama',
+            'email': mitra['email']?.toString() ?? '-',
+            'phone': mitra['phone']?.toString() ?? '-',
+            'profile_photo': mitra['profile_photo'],
+            'current_skills': mitra['current_skills']?.toString() ?? '-',
+            'pending_skills': mitra['pending_skills']?.toString() ?? '-',
+            'skills_updated_at': mitra['skills_updated_at'],
+            'skill_photos': oldPhotos,
+            'pending_skill_photos': pendingPhotos,
+            // ✅ FIX: kirim raw supaya bisa String ATAU List
+            'certificate': mitra['certificate'],
+            'pending_certificate': mitra['pending_certificate'],
+            'rating': mitra['rating'] ?? 0,
+            'point': mitra['point'] ?? 0,
+            'jobs_completed': mitra['jobs_completed'] ?? 0,
+            'time': _formatTime(mitra['skills_updated_at']),
+          };
+        }).toList();
+
+        if (!mounted) return;
+
+        setState(() {
+          pendingSkillsList = mapped;
+          isLoadingPendingSkills = false;
+        });
+      } else {
+        if (!mounted) return;
+        setState(() => isLoadingPendingSkills = false);
+      }
+    } catch (e) {
+      debugPrint('FETCH PENDING SKILLS ERROR: $e');
+      if (!mounted) return;
+      setState(() => isLoadingPendingSkills = false);
+    }
+  }
+
   String _buildImageUrl(String? rawPath) {
     if (rawPath == null || rawPath.isEmpty || rawPath == 'null') {
       return '';
@@ -434,9 +468,25 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return '$baseUrl/api/images/profile/$filename';
   }
 
-  // =========================================================
-  // OPEN FULLSCREEN IMAGE
-  // =========================================================
+  // ============================================================
+  // ✅ HELPER BARU: normalisasi certificate (List/String) → List<URL>
+  // ============================================================
+  List<String> _buildCertificateUrls(dynamic raw) {
+    if (raw == null) return [];
+
+    if (raw is List) {
+      return raw
+          .map((e) => _buildImageUrl(e.toString()))
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    final s = raw.toString();
+    if (s.isEmpty || s == 'null') return [];
+
+    final url = _buildImageUrl(s);
+    return url.isEmpty ? [] : [url];
+  }
 
   void _openFullScreenImage(
     BuildContext context,
@@ -455,26 +505,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // =========================================================
-  // CHECK DOKUMEN
-  // =========================================================
-
   bool _documentsComplete(Map<String, dynamic> partner) {
     final List<dynamic> documents =
         partner['documents'] as List<dynamic>? ?? [];
 
-    if (documents.isEmpty) {
-      return false;
-    }
+    if (documents.isEmpty) return false;
 
     return documents.every(
       (doc) => doc is Map && doc['valid'] == true,
     );
   }
-
-  // =========================================================
-  // APPROVE
-  // =========================================================
 
   Future<void> _approve(int index) async {
     if (index < 0 || index >= partners.length) return;
@@ -530,9 +570,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     if (!ok || !mounted) return;
 
-    setState(() {
-      isProcessing = true;
-    });
+    setState(() => isProcessing = true);
 
     try {
       final response = await ApiService.post(
@@ -556,32 +594,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _syncPending();
         AdminActivityData.addApprovedPartner(name: name);
 
-        // ✅ Refresh tab verified agar data baru muncul
         await _fetchVerifiedMitra();
 
         _message('$name berhasil diverifikasi.');
       } else {
-        setState(() {
-          isProcessing = false;
-        });
-
+        setState(() => isProcessing = false);
         _message(_getErrorMessage(response), error: true);
       }
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        isProcessing = false;
-      });
-
+      setState(() => isProcessing = false);
       _message('Terjadi kesalahan saat memverifikasi mitra.', error: true);
       debugPrint('APPROVE MITRA ERROR: $e');
     }
   }
-
-  // =========================================================
-  // REJECT
-  // =========================================================
 
   Future<void> _reject(int index) async {
     if (index < 0 || index >= partners.length) return;
@@ -657,9 +683,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     if (reason == null || !mounted) return;
 
-    setState(() {
-      isProcessing = true;
-    });
+    setState(() => isProcessing = true);
 
     try {
       final response = await ApiService.post(
@@ -684,27 +708,440 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _syncPending();
         _message('$name ditolak.', error: true);
       } else {
-        setState(() {
-          isProcessing = false;
-        });
-
+        setState(() => isProcessing = false);
         _message(_getErrorMessage(response), error: true);
       }
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        isProcessing = false;
-      });
-
+      setState(() => isProcessing = false);
       _message('Terjadi kesalahan saat menolak mitra.', error: true);
       debugPrint('REJECT MITRA ERROR: $e');
     }
   }
 
-  // =========================================================
-  // VIEW DOCUMENTS
-  // =========================================================
+  Future<void> _approveSkill(int index) async {
+    if (index < 0 || index >= pendingSkillsList.length) return;
+    if (isProcessing) return;
+
+    final item = pendingSkillsList[index];
+    final dynamic userId = item['user_id'];
+    final String name = item['name']?.toString() ?? 'Mitra';
+    final String newSkill = item['pending_skills']?.toString() ?? '-';
+
+    if (userId == null) {
+      _message('ID mitra tidak ditemukan.', error: true);
+      return;
+    }
+
+    final bool ok = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Setujui Perubahan Keahlian'),
+              content: Text(
+                'Setujui perubahan keahlian $name?\n\n'
+                'Keahlian baru: "$newSkill"\n\n'
+                'Setelah disetujui, mitra hanya akan menerima pekerjaan '
+                'yang sesuai dengan keahlian baru ini.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  icon: const Icon(Icons.check, size: 17),
+                  label: const Text('Setujui'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!ok || !mounted) return;
+
+    setState(() => isProcessing = true);
+
+    try {
+      final response = await ApiService.post(
+        '/admin/approve-skill/$userId',
+        {},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          pendingSkillsList.removeAt(index);
+          isProcessing = false;
+        });
+
+        _message('Keahlian $name berhasil disetujui.');
+      } else {
+        setState(() => isProcessing = false);
+        _message(_getErrorMessage(response), error: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isProcessing = false);
+      _message('Terjadi kesalahan saat menyetujui keahlian.', error: true);
+      debugPrint('APPROVE SKILL ERROR: $e');
+    }
+  }
+
+  Future<void> _rejectSkill(int index) async {
+    if (index < 0 || index >= pendingSkillsList.length) return;
+    if (isProcessing) return;
+
+    final item = pendingSkillsList[index];
+    final dynamic userId = item['user_id'];
+    final String name = item['name']?.toString() ?? 'Mitra';
+
+    if (userId == null) {
+      _message('ID mitra tidak ditemukan.', error: true);
+      return;
+    }
+
+    final String? reason = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final controller = TextEditingController();
+
+        return AlertDialog(
+          title: const Text('Tolak Perubahan Keahlian'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Berikan alasan penolakan untuk $name.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText:
+                      'Contoh: Keahlian baru belum didukung sertifikat/bukti.',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                controller.dispose();
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Batal'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                final text = controller.text.trim();
+                controller.dispose();
+                Navigator.of(dialogContext)
+                    .pop(text.isEmpty ? 'Ditolak oleh admin.' : text);
+              },
+              icon: const Icon(Icons.close, size: 17),
+              label: const Text('Tolak'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (reason == null || !mounted) return;
+
+    setState(() => isProcessing = true);
+
+    try {
+      final response = await ApiService.post(
+        '/admin/reject-skill/$userId',
+        {'note': reason},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          pendingSkillsList.removeAt(index);
+          isProcessing = false;
+        });
+
+        _message('Perubahan keahlian $name ditolak.', error: true);
+      } else {
+        setState(() => isProcessing = false);
+        _message(_getErrorMessage(response), error: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isProcessing = false);
+      _message('Terjadi kesalahan saat menolak keahlian.', error: true);
+      debugPrint('REJECT SKILL ERROR: $e');
+    }
+  }
+
+  // ============================================================
+  // ✅ FIX: _viewSkillPhotos — handle certificate List & String
+  // ============================================================
+  void _viewSkillPhotos(Map<String, dynamic> item) {
+    final String name = item['name']?.toString() ?? 'Mitra';
+    final String currentSkills = item['current_skills']?.toString() ?? '-';
+    final String pendingSkills = item['pending_skills']?.toString() ?? '-';
+
+    List<String> oldPhotos = [];
+    final rawOld = item['skill_photos'];
+    if (rawOld is List) {
+      oldPhotos = rawOld
+          .map((e) => _buildImageUrl(e.toString()))
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    List<String> newPhotos = [];
+    final rawNew = item['pending_skill_photos'];
+    if (rawNew is List) {
+      newPhotos = rawNew
+          .map((e) => _buildImageUrl(e.toString()))
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    // ✅ pakai helper — support List & String
+    final List<String> oldCerts = _buildCertificateUrls(item['certificate']);
+    final List<String> newCerts =
+        _buildCertificateUrls(item['pending_certificate']);
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.photo_library_outlined, color: Color(0xFF8B5CF6)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Foto Bukti: $name',
+                style: const TextStyle(fontSize: 15),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 600,
+          height: 500,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ===== FOTO BARU =====
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.fiber_new, color: Color(0xFF7C3AED)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Foto Keahlian BARU — "$pendingSkills"',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF7C3AED),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (newPhotos.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'Mitra tidak upload foto baru.\n'
+                      'Akan pakai foto lama setelah di-ACC.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: newPhotos.map((url) {
+                      return _skillPhotoThumb(url, 'Foto Baru');
+                    }).toList(),
+                  ),
+
+                // ===== SERTIFIKAT BARU =====
+                if (newCerts.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.assignment, color: Color(0xFFB45309)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sertifikat BARU (${newCerts.length})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFB45309),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: newCerts
+                        .asMap()
+                        .entries
+                        .map((e) =>
+                            _skillPhotoThumb(e.value, 'Sertifikat Baru ${e.key + 1}'))
+                        .toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // ===== FOTO LAMA =====
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.history, color: Color(0xFF64748B)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Foto Keahlian SAAT INI — "$currentSkills"',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (oldPhotos.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'Belum ada foto keahlian tersimpan.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: oldPhotos.map((url) {
+                      return _skillPhotoThumb(url, 'Foto Lama');
+                    }).toList(),
+                  ),
+
+                // ===== SERTIFIKAT LAMA =====
+                if (oldCerts.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.assignment, color: Color(0xFF64748B)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sertifikat SAAT INI (${oldCerts.length})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: oldCerts
+                        .asMap()
+                        .entries
+                        .map((e) =>
+                            _skillPhotoThumb(e.value, 'Sertifikat Lama ${e.key + 1}'))
+                        .toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _skillPhotoThumb(String url, String label) {
+    return GestureDetector(
+      onTap: () => _openFullScreenImage(context, url, label),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 140,
+          height: 140,
+          color: Colors.grey.shade100,
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.broken_image_outlined,
+              size: 40,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _viewDocuments(Map<String, dynamic> partner) {
     final String? profilePhoto = partner['profile_photo']?.toString();
@@ -743,6 +1180,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       });
     }
 
+    // ✅ Handle certificate List / String
     if (certificateRaw != null) {
       if (certificateRaw is List) {
         for (int i = 0; i < certificateRaw.length; i++) {
@@ -849,8 +1287,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: docs.asMap().entries.map<Widget>((entry) {
-                        final doc = entry.value;
+                      children: docs.map<Widget>((doc) {
                         final url = _buildImageUrl(doc['path']?.toString());
                         final title = doc['title']?.toString() ?? 'Dokumen';
                         final iconData =
@@ -910,14 +1347,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                           fit: BoxFit.cover,
                                           loadingBuilder: (context, child,
                                               progress) {
-                                            if (progress == null) {
-                                              return child;
-                                            }
+                                            if (progress == null) return child;
                                             return Container(
                                               width: double.infinity,
                                               height: 200,
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
+                                                color:
+                                                    const Color(0xFFF1F5F9),
                                                 borderRadius:
                                                     BorderRadius.circular(10),
                                               ),
@@ -1037,10 +1473,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // =========================================================
-  // VIEW FULL DATA
-  // =========================================================
-
   void _viewFullData(Map<String, dynamic> partner) {
     final String? profilePhoto = partner['profile_photo']?.toString();
     final String? ktpPath = partner['verification_image']?.toString();
@@ -1135,7 +1567,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ── IDENTITAS ──
                   _dialogSectionTitle('Identitas', Icons.badge_outlined),
                   const SizedBox(height: 10),
                   _dataRow('Nama Lengkap', partner['name']),
@@ -1149,7 +1580,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ── KEAHLIAN & STATS ──
                   _dialogSectionTitle(
                       'Keahlian & Statistik', Icons.handyman_outlined),
                   const SizedBox(height: 10),
@@ -1162,7 +1592,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ── REKENING BANK ──
                   _dialogSectionTitle(
                       'Rekening Bank', Icons.account_balance_outlined),
                   const SizedBox(height: 10),
@@ -1172,7 +1601,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ── BERKAS ──
                   _dialogSectionTitle('Berkas', Icons.folder_open_outlined),
                   const SizedBox(height: 12),
 
@@ -1212,7 +1640,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ── STATUS ──
                   _dialogSectionTitle('Status', Icons.info_outline),
                   const SizedBox(height: 10),
                   _dataRow(
@@ -1266,8 +1693,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         children: [
           SizedBox(
             width: 130,
-            child:
-                Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 12, color: Color(0xFF64748B))),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1333,18 +1761,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // =========================================================
-  // SYNC PENDING
-  // =========================================================
-
   void _syncPending() {
     AdminActivityData.setPendingPartnerCount(partners.length);
     widget.onPendingCountChanged?.call(partners.length);
   }
-
-  // =========================================================
-  // ERROR MESSAGE
-  // =========================================================
 
   String _getErrorMessage(dynamic response) {
     try {
@@ -1387,10 +1807,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
-  // =========================================================
-  // FORMAT TIME
-  // =========================================================
-
   String _formatTime(dynamic createdAt) {
     if (createdAt == null) return 'Baru saja';
 
@@ -1416,10 +1832,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
-  // =========================================================
-  // MESSAGE
-  // =========================================================
-
   void _message(String text, {bool error = false}) {
     if (!mounted) return;
 
@@ -1434,10 +1846,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         ),
       );
   }
-
-  // =========================================================
-  // BUILD
-  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -1459,8 +1867,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     onRefresh: () async {
                       if (_selectedTab == 'pending') {
                         await _fetchUnverifiedMitra();
-                      } else {
+                      } else if (_selectedTab == 'verified') {
                         await _fetchVerifiedMitra();
+                      } else {
+                        await _fetchPendingSkills();
                       }
                     },
                     child: SingleChildScrollView(
@@ -1491,22 +1901,21 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  _selectedTab == 'pending'
-                                      ? '$waitingCount mitra menunggu persetujuan'
-                                      : '${verifiedPartners.length} mitra terverifikasi',
+                                  _subtitleForTab(),
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF64748B),
                                   ),
                                 ),
                               ),
-                              // ✅ Manual refresh button
                               IconButton(
                                 onPressed: () async {
                                   if (_selectedTab == 'pending') {
                                     await _fetchUnverifiedMitra();
-                                  } else {
+                                  } else if (_selectedTab == 'verified') {
                                     await _fetchVerifiedMitra();
+                                  } else {
+                                    await _fetchPendingSkills();
                                   }
                                   if (!mounted) return;
                                   _message('Data diperbarui.');
@@ -1520,22 +1929,19 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // ✅ TAB SELECTOR
                           _buildTabSelector(mobile),
 
                           const SizedBox(height: 20),
 
-                          // ✅ SUMMARY hanya untuk tab pending
                           if (_selectedTab == 'pending') ...[
                             _summary(mobile),
                             const SizedBox(height: 20),
-                          ],
-
-                          // ✅ KONTEN
-                          if (_selectedTab == 'pending')
-                            partners.isEmpty ? _empty() : _table(mobile)
-                          else
+                            partners.isEmpty ? _empty() : _table(mobile),
+                          ] else if (_selectedTab == 'verified') ...[
                             _buildVerifiedList(mobile),
+                          ] else ...[
+                            _buildPendingSkillsList(mobile),
+                          ],
                         ],
                       ),
                     ),
@@ -1546,9 +1952,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // =========================================================
-  // TAB SELECTOR
-  // =========================================================
+  String _subtitleForTab() {
+    switch (_selectedTab) {
+      case 'verified':
+        return '${verifiedPartners.length} mitra terverifikasi';
+      case 'pendingSkills':
+        return '${pendingSkillsList.length} pengajuan perubahan keahlian';
+      default:
+        return '$waitingCount mitra menunggu persetujuan';
+    }
+  }
 
   Widget _buildTabSelector(bool mobile) {
     return Container(
@@ -1571,11 +1984,21 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(width: 4),
           Expanded(
             child: _tabButton(
-              label: 'Terverifikasi',
+              label: mobile ? 'Verified' : 'Terverifikasi',
               count: verifiedPartners.length,
               isActive: _selectedTab == 'verified',
               activeColor: const Color(0xFF10B981),
               onTap: () => setState(() => _selectedTab = 'verified'),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _tabButton(
+              label: mobile ? 'Keahlian' : 'Perubahan Keahlian',
+              count: pendingSkillsList.length,
+              isActive: _selectedTab == 'pendingSkills',
+              activeColor: const Color(0xFF8B5CF6),
+              onTap: () => setState(() => _selectedTab = 'pendingSkills'),
             ),
           ),
         ],
@@ -1593,7 +2016,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -1610,17 +2033,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? activeColor : const Color(0xFF64748B),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? activeColor : const Color(0xFF64748B),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isActive
                     ? activeColor.withOpacity(0.12)
@@ -1630,7 +2056,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               child: Text(
                 count.toString(),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: isActive ? activeColor : const Color(0xFF64748B),
                 ),
@@ -1642,9 +2068,353 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // =========================================================
-  // VERIFIED LIST
-  // =========================================================
+  Widget _buildPendingSkillsList(bool mobile) {
+    if (isLoadingPendingSkills && pendingSkillsList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (pendingSkillsList.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Column(
+          children: [
+            Icon(Icons.check_circle_outline,
+                size: 42, color: Color(0xFF10B981)),
+            SizedBox(height: 12),
+            Text(
+              'Tidak ada pengajuan perubahan keahlian.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (mobile) {
+      return Column(
+        children: List.generate(
+          pendingSkillsList.length,
+          (i) => _pendingSkillMobileCard(pendingSkillsList[i], i),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          _pendingSkillTableHeader(),
+          ...List.generate(
+            pendingSkillsList.length,
+            (i) => _pendingSkillTableRow(pendingSkillsList[i], i),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pendingSkillTableHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+      color: const Color(0xFFF8FAFC),
+      child: const Row(
+        children: [
+          Expanded(
+            flex: 24,
+            child: Text('Nama Mitra',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ),
+          Expanded(
+            flex: 20,
+            child: Text('Keahlian Saat Ini',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ),
+          Expanded(
+            flex: 20,
+            child: Text('Keahlian Baru',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ),
+          Expanded(
+            flex: 14,
+            child: Text('Diajukan',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ),
+          Expanded(
+            flex: 30,
+            child: Text('Aksi',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pendingSkillTableRow(Map<String, dynamic> p, int index) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: 24, child: _pendingSkillName(p)),
+          Expanded(
+            flex: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                p['current_skills']?.toString() ?? '-',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF475569),
+                    fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3E8FF),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                p['pending_skills']?.toString() ?? '-',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF7C3AED),
+                    fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 14,
+            child: Text(
+              p['time']?.toString() ?? 'Baru saja',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            ),
+          ),
+          Expanded(flex: 30, child: _pendingSkillActions(index)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pendingSkillName(Map<String, dynamic> p) {
+    final photo = p['profile_photo']?.toString();
+    final url = _buildImageUrl(photo);
+
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFFF1F5F9),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: ClipOval(
+            child: url.isNotEmpty
+                ? Image.network(
+                    url,
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                        size: 18, color: Color(0xFF64748B)),
+                  )
+                : const Icon(Icons.person,
+                    size: 18, color: Color(0xFF64748B)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                p['name']?.toString() ?? 'Tanpa Nama',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B)),
+              ),
+              Text(
+                p['email']?.toString() ?? '-',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _pendingSkillActions(int index) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _viewSkillPhotos(pendingSkillsList[index]),
+          icon: const Icon(Icons.photo_library_outlined, size: 14),
+          label: const Text('Foto Bukti', style: TextStyle(fontSize: 10)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF8B5CF6),
+            side: const BorderSide(color: Color(0xFFC4B5FD)),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(7),
+            ),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: isProcessing ? null : () => _approveSkill(index),
+          icon: const Icon(Icons.check, size: 14),
+          label: const Text('Setujui', style: TextStyle(fontSize: 10)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF10B981),
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: const Color(0xFFCBD5E1),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(7),
+            ),
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: isProcessing ? null : () => _rejectSkill(index),
+          icon: const Icon(Icons.close, size: 14),
+          label: const Text('Tolak', style: TextStyle(fontSize: 10)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFEF4444),
+            side: const BorderSide(color: Color(0xFFFCA5A5)),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(7),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _pendingSkillMobileCard(Map<String, dynamic> p, int index) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _pendingSkillName(p),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Keahlian Saat Ini',
+                        style: TextStyle(
+                            fontSize: 10, color: Color(0xFF94A3B8))),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        p['current_skills']?.toString() ?? '-',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF475569),
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Keahlian Baru',
+                        style: TextStyle(
+                            fontSize: 10, color: Color(0xFF94A3B8))),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E8FF),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        p['pending_skills']?.toString() ?? '-',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF7C3AED),
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+          Text(
+            'Diajukan: ${p['time'] ?? 'Baru saja'}',
+            style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 12),
+          _pendingSkillActions(index),
+        ],
+      ),
+    );
+  }
 
   Widget _buildVerifiedList(bool mobile) {
     if (isLoadingVerified && verifiedPartners.isEmpty) {
@@ -1894,7 +2664,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             children: [
               Expanded(child: _verifiedName(p)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFECFDF5),
                   borderRadius: BorderRadius.circular(20),
@@ -1974,10 +2745,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       ),
     );
   }
-
-  // =========================================================
-  // SUMMARY
-  // =========================================================
 
   Widget _summary(bool mobile) {
     final cards = [
@@ -2088,10 +2855,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // =========================================================
-  // TABLE (PENDING)
-  // =========================================================
-
   Widget _table(bool mobile) {
     if (mobile) {
       return Column(
@@ -2177,9 +2940,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
       decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Color(0xFFE2E8F0)),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -2188,30 +2949,21 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 22,
             child: Text(
               p['category']?.toString() ?? '-',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF475569),
-              ),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
             ),
           ),
           Expanded(
             flex: 18,
             child: Text(
               p['city']?.toString() ?? '-',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF475569),
-              ),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
             ),
           ),
           Expanded(
             flex: 15,
             child: Text(
               p['time']?.toString() ?? 'Baru saja',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF64748B),
-              ),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
             ),
           ),
           Expanded(flex: 18, child: _documentButton(p)),
@@ -2238,10 +2990,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           p['email']?.toString() ?? 'Tanpa Email',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Color(0xFF94A3B8),
-          ),
+          style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
         ),
       ],
     );
@@ -2253,10 +3002,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: TextButton.icon(
         onPressed: () => _viewDocuments(p),
         icon: const Icon(Icons.attach_file, size: 14),
-        label: const Text(
-          'Lihat Berkas',
-          style: TextStyle(fontSize: 10),
-        ),
+        label: const Text('Lihat Berkas', style: TextStyle(fontSize: 10)),
         style: TextButton.styleFrom(
           backgroundColor: const Color(0xFFF0EAFE),
           foregroundColor: const Color(0xFF8B5CF6),
@@ -2277,10 +3023,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         ElevatedButton.icon(
           onPressed: isProcessing ? null : () => _approve(index),
           icon: const Icon(Icons.check, size: 14),
-          label: const Text(
-            'Approve',
-            style: TextStyle(fontSize: 10),
-          ),
+          label: const Text('Approve', style: TextStyle(fontSize: 10)),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF10B981),
             foregroundColor: Colors.white,
@@ -2297,10 +3040,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         OutlinedButton.icon(
           onPressed: isProcessing ? null : () => _reject(index),
           icon: const Icon(Icons.close, size: 14),
-          label: const Text(
-            'Reject',
-            style: TextStyle(fontSize: 10),
-          ),
+          label: const Text('Reject', style: TextStyle(fontSize: 10)),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFFEF4444),
             side: const BorderSide(color: Color(0xFFFCA5A5)),
@@ -2333,17 +3073,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(height: 10),
           Text(
             '${p['category'] ?? 'Umum'} • ${p['city'] ?? 'Indonesia'}',
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xFF64748B),
-            ),
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
           ),
           Text(
             p['time']?.toString() ?? 'Baru saja',
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF94A3B8),
-            ),
+            style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
           ),
           const SizedBox(height: 9),
           _documentButton(p),
@@ -2374,10 +3108,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           Text(
             'Tidak ada mitra yang perlu diverifikasi.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF94A3B8),
-            ),
+            style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
           ),
         ],
       ),
@@ -2385,9 +3116,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 }
 
-// ================================================================
-// FULLSCREEN IMAGE VIEWER
-// ================================================================
 class _FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
   final String title;
