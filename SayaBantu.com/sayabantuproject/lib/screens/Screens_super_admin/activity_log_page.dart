@@ -1,5 +1,3 @@
-// lib/screens/Screens_SuperAdmin/activity_log_page.dart
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -24,6 +22,13 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   bool _isLoading = true;
   bool _isDeleting = false;
   String? _errorMessage;
+
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+  int _currentPage = 1;
+  int _itemsPerPage = 10;
+  static const List<int> _pageSizeOptions = [5, 10, 25, 50];
 
   // ============================================================
   // FILTER OPTIONS
@@ -80,6 +85,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         setState(() {
           _activities = loadedActivities;
           _isLoading = false;
+          _currentPage = 1;
         });
       } else {
         throw Exception(
@@ -114,6 +120,23 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
 
       return matchesSearch && matchesFilter;
     }).toList();
+  }
+
+  // ============================================================
+  // PAGINATION HELPERS
+  // ============================================================
+  int get _totalPages {
+    final total = _filteredActivities.length;
+    if (total == 0) return 1;
+    return ((total - 1) ~/ _itemsPerPage) + 1;
+  }
+
+  List<ActivityData> get _paginatedActivities {
+    final all = _filteredActivities;
+    final start = (_currentPage - 1) * _itemsPerPage;
+    if (start >= all.length) return [];
+    final end = (start + _itemsPerPage).clamp(0, all.length);
+    return all.sublist(start, end);
   }
 
   // ============================================================
@@ -259,7 +282,10 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
       child: TextField(
         controller: _searchController,
         onChanged: (value) {
-          setState(() => _searchQuery = value);
+          setState(() {
+            _searchQuery = value;
+            _currentPage = 1;
+          });
         },
         decoration: InputDecoration(
           hintText: 'Cari aktivitas, nama, atau role...',
@@ -333,7 +359,10 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           }).toList(),
           onChanged: (value) {
             if (value == null) return;
-            setState(() => _selectedFilter = value);
+            setState(() {
+              _selectedFilter = value;
+              _currentPage = 1;
+            });
           },
         ),
       ),
@@ -344,30 +373,41 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ACTIVITY LIST
   // ============================================================
   Widget _buildActivityList(bool isMobile) {
-    final activities = _filteredActivities;
+    final totalFiltered = _filteredActivities.length;
+    if (totalFiltered == 0) return _buildEmptyState();
 
-    if (activities.isEmpty) return _buildEmptyState();
+    final activities = _paginatedActivities;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          if (!isMobile) _buildTableHeader(),
-          ...activities.asMap().entries.map((entry) {
-            return _buildActivityItem(
-              entry.value,
-              isMobile,
-              entry.key == activities.length - 1,
-            );
-          }),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              if (!isMobile) _buildTableHeader(),
+              ...activities.asMap().entries.map((entry) {
+                final number =
+                    (_currentPage - 1) * _itemsPerPage + entry.key + 1;
+                return _buildActivityItem(
+                  entry.value,
+                  isMobile,
+                  entry.key == activities.length - 1,
+                  number,
+                );
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildPagination(totalFiltered),
+      ],
     );
   }
 
@@ -380,6 +420,17 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
       decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
       child: const Row(
         children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              'NO',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
           SizedBox(
             width: 240,
             child: Text(
@@ -424,8 +475,9 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     ActivityData activity,
     bool isMobile,
     bool isLast,
+    int number,
   ) {
-    if (isMobile) return _buildMobileActivityCard(activity);
+    if (isMobile) return _buildMobileActivityCard(activity, number);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -438,6 +490,17 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
       ),
       child: Row(
         children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              '$number',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF94A3B8),
+              ),
+            ),
+          ),
           SizedBox(width: 240, child: _buildUserInfo(activity)),
           Expanded(child: _buildActivityInfo(activity)),
           SizedBox(
@@ -600,7 +663,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
   // MOBILE CARD
   // ============================================================
-  Widget _buildMobileActivityCard(ActivityData activity) {
+  Widget _buildMobileActivityCard(ActivityData activity, int number) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
@@ -613,6 +676,25 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         children: [
           Row(
             children: [
+              // Nomor urut
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$number',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               Container(
                 width: 42,
                 height: 42,
@@ -691,6 +773,147 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+  Widget _buildPagination(int total) {
+    final totalPages = _totalPages;
+    final startItem = total == 0 ? 0 : (_currentPage - 1) * _itemsPerPage + 1;
+    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          Text(
+            'Menampilkan $startItem–$endItem dari $total aktivitas',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Baris per halaman
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _itemsPerPage,
+                    isDense: true,
+                    borderRadius: BorderRadius.circular(8),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF334155),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    items: _pageSizeOptions
+                        .map((n) => DropdownMenuItem<int>(
+                              value: n,
+                              child: Text('$n / hal'),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _itemsPerPage = v;
+                        _currentPage = 1;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Prev
+              _paginationIconButton(
+                icon: Icons.chevron_left,
+                onTap: _currentPage > 1
+                    ? () => setState(() => _currentPage--)
+                    : null,
+              ),
+              const SizedBox(width: 6),
+
+              // Info halaman
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Hal $_currentPage / $totalPages',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+
+              // Next
+              _paginationIconButton(
+                icon: Icons.chevron_right,
+                onTap: _currentPage < totalPages
+                    ? () => setState(() => _currentPage++)
+                    : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paginationIconButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? const Color(0xFFF1F5F9)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null
+              ? const Color(0xFFCBD5E1)
+              : const Color(0xFF334155),
+        ),
       ),
     );
   }
