@@ -49,7 +49,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         List<dynamic> loadedOffersJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          final target = decodedData['data'] ?? decodedData['offers'] ?? [];
+          final target =
+              decodedData['data'] ?? decodedData['offers'] ?? [];
+
           if (target is List) {
             loadedOffersJson = target;
           }
@@ -62,7 +64,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         for (final item in loadedOffersJson) {
           try {
             if (item is Map<String, dynamic>) {
-              loadedOffers.add(ActiveOfferModel.fromJson(item));
+              loadedOffers.add(
+                ActiveOfferModel.fromJson(item),
+              );
             }
           } catch (e) {
             debugPrint('⚠️ Gagal parsing offer: $e');
@@ -113,12 +117,18 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
+
         final bool isMobile = width < 600;
         final bool isTablet = width >= 600 && width < 1000;
 
-        final double horizontalPadding =
-            isMobile ? 16 : (isTablet ? 24 : 32);
-        final double topPadding = isMobile ? 16 : (isTablet ? 24 : 30);
+        final double horizontalPadding = isMobile
+            ? 16
+            : (isTablet ? 24 : 32);
+
+        final double topPadding = isMobile
+            ? 16
+            : (isTablet ? 24 : 30);
+
         final double availableWidth =
             constraints.maxWidth - (horizontalPadding * 2);
 
@@ -143,13 +153,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                 Text(
                   'Penawaran Aktif Saya',
                   style: TextStyle(
-                    fontSize: isMobile ? 24 : 32,
-                    fontWeight: FontWeight.bold,
+                    fontSize: isMobile ? 22 : 30,
+                    fontWeight: FontWeight.w700,
                     height: 1.2,
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 // ==================================================
                 // DESCRIPTION
@@ -162,12 +172,14 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                         .bodyMedium
                         ?.color
                         ?.withOpacity(0.6),
-                    fontSize: isMobile ? 14 : 16,
-                    height: 1.45,
+                    fontSize: isMobile ? 12 : 15,
+                    height: 1.4,
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(
+                  height: isMobile ? 18 : 24,
+                ),
 
                 // ==================================================
                 // CONTENT
@@ -199,37 +211,62 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     // ==========================================================
     // LOADING
     // ==========================================================
+
     if (_isLoading) {
       return const Padding(
-        padding: EdgeInsets.only(top: 80, bottom: 80),
-        child: Center(child: CircularProgressIndicator()),
+        padding: EdgeInsets.only(
+          top: 70,
+          bottom: 70,
+        ),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
     // ==========================================================
     // ERROR
     // ==========================================================
+
     if (_errorMessage.isNotEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 80),
+        padding: const EdgeInsets.symmetric(
+          vertical: 70,
+        ),
         child: Column(
           children: [
-            const Icon(Icons.cloud_off_outlined, size: 60, color: Colors.grey),
-            const SizedBox(height: 16),
+            Icon(
+              Icons.cloud_off_outlined,
+              size: isMobile ? 50 : 60,
+              color: Colors.grey,
+            ),
+
+            const SizedBox(height: 14),
+
             Text(
               _errorMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.red,
-                fontSize: 14,
+                fontSize: isMobile ? 12 : 14,
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 14),
+
             ElevatedButton.icon(
               onPressed: _fetchMyOffers,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Coba Lagi'),
+              icon: const Icon(
+                Icons.refresh,
+                size: 17,
+              ),
+              label: Text(
+                'Coba Lagi',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                ),
+              ),
             ),
           ],
         ),
@@ -239,27 +276,33 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     // ==========================================================
     // EMPTY
     // ==========================================================
+
     if (_offers.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.only(top: 70, bottom: 70),
+        padding: const EdgeInsets.only(
+          top: 60,
+          bottom: 60,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.assignment_outlined,
-              size: 60,
+              size: isMobile ? 52 : 60,
               color: Theme.of(context)
                   .textTheme
                   .bodyMedium
                   ?.color
                   ?.withOpacity(0.3),
             ),
+
             const SizedBox(height: 12),
+
             Text(
               'Belum ada penawaran aktif.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 color: Theme.of(context)
                     .textTheme
                     .bodyMedium
@@ -273,44 +316,329 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     }
 
     // ==========================================================
-    // TABLE (STYLE MIRIP SCREENSHOT)
+    // MOBILE
     // ==========================================================
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final Color borderColor =
-        isDark ? const Color(0xff374151) : const Color(0xffF3F4F6);
-    final Color outerBorderColor =
-        isDark ? const Color(0xff374151) : const Color(0xffE5E7EB);
+    if (isMobile) {
+      return _buildMobileOffers(context);
+    }
+
+    // ==========================================================
+    // TABLET + DESKTOP
+    // ==========================================================
+
+    return _buildDesktopTable(
+      context,
+      isTablet: isTablet,
+      availableWidth: availableWidth,
+    );
+  }
+
+  // ============================================================
+  // MOBILE OFFER LIST
+  // ============================================================
+
+  Widget _buildMobileOffers(BuildContext context) {
+    return Column(
+      children: [
+        ..._offers.asMap().entries.map(
+          (entry) {
+            final int index = entry.key;
+            final ActiveOfferModel offer = entry.value;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == _offers.length - 1
+                    ? 0
+                    : 12,
+              ),
+              child: _buildMobileOfferCard(
+                context,
+                offer,
+                index + 1,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // MOBILE OFFER CARD
+  // ============================================================
+
+  Widget _buildMobileOfferCard(
+    BuildContext context,
+    ActiveOfferModel offer,
+    int number,
+  ) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final Color cardColor =
+        Theme.of(context).cardColor;
+
+    final Color borderColor = isDark
+        ? const Color(0xff374151)
+        : const Color(0xffE5E7EB);
+
+    final Color mutedColor =
+        Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.color
+                ?.withOpacity(0.55) ??
+            Colors.grey;
+
+    // ==========================================================
+    // Ambil children dari row desktop yang sudah ada.
+    //
+    // Dengan cara ini kita tidak perlu mengambil ulang field
+    // dari ActiveOfferModel dan tidak mengubah active_offer_card.dart.
+    // ==========================================================
+
+    final TableRow existingRow =
+        buildActiveOfferRow(
+      context,
+      offer,
+      number,
+    );
+
+    final List<Widget> cells =
+        existingRow.children;
+
+    final List<String> labels = [
+      'NO',
+      'NAMA PEKERJAAN',
+      'HARGA',
+      'PERINGKAT',
+      'STATUS',
+      'BUKTI',
+      'ACC PELANGGAN',
+      'AKSI',
+    ];
 
     return Container(
-      width: isMobile || isTablet ? 1350 : availableWidth,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: borderColor,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            // ==================================================
+            // CARD HEADER
+            // ==================================================
+
+            Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(8),
+                    color: isDark
+                        ? const Color(0xff1F2937)
+                        : const Color(0xffFFF7ED),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '#$number',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? Colors.white
+                            : const Color(0xffEA580C),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Text(
+                    'Penawaran Aktif',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Divider(
+              height: 1,
+              color: borderColor,
+            ),
+
+            const SizedBox(height: 4),
+
+            // ==================================================
+            // DETAIL
+            // ==================================================
+
+            ...List.generate(
+              cells.length,
+              (index) {
+                final Widget cell = cells[index];
+
+                return _buildMobileDetailRow(
+                  context,
+                  label: index < labels.length
+                      ? labels[index]
+                      : '',
+                  value: cell,
+                  mutedColor: mutedColor,
+                  isLast: index == cells.length - 1,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // MOBILE DETAIL ROW
+  // ============================================================
+
+  Widget _buildMobileDetailRow(
+    BuildContext context, {
+    required String label,
+    required Widget value,
+    required Color mutedColor,
+    required bool isLast,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        vertical: isLast ? 8 : 7,
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: mutedColor,
+              letterSpacing: 0.2,
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          // ----------------------------------------------------
+          // Isi cell yang sudah dibuat oleh active_offer_card.dart
+          // ----------------------------------------------------
+
+          SizedBox(
+            width: double.infinity,
+            child: value,
+          ),
+
+          if (!isLast) ...[
+            const SizedBox(height: 4),
+
+            Divider(
+              height: 1,
+              color: Theme.of(context)
+                  .dividerColor
+                  .withOpacity(0.35),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // DESKTOP / TABLET TABLE
+  // ============================================================
+
+  Widget _buildDesktopTable(
+    BuildContext context, {
+    required bool isTablet,
+    required double availableWidth,
+  }) {
+    final bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
+
+    final Color borderColor = isDark
+        ? const Color(0xff374151)
+        : const Color(0xffF3F4F6);
+
+    final Color outerBorderColor = isDark
+        ? const Color(0xff374151)
+        : const Color(0xffE5E7EB);
+
+    // ----------------------------------------------------------
+    // Untuk tablet tetap gunakan tabel.
+    //
+    // Lebar minimum dibuat agar semua kolom tidak terlalu sempit.
+    // Desktop menggunakan availableWidth.
+    // ----------------------------------------------------------
+
+    final double tableWidth = isTablet
+        ? 1180
+        : availableWidth;
+
+    return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: outerBorderColor, width: 1),
+        border: Border.all(
+          color: outerBorderColor,
+          width: 1,
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
-            width: isMobile || isTablet ? 1350 : availableWidth,
+            width: tableWidth,
             child: Table(
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              defaultVerticalAlignment:
+                  TableCellVerticalAlignment.middle,
 
               // ==================================================
               // COLUMN WIDTH
               // ==================================================
-              columnWidths: isMobile || isTablet
+
+              columnWidths: isTablet
                   ? const {
-                      0: FixedColumnWidth(70),
-                      1: FixedColumnWidth(230),
-                      2: FixedColumnWidth(150),
-                      3: FixedColumnWidth(150),
-                      4: FixedColumnWidth(190),
-                      5: FixedColumnWidth(180),
-                      6: FixedColumnWidth(180),
-                      7: FixedColumnWidth(200),
+                      0: FixedColumnWidth(60),
+                      1: FixedColumnWidth(210),
+                      2: FixedColumnWidth(135),
+                      3: FixedColumnWidth(130),
+                      4: FixedColumnWidth(160),
+                      5: FixedColumnWidth(160),
+                      6: FixedColumnWidth(170),
+                      7: FixedColumnWidth(155),
                     }
                   : const {
                       0: FlexColumnWidth(0.55),
@@ -324,23 +652,40 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                     },
 
               // ==================================================
-              // BORDER → hanya garis horizontal tipis antar baris
+              // BORDER
               // ==================================================
+
               border: TableBorder(
-                bottom: BorderSide(color: borderColor, width: 1),
-                horizontalInside: BorderSide(color: borderColor, width: 1),
+                bottom: BorderSide(
+                  color: borderColor,
+                  width: 1,
+                ),
+                horizontalInside: BorderSide(
+                  color: borderColor,
+                  width: 1,
+                ),
               ),
 
               // ==================================================
-              // TABLE ROWS
+              // ROWS
               // ==================================================
+
               children: [
                 _buildTableHeader(),
-                ..._offers.asMap().entries.map((entry) {
-                  final int index = entry.key;
-                  final ActiveOfferModel offer = entry.value;
-                  return buildActiveOfferRow(context, offer, index + 1);
-                }),
+
+                ..._offers.asMap().entries.map(
+                  (entry) {
+                    final int index = entry.key;
+                    final ActiveOfferModel offer =
+                        entry.value;
+
+                    return buildActiveOfferRow(
+                      context,
+                      offer,
+                      index + 1,
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -354,11 +699,15 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   // ============================================================
 
   TableRow _buildTableHeader() {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
 
     return TableRow(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xff111827) : Colors.white,
+        color: isDark
+            ? const Color(0xff111827)
+            : Colors.white,
       ),
       children: [
         _headerCell('NO'),
@@ -379,13 +728,20 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
 
   Widget _headerCell(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 16,
+      ),
       child: Text(
         text,
         style: TextStyle(
-          color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+          color: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.color ??
+              Colors.black87,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

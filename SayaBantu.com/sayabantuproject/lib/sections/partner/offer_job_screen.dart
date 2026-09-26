@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 
 import '../../models/partner_job_model.dart';
@@ -36,19 +38,18 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   // ============================================================
-  // 🆕 FORMAT WAKTU RELATIF
-  // Hanya tampilkan yang perlu saja
+  // FORMAT WAKTU RELATIF
   // ============================================================
+
   String _formatRelativeTime(String rawTime) {
     if (rawTime.isEmpty) return 'Waktu fleksibel';
 
     try {
-      // Coba parse sebagai DateTime
       final DateTime dateTime = DateTime.parse(rawTime);
       final DateTime now = DateTime.now();
       final Duration diff = now.difference(dateTime);
 
-      // Waktu di masa depan → anggap "Baru saja"
+      // Waktu di masa depan
       if (diff.isNegative) return 'Baru saja';
 
       // < 1 menit
@@ -69,31 +70,75 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         return '${diff.inDays} hari lalu';
       }
 
-      // >= 7 hari → tampilkan tanggal saja
+      // >= 7 hari
       const bulan = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
       ];
+
       return '${dateTime.day} ${bulan[dateTime.month - 1]} ${dateTime.year}';
     } catch (_) {
-      // Kalau bukan format DateTime (misal sudah "2 hari lalu" dari DB)
-      // pakai apa adanya
+      // Jika bukan format DateTime
       return rawTime;
     }
   }
 
   // ============================================================
+  // PARSE HARGA
+  // ============================================================
+
+  int _getCleanPrice(String value) {
+    final String cleanDigits = value.replaceAll(RegExp(r'[^\d]'), '');
+
+    return int.tryParse(cleanDigits) ?? 0;
+  }
+
+  // ============================================================
   // SUBMIT OFFER
   // ============================================================
-  Future<void> _submitOfferToApi() async {
-    if (_parsedPrice <= 0 && _priceController.text.isNotEmpty) {
-      final String cleanDigits =
-          _priceController.text.replaceAll(RegExp(r'[^\d]'), '');
-      _parsedPrice = int.tryParse(cleanDigits) ?? 0;
-    }
 
+  Future<void> _submitOfferToApi() async {
+    final String rawPrice = _priceController.text.trim();
     final String trimmedMessage = _messageController.text.trim();
 
+    // ==========================================================
+    // VALIDASI HARGA
+    // ==========================================================
+
+    if (rawPrice.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Harap masukkan harga penawaran."),
+          backgroundColor: Colors.amber,
+        ),
+      );
+      return;
+    }
+
+    // Pastikan tanda negatif tidak bisa dikirim
+    if (rawPrice.contains('-')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Harga penawaran tidak boleh bernilai negatif."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    _parsedPrice = _getCleanPrice(rawPrice);
+
+    // Harga harus lebih dari 0
     if (_parsedPrice <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -103,6 +148,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       );
       return;
     }
+
+    // ==========================================================
+    // VALIDASI PESAN
+    // ==========================================================
 
     if (trimmedMessage.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -141,8 +190,18 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       } else {
         if (!mounted) return;
 
-        final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['message'] ?? "Gagal mengirim penawaran.";
+        String errorMessage = "Gagal mengirim penawaran.";
+
+        try {
+          final errorData = jsonDecode(response.body);
+
+          if (errorData is Map<String, dynamic>) {
+            errorMessage = errorData['message']?.toString() ??
+                "Gagal mengirim penawaran.";
+          }
+        } catch (_) {
+          errorMessage = "Gagal mengirim penawaran.";
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -172,6 +231,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -189,7 +249,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             title: const Text("Ambil & Nego"),
             centerTitle: true,
             backgroundColor: Theme.of(context).cardColor,
-            foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+            foregroundColor:
+                Theme.of(context).textTheme.bodyLarge?.color,
             elevation: 0,
           ),
           body: SingleChildScrollView(
@@ -198,9 +259,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildJobInfo(context, isMobile),
+
                 const SizedBox(height: 25),
 
+                // ==================================================
                 // FORM HARGA
+                // ==================================================
+
                 Text(
                   "Harga Penawaran",
                   style: TextStyle(
@@ -208,38 +273,127 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                     fontSize: isMobile ? 15 : 16,
                   ),
                 ),
+
                 const SizedBox(height: 10),
-                TextField(
-                  controller: _priceController,
-                  enabled: !_isSubmitting,
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    final String cleanDigits =
-                        value.replaceAll(RegExp(r'[^\d]'), '');
+
+              TextField(
+                controller: _priceController,
+                enabled: !_isSubmitting,
+
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: false,
+                  decimal: false,
+                ),
+
+                onChanged: (value) {
+                  // Ambil hanya angka
+                  final String cleanDigits =
+                      value.replaceAll(RegExp(r'[^\d]'), '');
+
+                  // Maksimal 8 digit
+                  if (cleanDigits.length > 8) {
+                    final String limitedDigits = cleanDigits.substring(0, 8);
+
+                    final int limitedPrice =
+                        int.tryParse(limitedDigits) ?? 0;
+
+                    final String formattedPrice =
+                        toCurrencyString(
+                      limitedPrice.toString(),
+                      leadingSymbol: 'Rp ',
+                      thousandSeparator: ThousandSeparator.Period,
+                      mantissaLength: 0,
+                    );
+
+                    _priceController.value = TextEditingValue(
+                      text: formattedPrice,
+                      selection: TextSelection.collapsed(
+                        offset: formattedPrice.length,
+                      ),
+                    );
+
+                    setState(() {
+                      _parsedPrice = limitedPrice;
+                    });
+
+                    return;
+                  }
+
+                  // Tolak tanda minus
+                  if (value.contains('-')) {
+                    final String formattedPrice =
+                        cleanDigits.isEmpty
+                            ? ''
+                            : toCurrencyString(
+                                cleanDigits,
+                                leadingSymbol: 'Rp ',
+                                thousandSeparator: ThousandSeparator.Period,
+                                mantissaLength: 0,
+                              );
+
+                    _priceController.value = TextEditingValue(
+                      text: formattedPrice,
+                      selection: TextSelection.collapsed(
+                        offset: formattedPrice.length,
+                      ),
+                    );
+
                     setState(() {
                       _parsedPrice = int.tryParse(cleanDigits) ?? 0;
                     });
-                  },
-                  inputFormatters: [
-                    CurrencyInputFormatter(
-                      leadingSymbol: "Rp ",
-                      thousandSeparator: ThousandSeparator.Period,
-                      mantissaLength: 0,
-                    ),
-                  ],
-                  decoration: InputDecoration(
-                    hintText: "Rp 0",
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+
+                    return;
+                  }
+
+                  setState(() {
+                    _parsedPrice = int.tryParse(cleanDigits) ?? 0;
+                  });
+                },
+
+                inputFormatters: [
+                  CurrencyInputFormatter(
+                    leadingSymbol: "Rp ",
+                    thousandSeparator: ThousandSeparator.Period,
+                    mantissaLength: 0,
+                  ),
+
+                  TextInputFormatter.withFunction(
+                    (oldValue, newValue) {
+                      // Tidak boleh ada minus
+                      if (newValue.text.contains('-')) {
+                        return oldValue;
+                      }
+
+                      // Hitung jumlah digit saja
+                      final String digits =
+                          newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+
+                      // Maksimal 8 digit
+                      if (digits.length > 8) {
+                        return oldValue;
+                      }
+
+                      return newValue;
+                    },
+                  ),
+                ],
+
+                decoration: InputDecoration(
+                  hintText: "Rp 0",
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
+              ),
 
                 const SizedBox(height: 22),
 
+                // ==================================================
                 // FORM PESAN
+                // ==================================================
+
                 Text(
                   "Pesan untuk Pelanggan",
                   style: TextStyle(
@@ -247,7 +401,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                     fontSize: isMobile ? 15 : 16,
                   ),
                 ),
+
                 const SizedBox(height: 10),
+
                 TextField(
                   controller: _messageController,
                   enabled: !_isSubmitting,
@@ -267,12 +423,16 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
                 const SizedBox(height: 30),
 
+                // ==================================================
                 // TOMBOL SUBMIT
+                // ==================================================
+
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _submitOfferToApi,
+                    onPressed:
+                        _isSubmitting ? null : _submitOfferToApi,
                     icon: _isSubmitting
                         ? const SizedBox(
                             width: 20,
@@ -284,9 +444,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                           )
                         : const Icon(Icons.send),
                     label: Text(
-                      _isSubmitting ? "Mengirim..." : "Kirim Penawaran",
+                      _isSubmitting
+                          ? "Mengirim..."
+                          : "Kirim Penawaran",
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xffF97316),
@@ -308,7 +472,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // ============================================================
   // JOB INFO
   // ============================================================
-  Widget _buildJobInfo(BuildContext context, bool isMobile) {
+
+  Widget _buildJobInfo(
+    BuildContext context,
+    bool isMobile,
+  ) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 18 : 24),
@@ -331,7 +499,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 10),
+
           Text(
             widget.job.category,
             style: const TextStyle(
@@ -339,16 +509,22 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
+
           const SizedBox(height: 18),
+
           Text(
             widget.job.description,
-            style: const TextStyle(height: 1.6),
+            style: const TextStyle(
+              height: 1.6,
+            ),
           ),
+
           const SizedBox(height: 22),
 
           // ============================================
-          // ✅ INFO: LOKASI + WAKTU RELATIF
+          // INFO: LOKASI + WAKTU RELATIF
           // ============================================
+
           Wrap(
             spacing: 18,
             runSpacing: 10,
@@ -359,7 +535,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                     ? widget.job.location
                     : "Lokasi tidak ditentukan",
               ),
-              // ✅ Ganti timestamp penuh jadi waktu relatif
+
               _infoItem(
                 Icons.access_time,
                 _formatRelativeTime(widget.job.time),
@@ -368,11 +544,16 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           ),
 
           const Divider(height: 35),
+
           const Text(
             "Budget Pelanggan",
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(
+              color: Colors.grey,
+            ),
           ),
+
           const SizedBox(height: 8),
+
           Text(
             widget.job.price,
             maxLines: 1,
@@ -388,7 +569,14 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     );
   }
 
-  Widget _infoItem(IconData icon, String text) {
+  // ============================================================
+  // INFO ITEM
+  // ============================================================
+
+  Widget _infoItem(
+    IconData icon,
+    String text,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -397,9 +585,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           color: Colors.grey,
           size: 20,
         ),
+
         const SizedBox(width: 6),
+
         ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
+          constraints: const BoxConstraints(
+            maxWidth: 220,
+          ),
           child: Text(
             text,
             maxLines: 1,

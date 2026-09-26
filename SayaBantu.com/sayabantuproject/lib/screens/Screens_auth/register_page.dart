@@ -50,33 +50,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // =========================================================
-  // VALIDASI EMAIL
-  // =========================================================
+    // ============================================================
+    // VALIDASI EMAIL
+    // ============================================================
 
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
+    String? _validateEmail(String? value) {
+      final email = value?.trim() ?? '';
 
-    if (email.isEmpty) {
-      return 'Email wajib diisi';
+      if (email.isEmpty) {
+        return 'Email wajib diisi';
+      }
+
+      if (email.contains(' ')) {
+        return 'Email tidak boleh mengandung spasi';
+      }
+
+      // Email wajib menggunakan domain .com
+      final emailRegex = RegExp(
+        r'^[a-zA-Z0-9.!#$%&\*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.com$',
+      );
+
+      if (!emailRegex.hasMatch(email)) {
+        return 'Format email tidak valid';
+      }
+
+      return null;
     }
-
-    // Tidak boleh ada spasi
-    if (email.contains(' ')) {
-      return 'Email tidak boleh mengandung spasi';
-    }
-
-    // Validasi format email
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$',
-    );
-
-    if (!emailRegex.hasMatch(email)) {
-      return 'Format email tidak valid';
-    }
-
-    return null;
-  }
 
   // =========================================================
   // REGISTER
@@ -329,7 +328,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
 
                           const SizedBox(height: 8),
-                          
+
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
@@ -362,14 +361,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
+
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Password wajib diisi';
                               }
 
+                              if (value.length < 8) {
+                                return 'Password minimal 8 karakter';
+                              }
+
+                              if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                                return 'Password harus memiliki huruf besar';
+                              }
+
+                              if (!RegExp(r'[a-z]').hasMatch(value)) {
+                                return 'Password harus memiliki huruf kecil';
+                              }
+
+                              if (!RegExp(r'[0-9]').hasMatch(value)) {
+                                return 'Password harus memiliki angka';
+                              }
+
+                              if (!RegExp(r'[!@#$%^&*(),.?":{}|<>_\-]').hasMatch(value)) {
+                                return 'Password harus memiliki simbol';
+                              }
+
+                              if (value.contains(' ')) {
+                                return 'Password tidak boleh mengandung spasi';
+                              }
+
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 20),
 
                           // =================================================
