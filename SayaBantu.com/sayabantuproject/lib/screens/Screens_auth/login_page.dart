@@ -59,8 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return 'Email tidak boleh mengandung spasi';
     }
 
+    // Email wajib menggunakan domain .com
     final emailRegex = RegExp(
-      r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$',
+      r'^[a-zA-Z0-9.!#$%&\*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.com$',
     );
 
     if (!emailRegex.hasMatch(email)) {
