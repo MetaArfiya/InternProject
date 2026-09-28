@@ -147,25 +147,36 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isMobile = constraints.maxWidth < 750;
+        final double hPad = isMobile ? 16 : 28;
 
         return Container(
           width: double.infinity,
           color: const Color(0xFFF5F8FC),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              isMobile ? 16 : 28,
-              0,
-              isMobile ? 16 : 28,
-              28,
-            ),
+            padding: EdgeInsets.zero,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              // ✅ KUNCI: pakai stretch agar semua anak full width
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(isMobile),
-                const SizedBox(height: 20),
-                _buildFilterSection(isMobile),
-                const SizedBox(height: 20),
-                _buildContent(isMobile),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isMobile),
+                      const SizedBox(height: 20),
+                      _buildFilterSection(isMobile),
+                      const SizedBox(height: 20),
+                      _buildContentBody(isMobile),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // ✅ Pagination full width (tanpa padding luar)
+                _buildPaginationFullWidth(isMobile),
+
+                const SizedBox(height: 28),
               ],
             ),
           ),
@@ -175,12 +186,195 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // CONTENT
+  // CONTENT BODY (tanpa pagination)
   // ============================================================
-  Widget _buildContent(bool isMobile) {
+  Widget _buildContentBody(bool isMobile) {
     if (_isLoading) return _buildLoadingState();
     if (_errorMessage != null) return _buildErrorState();
-    return _buildActivityList(isMobile);
+
+    final totalFiltered = _filteredActivities.length;
+    if (totalFiltered == 0) return _buildEmptyState();
+
+    final activities = _paginatedActivities;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          if (!isMobile) _buildTableHeader(),
+          ...activities.asMap().entries.map((entry) {
+            final number =
+                (_currentPage - 1) * _itemsPerPage + entry.key + 1;
+            return _buildActivityItem(
+              entry.value,
+              isMobile,
+              entry.key == activities.length - 1,
+              number,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION — FULL WIDTH (Edge to Edge)
+  // ============================================================
+  Widget _buildPaginationFullWidth(bool isMobile) {
+    final total = _filteredActivities.length;
+    if (_isLoading || _errorMessage != null || total == 0) {
+      return const SizedBox.shrink();
+    }
+
+    final totalPages = _totalPages;
+    final startItem = (_currentPage - 1) * _itemsPerPage + 1;
+    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE2E8F0)),
+          bottom: BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // ---- KIRI: Teks ----
+          Flexible(
+            child: Text(
+              'Menampilkan $startItem–$endItem dari $total aktivitas',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // ---- KANAN: Kontrol Pagination ----
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Dropdown "10 / hal"
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _itemsPerPage,
+                    isDense: true,
+                    borderRadius: BorderRadius.circular(8),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF334155),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    items: _pageSizeOptions
+                        .map((n) => DropdownMenuItem<int>(
+                              value: n,
+                              child: Text('$n / hal'),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _itemsPerPage = v;
+                        _currentPage = 1;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Tombol Prev
+              _paginationIconButton(
+                icon: Icons.chevron_left,
+                onTap: _currentPage > 1
+                    ? () => setState(() => _currentPage--)
+                    : null,
+              ),
+              const SizedBox(width: 6),
+
+              // Indikator "Hal 1 / 13"
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Hal $_currentPage / $totalPages',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+
+              // Tombol Next
+              _paginationIconButton(
+                icon: Icons.chevron_right,
+                onTap: _currentPage < totalPages
+                    ? () => setState(() => _currentPage++)
+                    : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paginationIconButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? const Color(0xFFF1F5F9)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null
+              ? const Color(0xFFCBD5E1)
+              : const Color(0xFF334155),
+        ),
+      ),
+    );
   }
 
   // ============================================================
@@ -366,48 +560,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           },
         ),
       ),
-    );
-  }
-
-  // ============================================================
-  // ACTIVITY LIST
-  // ============================================================
-  Widget _buildActivityList(bool isMobile) {
-    final totalFiltered = _filteredActivities.length;
-    if (totalFiltered == 0) return _buildEmptyState();
-
-    final activities = _paginatedActivities;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              if (!isMobile) _buildTableHeader(),
-              ...activities.asMap().entries.map((entry) {
-                final number =
-                    (_currentPage - 1) * _itemsPerPage + entry.key + 1;
-                return _buildActivityItem(
-                  entry.value,
-                  isMobile,
-                  entry.key == activities.length - 1,
-                  number,
-                );
-              }),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildPagination(totalFiltered),
-      ],
     );
   }
 
@@ -621,22 +773,18 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         background = const Color(0xFFF3E8FF);
         foreground = const Color(0xFF7C3AED);
         break;
-
       case 'Admin':
         background = const Color(0xFFEFF6FF);
         foreground = const Color(0xFF2563EB);
         break;
-
       case 'Mitra':
         background = const Color(0xFFFFF7ED);
         foreground = const Color(0xFFEA580C);
         break;
-
       case 'Pelanggan':
         background = const Color(0xFFECFDF5);
         foreground = const Color(0xFF059669);
         break;
-
       case 'Sistem':
       default:
         background = const Color(0xFFF1F5F9);
@@ -676,7 +824,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         children: [
           Row(
             children: [
-              // Nomor urut
               Container(
                 width: 26,
                 height: 26,
@@ -778,639 +925,6 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // PAGINATION
-  // ============================================================
-  Widget _buildPagination(int total) {
-    final totalPages = _totalPages;
-    final startItem = total == 0 ? 0 : (_currentPage - 1) * _itemsPerPage + 1;
-    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          Text(
-            'Menampilkan $startItem–$endItem dari $total aktivitas',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Baris per halaman
-              Container(
-                height: 34,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _itemsPerPage,
-                    isDense: true,
-                    borderRadius: BorderRadius.circular(8),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF334155),
-                      fontWeight: FontWeight.w600,
-                    ),
-                    items: _pageSizeOptions
-                        .map((n) => DropdownMenuItem<int>(
-                              value: n,
-                              child: Text('$n / hal'),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() {
-                        _itemsPerPage = v;
-                        _currentPage = 1;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // Prev
-              _paginationIconButton(
-                icon: Icons.chevron_left,
-                onTap: _currentPage > 1
-                    ? () => setState(() => _currentPage--)
-                    : null,
-              ),
-              const SizedBox(width: 6),
-
-              // Info halaman
-              Container(
-                height: 34,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Hal $_currentPage / $totalPages',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2563EB),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              // Next
-              _paginationIconButton(
-                icon: Icons.chevron_right,
-                onTap: _currentPage < totalPages
-                    ? () => setState(() => _currentPage++)
-                    : null,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _paginationIconButton({
-    required IconData icon,
-    required VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 34,
-        height: 34,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: onTap == null
-              ? const Color(0xFFF1F5F9)
-              : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: onTap == null
-              ? const Color(0xFFCBD5E1)
-              : const Color(0xFF334155),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // DIALOG: HAPUS LOG
-  // ============================================================
-  void _showDeleteRangeDialog() {
-    DateTime? startDate;
-    DateTime? endDate;
-    String scope = 'range'; // 'range' | 'all'
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.delete_sweep_outlined,
-                      color: Color(0xFFDC2626), size: 22),
-                  SizedBox(width: 10),
-                  Text(
-                    'Hapus Log Aktivitas',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 18),
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: 440,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Pilih metode penghapusan:',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // RADIO: RENTANG WAKTU
-                      RadioListTile<String>(
-                        value: 'range',
-                        groupValue: scope,
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        activeColor: const Color(0xFF2563EB),
-                        title: const Text(
-                          'Berdasarkan rentang waktu',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                        onChanged: (v) {
-                          if (v == null) return;
-                          setDialogState(() => scope = v);
-                        },
-                      ),
-
-                      if (scope == 'range') ...[
-                        const SizedBox(height: 4),
-                        _buildDatePickerTile(
-                          label: 'Dari Tanggal',
-                          value: startDate,
-                          onPick: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: startDate ??
-                                  DateTime.now().subtract(
-                                      const Duration(days: 30)),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              setDialogState(() => startDate = picked);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        _buildDatePickerTile(
-                          label: 'Sampai Tanggal',
-                          value: endDate,
-                          onPick: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate:
-                                  endDate ?? DateTime.now(),
-                              firstDate: startDate ?? DateTime(2020),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              setDialogState(() => endDate = picked);
-                            }
-                          },
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // Quick pick
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _quickRangeChip('7 hari terakhir', 7, (s, e) {
-                              setDialogState(() {
-                                startDate = s;
-                                endDate = e;
-                              });
-                            }),
-                            _quickRangeChip('30 hari terakhir', 30, (s, e) {
-                              setDialogState(() {
-                                startDate = s;
-                                endDate = e;
-                              });
-                            }),
-                            _quickRangeChip('90 hari terakhir', 90, (s, e) {
-                              setDialogState(() {
-                                startDate = s;
-                                endDate = e;
-                              });
-                            }),
-                          ],
-                        ),
-                      ],
-
-                      // RADIO: SEMUA LOG
-                      RadioListTile<String>(
-                        value: 'all',
-                        groupValue: scope,
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        activeColor: const Color(0xFFDC2626),
-                        title: const Text(
-                          'Semua log',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                        subtitle: const Text(
-                          'Menghapus seluruh riwayat aktivitas',
-                          style: TextStyle(fontSize: 11),
-                        ),
-                        onChanged: (v) {
-                          if (v == null) return;
-                          setDialogState(() => scope = v);
-                        },
-                      ),
-
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: const Color(0xFFFECACA)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.warning_amber_rounded,
-                                color: Color(0xFFDC2626), size: 18),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Data yang sudah dihapus tidak dapat dikembalikan.',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF991B1B),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: _isDeleting
-                      ? null
-                      : () => Navigator.pop(dialogContext),
-                  child: const Text('Batal'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _isDeleting
-                      ? null
-                      : () async {
-                          // Validasi
-                          if (scope == 'range' &&
-                              (startDate == null || endDate == null)) {
-                            _showMessage(
-                              'Pilih tanggal mulai dan tanggal akhir.',
-                              isError: true,
-                            );
-                            return;
-                          }
-
-                          // Konfirmasi
-                          final ok = await _confirmDelete(
-                            dialogContext,
-                            scope: scope,
-                            startDate: startDate,
-                            endDate: endDate,
-                          );
-                          if (ok != true) return;
-
-                          setDialogState(() => _isDeleting = true);
-
-                          final success = scope == 'all'
-                              ? await _deleteAllLogs()
-                              : await _deleteLogsByRange(
-                                  startDate!, endDate!);
-
-                          if (!mounted) return;
-                          setDialogState(() => _isDeleting = false);
-
-                          if (success && dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                          }
-                        },
-                  icon: _isDeleting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.delete_outline, size: 18),
-                  label: Text(_isDeleting ? 'Menghapus...' : 'Hapus'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // DATE PICKER TILE
-  // ============================================================
-  Widget _buildDatePickerTile({
-    required String label,
-    required DateTime? value,
-    required VoidCallback onPick,
-  }) {
-    final text = value == null
-        ? 'Pilih tanggal'
-        : _formatDateId(value);
-
-    return InkWell(
-      onTap: onPick,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 18, color: Color(0xFF64748B)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                        fontSize: 10, color: Color(0xFF94A3B8)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: value == null
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF1E293B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // QUICK RANGE CHIP
-  // ============================================================
-  Widget _quickRangeChip(
-    String label,
-    int days,
-    void Function(DateTime start, DateTime end) onSelect,
-  ) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(fontSize: 11)),
-      onPressed: () {
-        final end = DateTime.now();
-        final start = end.subtract(Duration(days: days));
-        onSelect(start, end);
-      },
-      backgroundColor: const Color(0xFFEFF6FF),
-      side: BorderSide.none,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
-  }
-
-  // ============================================================
-  // KONFIRMASI
-  // ============================================================
-  Future<bool?> _confirmDelete(
-    BuildContext dialogContext, {
-    required String scope,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) {
-    final String desc = scope == 'all'
-        ? 'SEMUA log aktivitas akan dihapus permanen.'
-        : 'Log dari ${_formatDateId(startDate!)} '
-            'sampai ${_formatDateId(endDate!)} '
-            'akan dihapus permanen.';
-
-    return showDialog<bool>(
-      context: dialogContext,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          title: const Text(
-            'Konfirmasi Penghapusan',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          content: Text(desc),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Ya, Hapus'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // API CALL — HAPUS BY RANGE
-  // ============================================================
-  Future<bool> _deleteLogsByRange(DateTime start, DateTime end) async {
-    try {
-      final startStr = _formatDateApi(start);
-      final endStr = _formatDateApi(end);
-
-      final url =
-          '/activity-logs/by-range?start_date=$startStr&end_date=$endStr';
-
-      debugPrint('🗑️ DELETE BY RANGE: $url');
-
-      final response = await ApiService.delete(url);
-
-      debugPrint('🗑️ STATUS: ${response.statusCode}');
-      debugPrint('🗑️ BODY: ${response.body}');
-
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && body['success'] == true) {
-        final deleted = body['deleted'] ?? 0;
-        _showMessage('$deleted log berhasil dihapus.');
-        await _loadActivities();
-        return true;
-      }
-
-      _showMessage(
-        body['message']?.toString() ?? 'Gagal menghapus log.',
-        isError: true,
-      );
-      return false;
-
-    } catch (e) {
-      debugPrint('❌ DELETE BY RANGE ERROR: $e');
-      _showMessage('Terjadi kesalahan: $e', isError: true);
-      return false;
-    }
-  }
-
-  // ============================================================
-  // API CALL — HAPUS SEMUA
-  // ============================================================
-  Future<bool> _deleteAllLogs() async {
-    try {
-      debugPrint('🗑️ DELETE ALL');
-
-      final response = await ApiService.delete('/activity-logs/all');
-
-      debugPrint('🗑️ STATUS: ${response.statusCode}');
-      debugPrint('🗑️ BODY: ${response.body}');
-
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && body['success'] == true) {
-        final deleted = body['deleted'] ?? 0;
-        _showMessage('$deleted log berhasil dihapus.');
-        await _loadActivities();
-        return true;
-      }
-
-      _showMessage(
-        body['message']?.toString() ?? 'Gagal menghapus semua log.',
-        isError: true,
-      );
-      return false;
-
-    } catch (e) {
-      debugPrint('❌ DELETE ALL ERROR: $e');
-      _showMessage('Terjadi kesalahan: $e', isError: true);
-      return false;
-    }
-  }
-
-  // ============================================================
-  // FORMAT TANGGAL (untuk UI — "15 Sep 2026")
-  // ============================================================
-  String _formatDateId(DateTime d) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-    ];
-    return '${d.day.toString().padLeft(2, '0')} '
-        '${months[d.month - 1]} ${d.year}';
-  }
-
-  // ============================================================
-  // FORMAT TANGGAL (untuk API — "2026-09-15")
-  // ============================================================
-  String _formatDateApi(DateTime d) {
-    return '${d.year.toString().padLeft(4, '0')}-'
-        '${d.month.toString().padLeft(2, '0')}-'
-        '${d.day.toString().padLeft(2, '0')}';
-  }
-
-  // ============================================================
-  // SNACKBAR
-  // ============================================================
-  void _showMessage(String msg, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor:
-              isError ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
-
-  // ============================================================
   // LOADING / ERROR / EMPTY
   // ============================================================
   Widget _buildLoadingState() {
@@ -1497,8 +1011,453 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // COLORS — per role
+  // DIALOG: HAPUS LOG
   // ============================================================
+  void _showDeleteRangeDialog() {
+    DateTime? startDate;
+    DateTime? endDate;
+    String scope = 'range';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.delete_sweep_outlined,
+                      color: Color(0xFFDC2626), size: 22),
+                  SizedBox(width: 10),
+                  Text(
+                    'Hapus Log Aktivitas',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 18),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 440,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pilih metode penghapusan:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      RadioListTile<String>(
+                        value: 'range',
+                        groupValue: scope,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        activeColor: const Color(0xFF2563EB),
+                        title: const Text(
+                          'Berdasarkan rentang waktu',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setDialogState(() => scope = v);
+                        },
+                      ),
+                      if (scope == 'range') ...[
+                        const SizedBox(height: 4),
+                        _buildDatePickerTile(
+                          label: 'Dari Tanggal',
+                          value: startDate,
+                          onPick: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: startDate ??
+                                  DateTime.now().subtract(
+                                      const Duration(days: 30)),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() => startDate = picked);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        _buildDatePickerTile(
+                          label: 'Sampai Tanggal',
+                          value: endDate,
+                          onPick: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  endDate ?? DateTime.now(),
+                              firstDate: startDate ?? DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() => endDate = picked);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _quickRangeChip('7 hari terakhir', 7, (s, e) {
+                              setDialogState(() {
+                                startDate = s;
+                                endDate = e;
+                              });
+                            }),
+                            _quickRangeChip('30 hari terakhir', 30, (s, e) {
+                              setDialogState(() {
+                                startDate = s;
+                                endDate = e;
+                              });
+                            }),
+                            _quickRangeChip('90 hari terakhir', 90, (s, e) {
+                              setDialogState(() {
+                                startDate = s;
+                                endDate = e;
+                              });
+                            }),
+                          ],
+                        ),
+                      ],
+                      RadioListTile<String>(
+                        value: 'all',
+                        groupValue: scope,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        activeColor: const Color(0xFFDC2626),
+                        title: const Text(
+                          'Semua log',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        subtitle: const Text(
+                          'Menghapus seluruh riwayat aktivitas',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setDialogState(() => scope = v);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                color: Color(0xFFDC2626), size: 18),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Data yang sudah dihapus tidak dapat dikembalikan.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF991B1B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isDeleting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _isDeleting
+                      ? null
+                      : () async {
+                          if (scope == 'range' &&
+                              (startDate == null || endDate == null)) {
+                            _showMessage(
+                              'Pilih tanggal mulai dan tanggal akhir.',
+                              isError: true,
+                            );
+                            return;
+                          }
+                          final ok = await _confirmDelete(
+                            dialogContext,
+                            scope: scope,
+                            startDate: startDate,
+                            endDate: endDate,
+                          );
+                          if (ok != true) return;
+                          setDialogState(() => _isDeleting = true);
+                          final success = scope == 'all'
+                              ? await _deleteAllLogs()
+                              : await _deleteLogsByRange(
+                                  startDate!, endDate!);
+                          if (!mounted) return;
+                          setDialogState(() => _isDeleting = false);
+                          if (success && dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                        },
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.delete_outline, size: 18),
+                  label: Text(_isDeleting ? 'Menghapus...' : 'Hapus'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDatePickerTile({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onPick,
+  }) {
+    final text = value == null ? 'Pilih tanggal' : _formatDateId(value);
+
+    return InkWell(
+      onTap: onPick,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_outlined,
+                size: 18, color: Color(0xFF64748B)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                        fontSize: 10, color: Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: value == null
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickRangeChip(
+    String label,
+    int days,
+    void Function(DateTime start, DateTime end) onSelect,
+  ) {
+    return ActionChip(
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      onPressed: () {
+        final end = DateTime.now();
+        final start = end.subtract(Duration(days: days));
+        onSelect(start, end);
+      },
+      backgroundColor: const Color(0xFFEFF6FF),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
+  Future<bool?> _confirmDelete(
+    BuildContext dialogContext, {
+    required String scope,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    final String desc = scope == 'all'
+        ? 'SEMUA log aktivitas akan dihapus permanen.'
+        : 'Log dari ${_formatDateId(startDate!)} '
+            'sampai ${_formatDateId(endDate!)} '
+            'akan dihapus permanen.';
+
+    return showDialog<bool>(
+      context: dialogContext,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text(
+            'Konfirmasi Penghapusan',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          content: Text(desc),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Hapus'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _deleteLogsByRange(DateTime start, DateTime end) async {
+    try {
+      final startStr = _formatDateApi(start);
+      final endStr = _formatDateApi(end);
+
+      final url =
+          '/activity-logs/by-range?start_date=$startStr&end_date=$endStr';
+
+      debugPrint('🗑️ DELETE BY RANGE: $url');
+
+      final response = await ApiService.delete(url);
+
+      debugPrint('🗑️ STATUS: ${response.statusCode}');
+      debugPrint('🗑️ BODY: ${response.body}');
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final deleted = body['deleted'] ?? 0;
+        _showMessage('$deleted log berhasil dihapus.');
+        await _loadActivities();
+        return true;
+      }
+
+      _showMessage(
+        body['message']?.toString() ?? 'Gagal menghapus log.',
+        isError: true,
+      );
+      return false;
+    } catch (e) {
+      debugPrint('❌ DELETE BY RANGE ERROR: $e');
+      _showMessage('Terjadi kesalahan: $e', isError: true);
+      return false;
+    }
+  }
+
+  Future<bool> _deleteAllLogs() async {
+    try {
+      debugPrint('🗑️ DELETE ALL');
+
+      final response = await ApiService.delete('/activity-logs/all');
+
+      debugPrint('🗑️ STATUS: ${response.statusCode}');
+      debugPrint('🗑️ BODY: ${response.body}');
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final deleted = body['deleted'] ?? 0;
+        _showMessage('$deleted log berhasil dihapus.');
+        await _loadActivities();
+        return true;
+      }
+
+      _showMessage(
+        body['message']?.toString() ?? 'Gagal menghapus semua log.',
+        isError: true,
+      );
+      return false;
+    } catch (e) {
+      debugPrint('❌ DELETE ALL ERROR: $e');
+      _showMessage('Terjadi kesalahan: $e', isError: true);
+      return false;
+    }
+  }
+
+  String _formatDateId(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    return '${d.day.toString().padLeft(2, '0')} '
+        '${months[d.month - 1]} ${d.year}';
+  }
+
+  String _formatDateApi(DateTime d) {
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  void _showMessage(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor:
+              isError ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   Color _getRoleBackground(String role) {
     switch (role) {
       case 'Super Admin':
@@ -1569,9 +1528,6 @@ class ActivityData {
     );
   }
 
-  // ============================================================
-  // ICON MAPPER
-  // ============================================================
   static IconData _getIconFromRole(String role, dynamic iconName) {
     final custom = _getCustomIcon(iconName);
     if (custom != null) return custom;

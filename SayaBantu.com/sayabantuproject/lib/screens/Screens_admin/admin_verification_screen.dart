@@ -1,5 +1,3 @@
-// lib/screens/Screens_Admin/admin_verification_screen.dart
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -22,6 +20,9 @@ class AdminVerificationScreen extends StatefulWidget {
 }
 
 class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
+  // ============================================================
+  // DATA STATE
+  // ============================================================
   List<Map<String, dynamic>> partners = [];
   List<Map<String, dynamic>> verifiedPartners = [];
   List<Map<String, dynamic>> pendingSkillsList = [];
@@ -40,6 +41,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   String _selectedTab = 'pending';
 
   Timer? _autoRefreshTimer;
+
+  // ============================================================
+  // PAGINATION STATE (per-tab)
+  // ============================================================
+  int _pendingPage = 1;
+  int _verifiedPage = 1;
+  int _skillsPage = 1;
+  int _itemsPerPage = 10;
+  static const List<int> _itemsPerPageOptions = [5, 10, 25, 50];
 
   @override
   void initState() {
@@ -108,9 +118,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     if (!mounted) return;
 
     if (partners.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
     }
 
     try {
@@ -231,6 +239,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         setState(() {
           partners = mappedPartners;
           isLoading = false;
+          _pendingPage = 1;
         });
 
         _syncPending();
@@ -329,6 +338,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         setState(() {
           verifiedPartners = mapped;
           isLoadingVerified = false;
+          _verifiedPage = 1;
         });
       } else {
         if (!mounted) return;
@@ -341,9 +351,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
-  // ============================================================
-  // ✅ FIX: JANGAN paksa .toString() pada certificate yang bisa List
-  // ============================================================
   Future<void> _fetchPendingSkills() async {
     if (!mounted) return;
 
@@ -399,7 +406,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             'skills_updated_at': mitra['skills_updated_at'],
             'skill_photos': oldPhotos,
             'pending_skill_photos': pendingPhotos,
-            // ✅ FIX: kirim raw supaya bisa String ATAU List
             'certificate': mitra['certificate'],
             'pending_certificate': mitra['pending_certificate'],
             'rating': mitra['rating'] ?? 0,
@@ -414,6 +420,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         setState(() {
           pendingSkillsList = mapped;
           isLoadingPendingSkills = false;
+          _skillsPage = 1;
         });
       } else {
         if (!mounted) return;
@@ -425,6 +432,31 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       setState(() => isLoadingPendingSkills = false);
     }
   }
+
+  // ============================================================
+  // PAGINATION HELPERS
+  // ============================================================
+  int _totalPagesFor(int total) {
+    if (total == 0) return 1;
+    return ((total - 1) ~/ _itemsPerPage) + 1;
+  }
+
+  List<Map<String, dynamic>> _slice(
+      List<Map<String, dynamic>> list, int page) {
+    final start = (page - 1) * _itemsPerPage;
+    if (start >= list.length) return [];
+    final end = (start + _itemsPerPage).clamp(0, list.length);
+    return list.sublist(start, end);
+  }
+
+  List<Map<String, dynamic>> get _paginatedPartners =>
+      _slice(partners, _pendingPage);
+
+  List<Map<String, dynamic>> get _paginatedVerified =>
+      _slice(verifiedPartners, _verifiedPage);
+
+  List<Map<String, dynamic>> get _paginatedSkills =>
+      _slice(pendingSkillsList, _skillsPage);
 
   String _buildImageUrl(String? rawPath) {
     if (rawPath == null || rawPath.isEmpty || rawPath == 'null') {
@@ -468,9 +500,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return '$baseUrl/api/images/profile/$filename';
   }
 
-  // ============================================================
-  // ✅ HELPER BARU: normalisasi certificate (List/String) → List<URL>
-  // ============================================================
   List<String> _buildCertificateUrls(dynamic raw) {
     if (raw == null) return [];
 
@@ -516,6 +545,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // AKSI: APPROVE / REJECT MITRA
+  // ============================================================
   Future<void> _approve(int index) async {
     if (index < 0 || index >= partners.length) return;
     if (isProcessing) return;
@@ -543,6 +575,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               title: const Text('Approve Mitra'),
               content: Text(
                 'Yakin ingin memverifikasi $name?\n\n'
@@ -589,6 +624,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           isProcessing = false;
           waitingCount = partners.length;
           approvedToday++;
+          if (_pendingPage > _totalPagesFor(partners.length)) {
+            _pendingPage = _totalPagesFor(partners.length);
+          }
         });
 
         _syncPending();
@@ -634,6 +672,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         final controller = TextEditingController();
 
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           title: const Text('Tolak Pendaftaran'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -703,6 +744,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           isProcessing = false;
           waitingCount = partners.length;
           rejected++;
+          if (_pendingPage > _totalPagesFor(partners.length)) {
+            _pendingPage = _totalPagesFor(partners.length);
+          }
         });
 
         _syncPending();
@@ -719,6 +763,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
+  // ============================================================
+  // AKSI: APPROVE / REJECT SKILL
+  // ============================================================
   Future<void> _approveSkill(int index) async {
     if (index < 0 || index >= pendingSkillsList.length) return;
     if (isProcessing) return;
@@ -737,6 +784,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               title: const Text('Setujui Perubahan Keahlian'),
               content: Text(
                 'Setujui perubahan keahlian $name?\n\n'
@@ -780,6 +830,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         setState(() {
           pendingSkillsList.removeAt(index);
           isProcessing = false;
+          if (_skillsPage > _totalPagesFor(pendingSkillsList.length)) {
+            _skillsPage = _totalPagesFor(pendingSkillsList.length);
+          }
         });
 
         _message('Keahlian $name berhasil disetujui.');
@@ -815,6 +868,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         final controller = TextEditingController();
 
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           title: const Text('Tolak Perubahan Keahlian'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -878,6 +934,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         setState(() {
           pendingSkillsList.removeAt(index);
           isProcessing = false;
+          if (_skillsPage > _totalPagesFor(pendingSkillsList.length)) {
+            _skillsPage = _totalPagesFor(pendingSkillsList.length);
+          }
         });
 
         _message('Perubahan keahlian $name ditolak.', error: true);
@@ -893,9 +952,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
   }
 
-  // ============================================================
-  // ✅ FIX: _viewSkillPhotos — handle certificate List & String
-  // ============================================================
   void _viewSkillPhotos(Map<String, dynamic> item) {
     final String name = item['name']?.toString() ?? 'Mitra';
     final String currentSkills = item['current_skills']?.toString() ?? '-';
@@ -919,7 +975,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           .toList();
     }
 
-    // ✅ pakai helper — support List & String
     final List<String> oldCerts = _buildCertificateUrls(item['certificate']);
     final List<String> newCerts =
         _buildCertificateUrls(item['pending_certificate']);
@@ -927,6 +982,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
         title: Row(
           children: [
             const Icon(Icons.photo_library_outlined, color: Color(0xFF8B5CF6)),
@@ -1020,8 +1078,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     children: newCerts
                         .asMap()
                         .entries
-                        .map((e) =>
-                            _skillPhotoThumb(e.value, 'Sertifikat Baru ${e.key + 1}'))
+                        .map((e) => _skillPhotoThumb(
+                            e.value, 'Sertifikat Baru ${e.key + 1}'))
                         .toList(),
                   ),
                 ],
@@ -1101,8 +1159,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     children: oldCerts
                         .asMap()
                         .entries
-                        .map((e) =>
-                            _skillPhotoThumb(e.value, 'Sertifikat Lama ${e.key + 1}'))
+                        .map((e) => _skillPhotoThumb(
+                            e.value, 'Sertifikat Lama ${e.key + 1}'))
                         .toList(),
                   ),
                 ],
@@ -1172,7 +1230,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       });
     }
 
-    if (selfieImage != null && selfieImage.isNotEmpty && selfieImage != 'null') {
+    if (selfieImage != null &&
+        selfieImage.isNotEmpty &&
+        selfieImage != 'null') {
       docs.add({
         'title': 'Foto Verifikasi Diri (Selfie)',
         'path': selfieImage,
@@ -1180,7 +1240,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       });
     }
 
-    // ✅ Handle certificate List / String
     if (certificateRaw != null) {
       if (certificateRaw is List) {
         for (int i = 0; i < certificateRaw.length; i++) {
@@ -1233,6 +1292,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           title: Row(
             children: [
               const Icon(Icons.folder_open, color: Color(0xFF8B5CF6)),
@@ -1409,7 +1471,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: Colors.black
-                                                .withOpacity(0.6),
+                                                .withValues(alpha: 0.6),
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
@@ -1528,7 +1590,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Row(
@@ -1552,7 +1614,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         partner['email']?.toString() ?? '-',
                         style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.9)),
+                            color: Colors.white.withValues(alpha: 0.9)),
                       ),
                     ],
                   ),
@@ -1847,6 +1909,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -1856,6 +1921,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           final mobile = constraints.maxWidth < 700;
           final tablet =
               constraints.maxWidth >= 700 && constraints.maxWidth < 1100;
+          final double hPad = mobile ? 16 : 26;
 
           return Container(
             color: const Color(0xFFF4F7FB),
@@ -1875,79 +1941,270 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     },
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(
-                        mobile ? 16 : 26,
-                        mobile ? 18 : 28,
-                        mobile ? 16 : 26,
-                        30,
-                      ),
+                      padding: EdgeInsets.zero,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'Verifikasi Mitra',
-                            style: TextStyle(
-                              fontSize: mobile
-                                  ? 23
-                                  : tablet
-                                      ? 25
-                                      : 27,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0F172A),
+                          // ---- Konten ber-padding ----
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              hPad,
+                              mobile ? 18 : 28,
+                              hPad,
+                              0,
                             ),
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _subtitleForTab(),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF64748B),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Verifikasi Mitra',
+                                  style: TextStyle(
+                                    fontSize: mobile
+                                        ? 23
+                                        : tablet
+                                            ? 25
+                                            : 27,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF0F172A),
                                   ),
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: () async {
-                                  if (_selectedTab == 'pending') {
-                                    await _fetchUnverifiedMitra();
-                                  } else if (_selectedTab == 'verified') {
-                                    await _fetchVerifiedMitra();
-                                  } else {
-                                    await _fetchPendingSkills();
-                                  }
-                                  if (!mounted) return;
-                                  _message('Data diperbarui.');
-                                },
-                                icon: const Icon(Icons.refresh, size: 20),
-                                tooltip: 'Refresh',
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
+                                const SizedBox(height: 5),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _subtitleForTab(),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () async {
+                                        if (_selectedTab == 'pending') {
+                                          await _fetchUnverifiedMitra();
+                                        } else if (_selectedTab ==
+                                            'verified') {
+                                          await _fetchVerifiedMitra();
+                                        } else {
+                                          await _fetchPendingSkills();
+                                        }
+                                        if (!mounted) return;
+                                        _message('Data diperbarui.');
+                                      },
+                                      icon: const Icon(Icons.refresh, size: 20),
+                                      tooltip: 'Refresh',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 18),
+
+                                _buildTabSelector(mobile),
+
+                                const SizedBox(height: 20),
+
+                                if (_selectedTab == 'pending') ...[
+                                  _summary(mobile),
+                                  const SizedBox(height: 20),
+                                  partners.isEmpty
+                                      ? _empty()
+                                      : _table(mobile),
+                                ] else if (_selectedTab == 'verified') ...[
+                                  _buildVerifiedList(mobile),
+                                ] else ...[
+                                  _buildPendingSkillsList(mobile),
+                                ],
+
+                                const SizedBox(height: 20),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 18),
 
-                          _buildTabSelector(mobile),
+                          // ---- Pagination full width ----
+                          _buildActiveTabPagination(),
 
-                          const SizedBox(height: 20),
-
-                          if (_selectedTab == 'pending') ...[
-                            _summary(mobile),
-                            const SizedBox(height: 20),
-                            partners.isEmpty ? _empty() : _table(mobile),
-                          ] else if (_selectedTab == 'verified') ...[
-                            _buildVerifiedList(mobile),
-                          ] else ...[
-                            _buildPendingSkillsList(mobile),
-                          ],
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
                   ),
           );
         },
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION — pilih sesuai tab aktif
+  // ============================================================
+  Widget _buildActiveTabPagination() {
+    if (_selectedTab == 'pending') {
+      return _buildPaginationFullWidth(
+        total: partners.length,
+        currentPage: _pendingPage,
+        onPageChanged: (p) => setState(() => _pendingPage = p),
+        label: 'mitra',
+      );
+    } else if (_selectedTab == 'verified') {
+      return _buildPaginationFullWidth(
+        total: verifiedPartners.length,
+        currentPage: _verifiedPage,
+        onPageChanged: (p) => setState(() => _verifiedPage = p),
+        label: 'mitra',
+      );
+    } else {
+      return _buildPaginationFullWidth(
+        total: pendingSkillsList.length,
+        currentPage: _skillsPage,
+        onPageChanged: (p) => setState(() => _skillsPage = p),
+        label: 'pengajuan',
+      );
+    }
+  }
+
+  Widget _buildPaginationFullWidth({
+    required int total,
+    required int currentPage,
+    required ValueChanged<int> onPageChanged,
+    required String label,
+  }) {
+    if (isLoading || total == 0) return const SizedBox.shrink();
+
+    final totalPages = _totalPagesFor(total);
+    final startItem = (currentPage - 1) * _itemsPerPage + 1;
+    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE2E8F0)),
+          bottom: BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              'Menampilkan $startItem–$endItem dari $total $label',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Dropdown per halaman
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _itemsPerPage,
+                    isDense: true,
+                    borderRadius: BorderRadius.circular(8),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF334155),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    items: _itemsPerPageOptions
+                        .map((n) => DropdownMenuItem<int>(
+                              value: n,
+                              child: Text('$n / hal'),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _itemsPerPage = v;
+                        onPageChanged(1);
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _paginationIconButton(
+                icon: Icons.chevron_left,
+                onTap: currentPage > 1
+                    ? () => onPageChanged(currentPage - 1)
+                    : null,
+              ),
+              const SizedBox(width: 6),
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Hal $currentPage / $totalPages',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              _paginationIconButton(
+                icon: Icons.chevron_right,
+                onTap: currentPage < totalPages
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paginationIconButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? const Color(0xFFF1F5F9)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null
+              ? const Color(0xFFCBD5E1)
+              : const Color(0xFF334155),
+        ),
       ),
     );
   }
@@ -2023,7 +2280,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -2049,8 +2306,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isActive
-                    ? activeColor.withOpacity(0.12)
-                    : const Color(0xFFCBD5E1).withOpacity(0.4),
+                    ? activeColor.withValues(alpha: 0.12)
+                    : const Color(0xFFCBD5E1).withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -2068,6 +2325,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // PENDING SKILLS LIST
+  // ============================================================
   Widget _buildPendingSkillsList(bool mobile) {
     if (isLoadingPendingSkills && pendingSkillsList.isEmpty) {
       return Container(
@@ -2100,11 +2360,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
     }
 
+    final pageItems = _paginatedSkills;
+    final baseIndex = (_skillsPage - 1) * _itemsPerPage;
+
     if (mobile) {
       return Column(
         children: List.generate(
-          pendingSkillsList.length,
-          (i) => _pendingSkillMobileCard(pendingSkillsList[i], i),
+          pageItems.length,
+          (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
         ),
       );
     }
@@ -2119,8 +2382,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         children: [
           _pendingSkillTableHeader(),
           ...List.generate(
-            pendingSkillsList.length,
-            (i) => _pendingSkillTableRow(pendingSkillsList[i], i),
+            pageItems.length,
+            (i) => _pendingSkillTableRow(pageItems[i], baseIndex + i),
           ),
         ],
       ),
@@ -2416,6 +2679,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // VERIFIED LIST
+  // ============================================================
   Widget _buildVerifiedList(bool mobile) {
     if (isLoadingVerified && verifiedPartners.isEmpty) {
       return Container(
@@ -2446,11 +2712,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
     }
 
+    final pageItems = _paginatedVerified;
+
     if (mobile) {
       return Column(
         children: List.generate(
-          verifiedPartners.length,
-          (i) => _verifiedMobileCard(verifiedPartners[i]),
+          pageItems.length,
+          (i) => _verifiedMobileCard(pageItems[i]),
         ),
       );
     }
@@ -2465,8 +2733,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         children: [
           _verifiedTableHeader(),
           ...List.generate(
-            verifiedPartners.length,
-            (i) => _verifiedTableRow(verifiedPartners[i]),
+            pageItems.length,
+            (i) => _verifiedTableRow(pageItems[i]),
           ),
         ],
       ),
@@ -2746,121 +3014,135 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // SUMMARY — 3 kartu sejajar (mobile & desktop)
+  // ============================================================
   Widget _summary(bool mobile) {
     final cards = [
       _summaryCard(
-        'Menunggu',
-        waitingCount.toString(),
-        'Perlu Ditinjau',
-        Icons.hourglass_empty,
-        const Color(0xFFF59E0B),
-        const Color(0xFFFFF7ED),
+        title: 'Menunggu',
+        value: waitingCount.toString(),
+        subtitle: 'Perlu Ditinjau',
+        icon: Icons.hourglass_empty,
+        iconColor: const Color(0xFFF59E0B),
+        iconBg: const Color(0xFFFFF7ED),
       ),
       _summaryCard(
-        'Disetujui Hari Ini',
-        approvedToday.toString(),
-        'Mitra Disetujui',
-        Icons.check_circle_outline,
-        const Color(0xFF10B981),
-        const Color(0xFFECFDF5),
+        title: 'Disetujui',
+        value: approvedToday.toString(),
+        subtitle: 'Hari Ini',
+        icon: Icons.check_circle_outline,
+        iconColor: const Color(0xFF10B981),
+        iconBg: const Color(0xFFECFDF5),
       ),
       _summaryCard(
-        'Ditolak',
-        rejected.toString(),
-        'Pendaftaran Ditolak',
-        Icons.cancel_outlined,
-        const Color(0xFFEF4444),
-        const Color(0xFFFEF2F2),
+        title: 'Ditolak',
+        value: rejected.toString(),
+        subtitle: 'Total',
+        icon: Icons.cancel_outlined,
+        iconColor: const Color(0xFFEF4444),
+        iconBg: const Color(0xFFFEF2F2),
       ),
     ];
 
-    if (mobile) {
-      return Column(
+    // 3 kartu sejajar (mobile & desktop)
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < cards.length; i++) ...[
-            cards[i],
-            if (i < cards.length - 1) const SizedBox(height: 10),
-          ],
+          Expanded(child: cards[0]),
+          const SizedBox(width: 10),
+          Expanded(child: cards[1]),
+          const SizedBox(width: 10),
+          Expanded(child: cards[2]),
         ],
-      );
-    }
-
-    return Row(
-      children: [
-        for (var i = 0; i < cards.length; i++) ...[
-          Expanded(child: cards[i]),
-          if (i < cards.length - 1) const SizedBox(width: 10),
-        ],
-      ],
+      ),
     );
   }
 
-  Widget _summaryCard(
-    String title,
-    String value,
-    String subtitle,
-    IconData icon,
-    Color iconColor,
-    Color iconBg,
-  ) {
+  Widget _summaryCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Icon di atas
           Container(
-            width: 40,
-            height: 40,
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, color: iconColor, size: 21),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: iconColor,
-                ),
-              ),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF334155),
-                ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF94A3B8),
-                ),
-              ),
-            ],
+          const SizedBox(height: 10),
+
+          // Value besar
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: iconColor,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 2),
+
+          // Title
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+
+          // Subtitle
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF94A3B8),
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ============================================================
+  // TABLE (Pending tab)
+  // ============================================================
   Widget _table(bool mobile) {
+    final pageItems = _paginatedPartners;
+    final baseIndex = (_pendingPage - 1) * _itemsPerPage;
+
     if (mobile) {
       return Column(
         children: List.generate(
-          partners.length,
-          (i) => _mobileCard(partners[i], i),
+          pageItems.length,
+          (i) => _mobileCard(pageItems[i], baseIndex + i),
         ),
       );
     }
@@ -2875,8 +3157,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         children: [
           _tableHeader(),
           ...List.generate(
-            partners.length,
-            (i) => _tableRow(partners[i], i),
+            pageItems.length,
+            (i) => _tableRow(pageItems[i], baseIndex + i),
           ),
         ],
       ),
@@ -3116,6 +3398,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 }
 
+// ============================================================
+// FULLSCREEN IMAGE VIEWER
+// ============================================================
 class _FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
   final String title;

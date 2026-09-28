@@ -20,8 +20,8 @@ class AdminController extends Controller
     {
         // Ambil profil mitra + data user (untuk foto_profil & nama)
         $mitras = mitra_profiles::with([
-                'user:id,name,email,phone,address,photo_profile',
-            ])
+            'user:id,name,email,phone,address,photo_profile',
+        ])
             ->where('is_verified', 0)
             ->latest()
             ->get();
@@ -274,28 +274,59 @@ class AdminController extends Controller
         try {
             $period = $request->query('period', 'week');
 
-            // Tentukan tanggal mulai
+            // =====================================================
+            // TENTUKAN TANGGAL MULAI
+            // =====================================================
+
             $start = match ($period) {
                 'today' => now()->startOfDay(),
                 'month' => now()->startOfMonth(),
                 default => now()->startOfWeek(),
             };
 
-            // Query agregasi harian dari tabel payments
-            $data = DB::table('payments')
-                ->select(
-                    DB::raw("DATE(created_at) as tanggal"),
-                    DB::raw("DATE_FORMAT(created_at, '%a') as hari"),
-                    DB::raw("COUNT(*) as total_transaksi"),
-                    DB::raw("SUM(commission_amount) as total_komisi"),
-                    DB::raw("COUNT(DISTINCT job_id) as total_pekerjaan")
+            // =====================================================
+            // AMBIL DATA PAYMENT + JOB
+            // =====================================================
+            //
+            // payments = sumber transaksi
+            // jobs     = sumber nama pekerjaan
+            // job_id   = penghubung payment dengan pekerjaan
+            //
+
+            $payments = DB::table('payments')
+                ->leftJoin(
+                    'jobs',
+                    'payments.job_id',
+                    '=',
+                    'jobs.id'
                 )
-                ->where('created_at', '>=', $start)
-                ->groupBy('tanggal', 'hari')
-                ->orderBy('tanggal', 'asc')
+                ->select(
+                    'payments.id as payment_id',
+                    'payments.reference_code',
+                    'payments.job_id',
+                    'jobs.tittle as job_title',
+                    'payments.commission_amount',
+                    'payments.created_at'
+                )
+                ->where('payments.created_at', '>=', $start)
+                ->orderBy('payments.created_at', 'asc')
                 ->get();
 
-            // Mapping nama hari ke Indonesia
+            // =====================================================
+            // GROUP BERDASARKAN TANGGAL
+            // =====================================================
+
+            $grouped = $payments->groupBy(function ($payment) {
+                return date(
+                    'Y-m-d',
+                    strtotime($payment->created_at)
+                );
+            });
+
+            // =====================================================
+            // MAPPING HARI
+            // =====================================================
+
             $hariMap = [
                 'Mon' => 'Sen',
                 'Tue' => 'Sel',
@@ -306,63 +337,269 @@ class AdminController extends Controller
                 'Sun' => 'Min',
             ];
 
-            $formatted = $data->map(function ($item) use ($hariMap) {
-                return [
-                    'tanggal'      => $item->tanggal,
-                    'day'          => $hariMap[$item->hari] ?? $item->hari,
-                    'transactions' => (int) $item->total_transaksi,
-                    'income'       => (float) $item->total_komisi,
-                    'jobs'         => (int) $item->total_pekerjaan,
-                ];
-            });
+            // =====================================================
+            // MAPPING BULAN
+            // =====================================================
 
-            // Summary
-            $totalTransaksi = $formatted->sum('transactions');
-            $totalPekerjaan = $formatted->sum('jobs');
-            $totalKomisi    = $formatted->sum('income');
-            $rataHarian     = $formatted->count() > 0
+            $bulanMap = [
+                '01' => 'Januari',
+                '02' => 'Februari',
+                '03' => 'Maret',
+                '04' => 'April',
+                '05' => 'Mei',
+                '06' => 'Juni',
+                '07' => 'Juli',
+                '08' => 'Agustus',
+                '09' => 'September',
+                '10' => 'Oktober',
+                '11' => 'November',
+                '12' => 'Desember',
+            ];
+
+            // =====================================================
+            // FORMAT DATA HARIAN
+            // =====================================================
+
+            $formatted = $grouped->map(
+                function ($dayPayments, $tanggal)
+                use ($hariMap, $bulanMap) {
+
+                    $firstPayment = $dayPayments->first();
+
+                    // -------------------------------------------------
+                    // HARI + TANGGAL LENGKAP
+                    // Contoh:
+                    // Sab, 26 September 2026
+                    // -------------------------------------------------
+
+                    $timestamp = strtotime($firstPayment->created_at);
+
+                    $hariInggris = date('D', $timestamp);
+                    $hariIndonesia = $hariMap[$hariInggris]
+                        ?? $hariInggris;
+
+                    $bulanAngka = date('m', $timestamp);
+                    $bulanIndonesia = $bulanMap[$bulanAngka]
+                        ?? $bulanAngka;
+
+                    $tanggalLengkap =
+                        $hariIndonesia
+                        . ', '
+                        . date('d', $timestamp)
+                        . ' '
+                        . $bulanIndonesia
+                        . ' '
+                        . date('Y', $timestamp);
+
+                    // =================================================
+                    // DETAIL TRANSAKSI
+                    // =================================================
+                    //
+                    // Satu payment = satu transaksi.
+                    //
+                    // Contoh:
+                    // 2 transaksi
+                    // PAY-ABC123
+                    // PAY-DEF456
+                    //
+
+                    $transactionDetails = $dayPayments
+                        ->map(function ($payment) {
+
+                            return [
+                                'id' => (int) $payment->payment_id,
+
+                                'reference_code' =>
+                                !empty($payment->reference_code)
+                                    ? $payment->reference_code
+                                    : 'PAY-' . str_pad(
+                                        (string) $payment->payment_id,
+                                        4,
+                                        '0',
+                                        STR_PAD_LEFT
+                                    ),
+                            ];
+                        })
+                        ->values();
+
+                    // =================================================
+                    // DETAIL PEKERJAAN
+                    // =================================================
+                    //
+                    // Job dihitung berdasarkan job_id unik.
+                    //
+                    // Contoh:
+                    //
+                    // PAY-001 -> JOB-001
+                    // PAY-002 -> JOB-001
+                    // PAY-003 -> JOB-002
+                    //
+                    // Hasil:
+                    // 3 transaksi
+                    // 2 pekerjaan
+                    //
+                    // JOB-001 hanya muncul satu kali.
+                    //
+
+                    $jobDetails = $dayPayments
+                        ->filter(function ($payment) {
+                            return !empty($payment->job_id);
+                        })
+                        ->unique('job_id')
+                        ->map(function ($payment) {
+
+                            return [
+                                'id' => (int) $payment->job_id,
+
+                                'code' =>
+                                '#JOB-' . str_pad(
+                                    (string) $payment->job_id,
+                                    4,
+                                    '0',
+                                    STR_PAD_LEFT
+                                ),
+
+                                'title' =>
+                                !empty($payment->job_title)
+                                    ? $payment->job_title
+                                    : 'Pekerjaan tanpa judul',
+                            ];
+                        })
+                        ->values();
+
+                    // =================================================
+                    // DATA SATU BARIS
+                    // =================================================
+
+                    return [
+
+                        // Tanggal database
+                        'tanggal' => $tanggal,
+
+                        // Hari + tanggal lengkap
+                        'day' => $tanggalLengkap,
+
+                        // -------------------------------------------------
+                        // JUMLAH TRANSAKSI
+                        // -------------------------------------------------
+
+                        'transactions' =>
+                        $transactionDetails->count(),
+
+                        // Detail ID transaksi
+                        'transaction_details' =>
+                        $transactionDetails,
+
+                        // -------------------------------------------------
+                        // JUMLAH PEKERJAAN UNIK
+                        // -------------------------------------------------
+
+                        'jobs' =>
+                        $jobDetails->count(),
+
+                        // Detail pekerjaan
+                        'job_details' =>
+                        $jobDetails,
+
+                        // -------------------------------------------------
+                        // TOTAL KOMISI PADA TANGGAL TERSEBUT
+                        // -------------------------------------------------
+
+                        'income' =>
+                        (float) $dayPayments->sum(
+                            'commission_amount'
+                        ),
+                    ];
+                }
+            )->values();
+
+            // =====================================================
+            // SUMMARY KESELURUHAN
+            // =====================================================
+
+            $totalTransaksi =
+                $formatted->sum('transactions');
+
+            $totalPekerjaan =
+                $formatted->sum('jobs');
+
+            $totalKomisi =
+                $formatted->sum('income');
+
+            // Rata-rata komisi per hari yang memiliki transaksi
+            $rataHarian =
+                $formatted->count() > 0
                 ? $totalKomisi / $formatted->count()
                 : 0;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Berhasil memuat laporan harian.',
-                'period'  => $period,
-                'summary' => [
-                    'total_transaksi' => $totalTransaksi,
-                    'total_pekerjaan' => $totalPekerjaan,
-                    'total_komisi'    => $totalKomisi,
-                    'rata_harian'     => $rataHarian,
-                ],
-                'data' => $formatted->values(),
-            ], 200);
+            // =====================================================
+            // RESPONSE
+            // =====================================================
 
-        } catch (\Exception $e) {
-            Log::error('AdminController@dailyReport: ' . $e->getMessage());
             return response()->json([
+
+                'success' => true,
+
+                'message' =>
+                'Berhasil memuat laporan harian.',
+
+                'period' => $period,
+
+                'summary' => [
+
+                    'total_transaksi' =>
+                    $totalTransaksi,
+
+                    'total_pekerjaan' =>
+                    $totalPekerjaan,
+
+                    'total_komisi' =>
+                    $totalKomisi,
+
+                    'rata_harian' =>
+                    $rataHarian,
+                ],
+
+                'data' =>
+                $formatted,
+
+            ], 200);
+        } catch (\Exception $e) {
+
+            Log::error(
+                'AdminController@dailyReport: '
+                    . $e->getMessage()
+            );
+
+            return response()->json([
+
                 'success' => false,
-                'message' => 'Gagal memuat laporan: ' . $e->getMessage(),
+
+                'message' =>
+                'Gagal memuat laporan: '
+                    . $e->getMessage(),
+
             ], 500);
         }
     }
     /**
- * =============================================================
- * ADMIN — Daftar Mitra Terverifikasi
- * GET /admin/verified-mitra
- * =============================================================
- */
+     * =============================================================
+     * ADMIN — Daftar Mitra Terverifikasi
+     * GET /admin/verified-mitra
+     * =============================================================
+     */
     /**
- * =============================================================
- * ADMIN — Daftar Mitra Terverifikasi
- * GET /admin/verified-mitra
- * =============================================================
- */
+     * =============================================================
+     * ADMIN — Daftar Mitra Terverifikasi
+     * GET /admin/verified-mitra
+     * =============================================================
+     */
     public function verifiedMitra()
     {
         try {
             $mitras = mitra_profiles::with([
-                    'user:id,name,email,phone,address,photo_profile',
-                ])
+                'user:id,name,email,phone,address,photo_profile',
+            ])
                 ->where('is_verified', 1)
                 ->orderBy('verified_at', 'desc')
                 ->get()
@@ -433,7 +670,6 @@ class AdminController extends Controller
                 'total'   => $mitras->count(),
                 'data'    => $mitras,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('AdminController@verifiedMitra: ' . $e->getMessage());
             return response()->json([

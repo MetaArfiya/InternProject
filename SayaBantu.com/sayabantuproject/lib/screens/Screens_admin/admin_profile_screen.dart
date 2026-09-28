@@ -10,10 +10,12 @@ import '../../services/api_service.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   final VoidCallback? onProfileUpdated;
+  final VoidCallback? onLogout;
 
   const AdminProfileScreen({
     super.key,
     this.onProfileUpdated,
+    this.onLogout,
   });
 
   @override
@@ -453,9 +455,87 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               _buildAccountCard(isMobile),
               const SizedBox(height: 18),
               _buildSecurityCard(context, isMobile),
+
+              // =========================================
+              // ✅ TOMBOL LOGOUT (MOBILE ONLY)
+              // =========================================
+              if (isMobile && widget.onLogout != null) ...[
+                const SizedBox(height: 18),
+                _buildLogoutCard(),
+              ],
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // ✅ LOGOUT CARD (MOBILE)
+  // =========================================================
+
+  Widget _buildLogoutCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0xFFDCE3EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Keluar dari Akun',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Kamu akan keluar dari sesi admin saat ini',
+            style: TextStyle(
+              fontSize: 11,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                FocusScope.of(context).unfocus();
+                widget.onLogout?.call();
+              },
+              icon: const Icon(
+                Icons.logout_outlined,
+                color: Color(0xFFEF4444),
+                size: 18,
+              ),
+              label: const Text(
+                'Keluar Sekarang',
+                style: TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(
+                  color: Color(0xFFEF4444),
+                  width: 1.2,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

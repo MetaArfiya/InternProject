@@ -321,19 +321,6 @@ class _AdminLayoutState extends State<AdminLayout> {
       backgroundColor: const Color(0xFFF4F7FB),
 
       // =====================================================
-      // MOBILE DRAWER
-      // =====================================================
-
-      drawer: isMobile
-          ? Drawer(
-              width: 280,
-              child: SafeArea(
-                child: _buildSidebar(context),
-              ),
-            )
-          : null,
-
-      // =====================================================
       // MOBILE APP BAR
       // =====================================================
 
@@ -342,19 +329,7 @@ class _AdminLayoutState extends State<AdminLayout> {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.white,
               elevation: 0,
-              leading: Builder(
-                builder: (context) {
-                  return IconButton(
-                    icon: const Icon(
-                      Icons.menu,
-                      color: Color(0xFF334155),
-                    ),
-                    onPressed: () {
-                      Scaffold.of(context).openDrawer();
-                    },
-                  );
-                },
-              ),
+              automaticallyImplyLeading: false, // Hapus tombol hamburger
               title: Text(
                 adminName,
                 style: const TextStyle(
@@ -405,12 +380,85 @@ class _AdminLayoutState extends State<AdminLayout> {
                 // INDEX 5
                 AdminProfileScreen(
                   onProfileUpdated: _loadAdminProfile,
+                  onLogout: () => _showLogoutDialog(context),
                 ),
               ],
             ),
           ),
         ],
       ),
+
+      // =====================================================
+      // BOTTOM NAVIGATION BAR (MOBILE)
+      // =====================================================
+
+      bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
+    );
+  }
+
+  // =========================================================
+  // BOTTOM NAVIGATION BAR
+  // =========================================================
+
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      currentIndex: _getMenuIndex(),
+      onTap: (index) {
+        String menu = 'verification';
+        switch (index) {
+          case 0:
+            menu = 'verification';
+            break;
+          case 1:
+            menu = 'complaint';
+            break;
+          case 2:
+            menu = 'report';
+            break;
+          case 3:
+            menu = 'rating';
+            break;
+          case 4:
+            menu = 'payment';
+            break;
+          case 5:
+            menu = 'profile';
+            break;
+        }
+        _changePage(context, menu);
+      },
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: const Color(0xFF7C3AED),
+      unselectedItemColor: const Color(0xFF64748B),
+      selectedFontSize: 10,
+      unselectedFontSize: 10,
+      selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.verified_outlined, size: 20),
+          label: 'Verifikasi',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.report_problem_outlined, size: 20),
+          label: 'Pengaduan',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bar_chart_outlined, size: 20),
+          label: 'Laporan',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.star_outline, size: 20),
+          label: 'Rating',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.account_balance_wallet_outlined, size: 20),
+          label: 'Bayar',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline, size: 20),
+          label: 'Profil',
+        ),
+      ],
     );
   }
 
@@ -590,13 +638,14 @@ class _AdminLayoutState extends State<AdminLayout> {
       }
     });
 
-    if (MediaQuery.of(context).size.width < 700) {
-      Navigator.of(context).pop();
-    }
+    // Hapus Navigator.pop() karena tidak ada Drawer lagi
+    // if (MediaQuery.of(context).size.width < 700) {
+    //   Navigator.of(context).pop();
+    // }
   }
 
   // =========================================================
-  // MENU ITEM
+  // MENU ITEM (SIDEBAR)
   // =========================================================
 
   Widget _menuItem({

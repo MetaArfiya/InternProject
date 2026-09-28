@@ -37,6 +37,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   ];
 
   // ============================================================
+  // PAGINATION STATE
+  // ============================================================
+  int _currentPage = 1;
+  int _itemsPerPage = 10;
+  static const List<int> _itemsPerPageOptions = [5, 10, 25, 50];
+
+  // ============================================================
   // LIFECYCLE
   // ============================================================
   @override
@@ -103,6 +110,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
             .toList();
 
+        _currentPage = 1;
         _isLoading = false;
       });
     } catch (e) {
@@ -148,8 +156,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     try {
       final date = DateTime.parse(iso).toLocal();
       const bulan = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
       ];
       return '${date.day} ${bulan[date.month - 1]} ${date.year}';
     } catch (_) {
@@ -162,18 +170,18 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   Color _ratingColor(int rating) {
-    if (rating >= 4) return Colors.green;
-    if (rating == 3) return Colors.orange;
-    return Colors.red;
+    if (rating >= 4) return const Color(0xFF059669);
+    if (rating == 3) return const Color(0xFFF59E0B);
+    return const Color(0xFFDC2626);
   }
 
-  Widget _buildStars(int rating, {double size = 18}) {
+  Widget _buildStars(int rating, {double size = 16}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
         return Icon(
           i < rating ? Icons.star : Icons.star_border,
-          color: Colors.amber,
+          color: const Color(0xFFF59E0B),
           size: size,
         );
       }),
@@ -183,27 +191,43 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   Widget _buildRatingBadge(int rating) {
     final color = _ratingColor(rating);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.star, size: 15, color: color),
+          Icon(Icons.star, size: 14, color: color),
           const SizedBox(width: 4),
           Text(
             '$rating/5',
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
             ),
           ),
         ],
       ),
     );
+  }
+
+  // ============================================================
+  // PAGINATION HELPERS
+  // ============================================================
+  int get _totalPages {
+    final total = _ratings.length;
+    if (total == 0) return 1;
+    return ((total - 1) ~/ _itemsPerPage) + 1;
+  }
+
+  List<Map<String, dynamic>> get _paginatedRatings {
+    final start = (_currentPage - 1) * _itemsPerPage;
+    if (start >= _ratings.length) return [];
+    final end = (start + _itemsPerPage).clamp(0, _ratings.length);
+    return _ratings.sublist(start, end);
   }
 
   // ============================================================
@@ -217,12 +241,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rating berhasil dihapus.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _snack('Rating berhasil dihapus.', color: const Color(0xFF16A34A));
         _loadRatings();
       } else {
         String message = 'Gagal menghapus rating.';
@@ -231,15 +250,11 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           message = decoded['message']?.toString() ?? message;
         } catch (_) {}
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
+        _snack(message, color: const Color(0xFFDC2626));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      _snack('Error: $e', color: const Color(0xFFDC2626));
     }
   }
 
@@ -252,28 +267,30 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rating berhasil disembunyikan.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _snack('Rating berhasil disembunyikan.',
+            color: const Color(0xFFF59E0B));
         _loadRatings();
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal menyembunyikan rating.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _snack('Gagal menyembunyikan rating.',
+            color: const Color(0xFFDC2626));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      _snack('Error: $e', color: const Color(0xFFDC2626));
     }
+  }
+
+  void _snack(String msg, {required Color color}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   // ============================================================
@@ -284,53 +301,59 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 800;
+        final double hPad = isMobile ? 16 : 24;
 
         return RefreshIndicator(
           onRefresh: _loadRatings,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            padding: EdgeInsets.zero,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Kelola Rating Mitra',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Pantau dan kelola penilaian pelanggan terhadap mitra.',
-                  style: TextStyle(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withOpacity(0.7),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(hPad, hPad, hPad, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isMobile),
+                      const SizedBox(height: 20),
+
+                      if (_isLoading)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 80),
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFF59E0B),
+                            ),
+                          ),
+                        )
+                      else if (_errorMessage != null)
+                        _buildError()
+                      else ...[
+                        _buildSummarySection(isMobile),
+                        const SizedBox(height: 16),
+                        _buildFilterSection(isMobile),
+                        const SizedBox(height: 16),
+                        if (_ratings.isEmpty)
+                          _buildEmptyState()
+                        else if (isMobile)
+                          _buildMobileList()
+                        else
+                          _buildDesktopTable(),
+                      ],
+
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
 
-                if (_isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 80),
-                      child: CircularProgressIndicator(color: Colors.orange),
-                    ),
-                  )
-                else if (_errorMessage != null)
-                  _buildError()
-                else ...[
-                  _buildSummarySection(isMobile),
-                  const SizedBox(height: 24),
-                  _buildFilterSection(),
-                  const SizedBox(height: 18),
-                  if (_ratings.isEmpty)
-                    _buildEmptyState()
-                  else if (isMobile)
-                    _buildMobileList()
-                  else
-                    _buildDesktopTable(),
-                ],
+                if (!_isLoading &&
+                    _errorMessage == null &&
+                    _ratings.isNotEmpty)
+                  _buildPaginationFullWidth(),
+
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -340,7 +363,34 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   // ============================================================
-  // SUMMARY
+  // HEADER
+  // ============================================================
+  Widget _buildHeader(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Kelola Rating Mitra',
+          style: TextStyle(
+            fontSize: isMobile ? 24 : 28,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Pantau dan kelola penilaian pelanggan terhadap mitra.',
+          style: TextStyle(
+            fontSize: isMobile ? 12 : 13,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // SUMMARY — Mobile: 2 atas 2 bawah (grid 2x2)
   // ============================================================
   Widget _buildSummarySection(bool isMobile) {
     final cards = [
@@ -348,99 +398,132 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         title: 'Total Rating',
         value: '$_total',
         icon: Icons.rate_review_outlined,
-        color: Colors.blue,
+        color: const Color(0xFF2563EB),
+        bg: const Color(0xFFEFF6FF),
       ),
       _summaryCard(
-        title: 'Rata-rata Rating',
+        title: 'Rata-rata',
         value: _average.toStringAsFixed(1),
         icon: Icons.star_rate_outlined,
-        color: Colors.amber.shade700,
+        color: const Color(0xFFF59E0B),
+        bg: const Color(0xFFFFF7ED),
       ),
       _summaryCard(
         title: 'Rating Positif',
         value: '$_highCount',
         icon: Icons.thumb_up_alt_outlined,
-        color: Colors.green,
+        color: const Color(0xFF059669),
+        bg: const Color(0xFFECFDF5),
       ),
       _summaryCard(
         title: 'Rating Rendah',
         value: '$_lowCount',
         icon: Icons.warning_amber_outlined,
-        color: Colors.red,
+        color: const Color(0xFFDC2626),
+        bg: const Color(0xFFFEF2F2),
       ),
     ];
 
+    // ---- MOBILE: 2 kolom x 2 baris ----
     if (isMobile) {
       return Column(
         children: [
-          for (final c in cards) ...[c, const SizedBox(height: 12)],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 10),
+                Expanded(child: cards[1]),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: cards[2]),
+                const SizedBox(width: 10),
+                Expanded(child: cards[3]),
+              ],
+            ),
+          ),
         ],
       );
     }
 
-    return Row(
-      children: [
-        Expanded(child: cards[0]),
-        const SizedBox(width: 12),
-        Expanded(child: cards[1]),
-        const SizedBox(width: 12),
-        Expanded(child: cards[2]),
-        const SizedBox(width: 12),
-        Expanded(child: cards[3]),
-      ],
+    // ---- DESKTOP: 4 sejajar ----
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: cards[0]),
+          const SizedBox(width: 12),
+          Expanded(child: cards[1]),
+          const SizedBox(width: 12),
+          Expanded(child: cards[2]),
+          const SizedBox(width: 12),
+          Expanded(child: cards[3]),
+        ],
+      ),
     );
   }
 
+  // ============================================================
+  // SUMMARY CARD — Compact (cocok untuk grid 2x2)
+  // ============================================================
   Widget _summaryCard({
     required String title,
     required String value,
     required IconData icon,
     required Color color,
+    required Color bg,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.4),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Icon di atas
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 27),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withOpacity(0.7),
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+
+          // Title
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // Value
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111827),
             ),
           ),
         ],
@@ -451,141 +534,225 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
   // FILTER
   // ============================================================
-  Widget _buildFilterSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
+  Widget _buildFilterSection(bool isMobile) {
+    final dropdown = Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.4),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedFilter,
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(10),
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            color: Color(0xFF64748B),
+            size: 21,
+          ),
+          style: const TextStyle(
+            fontSize: 13,
+            color: Color(0xFF334155),
+            fontWeight: FontWeight.w600,
+          ),
+          items: _filterOptions.map((f) {
+            return DropdownMenuItem<String>(
+              value: f['label'] as String,
+              child: Text(f['label'] as String),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _selectedFilter = value);
+            _loadRatings();
+          },
         ),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.filter_list),
-          const SizedBox(width: 10),
-          const Text(
-            'Filter Rating:',
-            style: TextStyle(fontWeight: FontWeight.w600),
+    );
+
+    final label = Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 15),
-          SizedBox(
-            width: 170,
-            child: DropdownButtonFormField<String>(
-              value: _selectedFilter,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
+          child: const Icon(
+            Icons.filter_list,
+            size: 18,
+            color: Color(0xFF2563EB),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Filter Rating',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827),
               ),
-              items: _filterOptions.map((f) {
-                return DropdownMenuItem<String>(
-                  value: f['label'] as String,
-                  child: Text(f['label'] as String),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _selectedFilter = value);
-                _loadRatings();
-              },
             ),
-          ),
-          const Spacer(),
-          Text(
-            '${_ratings.length} ulasan',
-            style: TextStyle(
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withOpacity(0.7),
+            const SizedBox(height: 2),
+            Text(
+              '${_ratings.length} ulasan ditampilkan',
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF64748B),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ],
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 14 : 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                label,
+                const SizedBox(height: 12),
+                dropdown,
+              ],
+            )
+          : Row(
+              children: [
+                label,
+                const Spacer(),
+                SizedBox(width: 200, child: dropdown),
+              ],
+            ),
     );
   }
 
   // ============================================================
-  // TABLE
+  // TABLE (DESKTOP)
   // ============================================================
   Widget _buildDesktopTable() {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.4),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 25,
-          headingRowColor: MaterialStateProperty.all(
-            Theme.of(context).colorScheme.surface,
-          ),
-          columns: const [
-            DataColumn(label: Text('ID')),
-            DataColumn(label: Text('Mitra')),
-            DataColumn(label: Text('Pelanggan')),
-            DataColumn(label: Text('Layanan')),
-            DataColumn(label: Text('Rating')),
-            DataColumn(label: Text('Tanggal')),
-            DataColumn(label: Text('Aksi')),
-          ],
-          rows: _ratings.map((r) {
-            final rating = _getStars(r);
-            return DataRow(
-              cells: [
-                DataCell(Text(
-                  _code(r),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                )),
-                DataCell(Text(_getNestedValue(r, 'mitra', ['name']))),
-                DataCell(Text(_getNestedValue(r, 'pelanggan', ['name']))),
-                DataCell(Text(_getNestedValue(r, 'job', ['tittle', 'title']))),
-                DataCell(Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStars(rating, size: 16),
-                    const SizedBox(width: 5),
-                    Text('$rating'),
-                  ],
-                )),
-                DataCell(Text(_formatTanggal(r['created_at']?.toString()))),
-                DataCell(IconButton(
-                  tooltip: 'Lihat Detail',
-                  icon: const Icon(Icons.visibility_outlined),
-                  onPressed: () => _showRatingDetail(r),
-                )),
-              ],
-            );
-          }).toList(),
-        ),
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                headingRowColor:
+                    WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                headingRowHeight: 48,
+                dataRowMinHeight: 56,
+                dataRowMaxHeight: 56,
+                columnSpacing: 24,
+                horizontalMargin: 20,
+                dividerThickness: 1,
+                showBottomBorder: true,
+                columns: const [
+                  DataColumn(label: _TableHeader('ID')),
+                  DataColumn(label: _TableHeader('MITRA')),
+                  DataColumn(label: _TableHeader('PELANGGAN')),
+                  DataColumn(label: _TableHeader('LAYANAN')),
+                  DataColumn(label: _TableHeader('RATING')),
+                  DataColumn(label: _TableHeader('TANGGAL')),
+                  DataColumn(label: _TableHeader('AKSI')),
+                ],
+                rows: _paginatedRatings.map((r) {
+                  final rating = _getStars(r);
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(
+                        _code(r),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                      )),
+                      DataCell(_tableCell(
+                          _getNestedValue(r, 'mitra', ['name']))),
+                      DataCell(_tableCell(
+                          _getNestedValue(r, 'pelanggan', ['name']))),
+                      DataCell(_tableCell(
+                          _getNestedValue(r, 'job', ['tittle', 'title']))),
+                      DataCell(Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildStars(rating),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$rating',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      )),
+                      DataCell(_tableCell(
+                          _formatTanggal(r['created_at']?.toString()))),
+                      DataCell(IconButton(
+                        tooltip: 'Lihat Detail',
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        color: const Color(0xFF2563EB),
+                        onPressed: () => _showRatingDetail(r),
+                      )),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
+  Widget _tableCell(String text) {
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+    );
+  }
+
   // ============================================================
-  // MOBILE
+  // MOBILE LIST
   // ============================================================
   Widget _buildMobileList() {
     return Column(
-      children: _ratings.map((r) {
+      children: _paginatedRatings.map((r) {
         final rating = _getStars(r);
         return Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.4),
-            ),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,8 +763,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                     child: Text(
                       _code(r),
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
                       ),
                     ),
                   ),
@@ -605,37 +773,42 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _mobileInfoRow(Icons.handshake_outlined, 'Mitra',
-                  _getNestedValue(r, 'mitra', ['name'])),
-              _mobileInfoRow(Icons.person_outline, 'Pelanggan',
-                  _getNestedValue(r, 'pelanggan', ['name'])),
-              _mobileInfoRow(Icons.work_outline, 'Layanan',
-                  _getNestedValue(r, 'job', ['tittle', 'title'])),
-              _mobileInfoRow(Icons.calendar_today_outlined, 'Tanggal',
-                  _formatTanggal(r['created_at']?.toString())),
+              _mobileInfoRow(
+                Icons.handshake_outlined,
+                'Mitra',
+                _getNestedValue(r, 'mitra', ['name']),
+              ),
+              _mobileInfoRow(
+                Icons.person_outline,
+                'Pelanggan',
+                _getNestedValue(r, 'pelanggan', ['name']),
+              ),
+              _mobileInfoRow(
+                Icons.work_outline,
+                'Layanan',
+                _getNestedValue(r, 'job', ['tittle', 'title']),
+              ),
+              _mobileInfoRow(
+                Icons.calendar_today_outlined,
+                'Tanggal',
+                _formatTanggal(r['created_at']?.toString()),
+              ),
               const SizedBox(height: 10),
               _buildStars(rating),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  r['comment']?.toString() ?? '-',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => _showRatingDetail(r),
-                  icon: const Icon(Icons.visibility_outlined),
-                  label: const Text('Lihat Detail Rating'),
+                  icon: const Icon(Icons.visibility_outlined, size: 16),
+                  label: const Text('Lihat Detail'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF2563EB),
+                    side: const BorderSide(color: Color(0xFF2563EB)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -647,23 +820,173 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
   Widget _mobileInfoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: Colors.grey.shade600),
+          Icon(icon, size: 16, color: const Color(0xFF64748B)),
           const SizedBox(width: 10),
           SizedBox(
-            width: 85,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade700)),
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+              ),
+            ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION — FULL WIDTH (Edge to Edge)
+  // ============================================================
+  Widget _buildPaginationFullWidth() {
+    final total = _ratings.length;
+    final totalPages = _totalPages;
+    final startItem = (_currentPage - 1) * _itemsPerPage + 1;
+    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE2E8F0)),
+          bottom: BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              'Menampilkan $startItem–$endItem dari $total ulasan',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _itemsPerPage,
+                    isDense: true,
+                    borderRadius: BorderRadius.circular(8),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF334155),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    items: _itemsPerPageOptions
+                        .map((n) => DropdownMenuItem<int>(
+                              value: n,
+                              child: Text('$n / hal'),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _itemsPerPage = v;
+                        _currentPage = 1;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _paginationIconButton(
+                icon: Icons.chevron_left,
+                onTap: _currentPage > 1
+                    ? () => setState(() => _currentPage--)
+                    : null,
+              ),
+              const SizedBox(width: 6),
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Hal $_currentPage / $totalPages',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              _paginationIconButton(
+                icon: Icons.chevron_right,
+                onTap: _currentPage < totalPages
+                    ? () => setState(() => _currentPage++)
+                    : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paginationIconButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? const Color(0xFFF1F5F9)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null
+              ? const Color(0xFFCBD5E1)
+              : const Color(0xFF334155),
+        ),
       ),
     );
   }
@@ -678,45 +1001,55 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           title: const Row(
             children: [
-              Icon(Icons.rate_review_outlined),
+              Icon(Icons.rate_review_outlined, color: Color(0xFF2563EB)),
               SizedBox(width: 10),
-              Text('Detail Rating'),
+              Text('Detail Rating',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),
           content: SizedBox(
-            width: 480,
+            width: 460,
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _detailRow('ID Rating', _code(r)),
-                  _detailRow('Nama Mitra', _getNestedValue(r, 'mitra', ['name'])),
-                  _detailRow('Nama Pelanggan', _getNestedValue(r, 'pelanggan', ['name'])),
-                  _detailRow('Layanan', _getNestedValue(r, 'job', ['tittle', 'title'])),
-                  _detailRow('Tanggal', _formatTanggal(r['created_at']?.toString())),
+                  _detailRow(
+                      'Nama Mitra', _getNestedValue(r, 'mitra', ['name'])),
+                  _detailRow('Nama Pelanggan',
+                      _getNestedValue(r, 'pelanggan', ['name'])),
+                  _detailRow('Layanan',
+                      _getNestedValue(r, 'job', ['tittle', 'title'])),
+                  _detailRow(
+                      'Tanggal', _formatTanggal(r['created_at']?.toString())),
                   const SizedBox(height: 12),
                   const Text('Rating',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      _buildStars(rating, size: 25),
+                      _buildStars(rating, size: 22),
                       const SizedBox(width: 10),
-                      Text('$rating/5',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        '$rating/5',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   const Text('Komentar',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 7),
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(r['comment']?.toString() ?? '-'),
@@ -735,11 +1068,14 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 Navigator.pop(dialogContext);
                 _confirmHideRating(r);
               },
-              icon: const Icon(Icons.visibility_off_outlined),
+              icon: const Icon(Icons.visibility_off_outlined, size: 16),
               label: const Text('Sembunyikan'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
+                foregroundColor: const Color(0xFFF59E0B),
+                side: const BorderSide(color: Color(0xFFF59E0B)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
+                ),
               ),
             ),
             ElevatedButton.icon(
@@ -747,11 +1083,14 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 Navigator.pop(dialogContext);
                 _confirmDeleteRating(r);
               },
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_outline, size: 16),
               label: const Text('Hapus'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
+                ),
               ),
             ),
           ],
@@ -767,12 +1106,24 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 125,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+              ),
+            ),
           ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(fontWeight: FontWeight.w500)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
           ),
         ],
       ),
@@ -786,14 +1137,18 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Sembunyikan Rating'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text('Sembunyikan Rating',
+              style: TextStyle(fontWeight: FontWeight.w700)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Rating akan disembunyikan dari publik. Data tetap tersimpan.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -801,6 +1156,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   hintText: 'Alasan (opsional)',
+                  hintStyle: const TextStyle(fontSize: 13),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -819,7 +1175,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 _hideRating(r['id'], reasonController.text.trim());
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: const Color(0xFFF59E0B),
                 foregroundColor: Colors.white,
               ),
               child: const Text('Sembunyikan'),
@@ -835,7 +1191,11 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Hapus Rating'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text('Hapus Rating',
+              style: TextStyle(fontWeight: FontWeight.w700)),
           content: const Text(
             'Apakah Anda yakin ingin menghapus rating ini? '
             'Tindakan ini tidak dapat dibatalkan.',
@@ -851,7 +1211,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 _deleteRating(r['id']);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white,
               ),
               child: const Text('Hapus'),
@@ -868,17 +1228,30 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(35),
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: const Column(
         children: [
-          Icon(Icons.rate_review_outlined, size: 55, color: Colors.grey),
+          Icon(Icons.rate_review_outlined,
+              size: 52, color: Color(0xFFCBD5E1)),
           SizedBox(height: 12),
-          Text('Tidak ada rating yang ditemukan.',
-              style: TextStyle(color: Colors.grey)),
+          Text(
+            'Tidak ada rating',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          SizedBox(height: 5),
+          Text(
+            'Belum ada rating yang sesuai dengan filter.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
         ],
       ),
     );
@@ -889,18 +1262,19 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(35),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.red.withOpacity(0.2)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECACA)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const Icon(Icons.error_outline,
+              size: 48, color: Color(0xFFDC2626)),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: const TextStyle(color: Color(0xFFDC2626)),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -908,11 +1282,33 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: const Color(0xFFF59E0B),
               foregroundColor: Colors.white,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// HELPER WIDGET — Header tabel
+// ============================================================
+class _TableHeader extends StatelessWidget {
+  const _TableHeader(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
+        color: Color(0xFF64748B),
       ),
     );
   }
