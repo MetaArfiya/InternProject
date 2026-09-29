@@ -19,6 +19,8 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  static const Color _accent = Color(0xFFF97316);
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +28,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   }
 
   // ============================================================
-  // FETCH DATA
+  // FETCH
   // ============================================================
 
   Future<void> _fetchMyOffers() async {
@@ -40,21 +42,14 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     try {
       final response = await ApiService.get('/mitra/my-offers');
 
-      debugPrint('🔎 MY OFFERS STATUS CODE: ${response.statusCode}');
-      debugPrint('🔎 MY OFFERS BODY: ${response.body}');
-
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
 
         List<dynamic> loadedOffersJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          final target =
-              decodedData['data'] ?? decodedData['offers'] ?? [];
-
-          if (target is List) {
-            loadedOffersJson = target;
-          }
+          final target = decodedData['data'] ?? decodedData['offers'] ?? [];
+          if (target is List) loadedOffersJson = target;
         } else if (decodedData is List) {
           loadedOffersJson = decodedData;
         }
@@ -64,9 +59,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         for (final item in loadedOffersJson) {
           try {
             if (item is Map<String, dynamic>) {
-              loadedOffers.add(
-                ActiveOfferModel.fromJson(item),
-              );
+              loadedOffers.add(ActiveOfferModel.fromJson(item));
             }
           } catch (e) {
             debugPrint('⚠️ Gagal parsing offer: $e');
@@ -81,7 +74,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         });
       } else {
         if (!mounted) return;
-
         setState(() {
           _errorMessage =
               'Gagal memuat penawaran.\nStatus: ${response.statusCode}';
@@ -89,20 +81,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ ERROR FETCH OFFERS: $e');
-
       if (!mounted) return;
-
       setState(() {
         _errorMessage = 'Terjadi kesalahan koneksi.\n$e';
         _isLoading = false;
       });
     }
   }
-
-  // ============================================================
-  // REFRESH
-  // ============================================================
 
   Future<void> _refreshOffers() async {
     await _fetchMyOffers();
@@ -116,21 +101,12 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double width = constraints.maxWidth;
+        final width = constraints.maxWidth;
+        final isMobile = width < 700;
+        final isTablet = width >= 700 && width < 1100;
 
-        final bool isMobile = width < 600;
-        final bool isTablet = width >= 600 && width < 1000;
-
-        final double horizontalPadding = isMobile
-            ? 16
-            : (isTablet ? 24 : 32);
-
-        final double topPadding = isMobile
-            ? 16
-            : (isTablet ? 24 : 30);
-
-        final double availableWidth =
-            constraints.maxWidth - (horizontalPadding * 2);
+        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+        final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
           width: double.infinity,
@@ -138,59 +114,29 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
           color: Theme.of(context).scaffoldBackgroundColor,
           child: RefreshIndicator(
             onRefresh: _refreshOffers,
-            child: ListView(
+            color: _accent,
+            child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                topPadding,
-                horizontalPadding,
-                32,
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
-              children: [
-                // ==================================================
-                // TITLE
-                // ==================================================
-                Text(
-                  'Penawaran Aktif Saya',
-                  style: TextStyle(
-                    fontSize: isMobile ? 22 : 30,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1300),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isMobile),
+                      SizedBox(height: isMobile ? 18 : 24),
+                      _buildContent(
+                        isMobile: isMobile,
+                        isTablet: isTablet,
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 6),
-
-                // ==================================================
-                // DESCRIPTION
-                // ==================================================
-                Text(
-                  'Seluruh penawaran yang sedang menunggu respon atau telah diproses.',
-                  style: TextStyle(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withOpacity(0.6),
-                    fontSize: isMobile ? 12 : 15,
-                    height: 1.4,
-                  ),
-                ),
-
-                SizedBox(
-                  height: isMobile ? 18 : 24,
-                ),
-
-                // ==================================================
-                // CONTENT
-                // ==================================================
-                _buildContent(
-                  context,
-                  isMobile: isMobile,
-                  isTablet: isTablet,
-                  availableWidth: availableWidth,
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -199,516 +145,295 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   }
 
   // ============================================================
-  // CONTENT
+  // HEADER
   // ============================================================
 
-  Widget _buildContent(
-    BuildContext context, {
-    required bool isMobile,
-    required bool isTablet,
-    required double availableWidth,
-  }) {
-    // ==========================================================
-    // LOADING
-    // ==========================================================
-
-    if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.only(
-          top: 70,
-          bottom: 70,
-        ),
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    // ==========================================================
-    // ERROR
-    // ==========================================================
-
-    if (_errorMessage.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: 70,
-        ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.cloud_off_outlined,
-              size: isMobile ? 50 : 60,
-              color: Colors.grey,
-            ),
-
-            const SizedBox(height: 14),
-
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: isMobile ? 12 : 14,
-                height: 1.4,
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            ElevatedButton.icon(
-              onPressed: _fetchMyOffers,
-              icon: const Icon(
-                Icons.refresh,
-                size: 17,
-              ),
-              label: Text(
-                'Coba Lagi',
-                style: TextStyle(
-                  fontSize: isMobile ? 12 : 14,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ==========================================================
-    // EMPTY
-    // ==========================================================
-
-    if (_offers.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(
-          top: 60,
-          bottom: 60,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.assignment_outlined,
-              size: isMobile ? 52 : 60,
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withOpacity(0.3),
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              'Belum ada penawaran aktif.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: isMobile ? 14 : 16,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ==========================================================
-    // MOBILE
-    // ==========================================================
-
-    if (isMobile) {
-      return _buildMobileOffers(context);
-    }
-
-    // ==========================================================
-    // TABLET + DESKTOP
-    // ==========================================================
-
-    return _buildDesktopTable(
-      context,
-      isTablet: isTablet,
-      availableWidth: availableWidth,
-    );
-  }
-
-  // ============================================================
-  // MOBILE OFFER LIST
-  // ============================================================
-
-  Widget _buildMobileOffers(BuildContext context) {
+  Widget _buildHeader(bool isMobile) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ..._offers.asMap().entries.map(
-          (entry) {
-            final int index = entry.key;
-            final ActiveOfferModel offer = entry.value;
-
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index == _offers.length - 1
-                    ? 0
-                    : 12,
-              ),
-              child: _buildMobileOfferCard(
-                context,
-                offer,
-                index + 1,
-              ),
-            );
-          },
+        Text(
+          'Penawaran Aktif Saya',
+          style: TextStyle(
+            fontSize: isMobile ? 22 : 26,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0F172A),
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Seluruh penawaran yang sedang menunggu respon atau telah diproses.',
+          style: TextStyle(
+            fontSize: isMobile ? 12.5 : 13,
+            color: const Color(0xFF64748B),
+            height: 1.4,
+          ),
         ),
       ],
     );
   }
 
   // ============================================================
-  // MOBILE OFFER CARD
+  // CONTENT
   // ============================================================
 
-  Widget _buildMobileOfferCard(
-    BuildContext context,
-    ActiveOfferModel offer,
-    int number,
-  ) {
-    final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
+  Widget _buildContent({
+    required bool isMobile,
+    required bool isTablet,
+  }) {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: CircularProgressIndicator(color: _accent),
+        ),
+      );
+    }
 
-    final Color cardColor =
-        Theme.of(context).cardColor;
+    if (_errorMessage.isNotEmpty) return _buildErrorState();
+    if (_offers.isEmpty) return _buildEmptyState();
 
-    final Color borderColor = isDark
-        ? const Color(0xff374151)
-        : const Color(0xffE5E7EB);
+    if (isMobile) return _buildMobileList();
+    return _buildDesktopTable(isTablet: isTablet);
+  }
 
-    final Color mutedColor =
-        Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.color
-                ?.withOpacity(0.55) ??
-            Colors.grey;
+  // ============================================================
+  // MOBILE — RECEIPT STYLE
+  // ============================================================
 
-    // ==========================================================
-    // Ambil children dari row desktop yang sudah ada.
-    //
-    // Dengan cara ini kita tidak perlu mengambil ulang field
-    // dari ActiveOfferModel dan tidak mengubah active_offer_card.dart.
-    // ==========================================================
+  Widget _buildMobileList() {
+    return Column(
+      children: _offers.asMap().entries.map((entry) {
+        final index = entry.key;
+        final offer = entry.value;
 
-    final TableRow existingRow =
-        buildActiveOfferRow(
-      context,
-      offer,
-      number,
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: index == _offers.length - 1 ? 0 : 12,
+          ),
+          child: _buildMobileOfferCard(offer, index + 1),
+        );
+      }).toList(),
     );
+  }
 
-    final List<Widget> cells =
-        existingRow.children;
+  Widget _buildMobileOfferCard(ActiveOfferModel offer, int number) {
+    final existingRow = buildActiveOfferRow(context, offer, number);
+    final cells = existingRow.children;
 
-    final List<String> labels = [
-      'NO',
-      'NAMA PEKERJAAN',
-      'HARGA',
-      'PERINGKAT',
-      'STATUS',
-      'BUKTI',
-      'ACC PELANGGAN',
-      'AKSI',
+    const labels = [
+      '', // 0: skip (dipakai header)
+      'Pekerjaan',
+      'Harga',
+      'Peringkat',
+      'Status',
+      'Bukti',
+      'ACC Pelanggan',
+      'Aksi',
     ];
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            // ==================================================
-            // CARD HEADER
-            // ==================================================
-
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ==========================================
+          // HEADER
+          // ==========================================
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Row(
               children: [
                 Container(
-                  width: 30,
-                  height: 30,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(8),
-                    color: isDark
-                        ? const Color(0xff1F2937)
-                        : const Color(0xffFFF7ED),
+                    color: _accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Center(
-                    child: Text(
-                      '#$number',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xffEA580C),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 10),
-
-                Expanded(
                   child: Text(
-                    'Penawaran Aktif',
-                    style: TextStyle(
-                      fontSize: 14,
+                    'Penawaran #$number',
+                    style: const TextStyle(
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.color,
+                      color: _accent,
                     ),
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 12),
-
-            Divider(
-              height: 1,
-              color: borderColor,
-            ),
-
-            const SizedBox(height: 4),
-
-            // ==================================================
-            // DETAIL
-            // ==================================================
-
-            ...List.generate(
-              cells.length,
-              (index) {
-                final Widget cell = cells[index];
-
-                return _buildMobileDetailRow(
-                  context,
-                  label: index < labels.length
-                      ? labels[index]
-                      : '',
-                  value: cell,
-                  mutedColor: mutedColor,
-                  isLast: index == cells.length - 1,
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // MOBILE DETAIL ROW
-  // ============================================================
-
-  Widget _buildMobileDetailRow(
-    BuildContext context, {
-    required String label,
-    required Widget value,
-    required Color mutedColor,
-    required bool isLast,
-  }) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: isLast ? 8 : 7,
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: mutedColor,
-              letterSpacing: 0.2,
-            ),
           ),
 
-          const SizedBox(height: 3),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
 
-          // ----------------------------------------------------
-          // Isi cell yang sudah dibuat oleh active_offer_card.dart
-          // ----------------------------------------------------
+          // ==========================================
+          // BODY
+          // ==========================================
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              children: List.generate(
+                cells.length,
+                (index) {
+                  if (index == 0) return const SizedBox.shrink();
 
-          SizedBox(
-            width: double.infinity,
-            child: value,
-          ),
-
-          if (!isLast) ...[
-            const SizedBox(height: 4),
-
-            Divider(
-              height: 1,
-              color: Theme.of(context)
-                  .dividerColor
-                  .withOpacity(0.35),
+                  return _buildReceiptRow(
+                    label: labels[index],
+                    value: cells[index],
+                    isLast: index == cells.length - 1,
+                  );
+                },
+              ),
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
   // ============================================================
-  // DESKTOP / TABLET TABLE
+  // RECEIPT ROW — label jelas, value rapat ke kiri
   // ============================================================
 
-  Widget _buildDesktopTable(
-    BuildContext context, {
-    required bool isTablet,
-    required double availableWidth,
+  Widget _buildReceiptRow({
+    required String label,
+    required Widget value,
+    required bool isLast,
   }) {
-    final bool isDark =
-        Theme.of(context).brightness ==
-            Brightness.dark;
-
-    final Color borderColor = isDark
-        ? const Color(0xff374151)
-        : const Color(0xffF3F4F6);
-
-    final Color outerBorderColor = isDark
-        ? const Color(0xff374151)
-        : const Color(0xffE5E7EB);
-
-    // ----------------------------------------------------------
-    // Untuk tablet tetap gunakan tabel.
-    //
-    // Lebar minimum dibuat agar semua kolom tidak terlalu sempit.
-    // Desktop menggunakan availableWidth.
-    // ----------------------------------------------------------
-
-    final double tableWidth = isTablet
-        ? 1180
-        : availableWidth;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: outerBorderColor,
-          width: 1,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: tableWidth,
-            child: Table(
-              defaultVerticalAlignment:
-                  TableCellVerticalAlignment.middle,
-
-              // ==================================================
-              // COLUMN WIDTH
-              // ==================================================
-
-              columnWidths: isTablet
-                  ? const {
-                      0: FixedColumnWidth(60),
-                      1: FixedColumnWidth(210),
-                      2: FixedColumnWidth(135),
-                      3: FixedColumnWidth(130),
-                      4: FixedColumnWidth(160),
-                      5: FixedColumnWidth(160),
-                      6: FixedColumnWidth(170),
-                      7: FixedColumnWidth(155),
-                    }
-                  : const {
-                      0: FlexColumnWidth(0.55),
-                      1: FlexColumnWidth(1.80),
-                      2: FlexColumnWidth(1.15),
-                      3: FlexColumnWidth(1.15),
-                      4: FlexColumnWidth(1.50),
-                      5: FlexColumnWidth(1.40),
-                      6: FlexColumnWidth(1.40),
-                      7: FlexColumnWidth(1.55),
-                    },
-
-              // ==================================================
-              // BORDER
-              // ==================================================
-
-              border: TableBorder(
-                bottom: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
-                horizontalInside: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // =============================================
+          // LABEL — lebih tua, lebih tebal
+          // =============================================
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: Color(0xFF334155), // slate-700
+                fontWeight: FontWeight.w600,
+                height: 1.3,
               ),
-
-              // ==================================================
-              // ROWS
-              // ==================================================
-
-              children: [
-                _buildTableHeader(),
-
-                ..._offers.asMap().entries.map(
-                  (entry) {
-                    final int index = entry.key;
-                    final ActiveOfferModel offer =
-                        entry.value;
-
-                    return buildActiveOfferRow(
-                      context,
-                      offer,
-                      index + 1,
-                    );
-                  },
-                ),
-              ],
             ),
           ),
-        ),
+
+          const SizedBox(width: 12),
+
+          // =============================================
+          // VALUE — rata KIRI, dekat label
+          // =============================================
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: value,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ============================================================
-  // TABLE HEADER
+  // WEB — TABEL
   // ============================================================
 
-  TableRow _buildTableHeader() {
-    final bool isDark =
-        Theme.of(context).brightness ==
-            Brightness.dark;
+  Widget _buildDesktopTable({required bool isTablet}) {
+    if (isTablet) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 1200,
+              child: _buildTable(isTablet: true),
+            ),
+          ),
+        ),
+      );
+    }
 
-    return TableRow(
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xff111827)
-            : Colors.white,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: constraints.maxWidth,
+              child: _buildTable(isTablet: false),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTable({required bool isTablet}) {
+    return Table(
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      columnWidths: isTablet
+          ? const {
+              0: FixedColumnWidth(60),
+              1: FixedColumnWidth(220),
+              2: FixedColumnWidth(140),
+              3: FixedColumnWidth(130),
+              4: FixedColumnWidth(170),
+              5: FixedColumnWidth(160),
+              6: FixedColumnWidth(170),
+              7: FixedColumnWidth(160),
+            }
+          : const {
+              0: FlexColumnWidth(0.55),
+              1: FlexColumnWidth(1.80),
+              2: FlexColumnWidth(1.15),
+              3: FlexColumnWidth(1.15),
+              4: FlexColumnWidth(1.50),
+              5: FlexColumnWidth(1.40),
+              6: FlexColumnWidth(1.40),
+              7: FlexColumnWidth(1.55),
+            },
+      border: const TableBorder(
+        bottom: BorderSide(color: Color(0xFFF3F4F6)),
+        horizontalInside: BorderSide(color: Color(0xFFF3F4F6)),
       ),
+      children: [
+        _buildTableHeader(),
+        ..._offers.asMap().entries.map((entry) {
+          return buildActiveOfferRow(
+            context,
+            entry.value,
+            entry.key + 1,
+          );
+        }),
+      ],
+    );
+  }
+
+  TableRow _buildTableHeader() {
+    return TableRow(
+      decoration: const BoxDecoration(color: Colors.white),
       children: [
         _headerCell('NO'),
         _headerCell('NAMA PEKERJAAN'),
@@ -722,27 +447,99 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     );
   }
 
-  // ============================================================
-  // HEADER CELL
-  // ============================================================
-
   Widget _headerCell(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       child: Text(
         text,
-        style: TextStyle(
-          color: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.color ??
-              Colors.black87,
+        style: const TextStyle(
+          color: Color(0xFF374151),
           fontSize: 12,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
         ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR & EMPTY
+  // ============================================================
+
+  Widget _buildErrorState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 48,
+            color: Color(0xFFDC2626),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _errorMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFDC2626),
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _fetchMyOffers,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _accent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.assignment_outlined,
+              size: 34,
+              color: _accent.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Belum ada penawaran aktif.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }

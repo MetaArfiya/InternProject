@@ -392,6 +392,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/jobs', [JobController::class, 'store']);
         Route::get('/pelanggan/my-jobs', [JobController::class, 'myJobs']);
 
+        Route::post('/jobs/{id}/cancel-customer', [JobController::class, 'cancelJobByPelanggan']);
+
         // 🆕 DAFTAR PEKERJAAN UNTUK DROPDOWN PENGADUAN
         Route::get('/pelanggan/my-jobs/complaint-eligible', [JobController::class, 'myJobsForComplaint']);
 

@@ -48,7 +48,34 @@ class _AdminLayoutState extends State<AdminLayout> {
 
     activeMenu = widget.activeMenu;
 
+    _restoreActiveMenu();
     _loadAdminProfile();
+  }
+
+  // =========================================================
+  // ✅ RESTORE ACTIVE MENU
+  // =========================================================
+
+  Future<void> _restoreActiveMenu() async {
+    if (widget.activeMenu != 'verification') return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final savedMenu = prefs.getString('admin_active_menu');
+
+    if (savedMenu != null && savedMenu.isNotEmpty && mounted) {
+      setState(() {
+        activeMenu = savedMenu;
+      });
+    }
+  }
+
+  // =========================================================
+  // ✅ SAVE ACTIVE MENU
+  // =========================================================
+
+  Future<void> _saveActiveMenu(String menu) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('admin_active_menu', menu);
   }
 
   // =========================================================
@@ -59,12 +86,8 @@ class _AdminLayoutState extends State<AdminLayout> {
     final prefs = await SharedPreferences.getInstance();
 
     final savedName = prefs.getString('name') ?? 'Admin Operator';
-
-    final savedEmail =
-        prefs.getString('email') ?? 'admin@sayabantu.com';
-
+    final savedEmail = prefs.getString('email') ?? 'admin@sayabantu.com';
     final savedRole = prefs.getString('role') ?? 'Admin Harian';
-
     final savedToken = prefs.getString('token') ?? '';
 
     if (!mounted) return;
@@ -79,13 +102,8 @@ class _AdminLayoutState extends State<AdminLayout> {
     try {
       final response = await ApiService.get('/user');
 
-      debugPrint('===== ADMIN LAYOUT USER =====');
-      debugPrint('STATUS: ${response.statusCode}');
-      debugPrint('BODY: ${response.body}');
-
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
-
         dynamic userData;
 
         if (decodedData is Map<String, dynamic>) {
@@ -103,11 +121,9 @@ class _AdminLayoutState extends State<AdminLayout> {
             if (apiName != null && apiName.trim().isNotEmpty) {
               adminName = apiName.trim();
             }
-
             if (apiEmail != null && apiEmail.trim().isNotEmpty) {
               adminEmail = apiEmail.trim();
             }
-
             if (apiPhoto != null &&
                 apiPhoto.trim().isNotEmpty &&
                 apiPhoto != 'null') {
@@ -116,15 +132,7 @@ class _AdminLayoutState extends State<AdminLayout> {
               adminPhotoUrl = null;
             }
           });
-
-          debugPrint(
-            'ADMIN FULL PHOTO URL: ${_getFullPhotoUrl()}',
-          );
         }
-      } else {
-        debugPrint(
-          'GAGAL MEMUAT USER ADMIN: ${response.statusCode}',
-        );
       }
     } catch (e) {
       debugPrint('ERROR LOAD USER ADMIN: $e');
@@ -148,15 +156,10 @@ class _AdminLayoutState extends State<AdminLayout> {
       return path;
     }
 
-    if (path.startsWith('/')) {
-      path = path.substring(1);
-    }
+    if (path.startsWith('/')) path = path.substring(1);
 
     final filename = path.split('/').last;
-
-    if (filename.isEmpty) {
-      return null;
-    }
+    if (filename.isEmpty) return null;
 
     return 'http://127.0.0.1:8000/api/images/profile/$filename';
   }
@@ -167,17 +170,12 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   String _getInitials() {
     final text = adminName.trim();
-
-    if (text.isEmpty) {
-      return 'A';
-    }
+    if (text.isEmpty) return 'A';
 
     final words = text.split(RegExp(r'\s+'));
-
     if (words.length >= 2) {
       return '${words.first[0]}${words.last[0]}'.toUpperCase();
     }
-
     return words.first[0].toUpperCase();
   }
 
@@ -185,9 +183,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   // PROFILE IMAGE
   // =========================================================
 
-  Widget _buildAdminProfileImage({
-    double size = 40,
-  }) {
+  Widget _buildAdminProfileImage({double size = 40}) {
     final fullPhotoUrl = _getFullPhotoUrl();
 
     if (fullPhotoUrl == null) {
@@ -223,15 +219,8 @@ class _AdminLayoutState extends State<AdminLayout> {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          loadingBuilder: (
-            context,
-            child,
-            loadingProgress,
-          ) {
-            if (loadingProgress == null) {
-              return child;
-            }
-
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
             return Container(
               width: size,
               height: size,
@@ -247,15 +236,7 @@ class _AdminLayoutState extends State<AdminLayout> {
               ),
             );
           },
-          errorBuilder: (
-            context,
-            error,
-            stackTrace,
-          ) {
-            debugPrint('GAGAL MENAMPILKAN FOTO ADMIN');
-            debugPrint('URL: $fullPhotoUrl');
-            debugPrint('ERROR: $error');
-
+          errorBuilder: (context, error, stackTrace) {
             return Container(
               width: size,
               height: size,
@@ -284,22 +265,16 @@ class _AdminLayoutState extends State<AdminLayout> {
     switch (activeMenu) {
       case 'verification':
         return 0;
-
       case 'complaint':
         return 1;
-
       case 'report':
         return 2;
-
       case 'rating':
         return 3;
-
       case 'payment':
         return 4;
-
       case 'profile':
         return 5;
-
       default:
         return 0;
     }
@@ -312,24 +287,18 @@ class _AdminLayoutState extends State<AdminLayout> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     final isMobile = screenWidth < 700;
-
     final isTablet = screenWidth >= 700 && screenWidth < 1100;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
-
-      // =====================================================
-      // MOBILE APP BAR
-      // =====================================================
 
       appBar: isMobile
           ? AppBar(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.white,
               elevation: 0,
-              automaticallyImplyLeading: false, // Hapus tombol hamburger
+              automaticallyImplyLeading: false,
               title: Text(
                 adminName,
                 style: const TextStyle(
@@ -340,10 +309,6 @@ class _AdminLayoutState extends State<AdminLayout> {
               ),
             )
           : null,
-
-      // =====================================================
-      // BODY
-      // =====================================================
 
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -358,26 +323,13 @@ class _AdminLayoutState extends State<AdminLayout> {
             child: IndexedStack(
               index: _getMenuIndex(),
               children: [
-                // INDEX 0
                 const AdminVerificationScreen(),
-
-                // INDEX 1
                 const AdminComplaintScreen(),
-
-                // INDEX 2
                 AdminDailyReportScreen(
-                  key: ValueKey(
-                    'report_$_reportRefreshKey',
-                  ),
+                  key: ValueKey('report_$_reportRefreshKey'),
                 ),
-
-                // INDEX 3
                 const AdminRatingScreen(),
-
-                // INDEX 4
                 const AdminPaymentScreen(),
-
-                // INDEX 5
                 AdminProfileScreen(
                   onProfileUpdated: _loadAdminProfile,
                   onLogout: () => _showLogoutDialog(context),
@@ -387,10 +339,6 @@ class _AdminLayoutState extends State<AdminLayout> {
           ),
         ],
       ),
-
-      // =====================================================
-      // BOTTOM NAVIGATION BAR (MOBILE)
-      // =====================================================
 
       bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
     );
@@ -475,18 +423,12 @@ class _AdminLayoutState extends State<AdminLayout> {
         children: [
           const SizedBox(height: 20),
 
-          // =================================================
-          // PROFILE ADMIN
-          // =================================================
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 _buildAdminProfileImage(size: 40),
-
                 const SizedBox(width: 10),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -500,9 +442,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                           color: Color(0xFF111827),
                         ),
                       ),
-
                       const SizedBox(height: 3),
-
                       Text(
                         'Level: $adminRole',
                         overflow: TextOverflow.ellipsis,
@@ -520,98 +460,54 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           const SizedBox(height: 25),
 
-          // =================================================
-          // VERIFIKASI MITRA
-          // =================================================
-
           _menuItem(
             context: context,
             icon: Icons.verified_outlined,
             title: 'Verifikasi Mitra',
             active: activeMenu == 'verification',
-            onTap: () {
-              _changePage(context, 'verification');
-            },
+            onTap: () => _changePage(context, 'verification'),
           ),
-
-          // =================================================
-          // PENGADUAN
-          // =================================================
-
           _menuItem(
             context: context,
             icon: Icons.report_problem_outlined,
             title: 'Pengaduan',
             active: activeMenu == 'complaint',
-            onTap: () {
-              _changePage(context, 'complaint');
-            },
+            onTap: () => _changePage(context, 'complaint'),
           ),
-
-          // =================================================
-          // LAPORAN HARIAN
-          // =================================================
-
           _menuItem(
             context: context,
             icon: Icons.bar_chart_outlined,
             title: 'Laporan Harian',
             active: activeMenu == 'report',
-            onTap: () {
-              _changePage(context, 'report');
-            },
+            onTap: () => _changePage(context, 'report'),
           ),
-
-          // =================================================
-          // KELOLA RATING MITRA
-          // =================================================
-
           _menuItem(
             context: context,
             icon: Icons.star_outline,
             title: 'Kelola Rating Mitra',
             active: activeMenu == 'rating',
-            onTap: () {
-              _changePage(context, 'rating');
-            },
+            onTap: () => _changePage(context, 'rating'),
           ),
-
-          // =================================================
-          // PEMBAYARAN
-          // =================================================
-
           _menuItem(
             context: context,
             icon: Icons.account_balance_wallet_outlined,
             title: 'Pembayaran',
             active: activeMenu == 'payment',
-            onTap: () {
-              _changePage(context, 'payment');
-            },
+            onTap: () => _changePage(context, 'payment'),
           ),
-
-          // =================================================
-          // PROFIL ADMIN
-          // =================================================
-
           _menuItem(
             context: context,
             icon: Icons.person_outline,
             title: 'Profil Admin',
             active: activeMenu == 'profile',
-            onTap: () {
-              _changePage(context, 'profile');
-            },
+            onTap: () => _changePage(context, 'profile'),
           ),
 
           const Spacer(),
 
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(
-              height: 1,
-              color: Color(0xFFE2E8F0),
-            ),
+            child: Divider(height: 1, color: Color(0xFFE2E8F0)),
           ),
 
           _logoutButton(context),
@@ -623,29 +519,20 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // CHANGE PAGE
+  // ✅ CHANGE PAGE — dengan save menu
   // =========================================================
 
-  void _changePage(
-    BuildContext context,
-    String menu,
-  ) {
+  void _changePage(BuildContext context, String menu) {
     setState(() {
       activeMenu = menu;
-
-      if (menu == 'report') {
-        _reportRefreshKey++;
-      }
+      if (menu == 'report') _reportRefreshKey++;
     });
 
-    // Hapus Navigator.pop() karena tidak ada Drawer lagi
-    // if (MediaQuery.of(context).size.width < 700) {
-    //   Navigator.of(context).pop();
-    // }
+    _saveActiveMenu(menu); // ✅ Simpan
   }
 
   // =========================================================
-  // MENU ITEM (SIDEBAR)
+  // MENU ITEM
   // =========================================================
 
   Widget _menuItem({
@@ -663,9 +550,7 @@ class _AdminLayoutState extends State<AdminLayout> {
         height: 46,
         padding: const EdgeInsets.symmetric(horizontal: 17),
         decoration: BoxDecoration(
-          color: active
-              ? const Color(0xFFF3E8FF)
-              : Colors.transparent,
+          color: active ? const Color(0xFFF3E8FF) : Colors.transparent,
           border: active
               ? const Border(
                   right: BorderSide(
@@ -684,25 +569,20 @@ class _AdminLayoutState extends State<AdminLayout> {
                   ? const Color(0xFF7C3AED)
                   : const Color(0xFF475569),
             ),
-
             const SizedBox(width: 11),
-
             Expanded(
               child: Text(
                 title,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: active
-                      ? FontWeight.w600
-                      : FontWeight.w400,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                   color: active
                       ? const Color(0xFF7C3AED)
                       : const Color(0xFF475569),
                 ),
               ),
             ),
-
             if (badge != null)
               Container(
                 width: 19,
@@ -733,9 +613,7 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   Widget _logoutButton(BuildContext context) {
     return InkWell(
-      onTap: () {
-        _showLogoutDialog(context);
-      },
+      onTap: () => _showLogoutDialog(context),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         width: double.infinity,
@@ -743,16 +621,14 @@ class _AdminLayoutState extends State<AdminLayout> {
         margin: const EdgeInsets.symmetric(horizontal: 10),
         padding: const EdgeInsets.symmetric(horizontal: 17),
         child: Row(
-          children: [
-            const Icon(
+          children: const [
+            Icon(
               Icons.logout_outlined,
               size: 19,
               color: Color(0xFFEF4444),
             ),
-
-            const SizedBox(width: 11),
-
-            const Expanded(
+            SizedBox(width: 11),
+            Expanded(
               child: Text(
                 'Keluar',
                 style: TextStyle(
@@ -783,46 +659,28 @@ class _AdminLayoutState extends State<AdminLayout> {
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons.logout_outlined,
-                color: Color(0xFFEF4444),
-              ),
-
+              Icon(Icons.logout_outlined, color: Color(0xFFEF4444)),
               SizedBox(width: 10),
-
               Text(
                 'Keluar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ],
           ),
           content: const Text(
             'Apakah kamu yakin ingin keluar dari akun admin?',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF64748B),
-            ),
+            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text(
                 'Batal',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                ),
+                style: TextStyle(color: Color(0xFF64748B)),
               ),
             ),
-
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white,
@@ -839,7 +697,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     ).then((shouldLogout) {
       if (shouldLogout == true) {
         if (!mounted) return;
-
         _logout(context);
       }
     });
@@ -851,20 +708,14 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-
     await prefs.clear();
 
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (
-          context,
-          animation,
-          secondaryAnimation,
-        ) {
-          return const LandingPage();
-        },
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const LandingPage(),
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),

@@ -21,6 +21,8 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   Map<String, dynamic>? _profileData;
   String _errorMessage = '';
 
+  static const Color _accent = Color(0xFFF97316);
+
   @override
   void initState() {
     super.initState();
@@ -182,7 +184,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
     );
   }
 
-  // Kumpulkan semua skill berfoto → untuk viewer
   List<_GalleryItem> _skillGallery() {
     final result = <_GalleryItem>[];
     for (final s in _skills()) {
@@ -206,7 +207,8 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
       String title = 'Sertifikat';
       String? url;
       if (c is Map) {
-        title = (c['title'] ?? c['name'] ?? c['nama'] ?? 'Sertifikat').toString();
+        title =
+            (c['title'] ?? c['name'] ?? c['nama'] ?? 'Sertifikat').toString();
         url = _normalizeUrl(c['url']?.toString()) ??
             _normalizeUrl(c['file']?.toString());
       } else if (c is String) {
@@ -226,7 +228,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F9),
       appBar: AppBar(
-        title: const Text("Profil Mitra"),
+        title: const Text(
+          "Profil Mitra",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -238,216 +243,242 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _accent))
           : _errorMessage.isNotEmpty
               ? _ErrorView(message: _errorMessage, onRetry: _fetchMitraProfile)
               : RefreshIndicator(
                   onRefresh: _fetchMitraProfile,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildHeaderCard(),
-                        const SizedBox(height: 12),
-                        _buildStatsRow(),
-                        const SizedBox(height: 12),
-                        _buildAboutCard(),
-                        const SizedBox(height: 12),
-                        _buildSkillsCard(),
-                        if (_certificates().isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _buildCertificatesCard(),
-                        ],
-                      ],
-                    ),
+                  color: _accent,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      final isMobile = width < 700;
+                      final isTablet =
+                          width >= 700 && width < 1100;
+
+                      final horizontalPadding =
+                          isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: horizontalPadding,
+                          vertical: isMobile ? 16 : 24,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 900),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildHeaderCard(isMobile),
+                                SizedBox(height: isMobile ? 12 : 16),
+                                _buildStatsRow(isMobile),
+                                SizedBox(height: isMobile ? 12 : 16),
+                                _buildAboutCard(),
+                                SizedBox(height: isMobile ? 12 : 16),
+                                _buildSkillsCard(isMobile),
+                                if (_certificates().isNotEmpty) ...[
+                                  SizedBox(height: isMobile ? 12 : 16),
+                                  _buildCertificatesCard(isMobile),
+                                ],
+                                const SizedBox(height: 24),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-      bottomNavigationBar: _isLoading || _errorMessage.isNotEmpty
-          ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xffF97316),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: widget.onFinish,
-                    child: const Text(
-                      "Selesai",
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-            ),
     );
   }
 
   // ================= HEADER =================
 
-  Widget _buildHeaderCard() {
+  Widget _buildHeaderCard(bool isMobile) {
     final photo = _profilePhotoUrl();
     final verified = _isVerified();
     final rating = _ratingValue();
     final reviews = _reviewsCount();
 
-    return _Card(
-      child: Column(
-        children: [
-          // Avatar dengan border gradient + tappable
-          GestureDetector(
-            onTap: photo != null
-                ? () => _openImageViewer(
-                      items: [_GalleryItem(url: photo, title: _name())],
-                      initialIndex: 0,
-                    )
-                : null,
-            child: Hero(
-              tag: 'profile_avatar',
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xffF97316), Color(0xffFDBA74)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xffF97316).withOpacity(0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 46,
-                  backgroundColor: const Color(0xffFFE7D1),
-                  backgroundImage: photo != null ? NetworkImage(photo) : null,
-                  onBackgroundImageError: photo != null ? (_, __) {} : null,
-                  child: photo == null
-                      ? const Icon(Icons.person,
-                          size: 56, color: Color(0xffF97316))
-                      : null,
-                ),
+    final avatar = GestureDetector(
+      onTap: photo != null
+          ? () => _openImageViewer(
+                items: [_GalleryItem(url: photo, title: _name())],
+                initialIndex: 0,
+              )
+          : null,
+      child: Hero(
+        tag: 'profile_avatar',
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [_accent, Color(0xffFDBA74)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _accent.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            _name(),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          child: CircleAvatar(
+            radius: isMobile ? 42 : 52,
+            backgroundColor: const Color(0xffFFE7D1),
+            backgroundImage: photo != null ? NetworkImage(photo) : null,
+            onBackgroundImageError: photo != null ? (_, __) {} : null,
+            child: photo == null
+                ? Icon(
+                    Icons.person,
+                    size: isMobile ? 50 : 60,
+                    color: _accent,
+                  )
+                : null,
           ),
-          const SizedBox(height: 8),
+        ),
+      ),
+    );
 
-          // Rating chip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.star, color: Colors.amber, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  rating.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  width: 1,
-                  height: 12,
-                  color: Colors.black.withOpacity(0.15),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '$reviews Review',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                ),
-              ],
-            ),
+    final nameAndRating = Column(
+      crossAxisAlignment:
+          isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Text(
+          _name(),
+          textAlign: isMobile ? TextAlign.center : TextAlign.start,
+          style: TextStyle(
+            fontSize: isMobile ? 20 : 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+            height: 1.2,
           ),
-
-          if (verified) ...[
-            const SizedBox(height: 10),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          children: [
+            // Rating chip
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.green.shade200),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.verified, color: Colors.green, size: 15),
-                  SizedBox(width: 6),
+                children: [
+                  const Icon(Icons.star, color: Colors.amber, size: 15),
+                  const SizedBox(width: 4),
                   Text(
-                    "Mitra Terverifikasi",
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                    rating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12.5,
+                      color: Colors.black87,
                     ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 1,
+                    height: 12,
+                    color: Colors.black.withOpacity(0.15),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$reviews Review',
+                    style: TextStyle(fontSize: 11.5, color: Colors.grey[700]),
                   ),
                 ],
               ),
             ),
+            // Verified chip
+            if (verified)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified, color: Colors.green, size: 14),
+                    SizedBox(width: 5),
+                    Text(
+                      "Terverifikasi",
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
-        ],
-      ),
+        ),
+      ],
+    );
+
+    return _Card(
+      child: isMobile
+          // MOBILE — Column: avatar di atas, info di bawah
+          ? Column(
+              children: [
+                avatar,
+                const SizedBox(height: 14),
+                nameAndRating,
+              ],
+            )
+          // WEB — Row: avatar kiri, info kanan
+          : Row(
+              children: [
+                avatar,
+                const SizedBox(width: 24),
+                Expanded(child: nameAndRating),
+              ],
+            ),
     );
   }
 
   // ================= STATS =================
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(bool isMobile) {
+    final stats = [
+      _StatisticCard(
+        icon: Icons.check_circle_outline,
+        value: "${_get(['jobs_completed'], 0)}",
+        title: "Job Selesai",
+      ),
+      _StatisticCard(
+        icon: Icons.thumb_up_alt_outlined,
+        value: _get(['satisfaction', 'kepuasan'], '0%').toString(),
+        title: "Kepuasan",
+      ),
+      _StatisticCard(
+        icon: Icons.calendar_today_outlined,
+        value: "${_get(['joined_year'], '2024')}",
+        title: "Bergabung",
+      ),
+    ];
+
+    final gap = isMobile ? 8.0 : 12.0;
+
     return Row(
       children: [
-        Expanded(
-          child: _StatisticCard(
-            icon: Icons.check_circle_outline,
-            value: "${_get(['jobs_completed'], 0)}",
-            title: "Job Selesai",
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatisticCard(
-            icon: Icons.thumb_up_alt_outlined,
-            value: _get(['satisfaction', 'kepuasan'], '0%').toString(),
-            title: "Kepuasan",
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatisticCard(
-            icon: Icons.calendar_today_outlined,
-            value: "${_get(['joined_year'], '2024')}",
-            title: "Bergabung",
-          ),
-        ),
+        for (int i = 0; i < stats.length; i++) ...[
+          Expanded(child: stats[i]),
+          if (i != stats.length - 1) SizedBox(width: gap),
+        ],
       ],
     );
   }
@@ -465,7 +496,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             _get(['about', 'bio'], 'Belum ada deskripsi profil.').toString(),
             style: TextStyle(
               color: Colors.grey[700],
-              height: 1.5,
+              height: 1.55,
               fontSize: 13.5,
             ),
           ),
@@ -476,7 +507,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
 
   // ================= SKILLS =================
 
-  Widget _buildSkillsCard() {
+  Widget _buildSkillsCard(bool isMobile) {
     final skills = _skills();
 
     return _Card(
@@ -501,20 +532,19 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               style: TextStyle(color: Colors.grey[600], fontSize: 13),
             )
           else
-            _buildSkillsContent(skills),
+            _buildSkillsContent(skills, isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildSkillsContent(List<dynamic> skills) {
+  Widget _buildSkillsContent(List<dynamic> skills, bool isMobile) {
     final hasPhotos = skills.any((s) =>
         s is Map &&
         ((s['photo_url']?.toString().isNotEmpty ?? false) ||
             (s['photo']?.toString().isNotEmpty ?? false)));
 
     if (!hasPhotos) {
-      // Chip teks (kalau tidak ada foto sama sekali)
       return Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -531,7 +561,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             child: Text(
               label,
               style: const TextStyle(
-                color: Color(0xffF97316),
+                color: _accent,
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5,
               ),
@@ -541,18 +571,17 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
       );
     }
 
-    // Gallery items untuk viewer
     final gallery = _skillGallery();
+    final crossAxisCount = isMobile ? 2 : 3;
 
-    // Grid 2 kolom, aspect ratio 4:5 (kartu)
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.78, // lebih tinggi → foto lebih besar
+        childAspectRatio: 0.82,
       ),
       itemCount: skills.length,
       itemBuilder: (context, i) {
@@ -567,10 +596,8 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               _normalizeUrl(s['photo']?.toString());
         }
 
-        // Cari index di gallery (untuk viewer)
-        final galleryIndex = url == null
-            ? -1
-            : gallery.indexWhere((g) => g.url == url);
+        final galleryIndex =
+            url == null ? -1 : gallery.indexWhere((g) => g.url == url);
 
         return GestureDetector(
           onTap: url != null && galleryIndex >= 0
@@ -596,7 +623,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Foto skill
                 Expanded(
                   child: Hero(
                     tag: 'skill_$i',
@@ -606,7 +632,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                     ),
                   ),
                 ),
-                // Label nama
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -623,7 +648,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 12.5,
+                      fontSize: 12,
                       color: Colors.black87,
                       height: 1.25,
                     ),
@@ -639,9 +664,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
 
   // ================= CERTIFICATES =================
 
-  Widget _buildCertificatesCard() {
+  Widget _buildCertificatesCard(bool isMobile) {
     final certs = _certificates();
     final gallery = _certificateGallery();
+    final crossAxisCount = isMobile ? 2 : 3;
 
     return _Card(
       child: Column(
@@ -661,11 +687,11 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.82,
+              childAspectRatio: 0.85,
             ),
             itemCount: certs.length,
             itemBuilder: (context, i) {
@@ -674,20 +700,17 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               String? url;
 
               if (c is Map) {
-                title = (c['title'] ??
-                        c['name'] ??
-                        c['nama'] ??
-                        'Sertifikat')
-                    .toString();
+                title =
+                    (c['title'] ?? c['name'] ?? c['nama'] ?? 'Sertifikat')
+                        .toString();
                 url = _normalizeUrl(c['url']?.toString()) ??
                     _normalizeUrl(c['file']?.toString());
               } else if (c is String) {
                 url = _normalizeUrl(c);
               }
 
-              final galleryIndex = url == null
-                  ? -1
-                  : gallery.indexWhere((g) => g.url == url);
+              final galleryIndex =
+                  url == null ? -1 : gallery.indexWhere((g) => g.url == url);
 
               return GestureDetector(
                 onTap: url != null && galleryIndex >= 0
@@ -713,7 +736,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Thumbnail sertifikat
                       Expanded(
                         child: Stack(
                           fit: StackFit.expand,
@@ -725,7 +747,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                                 fallbackIcon: Icons.workspace_premium,
                               ),
                             ),
-                            // Badge "sertifikat" kecil
                             Positioned(
                               top: 6,
                               right: 6,
@@ -757,7 +778,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                           ],
                         ),
                       ),
-                      // Label
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 8),
@@ -799,7 +819,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            color: const Color(0xffF97316),
+            color: _accent,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -874,7 +894,6 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
         onTap: _toggleUi,
         child: Stack(
           children: [
-            // PageView foto
             PageView.builder(
               controller: _pageController,
               itemCount: widget.items.length,
@@ -923,7 +942,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
               },
             ),
 
-            // Top bar (back + counter)
+            // Top bar
             AnimatedOpacity(
               opacity: _uiVisible ? 1 : 0,
               duration: const Duration(milliseconds: 180),
@@ -978,7 +997,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
               ),
             ),
 
-            // Bottom bar (judul gambar)
+            // Bottom bar
             AnimatedOpacity(
               opacity: _uiVisible ? 1 : 0,
               duration: const Duration(milliseconds: 180),
@@ -1011,26 +1030,17 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (widget.items.length > 1) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            'Geser untuk melihat lainnya · Cubit untuk zoom',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
-                              fontSize: 11,
-                            ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.items.length > 1
+                              ? 'Geser untuk melihat lainnya · Cubit untuk zoom'
+                              : 'Cubit untuk zoom',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 11,
                           ),
-                        ] else ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            'Cubit untuk zoom',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
                   ),
@@ -1086,7 +1096,7 @@ class _StatisticCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -1107,7 +1117,7 @@ class _StatisticCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -1116,6 +1126,8 @@ class _StatisticCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 10.5, color: Colors.grey[600]),
           ),
         ],

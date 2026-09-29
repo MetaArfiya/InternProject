@@ -27,7 +27,18 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // NAVIGATION
   // =========================================================
 
+  /// Index halaman yang aktif:
+  /// 0 = Analytics
+  /// 1 = Kelola Admin
+  /// 2 = Mitra Aktif
+  /// 3 = Pengaturan Sistem
+  /// 4 = Profil
+  /// 5 = Log Aktivitas (hanya via AppBar di mobile)
   int _selectedIndex = 0;
+
+  static const Color _accent = Color(0xFFEF476F);
+  static const Color _sidebarBg = Color(0xFF0E172A);
+  static const Color _sidebarSelected = Color(0xFF1E2A40);
 
   // =========================================================
   // SUPER ADMIN DATA
@@ -63,7 +74,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Ambil nama dari SharedPreferences terlebih dahulu
       final savedName = prefs.getString('name');
       if (mounted && savedName != null && savedName.trim().isNotEmpty) {
         setState(() {
@@ -71,12 +81,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         });
       }
 
-      // Ambil data terbaru dari API
       final response = await ApiService.get('/user');
-
-      debugPrint('===== SUPER ADMIN USER =====');
-      debugPrint('STATUS: ${response.statusCode}');
-      debugPrint('BODY: ${response.body}');
 
       if (response.statusCode != 200) {
         debugPrint('GAGAL MEMUAT DATA SUPER ADMIN: ${response.statusCode}');
@@ -94,9 +99,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         final apiName = userData['name']?.toString();
         final apiPhoto = userData['photo_url']?.toString();
 
-        debugPrint('SUPER ADMIN NAME: $apiName');
-        debugPrint('SUPER ADMIN PHOTO: $apiPhoto');
-
         if (!mounted) return;
 
         setState(() {
@@ -104,7 +106,9 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             superAdminName = apiName.trim();
           }
 
-          if (apiPhoto != null && apiPhoto.trim().isNotEmpty && apiPhoto != 'null') {
+          if (apiPhoto != null &&
+              apiPhoto.trim().isNotEmpty &&
+              apiPhoto != 'null') {
             superAdminPhotoUrl = apiPhoto.trim();
           } else {
             superAdminPhotoUrl = null;
@@ -114,8 +118,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         if (apiName != null && apiName.trim().isNotEmpty) {
           await prefs.setString('name', apiName.trim());
         }
-
-        debugPrint('FULL PHOTO URL: ${_getFullPhotoUrl()}');
       }
     } catch (e) {
       debugPrint('ERROR LOAD SUPER ADMIN: $e');
@@ -167,7 +169,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // PREVIEW IMAGE DIALOG (BARU)
+  // PREVIEW IMAGE DIALOG
   // =========================================================
 
   void _showImageDialog(BuildContext context, ImageProvider imageProvider) {
@@ -184,10 +186,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 panEnabled: true,
                 minScale: 0.5,
                 maxScale: 4.0,
-                child: Image(
-                  image: imageProvider,
-                  fit: BoxFit.contain,
-                ),
+                child: Image(image: imageProvider, fit: BoxFit.contain),
               ),
               Positioned(
                 top: 8,
@@ -216,13 +215,12 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // SIDEBAR PROFILE IMAGE (DENGAN PREVIEW)
+  // PROFILE IMAGE
   // =========================================================
 
   Widget _buildSuperAdminProfileImage({double size = 42}) {
     final fullPhotoUrl = _getFullPhotoUrl();
 
-    // Tidak ada foto
     if (fullPhotoUrl == null) {
       return GestureDetector(
         onTap: _showEditProfileDialog,
@@ -230,7 +228,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           width: size,
           height: size,
           decoration: const BoxDecoration(
-            color: Color(0xFFEF476F),
+            color: _accent,
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
@@ -246,14 +244,13 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       );
     }
 
-    // Ada foto – klik untuk preview
     return GestureDetector(
       onTap: () => _showImageDialog(context, NetworkImage(fullPhotoUrl)),
       child: Container(
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: Color(0xFFEF476F),
+          color: _accent,
           shape: BoxShape.circle,
         ),
         child: ClipOval(
@@ -267,7 +264,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
               return Container(
                 width: size,
                 height: size,
-                color: const Color(0xFFEF476F),
+                color: _accent,
                 alignment: Alignment.center,
                 child: const SizedBox(
                   width: 16,
@@ -280,14 +277,10 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
               );
             },
             errorBuilder: (context, error, stackTrace) {
-              debugPrint('GAGAL MENAMPILKAN FOTO SUPER ADMIN');
-              debugPrint('URL: $fullPhotoUrl');
-              debugPrint('ERROR: $error');
-
               return Container(
                 width: size,
                 height: size,
-                color: const Color(0xFFEF476F),
+                color: _accent,
                 alignment: Alignment.center,
                 child: Text(
                   _getInitials(),
@@ -306,14 +299,14 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // DIALOG PROFILE IMAGE (DENGAN PREVIEW)
+  // DIALOG PROFILE IMAGE
   // =========================================================
 
   Widget _buildDialogProfileImage() {
-    // Jika user baru memilih foto
     if (selectedPhotoBytes != null) {
       return GestureDetector(
-        onTap: () => _showImageDialog(context, MemoryImage(selectedPhotoBytes!)),
+        onTap: () =>
+            _showImageDialog(context, MemoryImage(selectedPhotoBytes!)),
         child: ClipOval(
           child: Image.memory(
             selectedPhotoBytes!,
@@ -325,7 +318,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       );
     }
 
-    // Foto dari server
     final fullPhotoUrl = _getFullPhotoUrl();
     if (fullPhotoUrl != null) {
       return GestureDetector(
@@ -344,13 +336,8 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       );
     }
 
-    // Fallback
     return _buildDialogInitials();
   }
-
-  // =========================================================
-  // DIALOG INITIALS
-  // =========================================================
 
   Widget _buildDialogInitials() {
     return GestureDetector(
@@ -359,7 +346,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         width: 100,
         height: 100,
         decoration: const BoxDecoration(
-          color: Color(0xFFEF476F),
+          color: _accent,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
@@ -404,9 +391,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             selectedPhotoBytes = bytes;
             selectedPhotoName = file.name;
           });
-
-          debugPrint('FOTO DIPILIH: ${file.name}');
-          debugPrint('UKURAN FOTO: ${bytes.length} bytes');
         } catch (e) {
           debugPrint('ERROR MEMBACA FOTO: $e');
           if (!mounted) return;
@@ -445,7 +429,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         throw Exception('Token tidak ditemukan.');
       }
 
-      // MIME type
       String mimeType = 'image/jpeg';
       final lowerName = selectedPhotoName!.toLowerCase();
       if (lowerName.endsWith('.png')) {
@@ -457,7 +440,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       }
 
       final blob = html.Blob([selectedPhotoBytes!], mimeType);
-
       final formData = html.FormData();
       formData.appendBlob('photo_profile', blob, selectedPhotoName!);
 
@@ -468,17 +450,14 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       request.send(formData);
       await request.onLoad.first;
 
-      debugPrint('===== UPLOAD FOTO =====');
-      debugPrint('STATUS: ${request.status}');
-      debugPrint('RESPONSE: ${request.responseText}');
-
       if (request.status == 200) {
         final responseText = request.responseText ?? '{}';
         final responseData = jsonDecode(responseText);
 
         dynamic userData;
         if (responseData is Map<String, dynamic>) {
-          userData = responseData['user'] ?? responseData['data'] ?? responseData;
+          userData =
+              responseData['user'] ?? responseData['data'] ?? responseData;
         }
 
         String? newPhotoUrl;
@@ -486,22 +465,24 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           newPhotoUrl = userData['photo_url']?.toString();
         }
 
-        if (mounted && newPhotoUrl != null && newPhotoUrl.trim().isNotEmpty && newPhotoUrl != 'null') {
+        if (mounted &&
+            newPhotoUrl != null &&
+            newPhotoUrl.trim().isNotEmpty &&
+            newPhotoUrl != 'null') {
           setState(() {
             superAdminPhotoUrl = newPhotoUrl!.trim();
           });
         }
 
-        // Jika response tidak memberikan photo_url, reload dari API
-        if (newPhotoUrl == null || newPhotoUrl.trim().isEmpty || newPhotoUrl == 'null') {
+        if (newPhotoUrl == null ||
+            newPhotoUrl.trim().isEmpty ||
+            newPhotoUrl == 'null') {
           await _loadSuperAdminProfile();
         }
 
-        debugPrint('UPLOAD FOTO SUPER ADMIN BERHASIL');
         return true;
       }
 
-      // Error
       String message = 'Gagal mengupload foto.';
       try {
         final errorData = jsonDecode(request.responseText ?? '{}');
@@ -539,7 +520,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   Future<void> _showEditProfileDialog() async {
     final nameController = TextEditingController(text: superAdminName);
 
-    // Reset preview
     setState(() {
       selectedPhotoBytes = null;
       selectedPhotoName = null;
@@ -567,9 +547,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // =======================================
-                    // FOTO (klik untuk preview)
-                    // =======================================
                     Stack(
                       alignment: Alignment.bottomRight,
                       children: [
@@ -582,7 +559,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           child: _buildDialogProfileImage(),
                         ),
                         Material(
-                          color: const Color(0xFFEF476F),
+                          color: _accent,
                           shape: const CircleBorder(),
                           child: InkWell(
                             customBorder: const CircleBorder(),
@@ -606,9 +583,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 12),
-
                     const Text(
                       'Klik ikon kamera untuk mengganti foto',
                       textAlign: TextAlign.center,
@@ -617,7 +592,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                         fontSize: 11,
                       ),
                     ),
-
                     if (selectedPhotoName != null) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -630,12 +604,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 22),
-
-                    // =======================================
-                    // NAMA
-                    // =======================================
                     TextField(
                       controller: nameController,
                       enabled: !isSavingProfile && !isUploadingPhoto,
@@ -648,24 +617,19 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFEF476F),
-                          ),
+                          borderSide: const BorderSide(color: _accent),
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
-                    // =======================================
-                    // ROLE
-                    // =======================================
                     TextField(
                       enabled: false,
-                      controller: TextEditingController(text: 'Super Admin'),
+                      controller:
+                          TextEditingController(text: 'Super Admin'),
                       decoration: InputDecoration(
                         labelText: 'Role',
-                        prefixIcon: const Icon(Icons.admin_panel_settings_outlined),
+                        prefixIcon:
+                            const Icon(Icons.admin_panel_settings_outlined),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -678,9 +642,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 TextButton(
                   onPressed: isSavingProfile || isUploadingPhoto
                       ? null
-                      : () {
-                          Navigator.of(dialogContext).pop();
-                        },
+                      : () => Navigator.of(dialogContext).pop(),
                   child: const Text('Batal'),
                 ),
                 ElevatedButton(
@@ -707,22 +669,19 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                             bool nameUpdated = false;
                             bool photoUpdated = false;
 
-                            // UPDATE NAMA
                             if (newName != superAdminName) {
                               final response = await ApiService.put(
                                 '/user/profile',
                                 {'name': newName},
                               );
 
-                              debugPrint('UPDATE NAME STATUS: ${response.statusCode}');
-                              debugPrint('UPDATE NAME BODY: ${response.body}');
-
                               if (response.statusCode != 200) {
                                 String message = 'Gagal memperbarui nama.';
                                 try {
                                   final data = jsonDecode(response.body);
                                   if (data is Map<String, dynamic>) {
-                                    message = data['message']?.toString() ?? message;
+                                    message = data['message']?.toString() ??
+                                        message;
                                   }
                                 } catch (_) {}
                                 throw Exception(message);
@@ -730,7 +689,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                               nameUpdated = true;
                             }
 
-                            // UPDATE FOTO
                             if (selectedPhotoBytes != null) {
                               photoUpdated = await _uploadProfilePhoto();
                               if (!photoUpdated) {
@@ -738,11 +696,10 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                               }
                             }
 
-                            // SIMPAN NAMA KE PREFS
-                            final prefs = await SharedPreferences.getInstance();
+                            final prefs =
+                                await SharedPreferences.getInstance();
                             await prefs.setString('name', newName);
 
-                            // UPDATE UI
                             if (!mounted) return;
 
                             setState(() {
@@ -751,15 +708,14 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                               selectedPhotoName = null;
                             });
 
-                            // TUTUP DIALOG
                             if (Navigator.of(dialogContext).canPop()) {
                               Navigator.of(dialogContext).pop();
                             }
 
-                            // PESAN
                             String message = 'Profil berhasil diperbarui.';
                             if (nameUpdated && photoUpdated) {
-                              message = 'Nama dan foto profil berhasil diperbarui.';
+                              message =
+                                  'Nama dan foto profil berhasil diperbarui.';
                             } else if (photoUpdated) {
                               message = 'Foto profil berhasil diperbarui.';
                             } else if (nameUpdated) {
@@ -774,12 +730,12 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                             );
                           } catch (e) {
                             debugPrint('ERROR UPDATE SUPER ADMIN: $e');
-
                             if (!mounted) return;
 
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               SnackBar(
-                                content: Text('Gagal memperbarui profil: $e'),
+                                content:
+                                    Text('Gagal memperbarui profil: $e'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -792,10 +748,13 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF476F),
+                    backgroundColor: _accent,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(9),
                     ),
@@ -830,77 +789,164 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 700;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 700;
+        if (isDesktop) return _buildDesktopLayout();
+        return _buildMobileLayout();
+      },
+    );
+  }
 
+  // =========================================================
+  // DESKTOP LAYOUT — Sidebar kiri
+  // =========================================================
+
+  Widget _buildDesktopLayout() {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F7FB),
-
-      drawer: isMobile
-          ? Drawer(
-              width: 220,
-              backgroundColor: const Color(0xFF0E172A),
-              child: _buildSidebar(),
-            )
-          : null,
-
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildSidebar(),
-
-          Expanded(
-            child: Column(
-              children: [
-                if (isMobile)
-                  Container(
-                    height: 60,
-                    width: double.infinity,
-                    color: Colors.white,
-                    child: Row(
-                      children: [
-                        Builder(
-                          builder: (context) {
-                            return IconButton(
-                              icon: const Icon(
-                                Icons.menu_rounded,
-                                color: Color(0xFF0E172A),
-                              ),
-                              onPressed: () {
-                                Scaffold.of(context).openDrawer();
-                              },
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        _buildSuperAdminProfileImage(size: 34),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _showEditProfileDialog,
-                            child: Text(
-                              superAdminName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0E172A),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                Expanded(
-                  child: _buildContentArea(),
-                ),
-              ],
-            ),
-          ),
+          _buildSidebar(),
+          Expanded(child: _buildContentArea()),
         ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // MOBILE LAYOUT — Bottom Nav + AppBar icon
+  // =========================================================
+
+  Widget _buildMobileLayout() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F7FB),
+
+      // APPBAR — tanpa title, dengan ikon Log Aktivitas
+      appBar: AppBar(
+        toolbarHeight: 56,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0E172A),
+        automaticallyImplyLeading: false,
+
+        // Avatar + nama
+        title: Row(
+          children: [
+            _buildSuperAdminProfileImage(size: 34),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: _showEditProfileDialog,
+                child: Text(
+                  superAdminName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0E172A),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // Ikon: Log Aktivitas
+        actions: [
+          IconButton(
+            tooltip: 'Log Aktivitas',
+            icon: Icon(
+              _selectedIndex == 5
+                  ? Icons.folder_rounded
+                  : Icons.folder_outlined,
+              color: _selectedIndex == 5
+                  ? _accent
+                  : const Color(0xFF0E172A),
+            ),
+            onPressed: () {
+              setState(() {
+                _selectedIndex = 5;
+              });
+            },
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+
+      // BODY
+      body: _buildContentArea(),
+
+      // BOTTOM NAVIGATION — 5 tab
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: BottomNavigationBar(
+            currentIndex: _selectedIndex >= 0 && _selectedIndex <= 4
+                ? _selectedIndex
+                : 0,
+            onTap: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.white,
+            selectedItemColor: _accent,
+            unselectedItemColor: const Color(0xFF94A3B8),
+            selectedFontSize: 10.5,
+            unselectedFontSize: 10.5,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+            ),
+            elevation: 0,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart_outlined, size: 22),
+                activeIcon: Icon(Icons.bar_chart_rounded, size: 22),
+                label: 'Analytics',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(
+                  Icons.admin_panel_settings_outlined,
+                  size: 22,
+                ),
+                activeIcon: Icon(
+                  Icons.admin_panel_settings_rounded,
+                  size: 22,
+                ),
+                label: 'Admin',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.engineering_outlined, size: 22),
+                activeIcon: Icon(Icons.engineering_rounded, size: 22),
+                label: 'Mitra',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined, size: 22),
+                activeIcon: Icon(Icons.settings_rounded, size: 22),
+                label: 'Sistem',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline, size: 22),
+                activeIcon: Icon(Icons.person_rounded, size: 22),
+                label: 'Profil',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -927,14 +973,14 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // SIDEBAR
+  // SIDEBAR — hanya untuk desktop
   // =========================================================
 
   Widget _buildSidebar() {
     return Container(
       width: 220,
       height: double.infinity,
-      color: const Color(0xFF0E172A),
+      color: _sidebarBg,
       child: Column(
         children: [
           // HEADER SUPER ADMIN
@@ -944,9 +990,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(
-                  color: Color(0xFF243047),
-                ),
+                bottom: BorderSide(color: Color(0xFF243047)),
               ),
             ),
             child: Row(
@@ -991,7 +1035,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
           const SizedBox(height: 8),
 
-          // MENU
+          // MENU — 6 item (Profil sebelum Log)
           _buildMenuItem(
             index: 0,
             icon: Icons.bar_chart_rounded,
@@ -1014,13 +1058,17 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           ),
           _buildMenuItem(
             index: 4,
+            icon: Icons.person_rounded,
+            title: 'Profil',
+          ),
+          _buildMenuItem(
+            index: 5,
             icon: Icons.folder_rounded,
             title: 'Log Aktivitas',
           ),
 
           const Spacer(),
 
-          // LOGOUT
           _buildLogoutButton(),
           const SizedBox(height: 15),
         ],
@@ -1049,7 +1097,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         height: 43,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF1E2A40) : Colors.transparent,
+          color: selected ? _sidebarSelected : Colors.transparent,
           border: Border(
             left: BorderSide(
               color: selected ? const Color(0xFFFF4848) : Colors.transparent,
@@ -1084,7 +1132,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // LOGOUT BUTTON
+  // LOGOUT BUTTON (desktop sidebar)
   // =========================================================
 
   Widget _buildLogoutButton() {
@@ -1135,15 +1183,11 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF4848),
                 foregroundColor: Colors.white,
@@ -1157,7 +1201,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     );
 
     if (shouldLogout != true) return;
-
     if (!mounted) return;
 
     await Future<void>.delayed(Duration.zero);
@@ -1187,21 +1230,202 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     switch (_selectedIndex) {
       case 0:
         return const SuperAdminAnalyticsPage();
-
       case 1:
         return const ManageAdminPage();
-
       case 2:
         return const ActivePartnerPage();
-
       case 3:
         return const SystemSettingsPage();
-
       case 4:
+        return _buildProfilePage();
+      case 5:
         return const ActivityLogPage();
-
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  // =========================================================
+  // HALAMAN PROFIL
+  // =========================================================
+
+  Widget _buildProfilePage() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 700;
+        final horizontalPadding = isMobile ? 16.0 : 32.0;
+        final verticalPadding = isMobile ? 16.0 : 28.0;
+
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: const Color(0xFFF5F7FB),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // HEADER
+                    Text(
+                      'Profil Super Admin',
+                      style: TextStyle(
+                        fontSize: isMobile ? 22 : 26,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Kelola informasi profil akun Super Admin.',
+                      style: TextStyle(
+                        fontSize: isMobile ? 12.5 : 13,
+                        color: const Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
+
+                    SizedBox(height: isMobile ? 20 : 24),
+
+                    // PROFILE CARD
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(isMobile ? 20 : 26),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildSuperAdminProfileImage(size: 100),
+                          const SizedBox(height: 18),
+
+                          Text(
+                            superAdminName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFE4E4),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.admin_panel_settings,
+                                  size: 13,
+                                  color: Color(0xFFDC2626),
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Super Admin',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+                          const Divider(
+                            height: 1,
+                            color: Color(0xFFF3F4F6),
+                          ),
+                          const SizedBox(height: 20),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed: _showEditProfileDialog,
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Edit Profil',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _accent,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // INFO NOTE
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFBFDBFE),
+                        ),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Color(0xFF2563EB),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Foto profil akan tampil di sidebar dan AppBar. Klik foto untuk memperbesar.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF1E40AF),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

@@ -875,4 +875,65 @@ class JobController extends Controller
             ], 500);
         }
     }
+
+    public function cancelJobByPelanggan(Request $request, $id)
+    {
+        try {
+            $job = jobs::find($id);
+
+            if (!$job) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pekerjaan tidak ditemukan.'
+                ], 404);
+            }
+
+            // Cek kepemilikan
+            if ($job->pelanggan_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda bukan pemilik pekerjaan ini.'
+                ], 403);
+            }
+
+            // Hanya boleh cancel kalau status masih "Mencari Mitra"
+            if ($job->status !== 'Mencari Mitra') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pekerjaan tidak dapat dibatalkan karena sedang diproses atau sudah selesai.'
+                ], 400);
+            }
+
+            // Update status job
+            $job->update([
+                'status' => 'Dibatalkan',
+            ]);
+
+            // Tolak semua bid yang masih menunggu
+            job_bids::where('job_id', $job->id)
+                ->where('status', 'Menunggu')
+                ->update(['status' => 'Ditolak']);
+
+            ActivityLogger::log(
+                auth()->id(),
+                'Pelanggan membatalkan pekerjaan',
+                'Pelanggan membatalkan pekerjaan "' . $job->tittle . '".',
+                'cancel',
+                'Pelanggan'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pekerjaan berhasil dibatalkan.',
+                'data'    => $job->fresh()
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error JobController@cancelJobByPelanggan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

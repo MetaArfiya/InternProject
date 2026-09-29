@@ -1,41 +1,20 @@
-// lib/sections/pelanggan/payment_detail_dialog.dart
-
 import 'package:flutter/material.dart';
 
 import '../../models/payment_model.dart';
-import '../../models/payment_detail_model.dart';
-import 'upload_customer_proof_dialog.dart';
 
-class PaymentDetailDialog extends StatefulWidget {
-  final PaymentDetailModel detail;
+class PaymentDetailMitraDialog extends StatefulWidget {
+  final PaymentModel payment;
 
-  const PaymentDetailDialog({super.key, required this.detail});
+  const PaymentDetailMitraDialog({super.key, required this.payment});
 
   @override
-  State<PaymentDetailDialog> createState() => _PaymentDetailDialogState();
+  State<PaymentDetailMitraDialog> createState() =>
+      _PaymentDetailMitraDialogState();
 }
 
-class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
-  bool _isUploading = false;
-
+class _PaymentDetailMitraDialogState extends State<PaymentDetailMitraDialog> {
   static const Color _accent = Color(0xFFF97316);
   static const String _baseUrl = 'http://127.0.0.1:8000';
-
-  // ============================================================
-  // OPEN UPLOAD DIALOG
-  // ============================================================
-
-  Future<void> _openUploadDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => UploadCustomerProofDialog(payment: widget.detail.payment),
-    );
-
-    if (result == true && mounted) {
-      Navigator.pop(context, true);
-    }
-  }
 
   // ============================================================
   // BUILD IMAGE URL
@@ -56,10 +35,6 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
     return '$_baseUrl$path';
   }
 
-  // ============================================================
-  // OPEN FULLSCREEN IMAGE
-  // ============================================================
-
   void _openFullScreenImage(String? path, String title) {
     final url = _buildProofImageUrl(path);
     if (url.isEmpty) return;
@@ -77,7 +52,7 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
   }
 
   // ============================================================
-  // BUILD — DIALOG UTAMA
+  // BUILD
   // ============================================================
 
   @override
@@ -116,7 +91,7 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
                     ),
                   ),
                   const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                  _buildDialogActions(isMobile),
+                  _buildDialogFooter(),
                 ],
               ),
             ),
@@ -127,11 +102,11 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
   }
 
   // ============================================================
-  // HEADER DIALOG
+  // HEADER
   // ============================================================
 
   Widget _buildDialogHeader(bool isMobile) {
-    final p = widget.detail.payment;
+    final p = widget.payment;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -149,7 +124,11 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
               color: _accent.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.payment, color: _accent, size: 20),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              color: _accent,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -166,7 +145,7 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Detail Pembayaran',
+                  'Detail Pendapatan',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
@@ -189,38 +168,174 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
   }
 
   // ============================================================
-  // BODY DIALOG
+  // BODY
   // ============================================================
 
   Widget _buildDialogBody(bool isMobile) {
-    final p = widget.detail.payment;
-    final bank = widget.detail.transferTo;
+    final p = widget.payment;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ==========================================
-        // TOTAL BAYAR
-        // ==========================================
         _buildTotalBox(p),
-
         const SizedBox(height: 20),
 
-        // ==========================================
         // INFO PEKERJAAN
-        // ==========================================
         _sectionLabel('Informasi Pekerjaan'),
         const SizedBox(height: 10),
         _infoRow('Pekerjaan', p.jobTitle ?? '-'),
-        _infoRow('Mitra', p.mitraName ?? '-'),
+        _infoRow('Pelanggan', p.pelangganName ?? '-'),
         _infoRow('Tanggal', p.formattedDate),
 
         const SizedBox(height: 20),
 
-        // ==========================================
-        // REKENING TUJUAN
-        // ==========================================
-        _sectionLabel('Transfer ke Rekening'),
+        // RINCIAN PEMBAYARAN
+        _sectionLabel('Rincian Pembayaran'),
+        const SizedBox(height: 10),
+        _infoRow(
+          'Nilai pekerjaan',
+          PaymentModel.formatRupiah(p.jobAmount),
+        ),
+        _infoRow(
+          'Komisi platform (${p.commissionPercent.toStringAsFixed(0)}%)',
+          '- ${PaymentModel.formatRupiah(p.commissionAmount)}',
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFBBF7D0)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Pendapatan Anda',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+              Text(
+                PaymentModel.formatRupiah(p.mitraEarning),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // REKENING MITRA
+        _buildMitraBankSection(p),
+
+        // BUKTI DARI PELANGGAN
+        if (p.customerProofUrl != null) ...[
+          const SizedBox(height: 20),
+          _sectionLabel('Bukti Transfer Pelanggan'),
+          const SizedBox(height: 8),
+          _buildProofImage(
+            p.customerProofUrl,
+            title: 'Bukti Transfer Pelanggan',
+          ),
+        ],
+
+        // BUKTI KE MITRA
+        if (p.mitraProofUrl != null) ...[
+          const SizedBox(height: 20),
+          _sectionLabel('Bukti Transfer ke Rekening Anda'),
+          const SizedBox(height: 8),
+          _buildProofImage(
+            p.mitraProofUrl,
+            title: 'Bukti Transfer ke Mitra',
+          ),
+        ],
+
+        // TIMELINE
+        const SizedBox(height: 20),
+        _sectionLabel('Riwayat'),
+        const SizedBox(height: 10),
+        _buildTimeline(p),
+      ],
+    );
+  }
+
+  Widget _buildTotalBox(PaymentModel p) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Total Pendapatan Anda',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF16A34A),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            PaymentModel.formatRupiah(p.mitraEarning),
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF16A34A),
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMitraBankSection(PaymentModel p) {
+    final bank = p.mitraBank;
+
+    if (bank == null || bank.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Rekening belum terdaftar. Hubungi admin untuk info transfer.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF92400E),
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel('Rekening Penerima'),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(14),
@@ -231,190 +346,22 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
           ),
           child: Column(
             children: [
-              _bankRow('Bank', bank.bankName),
-              _bankRow('No. Rekening', bank.accountNumber),
-              _bankRow('Atas Nama', bank.accountName),
+              _bankRow('Bank', bank['bank_name']?.toString() ?? '-'),
+              _bankRow(
+                  'No. Rekening', bank['account_number']?.toString() ?? '-'),
+              _bankRow(
+                  'Atas Nama', bank['account_name']?.toString() ?? '-'),
             ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // ==========================================
-        // INFO BOX
-        // ==========================================
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFBEB),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFFDE68A)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Setelah transfer, upload bukti agar admin bisa memverifikasi. '
-                  'Dana akan diteruskan ke mitra setelah diverifikasi.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF92400E),
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // ==========================================
-        // BUKTI PELANGGAN
-        // ==========================================
-        if (p.customerProofUrl != null) ...[
-          const SizedBox(height: 20),
-          _sectionLabel('Bukti Transfer Anda'),
-          const SizedBox(height: 8),
-          _buildProofImage(
-            p.customerProofUrl,
-            title: 'Bukti Transfer Pelanggan',
-          ),
-          if (p.customerBankName != null) ...[
-            const SizedBox(height: 10),
-            _infoRow('Bank Pengirim', p.customerBankName!),
-          ],
-          if (p.customerAccountName != null)
-            _infoRow('Nama Pengirim', p.customerAccountName!),
-        ],
-
-        // ==========================================
-        // BUKTI KE MITRA
-        // ==========================================
-        if (p.mitraProofUrl != null) ...[
-          const SizedBox(height: 20),
-          _sectionLabel('Bukti Transfer ke Mitra'),
-          const SizedBox(height: 8),
-          _buildProofImage(
-            p.mitraProofUrl,
-            title: 'Bukti Transfer ke Mitra',
-          ),
-        ],
-      ],
-    );
-  }
-
-  // ============================================================
-  // TOTAL BOX
-  // ============================================================
-
-  Widget _buildTotalBox(PaymentModel p) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: BoxDecoration(
-        color: _accent.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _accent.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Total yang harus dibayar',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            PaymentModel.formatRupiah(p.totalPaid),
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: _accent,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // SECTION LABEL
-  // ============================================================
-
-  Widget _sectionLabel(String text) {
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 14,
-          decoration: BoxDecoration(
-            color: _accent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1F2937),
           ),
         ),
       ],
     );
   }
-
-  // ============================================================
-  // INFO ROW
-  // ============================================================
-
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: Color(0xFF6B7280),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // BANK ROW
-  // ============================================================
 
   Widget _bankRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
             width: 100,
@@ -427,19 +374,114 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
             ),
           ),
           Expanded(
-            child: Row(
+            child: SelectableText(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // TIMELINE
+  // ============================================================
+
+  Widget _buildTimeline(PaymentModel p) {
+    final items = <Widget>[];
+
+    if (p.createdAt != null) {
+      items.add(_timelineItem(
+        icon: Icons.receipt_long_outlined,
+        color: const Color(0xFF6B7280),
+        label: 'Pembayaran dibuat',
+        date: p.createdAt!,
+      ));
+    }
+
+    if (p.customerProofUploadedAt != null) {
+      items.add(_timelineItem(
+        icon: Icons.upload_file,
+        color: const Color(0xFF2563EB),
+        label: 'Pelanggan upload bukti transfer',
+        date: p.customerProofUploadedAt!,
+      ));
+    }
+
+    if (p.paidAt != null) {
+      items.add(_timelineItem(
+        icon: Icons.verified_outlined,
+        color: const Color(0xFF7C3AED),
+        label: 'Pembayaran diverifikasi admin',
+        date: p.paidAt!,
+      ));
+    }
+
+    if (p.mitraProofUploadedAt != null) {
+      items.add(_timelineItem(
+        icon: Icons.check_circle_outline,
+        color: const Color(0xFF16A34A),
+        label: 'Dana ditransfer ke rekening Anda',
+        date: p.mitraProofUploadedAt!,
+      ));
+    }
+
+    if (items.isEmpty) {
+      return const Text(
+        'Belum ada riwayat.',
+        style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+      );
+    }
+
+    return Column(children: items);
+  }
+
+  Widget _timelineItem({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required DateTime date,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 13, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: SelectableText(
-                    value,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.5,
-                      color: Color(0xFF1E3A8A),
-                    ),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF111827),
                   ),
                 ),
-                _copyButton(value),
+                const SizedBox(height: 2),
+                Text(
+                  _formatDateTime(date),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                  ),
+                ),
               ],
             ),
           ),
@@ -448,29 +490,22 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
     );
   }
 
-  Widget _copyButton(String value) {
-    return IconButton(
-      onPressed: () {
-        // Salin ke clipboard — butuh import 'package:flutter/services.dart'
-        // Clipboard.setData(ClipboardData(text: value));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$value disalin'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      },
-      icon: const Icon(Icons.copy, size: 14, color: Color(0xFF6B7280)),
-      splashRadius: 16,
-      tooltip: 'Salin',
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-    );
+  String _formatDateTime(DateTime date) {
+    final local = date.toLocal();
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final day = local.day.toString().padLeft(2, '0');
+    final month = months[local.month - 1];
+    final year = local.year;
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$day $month $year, $hh:$mm';
   }
 
   // ============================================================
-  // BUKTI IMAGE
+  // PROOF IMAGE
   // ============================================================
 
   Widget _buildProofImage(
@@ -538,7 +573,8 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
                     const SizedBox(height: 8),
                     const Text(
                       'Gagal memuat gambar',
-                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                      style: TextStyle(
+                          color: Color(0xFF9CA3AF), fontSize: 12),
                     ),
                   ],
                 ),
@@ -577,75 +613,84 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
   }
 
   // ============================================================
-  // ACTIONS DIALOG
+  // FOOTER
   // ============================================================
 
-  Widget _buildDialogActions(bool isMobile) {
-    final p = widget.detail.payment;
-
-    if (!p.canUploadCustomerProof) {
-      return Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 46),
-              foregroundColor: const Color(0xFF374151),
-              side: const BorderSide(color: Color(0xFFD1D5DB)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+  Widget _buildDialogFooter() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 46),
+            foregroundColor: const Color(0xFF374151),
+            side: const BorderSide(color: Color(0xFFD1D5DB)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text(
-              'Tutup',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+          ),
+          child: const Text(
+            'Tutup',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
+  // ============================================================
+  // HELPERS
+  // ============================================================
+
+  Widget _sectionLabel(String text) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 14,
+          decoration: BoxDecoration(
+            color: _accent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(context),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 46),
-                foregroundColor: const Color(0xFF374151),
-                side: const BorderSide(color: Color(0xFFD1D5DB)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Tutup',
-                style: TextStyle(fontWeight: FontWeight.w600),
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: Color(0xFF6B7280),
               ),
             ),
           ),
-          const SizedBox(width: 10),
           Expanded(
-            flex: 2,
-            child: ElevatedButton.icon(
-              onPressed: _isUploading ? null : _openUploadDialog,
-              icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text(
-                'Upload Bukti Transfer',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(0, 46),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF111827),
               ),
             ),
           ),
@@ -653,10 +698,6 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
       ),
     );
   }
-
-  // ============================================================
-  // STATUS BADGE
-  // ============================================================
 
   Widget _statusBadge(PaymentModel p) {
     final color = _getStatusColor(p.status);
@@ -768,8 +809,6 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
           transformationController: _transformCtrl,
           minScale: 0.5,
           maxScale: 5.0,
-          panEnabled: true,
-          scaleEnabled: true,
           child: Image.network(
             widget.imageUrl,
             fit: BoxFit.contain,

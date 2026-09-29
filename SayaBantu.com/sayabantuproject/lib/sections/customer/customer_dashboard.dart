@@ -26,13 +26,47 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   String? _errorMessage;
 
   // ============================================================
-  // STANDARD UI
+  // FILTER STATE
+  // ============================================================
+
+  String _statusFilter = 'semua';
+
+  static const List<Map<String, String>> _statusFilterOptions = [
+    {'value': 'semua', 'label': 'Semua'},
+    {'value': 'menunggu_offer', 'label': 'Mencari Mitra'},
+    {'value': 'sedang_dikerjakan', 'label': 'Sedang Dikerjakan'},
+    {'value': 'menunggu_konfirmasi', 'label': 'Menunggu Konfirmasi'},
+    {'value': 'selesai', 'label': 'Selesai'},
+    {'value': 'dibatalkan', 'label': 'Dibatalkan'},
+  ];
+
+  // ============================================================
+  // PAGINATION STATE
+  // ============================================================
+
+  int _currentPage = 1;
+  int _rowsPerPage = 10;
+  static const List<int> _rowsPerPageOptions = [10, 25, 50, 100];
+
+  // ============================================================
+  // DESIGN TOKENS
   // ============================================================
 
   static const double _bodyFontSize = 13;
   static const double _buttonFontSize = 13;
   static const double _dialogTitleFontSize = 18;
   static const double _smallRadius = 12;
+
+  static const double _mobileBreakpoint = 700;
+  static const double _tabletBreakpoint = 1100;
+
+  static const Color _accent = Colors.orange;
+
+  // Warna tabel
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
 
   @override
   void initState() {
@@ -62,7 +96,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
         if (decoded is Map<String, dynamic>) {
           final target = decoded['data'] ?? decoded['jobs'] ?? [];
-
           if (target is List) {
             jobListJson = target;
           }
@@ -76,12 +109,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           _jobs = jobListJson
               .map((json) => JobModel.fromJson(json))
               .toList();
-
+          _currentPage = 1;
           _isLoading = false;
         });
       } else {
         if (!mounted) return;
-
         setState(() {
           _errorMessage =
               'Gagal mengambil data lowongan (Kode: ${response.statusCode})';
@@ -90,7 +122,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       }
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
         _errorMessage = 'Terjadi kesalahan koneksi: $e';
         _isLoading = false;
@@ -99,60 +130,95 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   // ============================================================
-  // SELESAIKAN PEKERJAAN
+  // KONFIRMASI SELESAI
   // ============================================================
 
   Future<void> _completeJob(JobModel job) async {
     try {
-      final response =
-          await ApiService.post('/jobs/${job.id}/complete', {});
+      final response = await ApiService.post(
+        '/jobs/${job.id}/verify-proof',
+        {
+          'status': 'approved',
+        },
+      );
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Pekerjaan berhasil diselesaikan!',
-                style: TextStyle(
-                  fontSize: _bodyFontSize,
-                ),
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-
+        _showSnack(
+          'Pekerjaan berhasil dikonfirmasi selesai!',
+          success: true,
+        );
         _fetchMyJobs();
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Gagal menyelesaikan pekerjaan (${response.statusCode})',
-                style: const TextStyle(
-                  fontSize: _bodyFontSize,
-                ),
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        String message = 'Gagal konfirmasi (${response.statusCode})';
+
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded['message'] != null) {
+            message = decoded['message'].toString();
+          }
+        } catch (_) {}
+
+        _showSnack(message);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Terjadi kesalahan: $e',
-              style: const TextStyle(
-                fontSize: _bodyFontSize,
-              ),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      _showSnack('Terjadi kesalahan: $e');
     }
+  }
+
+  // ============================================================
+  // ✅ BATALKAN PEKERJAAN — API CALL
+  // Endpoint: POST /jobs/{id}/cancel
+  // ============================================================
+
+    Future<void> _cancelJob(JobModel job) async {
+    try {
+      // ✅ Endpoint khusus pelanggan
+      final response = await ApiService.post(
+        '/jobs/${job.id}/cancel-customer',
+        {
+          'reason': 'Dibatalkan oleh pelanggan',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        _showSnack(
+          'Pekerjaan berhasil dibatalkan.',
+          success: true,
+        );
+        _fetchMyJobs();
+      } else {
+        String message = 'Gagal membatalkan (${response.statusCode})';
+
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded['message'] != null) {
+            message = decoded['message'].toString();
+          }
+        } catch (_) {}
+
+        _showSnack(message);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Terjadi kesalahan: $e');
+    }
+  }
+
+  void _showSnack(String message, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: _bodyFontSize),
+        ),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
   }
 
   // ============================================================
@@ -166,46 +232,169 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   // ============================================================
+  // CEK APAKAH TOMBOL "KONFIRMASI SELESAI" HARUS MUNCUL
+  // ============================================================
+
+  bool _canConfirm(JobModel job) {
+    final s = job.status.toLowerCase();
+
+    final isWaitingConfirm = s == 'menunggu konfirmasi selesai' ||
+        s == 'menunggu konfirmasi' ||
+        s.contains('konfirmasi');
+
+    final hasProof = job.completionPhotoUrl != null &&
+        job.completionPhotoUrl!.trim().isNotEmpty;
+
+    return isWaitingConfirm && hasProof;
+  }
+
+  // ============================================================
+  // ✅ CEK APAKAH TOMBOL "BATALKAN" HARUS MUNCUL
+  // Hanya muncul kalau pekerjaan BELUM dikerjakan mitra
+  // ============================================================
+
+  bool _canCancel(JobModel job) {
+    final s = job.status.toLowerCase().trim();
+
+    // Sudah selesai / dibatalkan → tidak bisa cancel
+    if (s.contains('selesai') ||
+        s.contains('batal') ||
+        s.contains('cancel')) {
+      return false;
+    }
+
+    // Sedang dikerjakan / menunggu konfirmasi → tidak bisa cancel
+    if (s.contains('dikerjakan') ||
+        s.contains('proses') ||
+        s.contains('pengerjaan') ||
+        s.contains('konfirmasi')) {
+      return false;
+    }
+
+    // Yang bisa dibatalkan: "Mencari Mitra" dan varian awal lainnya
+    return s.contains('mencari') ||
+        s.contains('cari') ||
+        s.contains('mitra') ||
+        s.contains('menunggu') ||
+        s.contains('offer') ||
+        s == 'open' ||
+        s == 'pending' ||
+        s == 'baru' ||
+        s == 'diposting';
+  }
+
+  // ============================================================
+  // FILTER HELPER
+  // ============================================================
+
+  List<JobModel> get _filteredJobs {
+    if (_statusFilter == 'semua') return _jobs;
+
+    return _jobs.where((job) {
+      final s = job.status.toLowerCase().trim();
+
+      switch (_statusFilter) {
+        case 'menunggu_konfirmasi':
+          return s.contains('konfirmasi');
+
+        case 'sedang_dikerjakan':
+          return s.contains('dikerjakan') ||
+              s.contains('proses') ||
+              s.contains('pengerjaan');
+
+        case 'selesai':
+          return !s.contains('konfirmasi') && s.contains('selesai');
+
+        case 'dibatalkan':
+          return s.contains('batal') || s.contains('cancel');
+
+        case 'menunggu_offer':
+          return s.contains('mencari') ||
+              s.contains('cari') ||
+              s.contains('mitra') ||
+              s.contains('offer') ||
+              s.contains('penawar') ||
+              (s.contains('menunggu') && !s.contains('konfirmasi')) ||
+              s == 'open' ||
+              s == 'pending' ||
+              s == 'baru' ||
+              s == 'diposting';
+
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
+  void _changeStatusFilter(String? value) {
+    if (value == null) return;
+    setState(() {
+      _statusFilter = value;
+      _currentPage = 1;
+    });
+  }
+
+  // ============================================================
+  // PAGINATION HELPERS
+  // ============================================================
+
+  int get _totalPages {
+    final list = _filteredJobs;
+    if (list.isEmpty) return 1;
+    return (list.length / _rowsPerPage).ceil();
+  }
+
+  List<JobModel> get _pagedJobs {
+    final list = _filteredJobs;
+    final start = (_currentPage - 1) * _rowsPerPage;
+    final end = (start + _rowsPerPage).clamp(0, list.length);
+    if (start >= list.length) return [];
+    return list.sublist(start, end);
+  }
+
+  void _goToPage(int page) {
+    if (page < 1 || page > _totalPages) return;
+    setState(() => _currentPage = page);
+  }
+
+  void _changeRowsPerPage(int newValue) {
+    setState(() {
+      _rowsPerPage = newValue;
+      _currentPage = 1;
+    });
+  }
+
+  // ============================================================
   // BUILD
   // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    final totalJobs = _jobs.length;
-
-    final runningJobs = _jobs
-        .where(
-          (job) =>
-              job.status.toLowerCase() == 'sedang dikerjakan' ||
-              job.status.toLowerCase() == 'proses' ||
-              job.status.toLowerCase() == 'dalam pengerjaan',
-        )
-        .length;
-
-    final completedJobs = _jobs
-        .where(
-          (job) => job.status.toLowerCase() == 'selesai',
-        )
-        .length;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 700;
+        final width = constraints.maxWidth;
+
+        final isMobile = width < _mobileBreakpoint;
+        final isTablet =
+            width >= _mobileBreakpoint && width < _tabletBreakpoint;
+
+        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+        final verticalPadding = isMobile ? 16.0 : 28.0;
+        final sectionGap = isMobile ? 20.0 : 24.0;
 
         return Container(
           width: double.infinity,
           height: double.infinity,
           color: Theme.of(context).scaffoldBackgroundColor,
-          padding: EdgeInsets.all(isMobile ? 16 : 28),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ======================================================
-                // HEADER
-                // ======================================================
-
                 DashboardHeader(
                   onAddJob: (newJob) {
                     addJob(newJob);
@@ -213,78 +402,24 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   },
                 ),
 
-                SizedBox(
-                  height: isMobile ? 20 : 24,
+                SizedBox(height: sectionGap),
+
+                _buildStatistics(
+                  isMobile: isMobile,
+                  totalJobs: _jobs.length,
+                  runningJobs: _countRunningJobs(),
+                  completedJobs: _countCompletedJobs(),
                 ),
 
-                // ======================================================
-                // STATISTIC
-                // ======================================================
+                SizedBox(height: sectionGap),
 
-                if (isMobile)
-                  Column(
-                    children: [
-                      StatisticCard(
-                        icon: Icons.assignment,
-                        value: totalJobs.toString(),
-                        title: 'Total Posting',
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(height: 12),
-                      StatisticCard(
-                        icon: Icons.settings,
-                        value: runningJobs.toString(),
-                        title: 'Sedang Berjalan',
-                        color: Colors.orange,
-                      ),
-                      const SizedBox(height: 12),
-                      StatisticCard(
-                        icon: Icons.check_circle,
-                        value: completedJobs.toString(),
-                        title: 'Selesai',
-                        color: Colors.green,
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatisticCard(
-                          icon: Icons.assignment,
-                          value: totalJobs.toString(),
-                          title: 'Total Posting',
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: StatisticCard(
-                          icon: Icons.settings,
-                          value: runningJobs.toString(),
-                          title: 'Sedang Berjalan',
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: StatisticCard(
-                          icon: Icons.check_circle,
-                          value: completedJobs.toString(),
-                          title: 'Selesai',
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildFilterBar(isMobile),
 
-                SizedBox(
-                  height: isMobile ? 20 : 24,
-                ),
+                SizedBox(height: isMobile ? 14 : 18),
 
-                // ======================================================
-                // DAFTAR PEKERJAAN
-                // ======================================================
+                _buildSectionTitle(isMobile),
+
+                SizedBox(height: isMobile ? 12 : 16),
 
                 _buildJobContent(isMobile),
               ],
@@ -292,6 +427,218 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           ),
         );
       },
+    );
+  }
+
+  // ============================================================
+  // HITUNG STATISTIK
+  // ============================================================
+
+  int _countRunningJobs() {
+    return _jobs.where((job) {
+      final status = job.status.toLowerCase();
+      return status == 'sedang dikerjakan' ||
+          status == 'proses' ||
+          status == 'dalam pengerjaan';
+    }).length;
+  }
+
+  int _countCompletedJobs() {
+    return _jobs
+        .where((job) => job.status.toLowerCase() == 'selesai')
+        .length;
+  }
+
+  // ============================================================
+  // STATISTIK WIDGET
+  // ============================================================
+
+  Widget _buildStatistics({
+    required bool isMobile,
+    required int totalJobs,
+    required int runningJobs,
+    required int completedJobs,
+  }) {
+    final cards = [
+      StatisticCard(
+        icon: Icons.assignment,
+        value: totalJobs.toString(),
+        title: 'Total Posting',
+        color: Colors.blue,
+      ),
+      StatisticCard(
+        icon: Icons.settings,
+        value: runningJobs.toString(),
+        title: 'Sedang Berjalan',
+        color: Colors.orange,
+      ),
+      StatisticCard(
+        icon: Icons.check_circle,
+        value: completedJobs.toString(),
+        title: 'Selesai',
+        color: Colors.green,
+      ),
+    ];
+
+    final gap = isMobile ? 8.0 : 16.0;
+
+    return SizedBox(
+      height: isMobile ? 108 : 104,
+      child: Row(
+        children: [
+          for (int i = 0; i < cards.length; i++) ...[
+            Expanded(child: cards[i]),
+            if (i != cards.length - 1) SizedBox(width: gap),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // FILTER BAR
+  // ============================================================
+
+  Widget _buildFilterBar(bool isMobile) {
+    final totalFiltered = _filteredJobs.length;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 16,
+        vertical: isMobile ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _tableBorder),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.tune,
+                  size: 18,
+                  color: Color(0xFF6B7280),
+                ),
+
+                const SizedBox(width: 10),
+
+                Text(
+                  'Filter Status:',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12.5 : 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF4B5563),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                _buildStatusFilterDropdown(isMobile),
+              ],
+            ),
+          ),
+
+          _buildCountBadge(totalFiltered),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCountBadge(int count) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _accent.withOpacity(0.15),
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: _accent,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusFilterDropdown(bool isMobile) {
+    return Container(
+      height: 34,
+      constraints: BoxConstraints(
+        minWidth: isMobile ? 130 : 160,
+        maxWidth: isMobile ? 180 : 220,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _tableBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _statusFilter,
+          isDense: true,
+          isExpanded: true,
+          icon: const Padding(
+            padding: EdgeInsets.only(left: 4),
+            child: Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: isMobile ? 12 : 12.5,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF111827),
+          ),
+          items: _statusFilterOptions.map((opt) {
+            return DropdownMenuItem<String>(
+              value: opt['value'],
+              child: Text(
+                opt['label'] ?? '',
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: _changeStatusFilter,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // JUDUL SECTION
+  // ============================================================
+
+  Widget _buildSectionTitle(bool isMobile) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: isMobile ? 18 : 20,
+          decoration: BoxDecoration(
+            color: _accent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          'Daftar Pekerjaan',
+          style: TextStyle(
+            fontSize: isMobile ? 15 : 16,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1F2937),
+          ),
+        ),
+      ],
     );
   }
 
@@ -304,9 +651,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
         child: Center(
-          child: CircularProgressIndicator(
-            color: Colors.orange,
-          ),
+          child: CircularProgressIndicator(color: _accent),
         ),
       );
     }
@@ -319,34 +664,958 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       return _buildEmptyState();
     }
 
-    // ==========================================================
-    // PENTING:
-    // Tidak menggunakan ListView di sini.
-    // Semua JobCard menjadi bagian dari SingleChildScrollView
-    // utama sehingga Header + Statistik + JobCard ikut scroll.
-    // ==========================================================
+    final filtered = _filteredJobs;
 
-    return Column(
-      children: _jobs.map((job) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: isMobile ? 12 : 16,
-          ),
-          child: JobCard(
-            job: job,
-            onRefresh: _fetchMyJobs,
-            onOpenOffer: widget.onOpenOffer,
-            onComplete: (selectedJob) {
-              _showCompleteConfirmation(selectedJob);
-            },
-          ),
-        );
-      }).toList(),
+    if (filtered.isEmpty) {
+      return _buildNoFilterResultState();
+    }
+
+    if (isMobile) {
+      return Column(
+        children: filtered.map((job) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: JobCard(
+              job: job,
+              onRefresh: _fetchMyJobs,
+              onOpenOffer: widget.onOpenOffer,
+              onComplete: _showCompleteConfirmation,
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    return _buildJobsTable();
+  }
+
+  Widget _buildNoFilterResultState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.filter_alt_off_outlined,
+              size: 42,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Tidak ada pekerjaan dengan filter ini',
+              style: TextStyle(
+                fontSize: _bodyFontSize,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => _changeStatusFilter('semua'),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Reset Filter'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   // ============================================================
-  // KONFIRMASI SELESAI
+  // TABEL PEKERJAAN
+  // ============================================================
+
+  Widget _buildJobsTable() {
+    final rows = _pagedJobs;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _tableBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTableHeaderRow(),
+
+          const Divider(height: 1, thickness: 1, color: _tableDivider),
+
+          for (int i = 0; i < rows.length; i++) ...[
+            _buildTableDataRow(rows[i]),
+            if (i != rows.length - 1)
+              const Divider(height: 1, thickness: 1, color: _tableDivider),
+          ],
+
+          const Divider(height: 1, thickness: 1, color: _tableDivider),
+
+          _buildTableFooter(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeaderRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(flex: 4, child: _headerCell('Pekerjaan')),
+          Expanded(flex: 2, child: _headerCell('Mitra')),
+          Expanded(flex: 2, child: _headerCell('Kategori')),
+          Expanded(flex: 3, child: _headerCell('Lokasi')),
+          Expanded(flex: 2, child: _headerCell('Tanggal')),
+          Expanded(flex: 4, child: _headerCell('Aksi')),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerCell(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: _headerText,
+      ),
+    );
+  }
+
+  // ============================================================
+  // DATA ROW
+  // ============================================================
+
+  Widget _buildTableDataRow(JobModel job) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Kolom 1
+          Expanded(
+            flex: 4,
+            child: Row(
+              children: [
+                _jobThumbnail(job),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        job.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _cellText,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _buildStatusBadge(job.status),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Kolom 2
+          Expanded(
+            flex: 2,
+            child: Text(
+              job.partnerName ?? '-',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: job.partnerName != null
+                    ? _cellText
+                    : const Color(0xFF9CA3AF),
+                height: 1.3,
+              ),
+            ),
+          ),
+
+          // Kolom 3
+          Expanded(
+            flex: 2,
+            child: Text(
+              job.category,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _cellText,
+                height: 1.3,
+              ),
+            ),
+          ),
+
+          // Kolom 4
+          Expanded(
+            flex: 3,
+            child: Text(
+              job.location ?? '-',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _cellText,
+                height: 1.3,
+              ),
+            ),
+          ),
+
+          // Kolom 5
+          Expanded(
+            flex: 2,
+            child: Text(
+              _formatDate(job.createdAt),
+              style: const TextStyle(fontSize: 13, color: _cellText),
+            ),
+          ),
+
+          // Kolom 6
+          Expanded(
+            flex: 4,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _pillButton(
+                  icon: Icons.visibility_outlined,
+                  label: 'Detail',
+                  bgColor: const Color(0xFFF1F5F9),
+                  fgColor: const Color(0xFF334155),
+                  onTap: () => _showJobDetailDialog(job),
+                ),
+                _pillButton(
+                  icon: Icons.local_offer_outlined,
+                  label: 'Lihat Offer',
+                  bgColor: const Color(0xFFF3E8FF),
+                  fgColor: const Color(0xFF7C3AED),
+                  onTap: () => widget.onOpenOffer(job),
+                ),
+                if (_canConfirm(job))
+                  _pillButton(
+                    icon: Icons.verified_outlined,
+                    label: 'Konfirmasi Selesai',
+                    bgColor: const Color(0xFF16A34A),
+                    fgColor: Colors.white,
+                    onTap: () => _showCompleteConfirmation(job),
+                  ),
+                // ✅ TOMBOL BATALKAN
+                if (_canCancel(job))
+                  _pillButton(
+                    icon: Icons.cancel_outlined,
+                    label: 'Batalkan',
+                    bgColor: const Color(0xFFFEE2E2),
+                    fgColor: const Color(0xFFDC2626),
+                    onTap: () => _showCancelConfirmation(job),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // THUMBNAIL
+  // ============================================================
+
+  Widget _jobThumbnail(JobModel job) {
+    final imageUrl = job.imageUrl;
+
+    final hasImage = imageUrl != null &&
+        imageUrl.trim().isNotEmpty &&
+        imageUrl.trim() != 'null';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 52,
+        height: 52,
+        color: const Color(0xFFF3F4F6),
+        child: hasImage
+            ? Image.network(
+                imageUrl,
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) {
+                  return const Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 20,
+                    color: Color(0xFF9CA3AF),
+                  );
+                },
+              )
+            : const Icon(
+                Icons.image_outlined,
+                size: 20,
+                color: Color(0xFF9CA3AF),
+              ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // STATUS BADGE
+  // ============================================================
+
+  Widget _buildStatusBadge(String status) {
+    final s = status.toLowerCase();
+
+    Color bg;
+    Color fg;
+
+    if (s.contains('batal') || s.contains('cancel')) {
+      bg = const Color(0xFFFEE2E2);
+      fg = const Color(0xFFDC2626);
+    } else if (s.contains('konfirmasi')) {
+      bg = const Color(0xFFFEF3C7);
+      fg = const Color(0xFFD97706);
+    } else if (s == 'selesai') {
+      bg = const Color(0xFFDCFCE7);
+      fg = const Color(0xFF16A34A);
+    } else if (s == 'sedang dikerjakan' ||
+        s == 'proses' ||
+        s == 'dalam pengerjaan') {
+      bg = const Color(0xFFFEF3C7);
+      fg = const Color(0xFFD97706);
+    } else {
+      bg = const Color(0xFFE0E7FF);
+      fg = const Color(0xFF4F46E5);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: fg,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // PILL BUTTON
+  // ============================================================
+
+  Widget _pillButton({
+    required IconData icon,
+    required String label,
+    required Color bgColor,
+    required Color fgColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: fgColor),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: fgColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // FOOTER TABEL
+  // ============================================================
+
+  Widget _buildTableFooter() {
+    final total = _filteredJobs.length;
+    final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
+    final end = (_currentPage * _rowsPerPage).clamp(0, total);
+    final canPrev = _currentPage > 1;
+    final canNext = _currentPage < _totalPages;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          Text(
+            'Menampilkan $start–$end dari $total pekerjaan',
+            style: const TextStyle(fontSize: 12.5, color: _headerText),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              _buildRowsPerPageDropdown(),
+              const SizedBox(width: 12),
+              _navButton(
+                icon: Icons.chevron_left,
+                enabled: canPrev,
+                onTap: () => _goToPage(_currentPage - 1),
+              ),
+              const SizedBox(width: 8),
+              _pageIndicator(),
+              const SizedBox(width: 8),
+              _navButton(
+                icon: Icons.chevron_right,
+                enabled: canNext,
+                onTap: () => _goToPage(_currentPage + 1),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRowsPerPageDropdown() {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _tableBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _rowsPerPage,
+          isDense: true,
+          icon: const Padding(
+            padding: EdgeInsets.only(left: 4),
+            child: Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+          items: _rowsPerPageOptions.map((value) {
+            return DropdownMenuItem<int>(
+              value: value,
+              child: Text('$value / hal'),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) _changeRowsPerPage(value);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _navButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: enabled
+                  ? const Color(0xFFD1D5DB)
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: enabled
+                ? const Color(0xFF374151)
+                : const Color(0xFFD1D5DB),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pageIndicator() {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDE9FE),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Hal $_currentPage / $_totalPages',
+        style: const TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF7C3AED),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // FORMAT TANGGAL
+  // ============================================================
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '-';
+
+    DateTime? parsed;
+    if (date is DateTime) {
+      parsed = date;
+    } else if (date is String) {
+      parsed = DateTime.tryParse(date);
+    }
+    if (parsed == null) return '-';
+
+    return '${parsed.day}/${parsed.month}/${parsed.year}';
+  }
+
+  String _formatDateTime(dynamic date) {
+    if (date == null) return '-';
+
+    DateTime? parsed;
+    if (date is DateTime) {
+      parsed = date;
+    } else if (date is String) {
+      parsed = DateTime.tryParse(date);
+    }
+    if (parsed == null) return '-';
+
+    final d = parsed.day.toString().padLeft(2, '0');
+    final m = parsed.month.toString().padLeft(2, '0');
+    final y = parsed.year;
+    final hh = parsed.hour.toString().padLeft(2, '0');
+    final mm = parsed.minute.toString().padLeft(2, '0');
+
+    return '$d-$m-$y $hh:$mm';
+  }
+
+  // ============================================================
+  // DETAIL DIALOG
+  // ============================================================
+
+  void _showJobDetailDialog(JobModel job) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720, maxHeight: 680),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Detail Pekerjaan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Color(0xFF6B7280),
+                          ),
+                          splashRadius: 22,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _dialogJobHeader(job),
+                          const SizedBox(height: 18),
+                          _dialogMitra(job),
+                          const SizedBox(height: 14),
+                          _dialogMetaChips(job),
+                          const SizedBox(height: 16),
+                          _buildStatusBadge(job.status),
+
+                          if (_hasProof(job)) ...[
+                            const SizedBox(height: 20),
+                            const Divider(color: Color(0xFFE5E7EB)),
+                            const SizedBox(height: 14),
+                            const Text(
+                              '📷 Bukti Pekerjaan',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF374151),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _dialogProofImage(job),
+                          ],
+
+                          if (_hasRating(job)) ...[
+                            const SizedBox(height: 18),
+                            _dialogRating(job),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dialogJobHeader(JobModel job) {
+    final imageUrl = job.imageUrl;
+    final hasImage = imageUrl != null &&
+        imageUrl.trim().isNotEmpty &&
+        imageUrl.trim() != 'null';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 88,
+            height: 88,
+            color: const Color(0xFFF3F4F6),
+            child: hasImage
+                ? Image.network(
+                    imageUrl,
+                    width: 88,
+                    height: 88,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.image_not_supported_outlined,
+                      color: Color(0xFF9CA3AF),
+                      size: 24,
+                    ),
+                  )
+                : const Icon(
+                    Icons.image_outlined,
+                    color: Color(0xFF9CA3AF),
+                    size: 24,
+                  ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                job.title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827),
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                job.description,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xFF6B7280),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _dialogMitra(JobModel job) {
+    final namaMitra = job.partnerName;
+    if (namaMitra == null || namaMitra.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        const Icon(
+          Icons.person_outline,
+          size: 16,
+          color: Color(0xFF16A34A),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          'Mitra: $namaMitra',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF16A34A),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _dialogMetaChips(JobModel job) {
+    final chips = <Widget>[];
+
+    chips.add(_metaChip(
+      Icons.attach_money,
+      'Harga Awal: ${job.price}',
+    ));
+
+    if (job.acceptedPrice != null && job.acceptedPrice!.trim().isNotEmpty) {
+      chips.add(_metaChip(
+        Icons.payments_outlined,
+        'Harga Deal: ${job.acceptedPrice}',
+      ));
+    } else if (job.finalPrice != null) {
+      chips.add(_metaChip(
+        Icons.payments_outlined,
+        'Harga Deal: ${_formatCurrency(job.finalPrice)}',
+      ));
+    }
+
+    if (_hasValue(job.createdAt)) {
+      chips.add(_metaChip(
+        Icons.access_time,
+        'Dibuat: ${_formatDateTime(job.createdAt)}',
+      ));
+    }
+
+    if (_hasValue(job.startedAt)) {
+      chips.add(_metaChip(
+        Icons.play_circle_outline,
+        'Mulai: ${_formatDateTime(job.startedAt)}',
+      ));
+    }
+
+    if (_hasValue(job.completedAt)) {
+      chips.add(_metaChip(
+        Icons.check_circle_outline,
+        'Selesai: ${_formatDateTime(job.completedAt)}',
+      ));
+    }
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 8,
+      children: chips,
+    );
+  }
+
+  Widget _metaChip(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF6B7280)),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF4B5563),
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _hasProof(JobModel job) {
+    final proof = job.completionPhotoUrl;
+    return proof != null && proof.trim().isNotEmpty && proof.trim() != 'null';
+  }
+
+  Widget _dialogProofImage(JobModel job) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Image.network(
+        job.completionPhotoUrl!,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            height: 200,
+            color: const Color(0xFFF3F4F6),
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFF9CA3AF),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) {
+          return Container(
+            height: 200,
+            color: const Color(0xFFF3F4F6),
+            alignment: Alignment.center,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image_outlined,
+                  size: 32,
+                  color: Color(0xFF9CA3AF),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Gagal memuat gambar',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF9CA3AF),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  bool _hasRating(JobModel job) {
+    final r = job.myRating;
+    return r != null && r > 0;
+  }
+
+  Widget _dialogRating(JobModel job) {
+    final rating = job.myRating ?? 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.star, color: Color(0xFFF59E0B), size: 20),
+          const SizedBox(width: 8),
+          Text(
+            'Rating Anda: $rating/5',
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFD97706),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+
+  bool _hasValue(dynamic value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty && value != 'null';
+    return true;
+  }
+
+  String _formatCurrency(dynamic value) {
+    if (value == null) return '-';
+
+    double? amount;
+
+    if (value is num) {
+      amount = value.toDouble();
+    } else if (value is String) {
+      amount = double.tryParse(value);
+    }
+
+    if (amount == null) return value.toString();
+
+    final intAmount = amount.toInt();
+    final str = intAmount.toString();
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+    }
+
+    return 'Rp ${buffer.toString()}';
+  }
+
+  // ============================================================
+  // KONFIRMASI SELESAI — DIALOG
   // ============================================================
 
   void _showCompleteConfirmation(JobModel selectedJob) {
@@ -365,23 +1634,17 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             ),
           ),
           content: Text(
-            "Apakah pekerjaan '${selectedJob.title}' sudah selesai dikerjakan?",
+            "Apakah pekerjaan '${selectedJob.title}' sudah selesai dikerjakan?\n\n"
+            "Setelah dikonfirmasi, kamu akan diminta melakukan pembayaran.",
             style: const TextStyle(
               fontSize: _bodyFontSize,
-              height: 1.4,
+              height: 1.5,
             ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(
-            16,
-            0,
-            16,
-            16,
-          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'Batal',
                 style: TextStyle(
@@ -407,7 +1670,87 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 _completeJob(selectedJob);
               },
               child: const Text(
-                'Ya, Selesai',
+                'Ya, Konfirmasi',
+                style: TextStyle(
+                  fontSize: _buttonFontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // ✅ KONFIRMASI BATALKAN — DIALOG
+  // ============================================================
+
+  void _showCancelConfirmation(JobModel selectedJob) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Batalkan Pekerjaan',
+                style: TextStyle(
+                  fontSize: _dialogTitleFontSize,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            "Apakah kamu yakin ingin membatalkan pekerjaan "
+            "'${selectedJob.title}'?\n\n"
+            "Tindakan ini tidak bisa dibatalkan.",
+            style: const TextStyle(
+              fontSize: _bodyFontSize,
+              height: 1.5,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Tidak',
+                style: TextStyle(
+                  fontSize: _buttonFontSize,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(_smallRadius),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _cancelJob(selectedJob);
+              },
+              child: const Text(
+                'Ya, Batalkan',
                 style: TextStyle(
                   fontSize: _buttonFontSize,
                   fontWeight: FontWeight.bold,
@@ -449,10 +1792,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _fetchMyJobs,
-              icon: const Icon(
-                Icons.refresh,
-                size: 18,
-              ),
+              icon: const Icon(Icons.refresh, size: 18),
               label: const Text(
                 'Coba Lagi',
                 style: TextStyle(
@@ -461,7 +1801,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: _accent,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -485,22 +1825,40 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.assignment_outlined,
-              size: 52,
-              color: Colors.grey.shade400,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.assignment_outlined,
+                size: 36,
+                color: _accent.withOpacity(0.7),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            const Text(
+              'Belum ada pekerjaan',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
-              'Belum ada pekerjaan yang diposting.',
+              'Yuk, posting pekerjaan pertamamu lewat tombol di atas.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: _bodyFontSize,
+                height: 1.4,
               ),
             ),
           ],

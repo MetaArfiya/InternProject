@@ -47,6 +47,18 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   List<dynamic> _paymentTopMitra = [];
 
   // ================================================================
+  // DESIGN TOKENS
+  // ================================================================
+
+  static const double _mobileBreakpoint = 700;
+  static const double _tabletBreakpoint = 1100;
+
+  static const Color _bg = Color(0xFFF5F7FB);
+  static const Color _border = Color(0xFFE5E7EB);
+  static const Color _darkText = Color(0xFF0F172A);
+  static const Color _mutedText = Color(0xFF64748B);
+
+  // ================================================================
   // LIFECYCLE
   // ================================================================
   @override
@@ -74,19 +86,10 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
         ApiService.get('/superadmin/payments/top-mitra?limit=5'),
       ]);
 
-      debugPrint('================================================');
-      debugPrint('SUPER ADMIN ANALYTICS BUNDLE');
-      debugPrint('analytics:  ${responses[0].statusCode}');
-      debugPrint('overview:   ${responses[1].statusCode}');
-      debugPrint('chart:      ${responses[2].statusCode}');
-      debugPrint('top-mitra:  ${responses[3].statusCode}');
-      debugPrint('================================================');
-
       if (responses[0].statusCode != 200) {
         throw Exception('Analytics gagal (${responses[0].statusCode})');
       }
 
-      // Parse analytics
       final analyticsBody = jsonDecode(responses[0].body);
       if (analyticsBody['success'] != true) {
         throw Exception(
@@ -94,7 +97,6 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
         );
       }
 
-      // Parse payment (toleran)
       Map<String, dynamic>? overviewData;
       List<dynamic>? chartData;
       List<dynamic>? topMitraData;
@@ -104,11 +106,9 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           final body = jsonDecode(responses[1].body);
           if (body['success'] == true) {
             final data = body['data'];
-            if (data is Map) {
-              overviewData = Map<String, dynamic>.from(data);
-            } else {
-              overviewData = <String, dynamic>{};
-            }
+            overviewData = data is Map
+                ? Map<String, dynamic>.from(data)
+                : <String, dynamic>{};
           }
         } catch (_) {}
       }
@@ -126,7 +126,8 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
         try {
           final body = jsonDecode(responses[3].body);
           if (body['success'] == true) {
-            topMitraData = (body['data'] is List) ? (body['data'] as List) : [];
+            topMitraData =
+                (body['data'] is List) ? (body['data'] as List) : [];
           }
         } catch (_) {}
       }
@@ -189,24 +190,21 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   }
 
   // ================================================================
-  // SAFE MAP PARSER
+  // HELPERS
   // ================================================================
-  /// Ubah value apapun jadi Map<String, dynamic>.
-  /// Kalau bukan Map, return empty Map (tidak error).
+
   Map<String, dynamic> _safeMap(dynamic value) {
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
-    }
+    if (value is Map) return Map<String, dynamic>.from(value);
     return <String, dynamic>{};
   }
 
-  // ================================================================
-  // HELPER KONVERSI
-  // ================================================================
   double _toDouble(dynamic value) {
     if (value == null) return 0;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value.toString()) ?? 0;
+    if (value is num) {
+      return value.isFinite ? value.toDouble() : 0;
+    }
+    final parsed = double.tryParse(value.toString()) ?? 0;
+    return parsed.isFinite ? parsed : 0;
   }
 
   int _toInt(dynamic value) {
@@ -216,11 +214,9 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
     return int.tryParse(value.toString()) ?? 0;
   }
 
-  // ================================================================
-  // FORMAT RUPIAH
-  // ================================================================
   String _formatRupiah(double value) {
-    final int roundedValue = value.round();
+    final safe = value.isFinite ? value : 0.0;
+    final int roundedValue = safe.round();
     final String number = roundedValue.toString();
     final String formatted = number.replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
@@ -229,9 +225,6 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
     return 'Rp $formatted';
   }
 
-  // ================================================================
-  // FORMAT PERIODE
-  // ================================================================
   String _formatPeriod(String start, String end) {
     try {
       final startDate = DateTime.parse(start);
@@ -253,347 +246,462 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // ================================================================
   // BUILD
   // ================================================================
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < _mobileBreakpoint;
+        final isTablet =
+            width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
-              const SizedBox(height: 12),
-              const Text(
-                'Gagal mengambil data analytics',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF10213A),
+        final horizontalPadding =
+            isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+        final verticalPadding = isMobile ? 16.0 : 28.0;
+
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: _bg,
+          child: RefreshIndicator(
+            onRefresh: _loadAll,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1300),
+                  child: _buildContent(width, isMobile),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6D8099)),
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton.icon(
-                onPressed: _loadAll,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Coba Lagi'),
-              ),
-            ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(double width, bool isMobile) {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 100),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF97316)),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadAll,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final int columns = width >= 1100
-                ? 4
-                : width >= 650
-                    ? 2
-                    : 1;
+    if (_errorMessage != null) {
+      return _buildErrorState();
+    }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ==================================================
-                // HEADER
-                // ==================================================
-                const Text(
-                  'Analytics Platform',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF10213A),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Ringkasan performa SiapBantu.com — $_periode',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6D8099)),
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ==================================================
+        // HEADER
+        // ==================================================
+        _buildHeader(isMobile),
+        SizedBox(height: isMobile ? 20 : 26),
 
-                const SizedBox(height: 24),
-
-                // ==================================================
-                // GENERAL STATS
-                // ==================================================
-                GridView.count(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: width < 650 ? 2.7 : 2.3,
-                  children: [
-                    _StatisticCard(
-                      title: 'TOTAL TRANSAKSI',
-                      value: _formatRupiah(_totalTransaksi),
-                      description: '7 hari terakhir',
-                      icon: Icons.payments_rounded,
-                      backgroundColor: const Color(0xFFF0FFF7),
-                      borderColor: const Color(0xFFC9F0DB),
-                      valueColor: const Color(0xFF00A86B),
-                    ),
-                    _StatisticCard(
-                      title: 'JOB SELESAI',
-                      value: '$_jobSelesai',
-                      description: '7 hari terakhir',
-                      icon: Icons.check_circle_rounded,
-                      backgroundColor: const Color(0xFFF0F8FF),
-                      borderColor: const Color(0xFFC7E6FA),
-                      valueColor: const Color(0xFF159DDD),
-                    ),
-                    _StatisticCard(
-                      title: 'PENGGUNA BARU',
-                      value: '$_penggunaBaru',
-                      description: '$_pelangganBaru pelanggan · $_mitraBaru mitra',
-                      icon: Icons.people_alt_rounded,
-                      backgroundColor: const Color(0xFFFBF3FF),
-                      borderColor: const Color(0xFFE6D5F8),
-                      valueColor: const Color(0xFF8454E8),
-                    ),
-                    _StatisticCard(
-                      title: 'MITRA AKTIF',
-                      value: '$_mitraAktif',
-                      description: '$_mitraMenunggu menunggu verifikasi',
-                      icon: Icons.handyman_rounded,
-                      backgroundColor: const Color(0xFFFFF8EE),
-                      borderColor: const Color(0xFFFFD9B5),
-                      valueColor: const Color(0xFFE95D00),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 22),
-
-                // ==================================================
-                // JOB CHART
-                // ==================================================
-                _JobChartCard(data: _jobSelesaiPerHari),
-
-                const SizedBox(height: 22),
-
-                // ==================================================
-                // PEMBAYARAN - SECTION HEADER
-                // ==================================================
-                const Text(
-                  'Analytics Pembayaran',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF10213A),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Ringkasan transaksi dan pencairan dana platform',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6D8099)),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ==================================================
-                // PAYMENT STAT CARDS
-                // ==================================================
-                GridView.count(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: width < 650 ? 2.7 : 2.3,
-                  children: [
-                    _StatisticCard(
-                      title: 'TOTAL PEMBAYARAN',
-                      value: _formatRupiah(_paymentTotalPembayaran),
-                      description: '$_paymentTotalTransaksi transaksi',
-                      icon: Icons.account_balance_wallet_rounded,
-                      backgroundColor: const Color(0xFFF0FFF7),
-                      borderColor: const Color(0xFFC9F0DB),
-                      valueColor: const Color(0xFF00A86B),
-                    ),
-                    _StatisticCard(
-                      title: 'KOMISI PLATFORM',
-                      value: _formatRupiah(_paymentTotalKomisi),
-                      description: 'Pendapatan aplikasi',
-                      icon: Icons.percent_rounded,
-                      backgroundColor: const Color(0xFFFFF8EE),
-                      borderColor: const Color(0xFFFFD9B5),
-                      valueColor: const Color(0xFFE95D00),
-                    ),
-                    _StatisticCard(
-                      title: 'TOTAL KE MITRA',
-                      value: _formatRupiah(_paymentTotalMitraEarning),
-                      description: 'Sudah dibayarkan',
-                      icon: Icons.handshake_rounded,
-                      backgroundColor: const Color(0xFFF0F8FF),
-                      borderColor: const Color(0xFFC7E6FA),
-                      valueColor: const Color(0xFF159DDD),
-                    ),
-                    _StatisticCard(
-                      title: 'PENDING CAIR',
-                      value: _formatRupiah(_paymentPendingAmount),
-                      description: 'Belum ditransfer',
-                      icon: Icons.hourglass_top_rounded,
-                      backgroundColor: const Color(0xFFFFF4F4),
-                      borderColor: const Color(0xFFFFD5D5),
-                      valueColor: const Color(0xFFE53935),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 18),
-
-                // ==================================================
-                // PAYMENT CHART + TOP MITRA
-                // ==================================================
-                if (width >= 850)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _PaymentChartCard(data: _paymentChart),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _TopMitraCard(data: _paymentTopMitra),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _PaymentChartCard(data: _paymentChart),
-                      const SizedBox(height: 16),
-                      _TopMitraCard(data: _paymentTopMitra),
-                    ],
-                  ),
-
-                const SizedBox(height: 18),
-
-                // ==================================================
-                // BOTTOM ROW (INCOME + USER GROWTH + STATUS)
-                // ==================================================
-                if (width >= 850)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _DailyIncomeCard(data: _pendapatanHarian)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _UserGrowthCard(data: _pertumbuhanPengguna)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _PaymentStatusCard(data: _paymentPerStatus)),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _DailyIncomeCard(data: _pendapatanHarian),
-                      const SizedBox(height: 16),
-                      _UserGrowthCard(data: _pertumbuhanPengguna),
-                      const SizedBox(height: 16),
-                      _PaymentStatusCard(data: _paymentPerStatus),
-                    ],
-                  ),
-              ],
-            );
-          },
+        // ==================================================
+        // GENERAL STATS
+        // ==================================================
+        _buildSectionLabel('Ringkasan Platform', isMobile),
+        const SizedBox(height: 12),
+        _buildStatGrid(
+          isMobile: isMobile,
+          cards: [
+            _StatData(
+              title: 'TOTAL TRANSAKSI',
+              value: _formatRupiah(_totalTransaksi),
+              description: '7 hari terakhir',
+              icon: Icons.payments_rounded,
+              color: const Color(0xFF00A86B),
+            ),
+            _StatData(
+              title: 'JOB SELESAI',
+              value: '$_jobSelesai',
+              description: '7 hari terakhir',
+              icon: Icons.check_circle_rounded,
+              color: const Color(0xFF159DDD),
+            ),
+            _StatData(
+              title: 'PENGGUNA BARU',
+              value: '$_penggunaBaru',
+              description: '$_pelangganBaru pelanggan · $_mitraBaru mitra',
+              icon: Icons.people_alt_rounded,
+              color: const Color(0xFF8454E8),
+            ),
+            _StatData(
+              title: 'MITRA AKTIF',
+              value: '$_mitraAktif',
+              description: '$_mitraMenunggu menunggu verifikasi',
+              icon: Icons.handyman_rounded,
+              color: const Color(0xFFE95D00),
+            ),
+          ],
         ),
-      ),
+
+        SizedBox(height: isMobile ? 18 : 22),
+
+        // ==================================================
+        // JOB CHART
+        // ==================================================
+        _JobChartCard(data: _jobSelesaiPerHari),
+
+        SizedBox(height: isMobile ? 22 : 28),
+
+        // ==================================================
+        // PEMBAYARAN
+        // ==================================================
+        _buildSectionLabel('Analytics Pembayaran', isMobile),
+        const SizedBox(height: 4),
+        const Text(
+          'Ringkasan transaksi dan pencairan dana platform',
+          style: TextStyle(fontSize: 12, color: _mutedText),
+        ),
+        const SizedBox(height: 14),
+
+        _buildStatGrid(
+          isMobile: isMobile,
+          cards: [
+            _StatData(
+              title: 'TOTAL PEMBAYARAN',
+              value: _formatRupiah(_paymentTotalPembayaran),
+              description: '$_paymentTotalTransaksi transaksi',
+              icon: Icons.account_balance_wallet_rounded,
+              color: const Color(0xFF00A86B),
+            ),
+            _StatData(
+              title: 'KOMISI PLATFORM',
+              value: _formatRupiah(_paymentTotalKomisi),
+              description: 'Pendapatan aplikasi',
+              icon: Icons.percent_rounded,
+              color: const Color(0xFFE95D00),
+            ),
+            _StatData(
+              title: 'TOTAL KE MITRA',
+              value: _formatRupiah(_paymentTotalMitraEarning),
+              description: 'Sudah dibayarkan',
+              icon: Icons.handshake_rounded,
+              color: const Color(0xFF159DDD),
+            ),
+            _StatData(
+              title: 'PENDING CAIR',
+              value: _formatRupiah(_paymentPendingAmount),
+              description: 'Belum ditransfer',
+              icon: Icons.hourglass_top_rounded,
+              color: const Color(0xFFE53935),
+            ),
+          ],
+        ),
+
+        SizedBox(height: isMobile ? 18 : 22),
+
+        // ==================================================
+        // PAYMENT CHART + TOP MITRA
+        // ==================================================
+        _buildTwoColumnRow(
+          isMobile: isMobile,
+          left: _PaymentChartCard(data: _paymentChart),
+          right: _TopMitraCard(data: _paymentTopMitra),
+        ),
+
+        SizedBox(height: isMobile ? 18 : 22),
+
+        // ==================================================
+        // BOTTOM ROW
+        // ==================================================
+        _buildThreeColumnRow(
+          isMobile: isMobile,
+          first: _DailyIncomeCard(data: _pendapatanHarian),
+          second: _UserGrowthCard(data: _pertumbuhanPengguna),
+          third: _PaymentStatusCard(data: _paymentPerStatus),
+        ),
+      ],
     );
   }
-}
 
-// ====================================================================
-// STATISTIC CARD
-// ====================================================================
+  // ================================================================
+  // HEADER
+  // ================================================================
 
-class _StatisticCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String description;
-  final IconData icon;
-  final Color backgroundColor;
-  final Color borderColor;
-  final Color valueColor;
+  Widget _buildHeader(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Analytics Platform',
+          style: TextStyle(
+            fontSize: isMobile ? 22 : 26,
+            fontWeight: FontWeight.w700,
+            color: _darkText,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Ringkasan performa SiapBantu.com — $_periode',
+          style: TextStyle(
+            fontSize: isMobile ? 12.5 : 13,
+            color: _mutedText,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
 
-  const _StatisticCard({
-    required this.title,
-    required this.value,
-    required this.description,
-    required this.icon,
-    required this.backgroundColor,
-    required this.borderColor,
-    required this.valueColor,
-  });
+  // ================================================================
+  // SECTION LABEL
+  // ================================================================
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSectionLabel(String text, bool isMobile) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF97316),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: isMobile ? 15 : 17,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1F2937),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ================================================================
+  // STAT GRID — MOBILE 2×2, WEB 4 KOLOM
+  // ================================================================
+
+  Widget _buildStatGrid({
+    required bool isMobile,
+    required List<_StatData> cards,
+  }) {
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildStatCard(cards[0])),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard(cards[1])),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard(cards[2])),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard(cards[3])),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        for (int i = 0; i < cards.length; i++) ...[
+          Expanded(child: _buildStatCard(cards[i])),
+          if (i != cards.length - 1) const SizedBox(width: 14),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildStatCard(_StatData data) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
       ),
       child: Row(
         children: [
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  title,
+                  data.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 9,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF60748E),
+                    color: Color(0xFF8092A9),
+                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(
-                  value,
+                  data.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: valueColor,
+                    color: data.color,
+                    height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
-                  description,
+                  data.description,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 9, color: Color(0xFF8092A9)),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Icon(icon, size: 25, color: valueColor),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(data.icon, size: 20, color: data.color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // 2-COLUMN & 3-COLUMN LAYOUT HELPERS
+  // ================================================================
+
+  Widget _buildTwoColumnRow({
+    required bool isMobile,
+    required Widget left,
+    required Widget right,
+  }) {
+    if (isMobile) {
+      return Column(
+        children: [
+          left,
+          const SizedBox(height: 16),
+          right,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 3, child: left),
+        const SizedBox(width: 16),
+        Expanded(flex: 2, child: right),
+      ],
+    );
+  }
+
+  Widget _buildThreeColumnRow({
+    required bool isMobile,
+    required Widget first,
+    required Widget second,
+    required Widget third,
+  }) {
+    if (isMobile) {
+      return Column(
+        children: [
+          first,
+          const SizedBox(height: 16),
+          second,
+          const SizedBox(height: 16),
+          third,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 16),
+        Expanded(child: second),
+        const SizedBox(width: 16),
+        Expanded(child: third),
+      ],
+    );
+  }
+
+  // ================================================================
+  // ERROR STATE
+  // ================================================================
+
+  Widget _buildErrorState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 48,
+            color: Color(0xFFDC2626),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Gagal mengambil data analytics',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF7F1D1D),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF991B1B),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(
+            onPressed: _loadAll,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF97316),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -601,7 +709,27 @@ class _StatisticCard extends StatelessWidget {
 }
 
 // ====================================================================
-// JOB CHART
+// DATA CLASS
+// ====================================================================
+
+class _StatData {
+  final String title;
+  final String value;
+  final String description;
+  final IconData icon;
+  final Color color;
+
+  const _StatData({
+    required this.title,
+    required this.value,
+    required this.description,
+    required this.icon,
+    required this.color,
+  });
+}
+
+// ====================================================================
+// JOB CHART CARD
 // ====================================================================
 
 class _JobChartCard extends StatelessWidget {
@@ -613,15 +741,16 @@ class _JobChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = data.entries.toList();
     final values = entries.map((e) => _toInt(e.value)).toList();
-    final int maxValue = values.isEmpty ? 1 : values.reduce((a, b) => a > b ? a : b);
+    final int maxValue =
+        values.isEmpty ? 1 : values.reduce((a, b) => a > b ? a : b);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFDCE5EF)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -629,36 +758,38 @@ class _JobChartCard extends StatelessWidget {
           const Text(
             'Job Selesai per Hari',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF10213A),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           const Text(
             'Data berdasarkan job yang berstatus Selesai',
-            style: TextStyle(fontSize: 10, color: Color(0xFF8092A9)),
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 20),
           if (entries.isEmpty)
             const SizedBox(
-              height: 190,
+              height: 180,
               child: Center(
                 child: Text(
                   'Belum ada data job selesai.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF8092A9)),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                 ),
               ),
             )
           else
             SizedBox(
-              height: 190,
+              height: 180,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: entries.map((item) {
                   final int value = _toInt(item.value);
-                  final double heightFactor = maxValue == 0 ? 0 : value / maxValue;
-                  final bool weekend = item.key == 'Sab' || item.key == 'Min';
+                  final double heightFactor =
+                      maxValue == 0 ? 0 : value / maxValue;
+                  final bool weekend =
+                      item.key == 'Sab' || item.key == 'Min';
 
                   return Expanded(
                     child: Padding(
@@ -669,7 +800,7 @@ class _JobChartCard extends StatelessWidget {
                           Text(
                             '$value',
                             style: const TextStyle(
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF52677F),
                             ),
@@ -686,7 +817,8 @@ class _JobChartCard extends StatelessWidget {
                                     color: weekend
                                         ? const Color(0xFFEE5B00)
                                         : const Color(0xFFB9D4F7),
-                                    borderRadius: const BorderRadius.vertical(
+                                    borderRadius:
+                                        const BorderRadius.vertical(
                                       top: Radius.circular(4),
                                     ),
                                   ),
@@ -698,8 +830,9 @@ class _JobChartCard extends StatelessWidget {
                           Text(
                             item.key,
                             style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF63758C),
+                              fontSize: 10.5,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -724,7 +857,7 @@ class _JobChartCard extends StatelessWidget {
 }
 
 // ====================================================================
-// PAYMENT CHART
+// PAYMENT CHART CARD
 // ====================================================================
 
 class _PaymentChartCard extends StatelessWidget {
@@ -734,12 +867,17 @@ class _PaymentChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxValue = data
+        .whereType<Map>()
+        .map<double>((e) => _toDouble(e['total_pembayaran']))
+        .fold<double>(1, (a, b) => a > b ? a : b);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFDCE5EF)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -747,15 +885,15 @@ class _PaymentChartCard extends StatelessWidget {
           const Text(
             'Pendapatan Bulanan',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF10213A),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           const Text(
             'Total pembayaran 12 bulan terakhir',
-            style: TextStyle(fontSize: 10, color: Color(0xFF8092A9)),
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 18),
           if (data.isEmpty)
@@ -764,7 +902,7 @@ class _PaymentChartCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   'Belum ada data pembayaran.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF8092A9)),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                 ),
               ),
             )
@@ -774,10 +912,6 @@ class _PaymentChartCard extends StatelessWidget {
                 if (item is! Map) return const SizedBox.shrink();
 
                 final total = _toDouble(item['total_pembayaran']);
-                final max = data
-                    .whereType<Map>()
-                    .map<double>((e) => _toDouble(e['total_pembayaran']))
-                    .fold<double>(1, (a, b) => a > b ? a : b);
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -790,6 +924,7 @@ class _PaymentChartCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFF52677F),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -804,7 +939,8 @@ class _PaymentChartCard extends StatelessWidget {
                               ),
                             ),
                             FractionallySizedBox(
-                              widthFactor: (total / max).clamp(0.0, 1.0),
+                              widthFactor:
+                                  (total / maxValue).clamp(0.0, 1.0),
                               child: Container(
                                 height: 16,
                                 decoration: BoxDecoration(
@@ -818,13 +954,14 @@ class _PaymentChartCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       SizedBox(
-                        width: 90,
+                        width: 88,
                         child: Text(
                           _formatRupiahShort(total),
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
                           ),
                         ),
                       ),
@@ -854,8 +991,8 @@ class _TopMitraCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFDCE5EF)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,21 +1000,24 @@ class _TopMitraCard extends StatelessWidget {
           const Text(
             'Top Mitra',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF10213A),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           const Text(
             'Berdasarkan pendapatan tertinggi',
-            style: TextStyle(fontSize: 10, color: Color(0xFF8092A9)),
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 16),
           if (data.isEmpty)
-            const Text(
-              'Belum ada data mitra.',
-              style: TextStyle(fontSize: 11, color: Color(0xFF8092A9)),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'Belum ada data mitra.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              ),
             )
           else
             ...data.asMap().entries.map((entry) {
@@ -900,7 +1040,8 @@ class _TopMitraCard extends StatelessWidget {
                 const Color(0xFF9E9E9E),
                 const Color(0xFFBC8A5F),
               ];
-              final color = idx <= 3 ? colors[idx - 1] : Colors.grey.shade300;
+              final color =
+                  idx <= 3 ? colors[idx - 1] : const Color(0xFFCBD5E1);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -913,7 +1054,7 @@ class _TopMitraCard extends StatelessWidget {
                         '$idx',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
                       ),
@@ -922,12 +1063,13 @@ class _TopMitraCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         name,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                        ),
                       ),
                     ),
                     Text(
@@ -996,7 +1138,7 @@ class _PaymentStatusCard extends StatelessWidget {
                 child: Text(
                   e.value,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: Color(0xFF5E7188),
                   ),
                 ),
@@ -1004,8 +1146,9 @@ class _PaymentStatusCard extends StatelessWidget {
               Text(
                 '$count',
                 style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
                 ),
               ),
             ],
@@ -1032,8 +1175,8 @@ class _Legend extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 9,
-          height: 9,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(2),
@@ -1042,7 +1185,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           text,
-          style: const TextStyle(fontSize: 9, color: Color(0xFF71839A)),
+          style: const TextStyle(fontSize: 10, color: Color(0xFF71839A)),
         ),
       ],
     );
@@ -1131,8 +1274,8 @@ class _ListCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFDCE5EF)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1140,16 +1283,16 @@ class _ListCard extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF10213A),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 15),
           if (children.isEmpty)
             const Text(
               'Belum ada data.',
-              style: TextStyle(fontSize: 11, color: Color(0xFF8092A9)),
+              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
             )
           else
             ...children,
@@ -1183,10 +1326,14 @@ class _ProgressRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 30,
+            width: 32,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF5E7188)),
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF5E7188),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           Expanded(
@@ -1214,15 +1361,16 @@ class _ProgressRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           SizedBox(
-            width: 70,
+            width: 72,
             child: Text(
               value,
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
               ),
             ),
           ),
@@ -1238,8 +1386,11 @@ class _ProgressRow extends StatelessWidget {
 
 double _toDouble(dynamic value) {
   if (value == null) return 0;
-  if (value is num) return value.toDouble();
-  return double.tryParse(value.toString()) ?? 0;
+  if (value is num) {
+    return value.isFinite ? value.toDouble() : 0;
+  }
+  final parsed = double.tryParse(value.toString()) ?? 0;
+  return parsed.isFinite ? parsed : 0;
 }
 
 int _toInt(dynamic value) {
@@ -1250,14 +1401,15 @@ int _toInt(dynamic value) {
 }
 
 String _formatRupiahShort(double value) {
-  if (value >= 1000000000) {
-    return 'Rp ${(value / 1000000000).toStringAsFixed(1)} M';
+  final safe = value.isFinite ? value : 0.0;
+  if (safe >= 1000000000) {
+    return 'Rp ${(safe / 1000000000).toStringAsFixed(1)} M';
   }
-  if (value >= 1000000) {
-    return 'Rp ${(value / 1000000).toStringAsFixed(1)} Jt';
+  if (safe >= 1000000) {
+    return 'Rp ${(safe / 1000000).toStringAsFixed(1)} Jt';
   }
-  if (value >= 1000) {
-    return 'Rp ${(value / 1000).toStringAsFixed(1)} Rb';
+  if (safe >= 1000) {
+    return 'Rp ${(safe / 1000).toStringAsFixed(1)} Rb';
   }
-  return 'Rp ${value.round()}';
+  return 'Rp ${safe.round()}';
 }

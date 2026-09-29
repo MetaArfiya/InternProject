@@ -5,6 +5,7 @@ import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
@@ -470,7 +471,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             loadedPendingCert = getFullPhotoUrl(rawPendingCert);
           }
 
-          // ✅ Handle certificate bisa String ATAU List
           String certFullUrl = '';
           final rawCert = mitra['certificate'];
           if (rawCert is List && rawCert.isNotEmpty) {
@@ -1226,16 +1226,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // ✅ FIXED: uploadCertificate — tentukan is_pending di sini
-  // ============================================================
   Future<void> uploadCertificate() async {
     if (certificateBytes == null) {
       _showMessage('Silakan pilih sertifikat terlebih dahulu.', error: true);
       return;
     }
 
-    // ✅ Cek pending di sini, bukan di pickCertificate
     final bool isPendingUpload = pendingSkills.isNotEmpty;
 
     try {
@@ -1247,7 +1243,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final request = html.HttpRequest();
       final formData = html.FormData();
 
-      // Deteksi MIME type berdasarkan extension
       String mimeType = 'image/jpeg';
       final lowerName = (certificateFileName ?? '').toLowerCase();
       if (lowerName.endsWith('.png')) {
@@ -1319,9 +1314,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  // ============================================================
-  // ✅ FIXED: pickCertificate — hanya simpan di memory, TIDAK auto upload
-  // ============================================================
   Future<void> pickCertificate() async {
     final image = await _pickImageFile(
       maxSizeInBytes: 2 * 1024 * 1024,
@@ -1329,8 +1321,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
     if (image == null) return;
 
-    // ✅ FIX: Selalu simpan dulu di memory, JANGAN auto-upload.
-    // Sertifikat akan dikirim saat tombol utama "Simpan & Kirim Data Mitra" ditekan.
     if (mounted) {
       setState(() {
         certificateBytes = image.bytes;
@@ -1651,6 +1641,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         _buildNotificationSection(),
                         const SizedBox(height: 18),
                         _buildSecuritySection(),
+                        const SizedBox(height: 18),
+                        _buildLogoutSection(),
                       ],
                     ),
                   ),
@@ -2558,9 +2550,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // ✅ SKILL SECTION — HANYA SKILL, TANPA SERTIFIKAT PENDING
-  // ============================================================
   Widget _buildSkillSection() {
     final validCategory = categories.contains(selectedCategory);
     final int totalPhotos = skillPhotoUrls.length + skillPhotoBytes.length;
@@ -2875,9 +2864,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // ✅ CERTIFICATE SECTION — SERTIFIKAT PENDING PINDAH KE SINI
-  // ============================================================
   Widget _buildCertificateSection() {
     final bool hasPendingCert = pendingCertificateUrl.isNotEmpty;
     final bool isInPendingMode =
@@ -2893,9 +2879,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
           const SizedBox(height: 12),
 
-          // ============================================================
-          // SERTIFIKAT BARU (PENDING)
-          // ============================================================
           if (hasPendingCert) ...[
             Container(
               padding: const EdgeInsets.all(12),
@@ -2964,9 +2947,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             const SizedBox(height: 12),
           ],
 
-          // ============================================================
-          // INFO: Mode pending (belum upload tapi ada pending skills)
-          // ============================================================
           if (!hasPendingCert && pendingSkills.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.all(12),
@@ -2996,9 +2976,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             const SizedBox(height: 10),
           ],
 
-          // ============================================================
-          // SERTIFIKAT SAAT INI (AKTIF)
-          // ============================================================
           const Text(
             'Sertifikat Aktif',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
@@ -3023,10 +3000,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         ],
     );
   }
-
-  // ============================================================
-  // VALIDASI DAN SUBMIT SEMUA DATA MITRA
-  // ============================================================
 
   List<String> _getIncompleteMitraData() {
     final incomplete = <String>[];
@@ -3071,7 +3044,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     if (!hasKtp) incomplete.add('Foto KTP');
     if (!hasSelfie) incomplete.add('Foto verifikasi diri');
 
-    // Endpoint verifikasi lama mengirim KTP + selfie sekaligus.
     if ((ktpBytes != null && selfieBytes == null && selfieUrl.isNotEmpty) ||
         (selfieBytes != null && ktpBytes == null && ktpUrl.isNotEmpty)) {
       incomplete.add(
@@ -3083,9 +3055,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       incomplete.add('Kategori keahlian');
     }
 
-    // Foto keahlian tetap opsional karena fungsi saveSkill() saat ini
-    // tidak mewajibkan adanya foto.
-    // Sertifikat juga opsional sesuai tampilan halaman saat ini.
     return incomplete;
   }
 
@@ -3202,8 +3171,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     if (confirmed != true) return;
 
     try {
-      // Fungsi lama tetap digunakan agar endpoint dan logic pending
-      // yang sudah ada di project tidak berubah.
       await saveBasicProfile();
       await saveIdentity();
       await saveBankAccount();
@@ -3213,7 +3180,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         throw Exception('Foto keahlian gagal diupload.');
       }
 
-      // Endpoint verifikasi membutuhkan KTP + selfie sekaligus.
       if (ktpBytes != null && selfieBytes != null) {
         await submitVerification();
         if (ktpBytes != null || selfieBytes != null) {
@@ -3221,7 +3187,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         }
       }
 
-      // Sertifikat bersifat opsional.
       if (certificateBytes != null) {
         await uploadCertificate();
         if (certificateBytes != null) {
@@ -3509,6 +3474,161 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         ],
       ),
     );
+  }
+
+  // ============================================================
+  // LOGOUT SECTION
+  // ============================================================
+
+  Widget _buildLogoutSection() {
+    return _sectionCard(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showLogoutDialog,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.logout,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Keluar dari Akun',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFDC2626),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Keluar dari akun mitra SayaBantu.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 22,
+                  color: Color(0xFF9CA3AF),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOGOUT DIALOG
+  // ============================================================
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.logout, color: Color(0xFFDC2626)),
+              SizedBox(width: 10),
+              Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Apakah Anda yakin ingin keluar dari akun ini?',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Batal',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await _logout();
+              },
+              child: const Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // LOGOUT PROCESS
+  // ============================================================
+
+  Future<void> _logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LandingPage()),
+        (route) => false,
+      );
+    } catch (e) {
+      debugPrint('Logout error: $e');
+      _showMessage('Gagal logout: $e', error: true);
+    }
   }
 
   Widget _sectionCard({required Widget child}) {
