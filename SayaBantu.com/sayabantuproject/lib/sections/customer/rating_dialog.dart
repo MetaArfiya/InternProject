@@ -140,27 +140,33 @@ class _RatingDialogState extends State<RatingDialog> {
 
               const SizedBox(height: 12),
 
-              // Bintang
+              // ============================================================
+              // BAGIAN YANG DIPERBAIKI: Menggunakan FittedBox
+              // ============================================================
               Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(5, (i) {
-                    final index = i + 1;
-                    return IconButton(
-                      onPressed: _isSubmitting
-                          ? null
-                          : () => setState(() => _stars = index),
-                      icon: Icon(
-                        index <= _stars
-                            ? Icons.star_rounded
-                            : Icons.star_border_rounded,
-                        color: Colors.amber,
-                        size: 38,
-                      ),
-                    );
-                  }),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown, // Menyesuaikan skala jika terlalu lebar
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(5, (i) {
+                      final index = i + 1;
+                      return IconButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => setState(() => _stars = index),
+                        icon: Icon(
+                          index <= _stars
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: Colors.amber,
+                          size: 38,
+                        ),
+                      );
+                    }),
+                  ),
                 ),
               ),
+              // ============================================================
 
               // Label bintang
               Center(
