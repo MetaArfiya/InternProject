@@ -1,3 +1,4 @@
+import 'dart:async'; // <-- TAMBAHAN: Diperlukan untuk Completer
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:html' as html;
@@ -367,43 +368,58 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // =========================================================
 
   Future<void> _pickProfilePhoto() async {
+    // Gunakan Completer agar fungsi ini menunggu sampai file selesai dibaca
+    final completer = Completer<void>();
+    
     final input = html.FileUploadInputElement();
     input.accept = 'image/*';
     input.click();
 
     input.onChange.listen((event) {
       final files = input.files;
-      if (files == null || files.isEmpty) return;
+      if (files == null || files.isEmpty) {
+        completer.complete();
+        return;
+      }
 
       final file = files.first;
       final reader = html.FileReader();
       reader.readAsArrayBuffer(file);
 
       reader.onLoadEnd.listen((event) {
-        if (reader.result == null) return;
+        if (reader.result == null) {
+          completer.complete();
+          return;
+        }
 
         try {
           final Uint8List bytes = reader.result as Uint8List;
 
-          if (!mounted) return;
-
-          setState(() {
-            selectedPhotoBytes = bytes;
-            selectedPhotoName = file.name;
-          });
+          if (mounted) {
+            setState(() {
+              selectedPhotoBytes = bytes;
+              selectedPhotoName = file.name;
+            });
+          }
         } catch (e) {
           debugPrint('ERROR MEMBACA FOTO: $e');
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal membaca foto.'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Gagal membaca foto.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } finally {
+          // Tandai bahwa proses sudah selesai, apapun hasilnya
+          completer.complete();
         }
       });
     });
+
+    // Kembalikan Future yang akan selesai ketika completer.complete() dipanggil
+    return completer.future;
   }
 
   // =========================================================
@@ -566,7 +582,9 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                             onTap: isSavingProfile || isUploadingPhoto
                                 ? null
                                 : () async {
+                                    // Tunggu proses pemilihan dan pembacaan foto selesai
                                     await _pickProfilePhoto();
+                                    // Setelah selesai, perbarui tampilan dialog
                                     if (mounted) {
                                       setDialogState(() {});
                                     }
