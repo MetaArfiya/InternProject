@@ -32,23 +32,35 @@ class _RatingDialogState extends State<RatingDialog> {
 
   String get _starLabel {
     switch (_stars) {
-      case 1: return 'Sangat Buruk';
-      case 2: return 'Buruk';
-      case 3: return 'Cukup';
-      case 4: return 'Bagus';
-      case 5: return 'Sangat Bagus';
-      default: return 'Pilih bintang';
+      case 1:
+        return 'Sangat Buruk';
+      case 2:
+        return 'Buruk';
+      case 3:
+        return 'Cukup';
+      case 4:
+        return 'Bagus';
+      case 5:
+        return 'Sangat Bagus';
+      default:
+        return 'Pilih bintang';
     }
   }
 
   Color get _starColor {
     switch (_stars) {
-      case 1: return Colors.red;
-      case 2: return Colors.orange;
-      case 3: return Colors.amber;
-      case 4: return Colors.lightGreen;
-      case 5: return Colors.green;
-      default: return Colors.grey;
+      case 1:
+        return Colors.red;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.amber;
+      case 4:
+        return Colors.lightGreen;
+      case 5:
+        return Colors.green;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -153,8 +165,9 @@ class _RatingDialogState extends State<RatingDialog> {
           ),
         ],
       ),
-      content: SizedBox(
-        width: 440,
+      // FIX 1: Gunakan ConstrainedBox agar lebar dialog tidak dipaksa 440px pada layar HP
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +186,8 @@ class _RatingDialogState extends State<RatingDialog> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.work_outline, size: 16, color: Colors.grey),
+                        const Icon(Icons.work_outline,
+                            size: 16, color: Colors.grey),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -191,7 +205,8 @@ class _RatingDialogState extends State<RatingDialog> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                        const Icon(Icons.person_outline,
+                            size: 16, color: Colors.grey),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -216,27 +231,36 @@ class _RatingDialogState extends State<RatingDialog> {
               Center(
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        final starIndex = index + 1;
-                        final filled = starIndex <= _stars;
+                    // FIX 2: Bungkus dengan FittedBox agar bintang otomatis mengecil di layar sempit
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final starIndex = index + 1;
+                          final filled = starIndex <= _stars;
 
-                        return GestureDetector(
-                          onTap: _isSubmitting
-                              ? null
-                              : () => setState(() => _stars = starIndex),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Icon(
-                              filled ? Icons.star_rounded : Icons.star_border_rounded,
-                              size: 46,
-                              color: filled ? Colors.amber : Colors.grey.shade300,
+                          return GestureDetector(
+                            onTap: _isSubmitting
+                                ? null
+                                : () => setState(() => _stars = starIndex),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                filled
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                size: 46,
+                                color: filled
+                                    ? Colors.amber
+                                    : Colors.grey.shade300,
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -268,7 +292,8 @@ class _RatingDialogState extends State<RatingDialog> {
                 maxLines: 4,
                 maxLength: 500,
                 decoration: InputDecoration(
-                  hintText: 'Ceritakan pengalaman Anda bekerja dengan mitra ini...',
+                  hintText:
+                      'Ceritakan pengalaman Anda bekerja dengan mitra ini...',
                   hintStyle: const TextStyle(fontSize: 13),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -284,7 +309,8 @@ class _RatingDialogState extends State<RatingDialog> {
       actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
       actions: [
         TextButton(
-          onPressed: _isSubmitting ? null : () => Navigator.pop(context, false),
+          onPressed:
+              _isSubmitting ? null : () => Navigator.pop(context, false),
           child: const Text('Batal'),
         ),
         ElevatedButton.icon(

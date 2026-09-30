@@ -734,7 +734,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // PROFILE HEADER
+  // PROFILE HEADER (FIXED WITH LAYOUT BUILDER)
   // =========================================================
 
   Widget _buildProfileHeader({required bool isMobile}) {
@@ -747,8 +747,14 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: _borderColor),
       ),
-      child: isMobile
-          ? Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Jika lebar kolom kurang dari 450px, gunakan layout vertikal (Column)
+          // untuk menghindari teks menumpuk dan error overflow.
+          final isNarrow = constraints.maxWidth < 450;
+
+          if (isMobile || isNarrow) {
+            return Column(
               children: [
                 _buildAvatar(fullPhotoUrl, radius: 48),
                 const SizedBox(height: 16),
@@ -770,61 +776,87 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                     color: Color(0xFF64748B),
                   ),
                 ),
-                const SizedBox(height: 16),
-                _buildEditProfileButton(),
-              ],
-            )
-          : Row(
-              children: [
-                _buildAvatar(fullPhotoUrl, radius: 44),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (phone.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
-                          height: 1.2,
-                        ),
+                      const Icon(
+                        Icons.phone_outlined,
+                        size: 14,
+                        color: Color(0xFF94A3B8),
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(width: 5),
                       Text(
-                        email,
+                        phone,
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           color: Color(0xFF64748B),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      if (phone.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.phone_outlined,
-                              size: 14,
-                              color: Color(0xFF94A3B8),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              phone,
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 16),
+                ],
+                const SizedBox(height: 16),
                 _buildEditProfileButton(),
               ],
-            ),
+            );
+          }
+
+          // Layout Horizontal (Row) untuk layar lebar
+          return Row(
+            children: [
+              _buildAvatar(fullPhotoUrl, radius: 44),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      email,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (phone.isNotEmpty)
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.phone_outlined,
+                            size: 14,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            phone,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              _buildEditProfileButton(),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -1446,8 +1478,6 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         );
       },
     );
-    // ✅ TIDAK ada .then() — controller di-GC otomatis,
-    //    mencegah error "_dependents.isEmpty is not true"
   }
 
   // =========================================================

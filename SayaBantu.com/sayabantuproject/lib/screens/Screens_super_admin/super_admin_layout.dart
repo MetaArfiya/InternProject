@@ -370,7 +370,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   Future<void> _pickProfilePhoto() async {
     // Gunakan Completer agar fungsi ini menunggu sampai file selesai dibaca
     final completer = Completer<void>();
-    
+
     final input = html.FileUploadInputElement();
     input.accept = 'image/*';
     input.click();
@@ -1373,6 +1373,9 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           ),
                           const SizedBox(height: 20),
 
+                          // ============================
+                          // TOMBOL EDIT PROFIL
+                          // ============================
                           SizedBox(
                             width: double.infinity,
                             height: 48,
@@ -1393,6 +1396,40 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                                 backgroundColor: _accent,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // ============================
+                          // TOMBOL LOGOUT (TAMBAHAN)
+                          // ============================
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              onPressed: _logout,
+                              icon: const Icon(
+                                Icons.logout_rounded,
+                                size: 18,
+                                color: Color(0xFFDC2626),
+                              ),
+                              label: const Text(
+                                'Logout',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFDC2626),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: Color(0xFFFCA5A5),
+                                ),
+                                backgroundColor: const Color(0xFFFEF2F2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),

@@ -1,5 +1,3 @@
-// lib/sections/customer/rating_dialog.dart
-
 import 'package:flutter/material.dart';
 
 import '../../services/payment_service.dart';
@@ -90,8 +88,10 @@ class _RatingDialogState extends State<RatingDialog> {
           ),
         ],
       ),
-      content: SizedBox(
-        width: 420,
+      // FIX 1: Gunakan ConstrainedBox, jangan paksa lebar dengan SizedBox(width: 420)
+      // agar dialog bisa menyesuaikan lebar layar HP.
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -141,25 +141,33 @@ class _RatingDialogState extends State<RatingDialog> {
               const SizedBox(height: 12),
 
               // ============================================================
-              // BAGIAN YANG DIPERBAIKI: Menggunakan FittedBox
+              // FIX 2: Mengganti IconButton dengan GestureDetector + Padding
+              // agar tidak terjadi overflow akibat batas minimum IconButton.
               // ============================================================
               Center(
                 child: FittedBox(
-                  fit: BoxFit.scaleDown, // Menyesuaikan skala jika terlalu lebar
+                  fit: BoxFit.scaleDown,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (i) {
                       final index = i + 1;
-                      return IconButton(
-                        onPressed: _isSubmitting
+                      return GestureDetector(
+                        onTap: _isSubmitting
                             ? null
                             : () => setState(() => _stars = index),
-                        icon: Icon(
-                          index <= _stars
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          color: Colors.amber,
-                          size: 38,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0,
+                            vertical: 4.0,
+                          ),
+                          child: Icon(
+                            index <= _stars
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: Colors.amber,
+                            size: 40,
+                          ),
                         ),
                       );
                     }),

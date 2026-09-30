@@ -452,7 +452,8 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           Expanded(flex: 3, child: _headerCell('Kontak')),
           Expanded(flex: 3, child: _headerCell('Pekerjaan Aktif')),
           Expanded(flex: 3, child: _headerCell('Lokasi')),
-          Expanded(flex: 2, child: _headerCell('Status')),
+          // FIX 1: Ubah flex Status dari 2 menjadi 3
+          Expanded(flex: 3, child: _headerCell('Status')),
         ],
       ),
     );
@@ -461,6 +462,8 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   Widget _headerCell(String text) {
     return Text(
       text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w500,
@@ -572,8 +575,9 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           ),
 
           // Status
+          // FIX 1: Ubah flex Status dari 2 menjadi 3
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Align(
               alignment: Alignment.centerLeft,
               child: _buildStatusBadge(),
@@ -739,12 +743,18 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
             color: Color(0xFF16A34A),
           ),
           SizedBox(width: 5),
-          Text(
-            'Sedang Bekerja',
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF15803D),
+          // FIX 2: Bungkus dengan FittedBox agar teks mengecil otomatis jika ruang kurang
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Sedang Bekerja',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF15803D),
+                ),
+              ),
             ),
           ),
         ],
