@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_storage.dart';
 
 class ApiService {
   // ============================================================
@@ -22,8 +23,7 @@ class ApiService {
   // ============================================================
 
   static Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
+    return AuthStorage.getString('token');
   }
 
   // ============================================================
@@ -39,8 +39,7 @@ class ApiService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
 
-      if (token != null && token.isNotEmpty)
-        'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -54,10 +53,7 @@ class ApiService {
 
     print('🌐 [GET] $url');
 
-    final response = await http.get(
-      url,
-      headers: headers,
-    );
+    final response = await http.get(url, headers: headers);
 
     print(
       '🔎 [GET RESPONSE] '
@@ -115,11 +111,7 @@ class ApiService {
 
     try {
       final response = await http
-          .put(
-            url,
-            headers: headers,
-            body: jsonEncode(data),
-          )
+          .put(url, headers: headers, body: jsonEncode(data))
           .timeout(const Duration(seconds: 15));
 
       print(
@@ -140,18 +132,13 @@ class ApiService {
   // DELETE
   // ============================================================
 
-  static Future<http.Response> delete(
-    String endpoint,
-  ) async {
+  static Future<http.Response> delete(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _headers();
 
     print('🌐 [DELETE] $url');
 
-    final response = await http.delete(
-      url,
-      headers: headers,
-    );
+    final response = await http.delete(url, headers: headers);
 
     print(
       '🔎 [DELETE RESPONSE] '
@@ -162,7 +149,7 @@ class ApiService {
 
     return response;
   }
-    // ============================================================
+  // ============================================================
   // POST MULTIPART / UPLOAD FILE
   // ============================================================
 
@@ -179,17 +166,12 @@ class ApiService {
     print('🌐 [POST MULTIPART] $url');
     print('📤 FIELDS: $fields');
 
-    final request = http.MultipartRequest(
-      'POST',
-      url,
-    );
+    final request = http.MultipartRequest('POST', url);
 
-    request.headers['Accept'] =
-        'application/json';
+    request.headers['Accept'] = 'application/json';
 
     if (token != null && token.isNotEmpty) {
-      request.headers['Authorization'] =
-          'Bearer $token';
+      request.headers['Authorization'] = 'Bearer $token';
     }
 
     // FIELD TEXT
@@ -210,17 +192,13 @@ class ApiService {
 
     // MULTIPLE FILE
     if (multipleFiles != null) {
-      for (final entry
-          in multipleFiles.entries) {
-        for (int i = 0;
-            i < entry.value.length;
-            i++) {
+      for (final entry in multipleFiles.entries) {
+        for (int i = 0; i < entry.value.length; i++) {
           request.files.add(
             http.MultipartFile.fromBytes(
               entry.key,
               entry.value[i],
-              filename:
-                  '${entry.key.replaceAll('[]', '')}_$i.jpg',
+              filename: '${entry.key.replaceAll('[]', '')}_$i.jpg',
             ),
           );
         }
@@ -228,28 +206,20 @@ class ApiService {
     }
 
     try {
-      final streamedResponse =
-          await request.send();
+      final streamedResponse = await request.send();
 
-      final response =
-          await http.Response.fromStream(
-        streamedResponse,
-      );
+      final response = await http.Response.fromStream(streamedResponse);
 
       print(
         '🔎 [MULTIPART RESPONSE] '
         '${response.statusCode} - $url',
       );
 
-      print(
-        '📦 BODY: ${response.body}',
-      );
+      print('📦 BODY: ${response.body}');
 
       return response;
     } catch (e) {
-      print(
-        '❌ [MULTIPART ERROR] $e',
-      );
+      print('❌ [MULTIPART ERROR] $e');
       rethrow;
     }
   }
@@ -258,9 +228,7 @@ class ApiService {
   // FILE NAME
   // ============================================================
 
-  static String _getFileName(
-    String fieldName,
-  ) {
+  static String _getFileName(String fieldName) {
     switch (fieldName) {
       case 'ktp_image':
         return 'ktp.jpg';
@@ -283,15 +251,11 @@ class ApiService {
     String password,
     int roleId,
   ) async {
-    return await post(
-      '/register',
-      {
-        'name': name,
-        'email': email,
-        'password': password,
-        'role_id': roleId,
-      },
-    );
+    return await post('/register', {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role_id': roleId,
+    });
   }
-  
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/Screens_Landing/landing_page.dart';
 import 'theme/app_theme.dart';
+import 'services/auth_storage.dart';
 
 import 'screens/Screens_Partner/partner_main_dashboard.dart';
 import 'screens/Screens_super_admin/super_admin_layout.dart';
@@ -12,13 +12,11 @@ import 'sections/customer/customer_main_dashboard.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Nilai default dulu — supaya TIDAK PERNAH null
   Widget homePage = const LandingPage();
 
   try {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final role = (prefs.getString('role') ?? '').trim();
+    final token = AuthStorage.getString('token') ?? '';
+    final role = (AuthStorage.getString('role') ?? '').trim();
 
     if (token.isNotEmpty) {
       switch (role) {
@@ -40,7 +38,6 @@ Future<void> main() async {
     }
   } catch (e) {
     debugPrint('ERROR DI MAIN: $e');
-    // Kalau error apapun → tetap LandingPage
     homePage = const LandingPage();
   }
 

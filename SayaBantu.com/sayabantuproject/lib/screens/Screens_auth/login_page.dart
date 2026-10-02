@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/auth_storage.dart';
 
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
@@ -23,11 +24,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController =
-      TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
-  final TextEditingController _passwordController =
-      TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -93,10 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(
-        color: color,
-        width: width,
-      ),
+      borderSide: BorderSide(color: color, width: width),
     );
   }
 
@@ -113,51 +109,35 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final email =
-        _emailController.text.trim().toLowerCase();
+    final email = _emailController.text.trim().toLowerCase();
 
-    final password =
-        _passwordController.text;
+    final password = _passwordController.text;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final response = await ApiService.post(
-        '/login',
-        {
-          'email': email,
-          'password': password,
-        },
-      );
+      final response = await ApiService.post('/login', {
+        'email': email,
+        'password': password,
+      });
 
       final responseData = jsonDecode(response.body);
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 201) {
-        final prefs =
-            await SharedPreferences.getInstance();
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final token = responseData['access_token'] ?? '';
 
-        final token =
-            responseData['access_token'] ?? '';
-
-        final userRole =
-            responseData['user_role'] ?? '';
+        final userRole = responseData['user_role'] ?? '';
 
         String userName = 'Pengguna';
 
-        final rawUserData =
-            responseData['user'];
+        final rawUserData = responseData['user'];
 
-        if (rawUserData != null &&
-            rawUserData['name'] != null) {
-          userName =
-              rawUserData['name'].toString();
+        if (rawUserData != null && rawUserData['name'] != null) {
+          userName = rawUserData['name'].toString();
         } else if (responseData['message'] != null &&
-            responseData['message']
-                .toString()
-                .contains('Selamat datang,')) {
+            responseData['message'].toString().contains('Selamat datang,')) {
           userName = responseData['message']
               .toString()
               .split('Selamat datang,')
@@ -167,35 +147,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Simpan data SESSION saja.
         // Email/password tidak disimpan oleh aplikasi.
-        await prefs.setString(
-          'token',
-          token.toString(),
-        );
-
-        await prefs.setBool(
-          'isLoggedIn',
-          true,
-        );
-
-        await prefs.setString(
-          'role',
-          userRole.toString(),
-        );
-
-        await prefs.setString(
-          'name',
-          userName,
-        );
+        AuthStorage.setString('token', token.toString());
+        AuthStorage.setBool('isLoggedIn', true);
+        AuthStorage.setString('role', userRole.toString());
+        AuthStorage.setString('name', userName);
 
         if (!mounted) {
           return;
         }
 
-        final normalizedRole =
-            userRole
-                .toString()
-                .toLowerCase()
-                .trim();
+        final normalizedRole = userRole.toString().toLowerCase().trim();
 
         // ======================================================
         // REDIRECT BERDASARKAN ROLE
@@ -204,49 +165,31 @@ class _LoginScreenState extends State<LoginScreen> {
         if (normalizedRole == 'pelanggan') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const CustomerMainDashboard(),
-            ),
+            MaterialPageRoute(builder: (_) => const CustomerMainDashboard()),
           );
         } else if (normalizedRole == 'mitra') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const PartnerMainDashboard(),
-            ),
+            MaterialPageRoute(builder: (_) => const PartnerMainDashboard()),
           );
         } else if (normalizedRole == 'admin' ||
             normalizedRole == 'administrator') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const AdminLayout(),
-            ),
+            MaterialPageRoute(builder: (_) => const AdminLayout()),
           );
         } else if (normalizedRole == 'super admin') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const SuperAdminLayout(),
-            ),
+            MaterialPageRoute(builder: (_) => const SuperAdminLayout()),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Role '$userRole' tidak dikenali sistem",
-              ),
-            ),
+            SnackBar(content: Text("Role '$userRole' tidak dikenali sistem")),
           );
         }
       } else {
-        final message =
-            responseData['message'] ??
-                'Email atau Password salah';
+        final message = responseData['message'] ?? 'Email atau Password salah';
 
         if (!mounted) {
           return;
@@ -254,11 +197,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              message.toString(),
-            ),
-            backgroundColor:
-                const Color(0xffEF4444),
+            content: Text(message.toString()),
+            backgroundColor: const Color(0xffEF4444),
           ),
         );
       }
@@ -269,11 +209,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Gagal terhubung ke server: $e',
-          ),
-          backgroundColor:
-              const Color(0xffEF4444),
+          content: Text('Gagal terhubung ke server: $e'),
+          backgroundColor: const Color(0xffEF4444),
         ),
       );
     } finally {
@@ -293,37 +230,25 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile =
-            constraints.maxWidth < 700;
+        final isMobile = constraints.maxWidth < 700;
 
         return Scaffold(
-          backgroundColor:
-              const Color(0xffF8FAFC),
+          backgroundColor: const Color(0xffF8FAFC),
           body: Center(
             child: Padding(
-              padding:
-                  const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: SingleChildScrollView(
                 child: Container(
-                  width: isMobile
-                      ? constraints.maxWidth * 0.9
-                      : 450,
-                  padding: EdgeInsets.all(
-                    isMobile ? 24 : 35,
-                  ),
+                  width: isMobile ? constraints.maxWidth * 0.9 : 450,
+                  padding: EdgeInsets.all(isMobile ? 24 : 35),
                   decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).cardColor,
-                    borderRadius:
-                        BorderRadius.circular(24),
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: 0.08,
-                        ),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 25,
-                        offset:
-                            const Offset(0, 12),
+                        offset: const Offset(0, 12),
                       ),
                     ],
                   ),
@@ -331,116 +256,72 @@ class _LoginScreenState extends State<LoginScreen> {
                   // ==================================================
                   // AUTOFILL GROUP
                   // ==================================================
-
                   child: AutofillGroup(
                     child: Form(
                       key: _formKey,
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
                           // ==========================================
                           // LOGO + TITLE
                           // ==========================================
-
                           Center(
                             child: Column(
                               children: [
                                 Container(
-                                  width:
-                                      isMobile
-                                          ? 130
-                                          : 160,
-                                  height:
-                                      isMobile
-                                          ? 130
-                                          : 160,
-                                  decoration:
-                                      BoxDecoration(
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                      18,
-                                    ),
+                                  width: isMobile ? 130 : 160,
+                                  height: isMobile ? 130 : 160,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
                                   child: ClipRRect(
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                      18,
-                                    ),
+                                    borderRadius: BorderRadius.circular(18),
                                     child: Image.asset(
                                       'assets/images/Logo_SayaBantu.png',
-                                      fit:
-                                          BoxFit.contain,
+                                      fit: BoxFit.contain,
                                     ),
                                   ),
                                 ),
 
-                                const SizedBox(
-                                  height: 20,
-                                ),
+                                const SizedBox(height: 20),
 
                                 Text(
                                   'Masuk',
                                   style: TextStyle(
-                                    fontSize:
-                                        isMobile
-                                            ? 24
-                                            : 30,
-                                    fontWeight:
-                                        FontWeight.bold,
+                                    fontSize: isMobile ? 24 : 30,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
 
-                                const SizedBox(
-                                  height: 8,
-                                ),
+                                const SizedBox(height: 8),
 
                                 Text(
                                   'Selamat datang kembali di SayaBantu',
-                                  textAlign:
-                                      TextAlign.center,
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color:
-                                        Colors.grey.shade600,
-                                    fontSize:
-                                        isMobile
-                                            ? 13
-                                            : 14,
+                                    color: Colors.grey.shade600,
+                                    fontSize: isMobile ? 13 : 14,
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          SizedBox(
-                            height:
-                                isMobile
-                                    ? 28
-                                    : 35,
-                          ),
+                          SizedBox(height: isMobile ? 28 : 35),
 
                           // ==========================================
                           // EMAIL
                           // ==========================================
-
                           const Text(
                             'Email',
-                            style: TextStyle(
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
 
-                          const SizedBox(
-                            height: 8,
-                          ),
+                          const SizedBox(height: 8),
 
                           TextFormField(
-                            controller:
-                                _emailController,
-                            focusNode:
-                                _emailFocusNode,
+                            controller: _emailController,
+                            focusNode: _emailFocusNode,
 
                             // Chrome/browser autofill
                             autofillHints: const [
@@ -448,120 +329,77 @@ class _LoginScreenState extends State<LoginScreen> {
                               AutofillHints.email,
                             ],
 
-                            keyboardType:
-                                TextInputType.emailAddress,
+                            keyboardType: TextInputType.emailAddress,
 
-                            textInputAction:
-                                TextInputAction.next,
+                            textInputAction: TextInputAction.next,
 
                             autovalidateMode:
-                                AutovalidateMode
-                                    .onUserInteraction,
+                                AutovalidateMode.onUserInteraction,
 
                             onFieldSubmitted: (_) {
-                              _passwordFocusNode
-                                  .requestFocus();
+                              _passwordFocusNode.requestFocus();
                             },
 
-                            decoration:
-                                InputDecoration(
-                              hintText:
-                                  'Masukkan email',
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan email',
 
-                              hintStyle:
-                                  TextStyle(
-                                color:
-                                    Colors.grey.shade500,
-                              ),
+                              hintStyle: TextStyle(color: Colors.grey.shade500),
 
-                              prefixIcon:
-                                  Icon(
+                              prefixIcon: Icon(
                                 Icons.email_outlined,
-                                color:
-                                    Colors.grey.shade600,
+                                color: Colors.grey.shade600,
                               ),
 
-                              enabledBorder:
-                                  _inputBorder(),
+                              enabledBorder: _inputBorder(),
 
-                              focusedBorder:
-                                  _inputBorder(
-                                color:
-                                    AppColors.primary,
+                              focusedBorder: _inputBorder(
+                                color: AppColors.primary,
                                 width: 1.5,
                               ),
 
-                              errorBorder:
-                                  _inputBorder(
-                                color:
-                                    const Color(
-                                  0xffEF4444,
-                                ),
+                              errorBorder: _inputBorder(
+                                color: const Color(0xffEF4444),
                               ),
 
-                              focusedErrorBorder:
-                                  _inputBorder(
-                                color:
-                                    const Color(
-                                  0xffEF4444,
-                                ),
+                              focusedErrorBorder: _inputBorder(
+                                color: const Color(0xffEF4444),
                                 width: 1.5,
                               ),
 
-                              errorStyle:
-                                  const TextStyle(
-                                color:
-                                    Color(
-                                  0xffEF4444,
-                                ),
+                              errorStyle: const TextStyle(
+                                color: Color(0xffEF4444),
                                 fontSize: 12,
                               ),
                             ),
 
-                            validator:
-                                _validateEmail,
+                            validator: _validateEmail,
                           ),
 
-                          const SizedBox(
-                            height: 20,
-                          ),
+                          const SizedBox(height: 20),
 
                           // ==========================================
                           // PASSWORD
                           // ==========================================
-
                           const Text(
                             'Password',
-                            style: TextStyle(
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
 
-                          const SizedBox(
-                            height: 8,
-                          ),
+                          const SizedBox(height: 8),
 
                           TextFormField(
-                            controller:
-                                _passwordController,
-                            focusNode:
-                                _passwordFocusNode,
+                            controller: _passwordController,
+                            focusNode: _passwordFocusNode,
 
                             // Chrome/browser autofill
-                            autofillHints: const [
-                              AutofillHints.password,
-                            ],
+                            autofillHints: const [AutofillHints.password],
 
-                            obscureText:
-                                _obscurePassword,
+                            obscureText: _obscurePassword,
 
-                            textInputAction:
-                                TextInputAction.done,
+                            textInputAction: TextInputAction.done,
 
                             autovalidateMode:
-                                AutovalidateMode
-                                    .onUserInteraction,
+                                AutovalidateMode.onUserInteraction,
 
                             onFieldSubmitted: (_) {
                               if (!_isLoading) {
@@ -569,97 +407,65 @@ class _LoginScreenState extends State<LoginScreen> {
                               }
                             },
 
-                            decoration:
-                                InputDecoration(
-                              hintText:
-                                  'Masukkan password',
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan password',
 
-                              hintStyle:
-                                  TextStyle(
-                                color:
-                                    Colors.grey.shade500,
-                              ),
+                              hintStyle: TextStyle(color: Colors.grey.shade500),
 
-                              prefixIcon:
-                                  Icon(
+                              prefixIcon: Icon(
                                 Icons.lock_outline,
-                                color:
-                                    Colors.grey.shade600,
+                                color: Colors.grey.shade600,
                               ),
 
-                              suffixIcon:
-                                  IconButton(
-                                tooltip:
-                                    _obscurePassword
-                                        ? 'Tampilkan password'
-                                        : 'Sembunyikan password',
+                              suffixIcon: IconButton(
+                                tooltip: _obscurePassword
+                                    ? 'Tampilkan password'
+                                    : 'Sembunyikan password',
 
                                 onPressed: () {
                                   setState(() {
-                                    _obscurePassword =
-                                        !_obscurePassword;
+                                    _obscurePassword = !_obscurePassword;
                                   });
                                 },
 
                                 icon: Icon(
                                   _obscurePassword
-                                      ? Icons
-                                          .visibility_off_outlined
-                                      : Icons
-                                          .visibility_outlined,
-                                  color:
-                                      Colors.grey.shade600,
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: Colors.grey.shade600,
                                 ),
                               ),
 
-                              enabledBorder:
-                                  _inputBorder(),
+                              enabledBorder: _inputBorder(),
 
-                              focusedBorder:
-                                  _inputBorder(
-                                color:
-                                    AppColors.primary,
+                              focusedBorder: _inputBorder(
+                                color: AppColors.primary,
                                 width: 1.5,
                               ),
 
-                              errorBorder:
-                                  _inputBorder(
-                                color:
-                                    const Color(
-                                  0xffEF4444,
-                                ),
+                              errorBorder: _inputBorder(
+                                color: const Color(0xffEF4444),
                               ),
 
-                              focusedErrorBorder:
-                                  _inputBorder(
-                                color:
-                                    const Color(
-                                  0xffEF4444,
-                                ),
+                              focusedErrorBorder: _inputBorder(
+                                color: const Color(0xffEF4444),
                                 width: 1.5,
                               ),
 
-                              errorStyle:
-                                  const TextStyle(
-                                color:
-                                    Color(
-                                  0xffEF4444,
-                                ),
+                              errorStyle: const TextStyle(
+                                color: Color(0xffEF4444),
                                 fontSize: 12,
                               ),
                             ),
 
-                            validator:
-                                _validatePassword,
+                            validator: _validatePassword,
                           ),
 
                           // ==========================================
                           // LUPA PASSWORD
                           // ==========================================
-
                           Align(
-                            alignment:
-                                Alignment.centerRight,
+                            alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {
                                 Navigator.push(
@@ -672,75 +478,46 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                               child: Text(
                                 'Lupa Password?',
-                                style: TextStyle(
-                                  color:
-                                      AppColors.primary,
-                                ),
+                                style: TextStyle(color: AppColors.primary),
                               ),
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 15,
-                          ),
+                          const SizedBox(height: 15),
 
                           // ==========================================
                           // TOMBOL MASUK
                           // ==========================================
-
                           SizedBox(
-                            width:
-                                double.infinity,
+                            width: double.infinity,
                             child: CustomButton(
-                              text: _isLoading
-                                  ? 'Memuat...'
-                                  : 'Masuk',
-                              width:
-                                  double.infinity,
+                              text: _isLoading ? 'Memuat...' : 'Masuk',
+                              width: double.infinity,
                               height: 56,
-                              backgroundColor:
-                                  AppColors.primary,
-                              onPressed:
-                                  _isLoading
-                                      ? () {}
-                                      : _handleLogin,
+                              backgroundColor: AppColors.primary,
+                              onPressed: _isLoading ? () {} : _handleLogin,
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 25,
-                          ),
+                          const SizedBox(height: 25),
 
                           // ==========================================
                           // REGISTER
                           // ==========================================
-
                           Center(
                             child: Wrap(
-                              alignment:
-                                  WrapAlignment.center,
-                              crossAxisAlignment:
-                                  WrapCrossAlignment.center,
+                              alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text(
-                                  'Belum punya akun?',
-                                ),
+                                const Text('Belum punya akun?'),
 
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.of(
-                                      context,
-                                    ).pushReplacement(
+                                    Navigator.of(context).pushReplacement(
                                       PageRouteBuilder(
-                                        pageBuilder:
-                                            (
-                                          _,
-                                          __,
-                                          ___,
-                                        ) =>
+                                        pageBuilder: (_, __, ___) =>
                                             const RegisterScreen(),
-                                        transitionDuration:
-                                            Duration.zero,
+                                        transitionDuration: Duration.zero,
                                         reverseTransitionDuration:
                                             Duration.zero,
                                       ),
@@ -749,10 +526,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Text(
                                     'Daftar',
                                     style: TextStyle(
-                                      color:
-                                          AppColors.primary,
-                                      fontWeight:
-                                          FontWeight.bold,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
