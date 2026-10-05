@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 
 import 'admin_verification_screen.dart';
 import 'admin_complaint_screen.dart';
@@ -56,11 +56,10 @@ class _AdminLayoutState extends State<AdminLayout> {
   // ✅ RESTORE ACTIVE MENU
   // =========================================================
 
-  Future<void> _restoreActiveMenu() async {
+  void _restoreActiveMenu() {
     if (widget.activeMenu != 'verification') return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final savedMenu = prefs.getString('admin_active_menu');
+    final savedMenu = AuthStorage.getString('admin_active_menu');
 
     if (savedMenu != null && savedMenu.isNotEmpty && mounted) {
       setState(() {
@@ -73,9 +72,8 @@ class _AdminLayoutState extends State<AdminLayout> {
   // ✅ SAVE ACTIVE MENU
   // =========================================================
 
-  Future<void> _saveActiveMenu(String menu) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('admin_active_menu', menu);
+  void _saveActiveMenu(String menu) {
+    AuthStorage.setString('admin_active_menu', menu);
   }
 
   // =========================================================
@@ -83,12 +81,11 @@ class _AdminLayoutState extends State<AdminLayout> {
   // =========================================================
 
   Future<void> _loadAdminProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final savedName = prefs.getString('name') ?? 'Admin Operator';
-    final savedEmail = prefs.getString('email') ?? 'admin@sayabantu.com';
-    final savedRole = prefs.getString('role') ?? 'Admin Harian';
-    final savedToken = prefs.getString('token') ?? '';
+    final savedName = AuthStorage.getString('name') ?? 'Admin Operator';
+    final savedEmail =
+        AuthStorage.getString('email') ?? 'admin@sayabantu.com';
+    final savedRole = AuthStorage.getString('role') ?? 'Admin Harian';
+    final savedToken = AuthStorage.getString('token') ?? '';
 
     if (!mounted) return;
 
@@ -706,11 +703,8 @@ class _AdminLayoutState extends State<AdminLayout> {
   // LOGOUT PROCESS
   // =========================================================
 
-  Future<void> _logout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
-    if (!mounted) return;
+  void _logout(BuildContext context) {
+    AuthStorage.clear();
 
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(

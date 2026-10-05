@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 
 import '../models/partner_sidebar_menu.dart';
 import '../services/api_service.dart';
+import '../services/auth_storage.dart';
 
 class PartnerSidebar extends StatefulWidget {
   final PartnerSidebarMenu activeMenu;
@@ -51,9 +51,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
   // =========================================================
 
   Future<void> loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final savedName = prefs.getString("name") ?? "Partner";
+    final savedName = AuthStorage.getString("name") ?? "Partner";
 
     if (!mounted) return;
 
@@ -76,10 +74,9 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
 
-        final dynamic userData =
-            decodedData is Map<String, dynamic>
-                ? (decodedData['user'] ?? decodedData)
-                : null;
+        final dynamic userData = decodedData is Map<String, dynamic>
+            ? (decodedData['user'] ?? decodedData)
+            : null;
 
         if (userData is Map<String, dynamic>) {
           final apiName = userData['name']?.toString();
@@ -110,14 +107,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           debugPrint("FULL PHOTO URL  : ${getFullPhotoUrl()}");
         }
       } else {
-        debugPrint(
-          "GAGAL MEMUAT USER: ${response.statusCode}",
-        );
+        debugPrint("GAGAL MEMUAT USER: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint(
-        "ERROR LOAD USER PARTNER SIDEBAR: $e",
-      );
+      debugPrint("ERROR LOAD USER PARTNER SIDEBAR: $e");
     }
 
     // =======================================================
@@ -140,28 +133,19 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
           setState(() {
             totalPoint =
-                int.tryParse(
-                  data['point']?.toString() ?? '0',
-                ) ??
-                0;
+                int.tryParse(data['point']?.toString() ?? '0') ?? 0;
 
-            isVerified =
-                data['is_verified'] == true ||
+            isVerified = data['is_verified'] == true ||
                 data['is_verified'] == 1 ||
                 data['is_verified']?.toString() == '1' ||
-                data['is_verified']?.toString().toLowerCase() ==
-                    'true';
+                data['is_verified']?.toString().toLowerCase() == 'true';
           });
         }
       } else {
-        debugPrint(
-          "GAGAL MEMUAT PROFIL MITRA: ${response.statusCode}",
-        );
+        debugPrint("GAGAL MEMUAT PROFIL MITRA: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint(
-        "ERROR LOAD PROFIL MITRA: $e",
-      );
+      debugPrint("ERROR LOAD PROFIL MITRA: $e");
     }
   }
 
@@ -198,8 +182,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
     String path = photoUrl!.trim();
 
-    if (path.startsWith('http://') ||
-        path.startsWith('https://')) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
 
@@ -258,11 +241,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           fit: BoxFit.cover,
           cacheWidth: 120,
           cacheHeight: 120,
-          loadingBuilder: (
-            context,
-            child,
-            loadingProgress,
-          ) {
+          loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) {
               return child;
             }
@@ -282,22 +261,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               ),
             );
           },
-          errorBuilder: (
-            context,
-            error,
-            stackTrace,
-          ) {
-            debugPrint(
-              "GAGAL MENAMPILKAN FOTO SIDEBAR",
-            );
-
-            debugPrint(
-              "URL FOTO: $fullPhotoUrl",
-            );
-
-            debugPrint(
-              "ERROR: $error",
-            );
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint("GAGAL MENAMPILKAN FOTO SIDEBAR");
+            debugPrint("URL FOTO: $fullPhotoUrl");
+            debugPrint("ERROR: $error");
 
             return Container(
               width: 52,
@@ -336,16 +303,11 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               ),
               title: const Row(
                 children: [
-                  Icon(
-                    Icons.logout,
-                    color: Colors.red,
-                  ),
+                  Icon(Icons.logout, color: Colors.red),
                   SizedBox(width: 10),
                   Text(
                     'Keluar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -355,21 +317,13 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(
-                      dialogContext,
-                      false,
-                    );
+                    Navigator.pop(dialogContext, false);
                   },
-                  child: const Text(
-                    'Batal',
-                  ),
+                  child: const Text('Batal'),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(
-                      dialogContext,
-                      true,
-                    );
+                    Navigator.pop(dialogContext, true);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
@@ -378,9 +332,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Keluar',
-                  ),
+                  child: const Text('Keluar'),
                 ),
               ],
             );
@@ -397,28 +349,14 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.remove('token');
-
-      await prefs.setBool(
-        'isLoggedIn',
-        false,
-      );
-
-      await prefs.remove('name');
-      await prefs.remove('email');
-      await prefs.remove('phone');
-      await prefs.remove('address');
-      await prefs.remove('profile_image_url');
+      // ✅ Clear sessionStorage — hapus semua key auth untuk tab ini
+      AuthStorage.clear();
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LandingPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const LandingPage()),
         (route) => false,
       );
     } catch (e) {
@@ -432,9 +370,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(
-              'Gagal keluar dari akun: $e',
-            ),
+            content: Text('Gagal keluar dari akun: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -462,17 +398,14 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             // =================================================
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
                 children: [
                   _buildProfileImage(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           username,
@@ -506,9 +439,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             // =================================================
 
             Container(
-              margin: const EdgeInsets.symmetric(
-                horizontal: 16,
-              ),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -520,8 +451,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                 ),
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     "TOTAL POIN SAYA",
@@ -572,19 +502,14 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
             if (isVerified)
               Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 11,
-                ),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
                   color: const Color(0xffE8F7EE),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.check,
@@ -615,62 +540,36 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               title: "Cari Pekerjaan",
               menu: PartnerSidebarMenu.cariPekerjaan,
             ),
-
             _menu(
               context,
               icon: Icons.assignment_outlined,
               title: "Penawaran Aktif",
               menu: PartnerSidebarMenu.penawaranAktif,
             ),
-
             _menu(
               context,
               icon: Icons.account_balance_wallet_outlined,
               title: "Penghasilan",
               menu: PartnerSidebarMenu.penghasilan,
             ),
-
-            // =================================================
-            // PEMBAYARAN
-            // =================================================
-
             _menu(
               context,
               icon: Icons.payment_outlined,
               title: "Pembayaran",
               menu: PartnerSidebarMenu.pembayaran,
             ),
-
-            // =================================================
-            // NOTIFIKASI
-            // =================================================
-
             _menu(
               context,
               icon: Icons.notifications_outlined,
               title: "Notifikasi",
               menu: PartnerSidebarMenu.notifikasi,
             ),
-
-            // =================================================
-            // PENGADUAN
-            // =================================================
-
             _menu(
               context,
               icon: Icons.report_problem_outlined,
               title: "Pengaduan",
               menu: PartnerSidebarMenu.pengaduan,
             ),
-
-            // =================================================
-            // PROFIL
-            // =================================================
-
-            // =================================================
-            // PENGATURAN
-            // =================================================
-
             _menu(
               context,
               icon: Icons.settings_outlined,
@@ -722,9 +621,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           children: [
             Icon(
               icon,
-              color: active
-                  ? Colors.orange
-                  : Colors.white70,
+              color: active ? Colors.orange : Colors.white70,
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -733,12 +630,9 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: active
-                      ? Colors.orange
-                      : Colors.white,
-                  fontWeight: active
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+                  color: active ? Colors.orange : Colors.white,
+                  fontWeight:
+                      active ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ),
@@ -754,9 +648,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
 
   Widget _buildLogoutButton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
         onTap: isLoggingOut ? null : logout,
         borderRadius: BorderRadius.circular(10),

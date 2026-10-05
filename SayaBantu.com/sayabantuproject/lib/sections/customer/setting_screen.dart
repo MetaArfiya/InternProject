@@ -5,9 +5,9 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 
 class CustomerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
@@ -394,8 +394,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // =========================================================
 
   Future<String> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token') ?? '';
+    return AuthStorage.getString('token') ?? '';
   }
 
   // =========================================================
@@ -1573,9 +1572,8 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   borderRadius: BorderRadius.circular(_smallRadius),
                 ),
               ),
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
+              onPressed: () {
+                AuthStorage.clear();
                 if (!mounted) return;
                 Navigator.pushAndRemoveUntil(
                   context,

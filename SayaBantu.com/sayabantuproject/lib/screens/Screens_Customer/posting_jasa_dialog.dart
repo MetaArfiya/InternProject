@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/job_model.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 import '../../screens/Screens_Customer/map_picker_screen.dart';
 
 class PostingJasaDialog extends StatefulWidget {
@@ -345,9 +345,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token') ??
-          prefs.getString('token') ??
+      final token = AuthStorage.getString('auth_token') ??
+          AuthStorage.getString('token') ??
           '';
 
       if (token.isEmpty) {
@@ -878,7 +877,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // BUDGET FIELD — ✅ FIX: "Rp" jadi prefixText, formatter murni angka
+  // BUDGET FIELD
   // =========================================================
 
   Widget _buildBudgetField() {
@@ -892,13 +891,11 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           decimal: false,
         ),
         inputFormatters: [
-          // ✅ Formatter: thousand separator saja, TANPA leading symbol
           CurrencyInputFormatter(
-            leadingSymbol: '', // kosong — biar "Rp" tidak bisa dihapus user
+            leadingSymbol: '',
             thousandSeparator: ThousandSeparator.Period,
             mantissaLength: 0,
           ),
-          // Batasi maksimal 8 digit
           TextInputFormatter.withFunction(
             (oldValue, newValue) {
               if (newValue.text.contains('-')) return oldValue;
@@ -914,7 +911,6 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
             fontSize: 13,
             color: Color(0xFF9CA3AF),
           ),
-          // ✅ "Rp" muncul sebagai prefix yang tidak bisa dihapus
           prefixText: 'Rp ',
           prefixStyle: const TextStyle(
             fontSize: 14,

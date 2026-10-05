@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/sidebar_menu.dart';
 import '../../widgets/customer_sidebar.dart';
+import '../../services/auth_storage.dart';
 
 import '../../models/job_model.dart';
 import '../../models/offer_model.dart';
@@ -47,16 +47,15 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   @override
   void initState() {
     super.initState();
-    _restoreSelectedMenu();  // ✅ BARU
+    _restoreSelectedMenu(); // ✅ BARU
   }
 
   // ==========================================================
   // ✅ RESTORE SELECTED MENU
   // ==========================================================
 
-  Future<void> _restoreSelectedMenu() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString('customer_selected_menu');
+  void _restoreSelectedMenu() {
+    final savedName = AuthStorage.getString('customer_selected_menu');
 
     if (savedName == null || savedName.isEmpty) return;
 
@@ -78,13 +77,12 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   // ✅ SAVE SELECTED MENU
   // ==========================================================
 
-  Future<void> _saveSelectedMenu(SidebarMenu menu) async {
+  void _saveSelectedMenu(SidebarMenu menu) {
     // Skip halaman yang butuh state khusus
     if (menu == SidebarMenu.penawaran) return;
     if (menu == SidebarMenu.profilMitra) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('customer_selected_menu', menu.name);
+    AuthStorage.setString('customer_selected_menu', menu.name);
   }
 
   // ==========================================================
@@ -104,7 +102,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       }
     });
 
-    _saveSelectedMenu(menu);  // ✅ SAVE
+    _saveSelectedMenu(menu); // ✅ SAVE
 
     final scaffoldState = Scaffold.maybeOf(context);
 
@@ -140,7 +138,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       selectedJob = null;
     });
 
-    _saveSelectedMenu(menu);  // ✅ SAVE
+    _saveSelectedMenu(menu); // ✅ SAVE
   }
 
   int _bottomNavCurrentIndex() {

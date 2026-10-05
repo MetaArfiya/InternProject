@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/partner_sidebar_menu.dart';
 import '../../models/partner_job_model.dart';
 import '../../widgets/partner_sidebar.dart';
+import '../../services/auth_storage.dart';
 
 import '../../sections/partner/partner_dashboard.dart';
 import '../../sections/partner/active_offer_screen.dart';
@@ -42,16 +42,15 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   @override
   void initState() {
     super.initState();
-    _restoreSelectedMenu();  // ✅ BARU
+    _restoreSelectedMenu(); // ✅ BARU
   }
 
   // ============================================================
   // ✅ RESTORE SELECTED MENU
   // ============================================================
 
-  Future<void> _restoreSelectedMenu() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString('partner_selected_menu');
+  void _restoreSelectedMenu() {
+    final savedName = AuthStorage.getString('partner_selected_menu');
 
     if (savedName == null || savedName.isEmpty) return;
 
@@ -72,12 +71,11 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   // ✅ SAVE SELECTED MENU
   // ============================================================
 
-  Future<void> _saveSelectedMenu(PartnerSidebarMenu menu) async {
+  void _saveSelectedMenu(PartnerSidebarMenu menu) {
     // Skip offerJob
     if (menu == PartnerSidebarMenu.offerJob) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('partner_selected_menu', menu.name);
+    AuthStorage.setString('partner_selected_menu', menu.name);
   }
 
   // ============================================================
@@ -155,7 +153,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
     setState(() {
       selectedMenu = menu;
     });
-    _saveSelectedMenu(menu);  // ✅ SAVE
+    _saveSelectedMenu(menu); // ✅ SAVE
   }
 
   // ============================================================
@@ -209,7 +207,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
       selectedJob = null;
     });
 
-    _saveSelectedMenu(menu);  // ✅ SAVE
+    _saveSelectedMenu(menu); // ✅ SAVE
   }
 
   // ============================================================

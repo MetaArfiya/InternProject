@@ -4,9 +4,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   final VoidCallback? onProfileUpdated;
@@ -298,8 +298,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
 
       if (token == null || token.isEmpty) {
         if (!mounted) return;
@@ -954,9 +953,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           isSaving = false;
         });
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('name', newName);
-        await prefs.setString('email', newEmail);
+        AuthStorage.setString('name', newName);
+        AuthStorage.setString('email', newEmail);
 
         if (dialogContext.mounted) {
           Navigator.of(dialogContext).pop();
