@@ -147,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
+    } finally { 
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -356,9 +356,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       },
     );
 
-    // =========================================================
-    // NAVIGASI DILAKUKAN DI LUAR DIALOG SETELAH DIALOG TERTUTUP
-    // =========================================================
     if (goToLogin == true) {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
