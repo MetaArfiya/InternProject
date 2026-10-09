@@ -1,5 +1,3 @@
-// lib/widgets/customer_sidebar.dart
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -9,6 +7,7 @@ import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 import '../models/sidebar_menu.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
+import '../theme/app_colors.dart';
 
 class CustomerSidebar extends StatefulWidget {
   final SidebarMenu activeMenu;
@@ -60,10 +59,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
       role = savedRole;
     });
 
-    // =======================================================
-    // AMBIL DATA USER
-    // =======================================================
-
     try {
       final response = await ApiService.get('/user');
 
@@ -98,10 +93,6 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               photoUrl = null;
             }
           });
-
-          debugPrint("NAMA USER        : $name");
-          debugPrint("PHOTO URL STATE  : $photoUrl");
-          debugPrint("FULL PHOTO URL   : ${getFullPhotoUrl()}");
         }
       } else {
         debugPrint("GAGAL MEMUAT USER: ${response.statusCode}");
@@ -174,13 +165,13 @@ class CustomerSidebarState extends State<CustomerSidebar> {
         height: 52,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.orange,
+          color: AppColors.mint, // ← dari orange → mint
         ),
         alignment: Alignment.center,
         child: Text(
           getInitials(name),
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.darkTeal, // ← text dark teal di atas mint
             fontSize: 17,
             fontWeight: FontWeight.bold,
           ),
@@ -193,7 +184,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
       height: 52,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.orange,
+        color: AppColors.mint,
       ),
       child: ClipOval(
         child: Image.network(
@@ -211,14 +202,14 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             return Container(
               width: 52,
               height: 52,
-              color: Colors.orange,
+              color: AppColors.mint,
               alignment: Alignment.center,
               child: const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.darkTeal,
                 ),
               ),
             );
@@ -231,12 +222,12 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             return Container(
               width: 52,
               height: 52,
-              color: Colors.orange,
+              color: AppColors.mint,
               alignment: Alignment.center,
               child: Text(
                 getInitials(name),
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.darkTeal,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
@@ -265,36 +256,56 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.logout, color: Colors.red),
+                  Icon(
+                    Icons.logout,
+                    color: AppColors.primaryTeal,
+                  ),
                   SizedBox(width: 10),
                   Text(
                     'Keluar',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.grey900,
+                    ),
                   ),
                 ],
               ),
               content: const Text(
                 'Apakah kamu yakin ingin keluar dari akun?',
+                style: TextStyle(
+                  color: AppColors.grey700,
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.pop(dialogContext, false);
                   },
-                  child: const Text('Batal'),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(
+                      color: AppColors.grey600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext, true);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primaryTeal, // ← teal
+                    foregroundColor: AppColors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Keluar'),
+                  child: const Text(
+                    'Keluar',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             );
@@ -349,7 +360,10 @@ class CustomerSidebarState extends State<CustomerSidebar> {
     return Container(
       width: 250,
       height: double.infinity,
-      color: const Color(0xff111827),
+
+      // ✅ dari #111827 (hitam) → dark teal
+      color: AppColors.darkTeal,
+
       child: SafeArea(
         child: Column(
           children: [
@@ -374,7 +388,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -384,8 +398,8 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                           role,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white60,
+                          style: TextStyle(
+                            color: AppColors.white.withOpacity(0.65),
                             fontSize: 13,
                           ),
                         ),
@@ -471,13 +485,16 @@ class CustomerSidebarState extends State<CustomerSidebar> {
           vertical: 15,
         ),
         color: active
-            ? Colors.orange.withValues(alpha: 0.2)
+            ? AppColors.mint.withOpacity(0.15) // ← dari orange soft → mint soft
             : Colors.transparent,
         child: Row(
           children: [
             Icon(
               icon,
-              color: active ? Colors.orange : Colors.white70,
+              color: active
+                  ? AppColors.mint // ← aktif → mint
+                  : AppColors.white.withOpacity(0.70),
+              size: 22,
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -486,12 +503,27 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: active ? Colors.orange : Colors.white,
-                  fontWeight:
-                      active ? FontWeight.bold : FontWeight.normal,
+                  color: active
+                      ? AppColors.mint // ← aktif → mint
+                      : AppColors.white.withOpacity(0.85),
+                  fontWeight: active
+                      ? FontWeight.bold
+                      : FontWeight.w500,
+                  fontSize: 14.5,
                 ),
               ),
             ),
+
+            // ✅ Aksen bar kecil di kanan menu aktif
+            if (active)
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.mint,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
           ],
         ),
       ),
@@ -515,10 +547,11 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             vertical: 13,
           ),
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.08),
+            // ✅ dari merah → soft white/transparent (muted)
+            color: AppColors.white.withOpacity(0.08),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.red.withValues(alpha: 0.25),
+              color: AppColors.white.withOpacity(0.15),
             ),
           ),
           child: Row(
@@ -529,13 +562,13 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.red,
+                    color: AppColors.mint,
                   ),
                 )
               else
                 const Icon(
                   Icons.logout,
-                  color: Colors.red,
+                  color: AppColors.mint, // ← ikon keluar mint
                   size: 20,
                 ),
               const SizedBox(width: 12),
@@ -543,7 +576,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                 child: Text(
                   isLoggingOut ? 'Keluar...' : 'Keluar',
                   style: const TextStyle(
-                    color: Colors.red,
+                    color: AppColors.white, // ← text putih
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),

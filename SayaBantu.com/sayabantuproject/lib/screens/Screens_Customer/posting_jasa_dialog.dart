@@ -13,6 +13,7 @@ import '../../models/job_model.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
 import '../../screens/Screens_Customer/map_picker_screen.dart';
+import '../../theme/app_colors.dart';
 
 class PostingJasaDialog extends StatefulWidget {
   const PostingJasaDialog({super.key});
@@ -87,7 +88,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // DESIGN TOKENS
   // =========================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const double _mobileBreakpoint = 700;
 
   // =========================================================
@@ -169,7 +171,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         if (!mounted) return;
         _showMessage(
           "GPS/lokasi sedang tidak aktif. Silakan aktifkan lokasi.",
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
@@ -183,7 +185,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         if (!mounted) return;
         _showMessage(
           "Izin lokasi diperlukan untuk menentukan lokasi pekerjaan.",
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
@@ -192,7 +194,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         if (!mounted) return;
         _showMessage(
           "Izin lokasi ditolak permanen. Silakan aktifkan izin lokasi dari pengaturan.",
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
@@ -356,7 +358,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         });
         _showMessage(
           "Sesi telah berakhir, silakan login kembali.",
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
@@ -407,7 +409,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Posting jasa berhasil dibuat."),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.primaryTeal, // ← teal
             ),
           );
           Navigator.pop(context, createdJob);
@@ -418,7 +420,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
               content: Text(
                 "Posting berhasil, tetapi data pekerjaan gagal dibaca.",
               ),
-              backgroundColor: Colors.orange,
+              backgroundColor: Color(0xFFF59E0B), // ← amber
             ),
           );
           Navigator.pop(context);
@@ -515,16 +517,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // =================================================
-                    // HEADER
-                    // =================================================
                     _buildHeader(isMobile),
-
                     SizedBox(height: isMobile ? 22 : 28),
 
-                    // =================================================
-                    // SECTION 1: INFO JASA
-                    // =================================================
+                    // SECTION 1
                     _buildSectionLabel('Informasi Jasa', isMobile),
                     const SizedBox(height: 14),
 
@@ -538,7 +534,6 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 16),
 
                     _buildField(
@@ -601,9 +596,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
                     const SizedBox(height: 24),
 
-                    // =================================================
-                    // SECTION 2: BUDGET & DURASI
-                    // =================================================
+                    // SECTION 2
                     _buildSectionLabel('Anggaran & Waktu', isMobile),
                     const SizedBox(height: 14),
 
@@ -623,9 +616,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
                     const SizedBox(height: 24),
 
-                    // =================================================
-                    // SECTION 3: LOKASI
-                    // =================================================
+                    // SECTION 3
                     _buildSectionLabel('Lokasi Pekerjaan', isMobile),
                     const SizedBox(height: 14),
 
@@ -650,9 +641,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         "Koordinat: "
                         "${_latitude!.toStringAsFixed(6)}, "
                         "${_longitude!.toStringAsFixed(6)}",
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppColors.grey600,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -677,7 +668,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                             icon: const Icon(Icons.refresh, size: 18),
                             label: const Text("Reset"),
                             style: TextButton.styleFrom(
-                              foregroundColor: Colors.grey.shade700,
+                              foregroundColor: AppColors.grey700,
                             ),
                           ),
                         ],
@@ -700,16 +691,14 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
                     const SizedBox(height: 24),
 
-                    // =================================================
-                    // SECTION 4: FOTO
-                    // =================================================
+                    // SECTION 4
                     _buildSectionLabel('Foto Kendala (Opsional)', isMobile),
                     const SizedBox(height: 6),
-                    Text(
+                    const Text(
                       'Format: JPG, PNG, WEBP. Maksimal 2 MB.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: AppColors.grey600,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -718,9 +707,6 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
                     const SizedBox(height: 28),
 
-                    // =================================================
-                    // BUTTONS
-                    // =================================================
                     _buildActions(isMobile),
                   ],
                 ),
@@ -763,7 +749,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 style: TextStyle(
                   fontSize: isMobile ? 20 : 24,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF111827),
+                  color: AppColors.grey900,
                   height: 1.2,
                 ),
               ),
@@ -772,7 +758,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 'Isi detail pekerjaan yang ingin kamu posting',
                 style: TextStyle(
                   fontSize: isMobile ? 12 : 13,
-                  color: const Color(0xFF6B7280),
+                  color: AppColors.grey500,
                 ),
               ),
             ],
@@ -803,7 +789,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           style: TextStyle(
             fontSize: isMobile ? 13.5 : 14.5,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
+            color: AppColors.grey800,
           ),
         ),
       ],
@@ -811,7 +797,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // FIELD WRAPPER — Label di atas, input di bawah
+  // FIELD WRAPPER
   // =========================================================
 
   Widget _buildField({
@@ -826,7 +812,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF374151),
+            color: AppColors.grey700,
           ),
         ),
         const SizedBox(height: 8),
@@ -836,7 +822,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // INPUT DECORATION STANDARD
+  // INPUT DECORATION
   // =========================================================
 
   InputDecoration _inputDecoration({
@@ -848,22 +834,22 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       hintText: hint,
       hintStyle: const TextStyle(
         fontSize: 13,
-        color: Color(0xFF9CA3AF),
+        color: AppColors.grey400,
       ),
       prefixIcon: prefixIcon,
       filled: filled,
-      fillColor: filled ? const Color(0xFFF9FAFB) : null,
+      fillColor: filled ? AppColors.grey50 : null,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 14,
         vertical: 14,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+        borderSide: const BorderSide(color: AppColors.grey300),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+        borderSide: const BorderSide(color: AppColors.grey300),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -871,7 +857,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       ),
       disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        borderSide: const BorderSide(color: AppColors.grey200),
       ),
     );
   }
@@ -909,13 +895,13 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           hintText: '0',
           hintStyle: const TextStyle(
             fontSize: 13,
-            color: Color(0xFF9CA3AF),
+            color: AppColors.grey400,
           ),
           prefixText: 'Rp ',
           prefixStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
+            color: AppColors.grey900,
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
@@ -923,11 +909,11 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+            borderSide: const BorderSide(color: AppColors.grey300),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+            borderSide: const BorderSide(color: AppColors.grey300),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -935,7 +921,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            borderSide: const BorderSide(color: AppColors.grey200),
           ),
         ),
       ),
@@ -992,10 +978,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         ),
         decoration: BoxDecoration(
           color: hasLocation
-              ? Colors.green.withOpacity(0.05)
+              ? AppColors.mint.withOpacity(0.10) // ← teal soft
               : Colors.transparent,
           border: Border.all(
-            color: hasLocation ? Colors.green : const Color(0xFFD1D5DB),
+            color: hasLocation ? AppColors.primaryTeal : AppColors.grey300,
             width: hasLocation ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
@@ -1006,7 +992,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
               hasLocation
                   ? Icons.check_circle_outline
                   : Icons.location_on_outlined,
-              color: hasLocation ? Colors.green : const Color(0xFF6B7280),
+              color: hasLocation ? AppColors.primaryTeal : AppColors.grey500,
               size: 22,
             ),
             const SizedBox(width: 12),
@@ -1022,8 +1008,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                       color: hasLocation
-                          ? Colors.green.shade700
-                          : const Color(0xFF111827),
+                          ? AppColors.primaryTeal
+                          : AppColors.grey900,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1031,9 +1017,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     hasLocation
                         ? "OpenStreetMap"
                         : "Tentukan titik lokasi pekerjaan",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: AppColors.grey600,
                     ),
                   ),
                 ],
@@ -1041,7 +1027,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
             ),
             const Icon(
               Icons.chevron_right,
-              color: Color(0xFF9CA3AF),
+              color: AppColors.grey400,
             ),
           ],
         ),
@@ -1061,9 +1047,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         height: isMobile ? 160 : 180,
         width: double.infinity,
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFD1D5DB)),
+          border: Border.all(color: AppColors.grey300),
           borderRadius: BorderRadius.circular(14),
-          color: const Color(0xFFF9FAFB),
+          color: AppColors.grey50,
         ),
         child: _imageBytes == null
             ? Column(
@@ -1072,14 +1058,14 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                   Icon(
                     Icons.cloud_upload_outlined,
                     size: 40,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.grey400,
                   ),
                   SizedBox(height: 10),
                   Text(
                     "Klik untuk upload foto",
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF6B7280),
+                      color: AppColors.grey600,
                     ),
                   ),
                 ],
@@ -1127,7 +1113,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // ACTIONS — Batal + Posting
+  // ACTIONS
   // =========================================================
 
   Widget _buildActions(bool isMobile) {
@@ -1135,8 +1121,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       onPressed: _isSubmitting ? null : () => Navigator.pop(context),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 50),
-        foregroundColor: const Color(0xFF374151),
-        side: const BorderSide(color: Color(0xFFD1D5DB)),
+        foregroundColor: AppColors.grey700,
+        side: const BorderSide(color: AppColors.grey300),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -1164,7 +1150,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accent,
+        backgroundColor: _accent, // ← teal
         foregroundColor: Colors.white,
         minimumSize: const Size(0, 50),
         shape: RoundedRectangleBorder(

@@ -1,269 +1,429 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'step_card.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_text_styles.dart';
+import '../../widgets/safe_mouse_region.dart';
+
+// ============================================================
+// HOW IT WORKS SECTION
+// ============================================================
 class HowItWorksSection extends StatelessWidget {
   const HowItWorksSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isMobile = width < 700;
-        final isTablet = width >= 700 && width < 1100;
+    return Container(
+      width: double.infinity,
+      color: AppColors.sectionAltLight,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
 
-        final horizontalPadding = isMobile
-            ? 20.0
-            : isTablet
-                ? 50.0
-                : 80.0;
+          final isMobile = width < 768;
+          final isTablet = width >= 768 && width < 1100;
+          final isDesktop = width >= 1100;
 
-        final titleSize = isMobile
-            ? 32.0
-            : isTablet
-                ? 40.0
-                : 48.0;
+          final horizontalPadding = isMobile
+              ? 20.0
+              : isTablet
+                  ? 36.0
+                  : 64.0;
 
-        return Container(
-          width: double.infinity,
-          color: const Color(0xffF8FAFC),
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: isMobile ? 50 : 90,
-          ),
-          child: Column(
-            children: [
-              const Text(
-                "CARA KERJA",
-                style: TextStyle(
-                  color: Color(0xffF97316),
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
+          final verticalPadding = isMobile
+              ? 56.0
+              : isTablet
+                  ? 72.0
+                  : 88.0;
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1320),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
                 ),
-              ).animate().fadeIn().slideY(begin: .3),
-
-              const SizedBox(height: 15),
-
-              Text(
-                "Sesederhana Itu.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: titleSize,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xff08162F),
-                ),
-              )
-                  .animate(delay: 150.ms)
-                  .fadeIn()
-                  .slideY(begin: .2),
-
-              Text(
-                "Tiga Langkah Selesai.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: titleSize,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xffF97316),
-                ),
-              )
-                  .animate(delay: 250.ms)
-                  .fadeIn()
-                  .slideY(begin: .2),
-
-              const SizedBox(height: 20),
-
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 650),
-                child: const Text(
-                  "Tidak ada biaya tersembunyi. Tidak ada perantara. Kamu deal langsung dengan mitra pilihanmu.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xff64748B),
-                    height: 1.8,
-                    fontSize: 18,
-                  ),
-                ),
-              )
-                  .animate(delay: 350.ms)
-                  .fadeIn()
-                  .slideY(begin: .2),
-
-              SizedBox(height: isMobile ? 40 : 70),
-
-              if (isMobile)
-                Column(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const StepCard(
-                      number: "01",
-                      numberColor: Color(0xff1DA1F2),
-                      icon: Icons.edit_note,
-                      title: "Posting Masalahmu",
-                      description:
-                          "Ceritakan masalah di rumahmu, upload foto kendala, dan set budget awal yang kamu bayangkan.",
-                      points: [
-                        "Gratis tanpa biaya posting",
-                        "Upload foto untuk deskripsi lebih jelas",
-                        "Set budget fleksibel",
-                      ],
-                    ).animate().fadeIn().slideY(begin: .3),
-
-                    const SizedBox(height: 20),
-
-                    const StepCard(
-                      number: "02",
-                      numberColor: Color(0xffF97316),
-                      icon: Icons.handshake,
-                      title: "Nego Langsung dengan Mitra",
-                      description:
-                          "Mitra-mitra terverifikasi akan langsung mengajukan penawaran harga.",
-                      points: [
-                        "Mitra diurutkan dari poin tertinggi",
-                        "Bandingkan harga transparan",
-                        "Chat langsung dengan mitra",
-                      ],
-                    )
-                        .animate(delay: 200.ms)
-                        .fadeIn()
-                        .slideY(begin: .3),
-
-                    const SizedBox(height: 20),
-
-                    const StepCard(
-                      number: "03",
-                      numberColor: Color(0xff10B981),
-                      icon: Icons.task_alt,
-                      title: "Terima & Konfirmasi Selesai",
-                      description:
-                          "Terima tawaran terbaik dan pantau progres pekerjaan.",
-                      points: [
-                        "Bayar hanya setelah puas",
-                        "Poin reward otomatis",
-                        "Beri rating",
-                      ],
-                    )
-                        .animate(delay: 400.ms)
-                        .fadeIn()
-                        .slideY(begin: .3),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: const StepCard(
-                        number: "01",
-                        numberColor: Color(0xff1DA1F2),
-                        icon: Icons.edit_note,
-                        title: "Posting Masalahmu",
-                        description:
-                            "Ceritakan masalah di rumahmu, upload foto kendala, dan set budget awal.",
-                        points: [
-                          "Gratis tanpa biaya posting",
-                          "Upload foto lebih jelas",
-                          "Set budget fleksibel",
-                        ],
-                      ).animate().fadeIn().slideY(begin: .3),
+                    _buildSectionHeader(isMobile: isMobile),
+                    SizedBox(
+                      height: isMobile ? 36 : (isTablet ? 44 : 52),
                     ),
-                    const SizedBox(width: 30),
-                    Expanded(
-                      child: const StepCard(
-                        number: "02",
-                        numberColor: Color(0xffF97316),
-                        icon: Icons.handshake,
-                        title: "Nego Langsung dengan Mitra",
-                        description:
-                            "Mitra terverifikasi akan mengajukan penawaran harga.",
-                        points: [
-                          "Urutan poin tertinggi",
-                          "Bandingkan harga",
-                          "Chat langsung",
-                        ],
-                      )
-                          .animate(delay: 200.ms)
-                          .fadeIn()
-                          .slideY(begin: .3),
-                    ),
-                    const SizedBox(width: 30),
-                    Expanded(
-                      child: const StepCard(
-                        number: "03",
-                        numberColor: Color(0xff10B981),
-                        icon: Icons.task_alt,
-                        title: "Terima & Konfirmasi Selesai",
-                        description:
-                            "Terima tawaran terbaik dan selesaikan pekerjaan.",
-                        points: [
-                          "Bayar setelah puas",
-                          "Reward otomatis",
-                          "Rating mitra",
-                        ],
-                      )
-                          .animate(delay: 400.ms)
-                          .fadeIn()
-                          .slideY(begin: .3),
-                    ),
+                    if (isMobile)
+                      _buildMobileSteps()
+                    else
+                      _buildDesktopSteps(isDesktop: isDesktop),
                   ],
                 ),
-
-              const SizedBox(height: 50),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xff0F172A),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _Badge("Kamu Posting", Color(0xff1DA1F2)),
-                    Icon(Icons.arrow_forward, color: Colors.white38, size: 18),
-                    _Badge("Mitra Nawar", Color(0xffF97316)),
-                    Icon(Icons.arrow_forward, color: Colors.white38, size: 18),
-                    _Badge("Kamu Pilih", Color(0xffEAB308)),
-                    _Badge("Kerja Jalan", Color(0xff8B5CF6)),
-                    _Badge("Deal Selesai 🎉", Color(0xff10B981)),
-                  ],
-                ),
-              )
-                  .animate(delay: 700.ms)
-                  .fadeIn()
-                  .scale(begin: const Offset(.95, .95)),
-            ],
-          ),
-        );
-      },
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
+
+  // ============================================================
+  // SECTION HEADER
+  // ============================================================
+  Widget _buildSectionHeader({required bool isMobile}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildSectionLabel()
+            .animate()
+            .fadeIn(duration: 500.ms)
+            .slideY(
+              begin: 0.10,
+              end: 0,
+              duration: 500.ms,
+              curve: Curves.easeOutCubic,
+            ),
+
+        SizedBox(height: isMobile ? 16 : 18),
+
+        Text(
+          'Semudah Ini Menggunakan\nSayaBantu',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.displayOnLight.copyWith(
+            fontSize: isMobile ? 28 : 40,
+          ),
+        )
+            .animate(delay: 100.ms)
+            .fadeIn(duration: 600.ms)
+            .slideY(
+              begin: 0.10,
+              end: 0,
+              duration: 600.ms,
+              curve: Curves.easeOutCubic,
+            ),
+
+        SizedBox(height: isMobile ? 14 : 16),
+
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Text(
+            'Temukan jasa yang kamu butuhkan dengan proses yang '
+            'sederhana, transparan, dan mudah.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyOnLight.copyWith(
+              fontSize: isMobile ? 14 : 15,
+            ),
+          ),
+        )
+            .animate(delay: 200.ms)
+            .fadeIn(duration: 600.ms),
+      ],
+    );
+  }
+
+  Widget _buildSectionLabel() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            color: AppColors.mint,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          'CARA KERJA',
+          style: TextStyle(
+            color: AppColors.primaryTeal,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // MOBILE
+  // ============================================================
+  Widget _buildMobileSteps() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < _steps.length; i++) ...[
+          _HowItWorksCard(
+            number: _steps[i].number,
+            icon: _steps[i].icon,
+            title: _steps[i].title,
+            description: _steps[i].description,
+          )
+              .animate(delay: Duration(milliseconds: 300 + (i * 150)))
+              .fadeIn(duration: 500.ms)
+              .slideY(
+                begin: 0.10,
+                end: 0,
+                duration: 500.ms,
+                curve: Curves.easeOutCubic,
+              ),
+          if (i < _steps.length - 1) const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // DESKTOP / TABLET
+  // ============================================================
+  Widget _buildDesktopSteps({required bool isDesktop}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < _steps.length; i++) ...[
+          Expanded(
+            child: _HowItWorksCard(
+              number: _steps[i].number,
+              icon: _steps[i].icon,
+              title: _steps[i].title,
+              description: _steps[i].description,
+              fixedHeight: isDesktop ? 260 : 240,
+            )
+                .animate(delay: Duration(milliseconds: 300 + (i * 150)))
+                .fadeIn(duration: 500.ms)
+                .slideY(
+                  begin: 0.10,
+                  end: 0,
+                  duration: 500.ms,
+                  curve: Curves.easeOutCubic,
+                ),
+          ),
+          if (i < _steps.length - 1) const SizedBox(width: 20),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // STEPS DATA
+  // ============================================================
+  static const List<_StepData> _steps = [
+    _StepData(
+      number: '01',
+      icon: Icons.search_rounded,
+      title: 'Cari Jasa',
+      description:
+          'Temukan layanan dan tenaga profesional sesuai kebutuhanmu dengan mudah.',
+    ),
+    _StepData(
+      number: '02',
+      icon: Icons.people_alt_rounded,
+      title: 'Pilih Mitra',
+      description:
+          'Pilih mitra yang sesuai berdasarkan layanan dan kebutuhan pekerjaanmu.',
+    ),
+    _StepData(
+      number: '03',
+      icon: Icons.check_circle_rounded,
+      title: 'Selesaikan Pekerjaan',
+      description:
+          'Komunikasikan kebutuhanmu, selesaikan pekerjaan, dan nikmati hasilnya.',
+    ),
+  ];
 }
 
-class _Badge extends StatelessWidget {
-  final String text;
-  final Color color;
+// ============================================================
+// STEP DATA — class terpisah
+// ============================================================
+class _StepData {
+  final String number;
+  final IconData icon;
+  final String title;
+  final String description;
 
-  const _Badge(this.text, this.color);
+  const _StepData({
+    required this.number,
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+}
+
+// ============================================================
+// HOW IT WORKS CARD — StatefulWidget terpisah
+// ============================================================
+class _HowItWorksCard extends StatefulWidget {
+  final String number;
+  final IconData icon;
+  final String title;
+  final String description;
+  final double? fixedHeight;
+
+  const _HowItWorksCard({
+    required this.number,
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.fixedHeight,
+  });
+
+  @override
+  State<_HowItWorksCard> createState() => _HowItWorksCardState();
+}
+
+class _HowItWorksCardState extends State<_HowItWorksCard> {
+  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
+    final scale =
+        _isPressed ? 0.985 : (_isHovered ? 1.015 : 1.0);
+
+    return SafeMouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: () => setState(() => _isHovered = true),
+      onExit: () => setState(() => _isHovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: scale,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            // FIX: pakai minHeight, bukan fixed height
+            constraints: widget.fixedHeight != null
+                ? BoxConstraints(minHeight: widget.fixedHeight!)
+                : null,
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _isHovered
+                    ? AppColors.mint.withOpacity(0.55)
+                    : AppColors.primaryTeal.withOpacity(0.10),
+                width: _isHovered ? 1.5 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.darkTeal.withOpacity(
+                    _isHovered ? 0.10 : 0.055,
+                  ),
+                  blurRadius: _isHovered ? 24 : 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ==========================================
+                // TOP ROW
+                // ==========================================
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: _isHovered
+                            ? AppColors.primaryTeal
+                            : AppColors.primaryTeal.withOpacity(0.09),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: _isHovered
+                            ? AppColors.white
+                            : AppColors.primaryTeal,
+                        size: 25,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.mint.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Text(
+                        widget.number,
+                        style: AppTextStyles.labelOnDark.copyWith(
+                          color: AppColors.primaryTeal,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 22),
+
+                // ==========================================
+                // TITLE
+                // ==========================================
+                Text(
+                  widget.title,
+                  style: AppTextStyles.headingSmall.copyWith(
+                    fontSize: 18,
+                    height: 1.25,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // ==========================================
+                // DESCRIPTION — tanpa Expanded
+                // ==========================================
+                Text(
+                  widget.description,
+                  style: AppTextStyles.bodyOnLight.copyWith(
+                    fontSize: 14,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ==========================================
+                // BOTTOM INDICATOR
+                // ==========================================
+                Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: _isHovered ? 34 : 24,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: AppColors.mint,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: AppColors.primaryTeal.withOpacity(0.12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
