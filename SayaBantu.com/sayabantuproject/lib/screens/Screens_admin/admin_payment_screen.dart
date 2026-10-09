@@ -16,6 +16,27 @@ class AdminPaymentScreen extends StatefulWidget {
 
 class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
+  // DESIGN TOKENS — disamakan dgn DashboardHeader / PaymentScreen
+  // ============================================================
+
+  static const Color _accent = Color(0xFFF97316);
+  static const Color _successColor = Color(0xFF16A34A);
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _infoColor = Color(0xFF2563EB);
+  static const Color _purpleColor = Color(0xFF7C3AED);
+
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+  static const Color _mutedText = Color(0xFF64748B);
+
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _cardRadius = 14;
+  static const double _radius = 10;
+
+  // ============================================================
   // STATE
   // ============================================================
 
@@ -74,12 +95,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
       if (response.statusCode != 200) {
         if (!mounted) return;
-
         setState(() {
           _isLoading = false;
           _error = 'Gagal memuat data (${response.statusCode})';
         });
-
         return;
       }
 
@@ -87,13 +106,11 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
       if (decoded['success'] != true) {
         if (!mounted) return;
-
         setState(() {
           _isLoading = false;
           _error =
               decoded['message']?.toString() ?? 'Gagal memuat pembayaran.';
         });
-
         return;
       }
 
@@ -116,7 +133,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 .toList()
             : [];
 
-        _currentPage = 1; // Reset ke halaman 1 saat data dimuat
+        _currentPage = 1;
         _isLoading = false;
       });
     } catch (e) {
@@ -136,9 +153,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   List<PaymentModel> get _filteredPayments {
-    if (_selectedStatus == 'Semua') {
-      return _payments;
-    }
+    if (_selectedStatus == 'Semua') return _payments;
 
     String? targetStatus;
 
@@ -146,27 +161,21 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       case 'Menunggu Bayar':
         targetStatus = 'pending';
         break;
-
       case 'Menunggu Verifikasi':
         targetStatus = 'waiting_verification';
         break;
-
       case 'Siap Transfer':
         targetStatus = 'paid';
         break;
-
       case 'Selesai':
         targetStatus = 'settled';
         break;
-
       case 'Refund':
         targetStatus = 'refunded';
         break;
     }
 
-    if (targetStatus == null) {
-      return _payments;
-    }
+    if (targetStatus == null) return _payments;
 
     return _payments
         .where((payment) => payment.status == targetStatus)
@@ -200,9 +209,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       barrierDismissible: false,
       builder: (_) {
         return const Center(
-          child: CircularProgressIndicator(
-            color: Colors.orange,
-          ),
+          child: CircularProgressIndicator(color: _accent),
         );
       },
     );
@@ -211,24 +218,19 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         await PaymentService.getAdminPaymentDetail(payment.id);
 
     if (!mounted) return;
-
     Navigator.pop(context);
 
     PaymentModel paymentToUse = payment;
 
     if (detailData != null && detailData['payment'] is Map) {
       final parsed = PaymentModel.fromJson(
-        Map<String, dynamic>.from(
-          detailData['payment'],
-        ),
+        Map<String, dynamic>.from(detailData['payment']),
       );
 
       Map<String, dynamic>? bankMap;
 
       if (detailData['transfer_to'] is Map) {
-        bankMap = Map<String, dynamic>.from(
-          detailData['transfer_to'],
-        );
+        bankMap = Map<String, dynamic>.from(detailData['transfer_to']);
       }
 
       paymentToUse = PaymentModel(
@@ -265,9 +267,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) {
-        return AdminPaymentDetailDialog(
-          payment: paymentToUse,
-        );
+        return AdminPaymentDetailDialog(payment: paymentToUse);
       },
     );
 
@@ -283,18 +283,18 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'settled':
-        return Colors.green;
+        return _successColor;
       case 'paid':
-        return Colors.blue;
+        return _infoColor;
       case 'waiting_verification':
-        return Colors.purple;
+        return _purpleColor;
       case 'pending':
-        return Colors.orange;
+        return _accent;
       case 'refunded':
       case 'failed':
-        return Colors.red;
+        return _dangerColor;
       default:
-        return Colors.grey;
+        return _headerText;
     }
   }
 
@@ -342,96 +342,88 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        color: _accent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final isMobile = width < 700;
+            final isTablet = width >= 700 && width < 1100;
 
-        final isMobile = width < 700;
-        final isTablet = width >= 700 && width < 1100;
+            final horizontalPadding =
+                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final verticalPadding = isMobile ? 16.0 : 28.0;
 
-        return RefreshIndicator(
-          onRefresh: _loadData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : isTablet ? 20 : 28,
-              vertical: isMobile ? 18 : 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(isMobile),
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
 
-                SizedBox(
-                  height: isMobile ? 20 : 26,
-                ),
+                  const SizedBox(height: _gapAfterHeader),
 
-                if (_isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 80),
-                      child: CircularProgressIndicator(
-                        color: Colors.orange,
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 60),
+                        child: CircularProgressIndicator(color: _accent),
                       ),
-                    ),
-                  )
-                else if (_error != null)
-                  _buildError()
-                else ...[
-                  _buildSummarySection(),
-
-                  SizedBox(
-                    height: isMobile ? 18 : 24,
-                  ),
-
-                  _buildFilterSection(),
-
-                  SizedBox(
-                    height: isMobile ? 14 : 18,
-                  ),
-
-                  if (_filteredPayments.isEmpty)
-                    _buildEmptyState()
+                    )
+                  else if (_error != null)
+                    _buildError()
                   else ...[
-                    isMobile ? _buildMobileList() : _buildDesktopTable(),
-                    // Tambahkan Pagination di bawah list/table
-                    _buildPagination(),
+                    _buildSummarySection(isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildFilterSection(isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+
+                    if (_filteredPayments.isEmpty)
+                      _buildEmptyState()
+                    else ...[
+                      isMobile ? _buildMobileList() : _buildDesktopTable(),
+                      _buildPagination(),
+                    ],
                   ],
                 ],
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pembayaran',
-          style: TextStyle(
-            fontSize: isMobile ? 24 : 28,
+          style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 6),
         Text(
           'Kelola dan pantau seluruh transaksi pembayaran pelanggan dan mitra.',
-          style: TextStyle(
-            fontSize: isMobile ? 13 : 14,
-            height: 1.5,
-            color: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.color
-                ?.withOpacity(0.65),
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -442,121 +434,102 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // SUMMARY SECTION (3 KOTAK SEJAJAR)
   // ============================================================
 
-  Widget _buildSummarySection() {
+  Widget _buildSummarySection(bool isMobile) {
     final summary = _summary;
 
     final cards = [
       _summaryCard(
         title: 'Total Transaksi',
-        subtitle: 'Semua Transaksi',
-        value: PaymentModel.formatRupiah(
-          summary?.totalPembayaran ?? 0,
-        ),
+        value: PaymentModel.formatRupiah(summary?.totalPembayaran ?? 0),
         icon: Icons.account_balance_wallet_outlined,
-        color: Colors.blue,
+        color: _infoColor,
       ),
       _summaryCard(
         title: 'Komisi Platform',
-        subtitle: 'Pendapatan Admin',
-        value: PaymentModel.formatRupiah(
-          summary?.totalKomisi ?? 0,
-        ),
+        value: PaymentModel.formatRupiah(summary?.totalKomisi ?? 0),
         icon: Icons.account_balance_outlined,
-        color: Colors.green,
+        color: _successColor,
       ),
       _summaryCard(
         title: 'Total ke Mitra',
-        subtitle: 'Pendapatan Mitra',
-        value: PaymentModel.formatRupiah(
-          summary?.totalMitraEarning ?? 0,
-        ),
+        value: PaymentModel.formatRupiah(summary?.totalMitraEarning ?? 0),
         icon: Icons.handshake_outlined,
-        color: Colors.orange,
+        color: _accent,
       ),
     ];
 
-    // Tampilan Mobile & Desktop: 3 kotak sejajar
+    final gap = isMobile ? 8.0 : 16.0;
+
     return Row(
       children: [
-        Expanded(child: cards[0]),
-        const SizedBox(width: 8),
-        Expanded(child: cards[1]),
-        const SizedBox(width: 8),
-        Expanded(child: cards[2]),
+        for (int i = 0; i < cards.length; i++) ...[
+          Expanded(child: cards[i]),
+          if (i != cards.length - 1) SizedBox(width: gap),
+        ],
       ],
     );
   }
 
   Widget _summaryCard({
     required String title,
-    required String subtitle,
     required String value,
     required IconData icon,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          // Icon Box
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 21),
           ),
-          const SizedBox(height: 12),
-
-          // Value (Angka)
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Title (Judul)
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 2),
-
-          // Subtitle (Subjudul)
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withOpacity(0.6),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _mutedText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    height: 1.1,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -568,126 +541,90 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // FILTER
   // ============================================================
 
-  Widget _buildFilterSection() {
+  Widget _buildFilterSection(bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 600;
-
-          final dropdown = DropdownButtonFormField<String>(
-            value: _selectedStatus,
-            isExpanded: true,
-            decoration: InputDecoration(
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
+      child: Row(
+        children: [
+          const Icon(Icons.filter_list, size: 18, color: _headerText),
+          const SizedBox(width: 8),
+          if (!isMobile) ...[
+            Text(
+              'Filter Status:',
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF374151),
               ),
             ),
-            items: _statusOptions.map((status) {
-              return DropdownMenuItem<String>(
-                value: status,
-                child: Text(
-                  status,
-                  overflow: TextOverflow.ellipsis,
+            const SizedBox(width: 12),
+          ],
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _tableBorder),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedStatus,
+                isDense: true,
+                icon: const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: _headerText,
+                  ),
                 ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value == null) return;
-
-              setState(() {
-                _selectedStatus = value;
-                _currentPage = 1; // Reset halaman saat filter berubah
-              });
-            },
-          );
-
-          if (isNarrow) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.filter_list,
-                      size: 20,
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: _cellText,
+                ),
+                items: _statusOptions.map((status) {
+                  return DropdownMenuItem<String>(
+                    value: status,
+                    child: Text(
+                      status,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Filter Status',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${_filteredPayments.length} transaksi',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.color
-                            ?.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                dropdown,
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              const Icon(
-                Icons.filter_list,
-                size: 20,
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _selectedStatus = value;
+                    _currentPage = 1;
+                  });
+                },
               ),
-              const SizedBox(width: 9),
-              const Text(
-                'Filter Status',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${_filteredPayments.length}',
+              style: textTheme.labelMedium?.copyWith(
+                color: _accent,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 230,
-                child: dropdown,
-              ),
-              const Spacer(),
-              Text(
-                '${_filteredPayments.length} transaksi',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.color
-                      ?.withOpacity(0.6),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -697,19 +634,17 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildDesktopTable() {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(_radius),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
@@ -718,51 +653,27 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             headingRowHeight: 52,
             dataRowMinHeight: 64,
             dataRowMaxHeight: 82,
-            headingTextStyle: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withOpacity(0.75),
+            headingTextStyle: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: _headerText,
             ),
-            headingRowColor: MaterialStateProperty.all(
-              Theme.of(context).colorScheme.surface,
-            ),
+            headingRowColor:
+                WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+            dividerThickness: 0.6,
             columns: const [
-              DataColumn(
-                label: Text('ID TRANSAKSI'),
-              ),
-              DataColumn(
-                label: Text('PEKERJAAN'),
-              ),
-              DataColumn(
-                label: Text('PELANGGAN'),
-              ),
-              DataColumn(
-                label: Text('MITRA'),
-              ),
-              DataColumn(
-                label: Text('TOTAL'),
-              ),
-              DataColumn(
-                label: Text('KOMISI'),
-              ),
-              DataColumn(
-                label: Text('STATUS'),
-              ),
-              DataColumn(
-                label: Text('AKSI'),
-              ),
+              DataColumn(label: Text('ID TRANSAKSI')),
+              DataColumn(label: Text('PEKERJAAN')),
+              DataColumn(label: Text('PELANGGAN')),
+              DataColumn(label: Text('MITRA')),
+              DataColumn(label: Text('TOTAL')),
+              DataColumn(label: Text('KOMISI')),
+              DataColumn(label: Text('STATUS')),
+              DataColumn(label: Text('AKSI')),
             ],
-            // Menggunakan data yang sudah dipaginasi
             rows: _paginatedPayments.map((payment) {
               return DataRow(
                 cells: [
-                  DataCell(
-                    _desktopTransactionId(payment),
-                  ),
+                  DataCell(_desktopTransactionId(payment)),
                   DataCell(
                     SizedBox(
                       width: 190,
@@ -771,7 +682,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
+                          color: _cellText,
                         ),
                       ),
                     ),
@@ -783,6 +696,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.pelangganName ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: _cellText,
+                        ),
                       ),
                     ),
                   ),
@@ -793,35 +710,35 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.mitraName ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: _cellText,
+                        ),
                       ),
                     ),
                   ),
                   DataCell(
                     Text(
-                      PaymentModel.formatRupiah(
-                        payment.jobAmount,
-                      ),
+                      PaymentModel.formatRupiah(payment.jobAmount),
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _cellText,
                       ),
                     ),
                   ),
                   DataCell(
                     Text(
-                      PaymentModel.formatRupiah(
-                        payment.commissionAmount,
-                      ),
+                      PaymentModel.formatRupiah(payment.commissionAmount),
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _successColor,
                       ),
                     ),
                   ),
-                  DataCell(
-                    _statusBadge(payment.status),
-                  ),
-                  DataCell(
-                    _desktopAction(payment),
-                  ),
+                  DataCell(_statusBadge(payment.status)),
+                  DataCell(_desktopAction(payment)),
                 ],
               );
             }).toList(),
@@ -847,6 +764,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         style: const TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 13,
+          color: _cellText,
         ),
       ),
     );
@@ -856,33 +774,64 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          tooltip: 'Lihat Detail',
-          icon: const Icon(
-            Icons.visibility_outlined,
-            size: 20,
-          ),
-          onPressed: () => _openPaymentDetail(payment),
+        _pillButton(
+          icon: Icons.visibility_outlined,
+          label: 'Detail',
+          bgColor: const Color(0xFFF1F5F9),
+          fgColor: const Color(0xFF334155),
+          onTap: () => _openPaymentDetail(payment),
         ),
-        if (payment.canVerifyCustomerProof)
-          const Padding(
-            padding: EdgeInsets.only(left: 3),
-            child: Icon(
-              Icons.fiber_new,
-              color: Colors.purple,
-              size: 20,
-            ),
+        if (payment.canVerifyCustomerProof) ...[
+          const SizedBox(width: 6),
+          const Icon(
+            Icons.fiber_new,
+            color: _purpleColor,
+            size: 18,
           ),
-        if (payment.canSettleToMitra)
-          const Padding(
-            padding: EdgeInsets.only(left: 3),
-            child: Icon(
-              Icons.priority_high,
-              color: Colors.blue,
-              size: 20,
-            ),
+        ],
+        if (payment.canSettleToMitra) ...[
+          const SizedBox(width: 6),
+          const Icon(
+            Icons.priority_high,
+            color: _infoColor,
+            size: 18,
           ),
+        ],
       ],
+    );
+  }
+
+  Widget _pillButton({
+    required IconData icon,
+    required String label,
+    required Color bgColor,
+    required Color fgColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: fgColor),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -891,38 +840,36 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildMobileList() {
-    // Menggunakan data yang sudah dipaginasi
     return Column(
       children: _paginatedPayments.map((payment) {
-        return _mobilePaymentCard(payment);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _mobilePaymentCard(payment),
+        );
       }).toList(),
     );
   }
 
   Widget _mobilePaymentCard(PaymentModel payment) {
+    final textTheme = Theme.of(context).textTheme;
     final reference = payment.referenceCode?.trim();
 
-    final transactionId =
-        reference != null && reference.isNotEmpty
-            ? reference
-            : 'PAY-${payment.id.toString().padLeft(3, '0')}';
+    final transactionId = reference != null && reference.isNotEmpty
+        ? reference
+        : 'PAY-${payment.id.toString().padLeft(3, '0')}';
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // HEADER
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -930,128 +877,93 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(11),
+                  color: _accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.receipt_long_outlined,
-                  color: Colors.orange,
-                  size: 21,
+                  color: _accent,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'ID Transaksi',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
                     Text(
                       transactionId,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: _cellText,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      payment.formattedDate,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFF9CA3AF),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: _statusBadge(payment.status),
-                ),
-              ),
+              _statusBadge(payment.status),
             ],
           ),
-          const SizedBox(height: 16),
-          _mobileInfoCard(
-            icon: Icons.work_outline,
-            label: 'Pekerjaan',
-            value: payment.jobTitle ?? '-',
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surface
-                  .withOpacity(0.55),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Column(
-              children: [
-                _mobileInfoRow(
-                  Icons.person_outline,
-                  'Pelanggan',
-                  payment.pelangganName ?? '-',
-                ),
-                _mobileInfoRow(
-                  Icons.handshake_outlined,
-                  'Mitra',
-                  payment.mitraName ?? '-',
-                ),
-                _mobileInfoRow(
-                  Icons.calendar_today_outlined,
-                  'Tanggal',
-                  payment.formattedDate,
-                  isLast: true,
-                ),
-              ],
-            ),
-          ),
+
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surface
-                  .withOpacity(0.55),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Column(
-              children: [
-                _mobileMoneyRow(
-                  'Nilai Pekerjaan',
-                  PaymentModel.formatRupiah(
-                    payment.jobAmount,
-                  ),
-                ),
-                _mobileMoneyRow(
-                  'Komisi',
-                  PaymentModel.formatRupiah(
-                    payment.commissionAmount,
-                  ),
-                ),
-                _mobileMoneyRow(
-                  'Mitra Terima',
-                  PaymentModel.formatRupiah(
-                    payment.mitraEarning,
-                  ),
-                  isBold: true,
-                  isLast: true,
-                ),
-              ],
-            ),
+
+          // PEKERJAAN
+          _mobileInfoRow(
+            Icons.work_outline,
+            'Pekerjaan',
+            payment.jobTitle ?? '-',
           ),
+          _mobileInfoRow(
+            Icons.person_outline,
+            'Pelanggan',
+            payment.pelangganName ?? '-',
+          ),
+          _mobileInfoRow(
+            Icons.handshake_outlined,
+            'Mitra',
+            payment.mitraName ?? '-',
+            isLast: true,
+          ),
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: _tableDivider),
+          const SizedBox(height: 12),
+
+          // MONEY
+          _mobileMoneyRow(
+            'Nilai Pekerjaan',
+            PaymentModel.formatRupiah(payment.jobAmount),
+          ),
+          _mobileMoneyRow(
+            'Komisi',
+            PaymentModel.formatRupiah(payment.commissionAmount),
+          ),
+          _mobileMoneyRow(
+            'Mitra Terima',
+            PaymentModel.formatRupiah(payment.mitraEarning),
+            isBold: true,
+            valueColor: _successColor,
+            isLast: true,
+          ),
+
+          // QUICK ACTION
           if (payment.canVerifyCustomerProof) ...[
             const SizedBox(height: 12),
             _quickActionBanner(
               icon: Icons.fact_check_outlined,
-              color: Colors.purple,
+              color: _purpleColor,
               text: 'Perlu verifikasi bukti transfer pelanggan',
             ),
           ],
@@ -1059,83 +971,32 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             const SizedBox(height: 10),
             _quickActionBanner(
               icon: Icons.priority_high,
-              color: Colors.blue,
+              color: _infoColor,
               text: 'Siap ditransfer ke mitra',
             ),
           ],
+
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            height: 44,
+            height: 42,
             child: OutlinedButton.icon(
               onPressed: () => _openPaymentDetail(payment),
-              icon: const Icon(
-                Icons.visibility_outlined,
-                size: 18,
-              ),
+              icon: const Icon(Icons.visibility_outlined, size: 16),
               label: const Text(
-                'Lihat Detail Pembayaran',
+                'Lihat Detail',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileInfoCard({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 11,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surface
-            .withOpacity(0.55),
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            size: 19,
-            color: Colors.orange,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withOpacity(0.6),
-                  ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF7C3AED),
+                side: const BorderSide(color: Color(0xFFD1D5DB)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -1150,33 +1011,19 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     bool isLast = false,
   }) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: isLast ? 0 : 10,
-      ),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 17,
-            color: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.color
-                ?.withOpacity(0.55),
-          ),
-          const SizedBox(width: 9),
+          Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+          const SizedBox(width: 8),
           SizedBox(
             width: 85,
             child: Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withOpacity(0.65),
+                color: _mutedText,
               ),
             ),
           ),
@@ -1188,7 +1035,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 12.5,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
+                color: _cellText,
               ),
             ),
           ),
@@ -1201,35 +1049,32 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     String label,
     String value, {
     bool isBold = false,
+    Color? valueColor,
     bool isLast = false,
   }) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: isLast ? 0 : 9,
-      ),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 9),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withOpacity(0.65),
-              ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: _mutedText,
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            value,
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight:
-                  isBold ? FontWeight.bold : FontWeight.w600,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: isBold ? 14 : 12.5,
+                fontWeight:
+                    isBold ? FontWeight.w700 : FontWeight.w600,
+                color: valueColor ?? _cellText,
+              ),
             ),
           ),
         ],
@@ -1244,24 +1089,15 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.09),
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: color.withOpacity(0.18),
-        ),
+        border: Border.all(color: color.withOpacity(0.18)),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 18,
-          ),
+          Icon(icon, color: color, size: 18),
           const SizedBox(width: 9),
           Expanded(
             child: Text(
@@ -1278,37 +1114,33 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     );
   }
 
+  // ============================================================
+  // STATUS BADGE
+  // ============================================================
+
   Widget _statusBadge(String status) {
     final color = _getStatusColor(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.11),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _getStatusIcon(status),
-            size: 14,
-            color: color,
-          ),
+          Icon(_getStatusIcon(status), size: 13, color: color),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               _getStatusLabel(status),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 11.5,
-              ),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         ],
@@ -1317,7 +1149,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // PAGINATION UI
+  // PAGINATION
   // ============================================================
 
   Widget _buildPagination() {
@@ -1328,162 +1160,145 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     final startItem = (_currentPage - 1) * _itemsPerPage + 1;
     final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(
+              'Menampilkan $startItem–$endItem dari $total pembayaran',
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: _headerText,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRowsPerPageDropdown(),
+              const SizedBox(width: 12),
+              _navButton(
+                icon: Icons.chevron_left,
+                enabled: _currentPage > 1,
+                onTap: () => setState(() => _currentPage--),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Hal $_currentPage / $totalPages',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: _accent,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _navButton(
+                icon: Icons.chevron_right,
+                enabled: _currentPage < totalPages,
+                onTap: () => setState(() => _currentPage++),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-        // Widget untuk Dropdown Items Per Page
-        final itemsPerPageDropdown = Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+  Widget _buildRowsPerPageDropdown() {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _tableBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _itemsPerPage,
+          isDense: true,
+          icon: const Padding(
+            padding: EdgeInsets.only(left: 4),
+            child: Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: _headerText,
+            ),
+          ),
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: _cellText,
+          ),
+          items: _itemsPerPageOptions.map((value) {
+            return DropdownMenuItem<int>(
+              value: value,
+              child: Text('$value / hal'),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() {
+              _itemsPerPage = value;
+              _currentPage = 1;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _navButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.5),
+              color: enabled
+                  ? const Color(0xFFD1D5DB)
+                  : const Color(0xFFE5E7EB),
             ),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              value: _itemsPerPage,
-              isDense: true,
-              borderRadius: BorderRadius.circular(8),
-              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-                fontWeight: FontWeight.w600,
-              ),
-              items: _itemsPerPageOptions.map((int value) {
-                return DropdownMenuItem<int>(
-                  value: value,
-                  child: Text('$value / hal'),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() {
-                  _itemsPerPage = value;
-                  _currentPage = 1;
-                });
-              },
-            ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: enabled
+                ? const Color(0xFF374151)
+                : const Color(0xFFD1D5DB),
           ),
-        );
-
-        // Widget untuk Tombol Navigasi
-        final navigationButtons = Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left, size: 20),
-              onPressed: _currentPage > 1
-                  ? () => setState(() => _currentPage--)
-                  : null,
-              style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Theme.of(context).dividerColor.withOpacity(0.5),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Hal $_currentPage / $totalPages',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right, size: 20),
-              onPressed: _currentPage < totalPages
-                  ? () => setState(() => _currentPage++)
-                  : null,
-              style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Theme.of(context).dividerColor.withOpacity(0.5),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-
-        return Container(
-          margin: const EdgeInsets.only(top: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.4),
-            ),
-          ),
-          child: isMobile
-              ? Column(
-                  children: [
-                    Text(
-                      'Menampilkan $startItem–$endItem dari $total pembayaran',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.color
-                            ?.withOpacity(0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        itemsPerPageDropdown,
-                        navigationButtons,
-                      ],
-                    ),
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Menampilkan $startItem–$endItem dari $total pembayaran',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.color
-                            ?.withOpacity(0.7),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        itemsPerPageDropdown,
-                        const SizedBox(width: 16),
-                        navigationButtons,
-                      ],
-                    ),
-                  ],
-                ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -1494,24 +1309,17 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   Widget _buildError() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 45,
-      ),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.error_outline,
-            color: Colors.red,
+            color: _dangerColor,
             size: 48,
           ),
           const SizedBox(height: 12),
@@ -1519,21 +1327,23 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             _error ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.red,
-              fontSize: 14,
+              color: _dangerColor,
+              fontSize: 13,
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: _loadData,
-            icon: const Icon(
-              Icons.refresh,
-              size: 18,
-            ),
+            icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: _accent,
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(_radius),
+              ),
             ),
           ),
         ],
@@ -1544,32 +1354,29 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 45,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withOpacity(0.4),
-        ),
-      ),
-      child: const Column(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 52,
-            color: Colors.grey,
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.receipt_long_outlined,
+              size: 34,
+              color: _accent.withOpacity(0.7),
+            ),
           ),
-          SizedBox(height: 12),
-          Text(
+          const SizedBox(height: 14),
+          const Text(
             'Tidak ada data pembayaran.',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
+              color: Color(0xFF64748B),
+              fontSize: 13,
             ),
           ),
         ],

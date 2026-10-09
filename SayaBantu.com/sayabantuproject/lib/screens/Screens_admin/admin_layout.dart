@@ -27,6 +27,29 @@ class AdminLayout extends StatefulWidget {
 }
 
 class _AdminLayoutState extends State<AdminLayout> {
+  // ============================================================
+  // DESIGN TOKENS — disamakan dgn screenshot & template
+  // ============================================================
+
+  static const Color _accent = Color(0xFFF97316);       // orange
+  static const Color _accentLight = Color(0xFFFB923C);  // orange muda
+  static const Color _successColor = Color(0xFF16A34A);
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+  static const Color _mutedText = Color(0xFF64748B);
+
+  static const Color _bg = Color(0xFFF4F7FB);
+
+  // Tokens khusus sidebar gelap
+  static const Color _sidebarBg = Color(0xFF0F172A);      // navy gelap
+  static const Color _sidebarText = Color(0xFFE2E8F0);    // abu terang
+  static const Color _sidebarMuted = Color(0xFF94A3B8);   // abu redup
+
+  static const double _radius = 10;
+
   late String activeMenu;
 
   int _reportRefreshKey = 0;
@@ -53,7 +76,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // ✅ RESTORE ACTIVE MENU
+  // RESTORE ACTIVE MENU
   // =========================================================
 
   void _restoreActiveMenu() {
@@ -69,7 +92,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // ✅ SAVE ACTIVE MENU
+  // SAVE ACTIVE MENU
   // =========================================================
 
   void _saveActiveMenu(String menu) {
@@ -188,7 +211,7 @@ class _AdminLayoutState extends State<AdminLayout> {
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: Color(0xFF8B5CF6),
+          color: _accentLight,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
@@ -207,7 +230,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       width: size,
       height: size,
       decoration: const BoxDecoration(
-        color: Color(0xFF8B5CF6),
+        color: _accentLight,
         shape: BoxShape.circle,
       ),
       child: ClipOval(
@@ -221,7 +244,7 @@ class _AdminLayoutState extends State<AdminLayout> {
             return Container(
               width: size,
               height: size,
-              color: const Color(0xFF8B5CF6),
+              color: _accentLight,
               alignment: Alignment.center,
               child: const SizedBox(
                 width: 16,
@@ -237,7 +260,7 @@ class _AdminLayoutState extends State<AdminLayout> {
             return Container(
               width: size,
               height: size,
-              color: const Color(0xFF8B5CF6),
+              color: _accentLight,
               alignment: Alignment.center,
               child: Text(
                 _getInitials(),
@@ -287,22 +310,34 @@ class _AdminLayoutState extends State<AdminLayout> {
     final isMobile = screenWidth < 700;
     final isTablet = screenWidth >= 700 && screenWidth < 1100;
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: _bg,
 
       appBar: isMobile
           ? AppBar(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
+              backgroundColor: _sidebarBg,
+              surfaceTintColor: _sidebarBg,
               elevation: 0,
+              scrolledUnderElevation: 0,
               automaticallyImplyLeading: false,
-              title: Text(
-                adminName,
-                style: const TextStyle(
-                  color: Color(0xFF111827),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+              titleSpacing: 16,
+              title: Row(
+                children: [
+                  _buildAdminProfileImage(size: 32),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      adminName,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: _sidebarText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             )
           : null,
@@ -312,7 +347,7 @@ class _AdminLayoutState extends State<AdminLayout> {
         children: [
           if (!isMobile)
             SizedBox(
-              width: isTablet ? 220 : 230,
+              width: isTablet ? 240 : 260,
               child: _buildSidebar(context),
             ),
 
@@ -346,86 +381,115 @@ class _AdminLayoutState extends State<AdminLayout> {
   // =========================================================
 
   Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      currentIndex: _getMenuIndex(),
-      onTap: (index) {
-        String menu = 'verification';
-        switch (index) {
-          case 0:
-            menu = 'verification';
-            break;
-          case 1:
-            menu = 'complaint';
-            break;
-          case 2:
-            menu = 'report';
-            break;
-          case 3:
-            menu = 'rating';
-            break;
-          case 4:
-            menu = 'payment';
-            break;
-          case 5:
-            menu = 'profile';
-            break;
-        }
-        _changePage(context, menu);
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: const Color(0xFF7C3AED),
-      unselectedItemColor: const Color(0xFF64748B),
-      selectedFontSize: 10,
-      unselectedFontSize: 10,
-      selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.verified_outlined, size: 20),
-          label: 'Verifikasi',
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: _tableBorder, width: 1),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.report_problem_outlined, size: 20),
-          label: 'Pengaduan',
+      ),
+      child: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
+          currentIndex: _getMenuIndex(),
+          onTap: (index) {
+            String menu = 'verification';
+            switch (index) {
+              case 0:
+                menu = 'verification';
+                break;
+              case 1:
+                menu = 'complaint';
+                break;
+              case 2:
+                menu = 'report';
+                break;
+              case 3:
+                menu = 'rating';
+                break;
+              case 4:
+                menu = 'payment';
+                break;
+              case 5:
+                menu = 'profile';
+                break;
+            }
+            _changePage(context, menu);
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: _accent,
+          unselectedItemColor: const Color(0xFF94A3B8),
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          selectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w600),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w500),
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.verified_outlined, size: 22),
+              activeIcon: Icon(Icons.verified, size: 22),
+              label: 'Verifikasi',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.report_problem_outlined, size: 22),
+              activeIcon: Icon(Icons.report_problem, size: 22),
+              label: 'Pengaduan',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_outlined, size: 22),
+              activeIcon: Icon(Icons.bar_chart, size: 22),
+              label: 'Laporan',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.star_outline, size: 22),
+              activeIcon: Icon(Icons.star, size: 22),
+              label: 'Rating',
+            ),
+            BottomNavigationBarItem(
+              icon:
+                  Icon(Icons.account_balance_wallet_outlined, size: 22),
+              activeIcon:
+                  Icon(Icons.account_balance_wallet, size: 22),
+              label: 'Bayar',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline, size: 22),
+              activeIcon: Icon(Icons.person, size: 22),
+              label: 'Profil',
+            ),
+          ],
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart_outlined, size: 20),
-          label: 'Laporan',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.star_outline, size: 20),
-          label: 'Rating',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.account_balance_wallet_outlined, size: 20),
-          label: 'Bayar',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline, size: 20),
-          label: 'Profil',
-        ),
-      ],
+      ),
     );
   }
 
   // =========================================================
-  // SIDEBAR
+  // SIDEBAR — navy gelap, disamakan dgn screenshot
   // =========================================================
 
   Widget _buildSidebar(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      color: _sidebarBg,
       child: Column(
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
 
+          // ==========================================
+          // PROFIL ADMIN
+          // ==========================================
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                _buildAdminProfileImage(size: 40),
-                const SizedBox(width: 10),
+                _buildAdminProfileImage(size: 46),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,19 +497,17 @@ class _AdminLayoutState extends State<AdminLayout> {
                       Text(
                         adminName,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
+                          color: _sidebarText,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Level: $adminRole',
+                        'Admin',  // label role
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF64748B),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: _sidebarMuted,
                         ),
                       ),
                     ],
@@ -455,11 +517,15 @@ class _AdminLayoutState extends State<AdminLayout> {
             ),
           ),
 
-          const SizedBox(height: 25),
+          const SizedBox(height: 28),
 
+          // ==========================================
+          // MENU
+          // ==========================================
           _menuItem(
             context: context,
             icon: Icons.verified_outlined,
+            activeIcon: Icons.verified,
             title: 'Verifikasi Mitra',
             active: activeMenu == 'verification',
             onTap: () => _changePage(context, 'verification'),
@@ -467,6 +533,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           _menuItem(
             context: context,
             icon: Icons.report_problem_outlined,
+            activeIcon: Icons.report_problem,
             title: 'Pengaduan',
             active: activeMenu == 'complaint',
             onTap: () => _changePage(context, 'complaint'),
@@ -474,6 +541,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           _menuItem(
             context: context,
             icon: Icons.bar_chart_outlined,
+            activeIcon: Icons.bar_chart,
             title: 'Laporan Harian',
             active: activeMenu == 'report',
             onTap: () => _changePage(context, 'report'),
@@ -481,6 +549,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           _menuItem(
             context: context,
             icon: Icons.star_outline,
+            activeIcon: Icons.star,
             title: 'Kelola Rating Mitra',
             active: activeMenu == 'rating',
             onTap: () => _changePage(context, 'rating'),
@@ -488,6 +557,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           _menuItem(
             context: context,
             icon: Icons.account_balance_wallet_outlined,
+            activeIcon: Icons.account_balance_wallet,
             title: 'Pembayaran',
             active: activeMenu == 'payment',
             onTap: () => _changePage(context, 'payment'),
@@ -495,6 +565,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           _menuItem(
             context: context,
             icon: Icons.person_outline,
+            activeIcon: Icons.person,
             title: 'Profil Admin',
             active: activeMenu == 'profile',
             onTap: () => _changePage(context, 'profile'),
@@ -502,21 +573,19 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           const Spacer(),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(height: 1, color: Color(0xFFE2E8F0)),
-          ),
-
+          // ==========================================
+          // LOGOUT
+          // ==========================================
           _logoutButton(context),
 
-          const SizedBox(height: 15),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
   // =========================================================
-  // ✅ CHANGE PAGE — dengan save menu
+  // CHANGE PAGE — dengan save menu
   // =========================================================
 
   void _changePage(BuildContext context, String menu) {
@@ -525,117 +594,121 @@ class _AdminLayoutState extends State<AdminLayout> {
       if (menu == 'report') _reportRefreshKey++;
     });
 
-    _saveActiveMenu(menu); // ✅ Simpan
+    _saveActiveMenu(menu);
   }
 
   // =========================================================
-  // MENU ITEM
+  // MENU ITEM — sidebar gelap
   // =========================================================
 
   Widget _menuItem({
     required BuildContext context,
     required IconData icon,
+    required IconData activeIcon,
     required String title,
     required bool active,
     required VoidCallback onTap,
     String? badge,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 46,
-        padding: const EdgeInsets.symmetric(horizontal: 17),
-        decoration: BoxDecoration(
-          color: active ? const Color(0xFFF3E8FF) : Colors.transparent,
-          border: active
-              ? const Border(
-                  right: BorderSide(
-                    color: Color(0xFF8B5CF6),
-                    width: 3,
-                  ),
-                )
-              : null,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: active
-                  ? const Color(0xFF7C3AED)
-                  : const Color(0xFF475569),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                  color: active
-                      ? const Color(0xFF7C3AED)
-                      : const Color(0xFF475569),
-                ),
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: active
+                ? _accent.withOpacity(0.14)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                active ? activeIcon : icon,
+                size: 20,
+                color: active ? _accent : _sidebarText,
               ),
-            ),
-            if (badge != null)
-              Container(
-                width: 19,
-                height: 19,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
-                  shape: BoxShape.circle,
-                ),
+              const SizedBox(width: 13),
+              Expanded(
                 child: Text(
-                  badge,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight:
+                        active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? _accent : _sidebarText,
                   ),
                 ),
               ),
-          ],
+              if (badge != null)
+                Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: _dangerColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    badge,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   // =========================================================
-  // LOGOUT BUTTON
+  // LOGOUT BUTTON — sidebar gelap
   // =========================================================
 
   Widget _logoutButton(BuildContext context) {
-    return InkWell(
-      onTap: () => _showLogoutDialog(context),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: double.infinity,
-        height: 48,
-        margin: const EdgeInsets.symmetric(horizontal: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 17),
-        child: Row(
-          children: const [
-            Icon(
-              Icons.logout_outlined,
-              size: 19,
-              color: Color(0xFFEF4444),
-            ),
-            SizedBox(width: 11),
-            Expanded(
-              child: Text(
-                'Keluar',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFFEF4444),
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: InkWell(
+        onTap: () => _showLogoutDialog(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: _dangerColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.logout_outlined,
+                size: 20,
+                color: _dangerColor,
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Text(
+                  'Keluar',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: _dangerColor,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -650,45 +723,133 @@ class _AdminLayoutState extends State<AdminLayout> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
+        final textTheme = Theme.of(dialogContext).textTheme;
+
+        return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          title: const Row(
-            children: [
-              Icon(Icons.logout_outlined, color: Color(0xFFEF4444)),
-              SizedBox(width: 10),
-              Text(
-                'Keluar',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ],
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
           ),
-          content: const Text(
-            'Apakah kamu yakin ingin keluar dari akun admin?',
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(
-                'Batal',
-                style: TextStyle(color: Color(0xFF64748B)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: _dangerColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(_radius),
+                        ),
+                        child: const Icon(
+                          Icons.logout_outlined,
+                          color: _dangerColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Keluar',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: _cellText,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(false),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: _headerText,
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Apakah kamu yakin ingin keluar dari akun admin?',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF374151),
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 46),
+                            foregroundColor:
+                                const Color(0xFF374151),
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_radius),
+                            ),
+                          ),
+                          child: Text(
+                            'Batal',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _dangerColor,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_radius),
+                            ),
+                          ),
+                          child: Text(
+                            'Keluar',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-              ),
-              child: const Text('Keluar'),
-            ),
-          ],
+          ),
         );
       },
     ).then((shouldLogout) {

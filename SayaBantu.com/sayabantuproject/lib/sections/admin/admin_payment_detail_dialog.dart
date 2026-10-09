@@ -20,71 +20,227 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   bool _isProcessing = false;
 
   // ============================================================
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // ============================================================
+
+  static const Color _accent = Color(0xFFF97316);
+  static const Color _successColor = Color(0xFF16A34A);
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _infoColor = Color(0xFF2563EB);
+  static const Color _purpleColor = Color(0xFF7C3AED);
+
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+
+  static const double _radius = 10;
+
+  // ============================================================
   // VERIFIKASI BUKTI PELANGGAN
   // ============================================================
+
   Future<void> _verifyProof(String action) async {
     final noteCtrl = TextEditingController();
+    final isApprove = action == 'approve';
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(action == 'approve' ? 'Verifikasi Bukti' : 'Tolak Bukti'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              action == 'approve'
-                  ? 'Konfirmasi bahwa bukti transfer pelanggan valid?'
-                  : 'Berikan alasan penolakan bukti transfer pelanggan.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: noteCtrl,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: action == 'approve'
-                    ? 'Catatan (opsional)'
-                    : 'Alasan penolakan *',
-                border: const OutlineInputBorder(),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // HEADER
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: (isApprove ? _infoColor : _dangerColor)
+                              .withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(_radius),
+                        ),
+                        child: Icon(
+                          isApprove
+                              ? Icons.verified_outlined
+                              : Icons.cancel_outlined,
+                          color: isApprove ? _infoColor : _dangerColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          isApprove ? 'Verifikasi Bukti' : 'Tolak Bukti',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _cellText,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () =>
+                            Navigator.pop(dialogContext, false),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: _headerText,
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    isApprove
+                        ? 'Konfirmasi bahwa bukti transfer pelanggan valid?'
+                        : 'Berikan alasan penolakan bukti transfer pelanggan.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  TextField(
+                    controller: noteCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: isApprove
+                          ? 'Catatan (opsional)'
+                          : 'Alasan penolakan *',
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                        borderSide:
+                            const BorderSide(color: _tableBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                        borderSide:
+                            const BorderSide(color: _tableBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                        borderSide: const BorderSide(
+                          color: _accent,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, false),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 46),
+                            foregroundColor: const Color(0xFF374151),
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_radius),
+                            ),
+                          ),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                isApprove ? _infoColor : _dangerColor,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_radius),
+                            ),
+                          ),
+                          child: Text(
+                            isApprove ? 'Verifikasi' : 'Tolak',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  action == 'approve' ? Colors.blue : Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(action == 'approve' ? 'Verifikasi' : 'Tolak'),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed != true) return;
 
     if (action == 'reject' && noteCtrl.text.trim().isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Alasan penolakan wajib diisi.'),
-          backgroundColor: Colors.red,
-        ),
+      _showSnack(
+        'Alasan penolakan wajib diisi.',
+        error: true,
       );
       return;
     }
 
     setState(() => _isProcessing = true);
 
-    // ✅ Sekarang return UploadResult
     final result = await PaymentService.verifyCustomerProof(
       paymentId: widget.payment.id,
       action: action,
@@ -94,27 +250,17 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    // ✅ Pakai result.success
     if (result.success) {
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            action == 'approve'
-                ? 'Bukti berhasil diverifikasi. Siap transfer ke mitra.'
-                : 'Bukti ditolak. Pelanggan perlu upload ulang.',
-          ),
-          backgroundColor: Colors.green,
-        ),
+      _showSnack(
+        action == 'approve'
+            ? 'Bukti berhasil diverifikasi. Siap transfer ke mitra.'
+            : 'Bukti ditolak. Pelanggan perlu upload ulang.',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.message ?? 'Gagal memproses. Coba lagi.',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      _showSnack(
+        result.message ?? 'Gagal memproses. Coba lagi.',
+        error: true,
       );
     }
   }
@@ -122,6 +268,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // ============================================================
   // SETTLE — Transfer ke mitra
   // ============================================================
+
   Future<void> _settleToMitra() async {
     final result = await showDialog<bool>(
       context: context,
@@ -137,63 +284,198 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // ============================================================
   // REFUND
   // ============================================================
+
   Future<void> _refund() async {
     final reasonCtrl = TextEditingController();
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Refund ke Pelanggan'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kembalikan dana ${PaymentModel.formatRupiah(widget.payment.totalPaid)} ke pelanggan?',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Alasan refund *',
-                border: OutlineInputBorder(),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: _dangerColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(_radius),
+                        ),
+                        child: const Icon(
+                          Icons.assignment_return_outlined,
+                          color: _dangerColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Refund ke Pelanggan',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _cellText,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () =>
+                            Navigator.pop(dialogContext, false),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: _headerText,
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Kembalikan dana ${PaymentModel.formatRupiah(widget.payment.totalPaid)} ke pelanggan?',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  TextField(
+                    controller: reasonCtrl,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Alasan refund *',
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                        borderSide:
+                            const BorderSide(color: _tableBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                        borderSide:
+                            const BorderSide(color: _tableBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                        borderSide: const BorderSide(
+                          color: _accent,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, false),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 46),
+                            foregroundColor: const Color(0xFF374151),
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_radius),
+                            ),
+                          ),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _dangerColor,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_radius),
+                            ),
+                          ),
+                          child: const Text(
+                            'Refund',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Refund'),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed != true) return;
+
     if (reasonCtrl.text.trim().isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Alasan refund wajib diisi.'),
-          backgroundColor: Colors.red,
-        ),
+      _showSnack(
+        'Alasan refund wajib diisi.',
+        error: true,
       );
       return;
     }
 
     setState(() => _isProcessing = true);
 
-    // ✅ Sekarang return UploadResult
     final result = await PaymentService.refund(
       paymentId: widget.payment.id,
       reason: reasonCtrl.text.trim(),
@@ -202,28 +484,38 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    // ✅ Pakai result.success
     if (result.success) {
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pembayaran berhasil direfund.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showSnack('Pembayaran berhasil direfund.');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message ?? 'Gagal refund. Coba lagi.'),
-          backgroundColor: Colors.red,
-        ),
+      _showSnack(
+        result.message ?? 'Gagal refund. Coba lagi.',
+        error: true,
       );
     }
   }
 
   // ============================================================
+  // SNACKBAR
+  // ============================================================
+
+  void _showSnack(String message, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: error ? _dangerColor : _successColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  // ============================================================
   // BUILD IMAGE URL
   // ============================================================
+
   String _buildProofImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
 
@@ -242,6 +534,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // ============================================================
   // BUKA FULLSCREEN IMAGE VIEWER
   // ============================================================
+
   void _openFullScreenImage(String? path, String title) {
     final url = _buildProofImageUrl(path);
     if (url.isEmpty) return;
@@ -261,6 +554,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // ============================================================
   // WIDGET GAMBAR BUKTI
   // ============================================================
+
   Widget _buildProofImage(
     String? path, {
     double height = 200,
@@ -273,14 +567,17 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
         height: height,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade300),
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: _tableBorder),
         ),
         child: const Center(
           child: Text(
             'Bukti belum diunggah',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(
+              color: _headerText,
+              fontSize: 12.5,
+            ),
           ),
         ),
       );
@@ -291,7 +588,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
         GestureDetector(
           onTap: () => _openFullScreenImage(path, title),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_radius),
             child: Image.network(
               url,
               height: height,
@@ -301,9 +598,9 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                 if (progress == null) return child;
                 return Container(
                   height: height,
-                  color: Colors.grey.shade100,
+                  color: const Color(0xFFF9FAFB),
                   child: const Center(
-                    child: CircularProgressIndicator(color: Colors.orange),
+                    child: CircularProgressIndicator(color: _accent),
                   ),
                 );
               },
@@ -311,28 +608,37 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                 height: height,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(_radius),
+                  border: Border.all(color: _tableBorder),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.broken_image,
-                        color: Colors.grey.shade400, size: 48),
+                    const Icon(
+                      Icons.broken_image,
+                      color: Color(0xFF9CA3AF),
+                      size: 48,
+                    ),
                     const SizedBox(height: 8),
                     const Text(
                       'Gagal memuat gambar',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: _headerText,
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         url,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.grey.shade400, fontSize: 10),
+                        style: const TextStyle(
+                          color: Color(0xFF9CA3AF),
+                          fontSize: 10,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -379,204 +685,442 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // ============================================================
   // BUILD
   // ============================================================
+
   @override
   Widget build(BuildContext context) {
     final p = widget.payment;
     final bank = p.mitraBank ?? {};
 
-    return AlertDialog(
-      title: Row(
-        children: [
-          const Icon(Icons.receipt_long, color: Colors.orange),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'PAY-${p.id.toString().padLeft(3, '0')}',
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          _statusBadge(p),
-        ],
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-      content: SizedBox(
-        width: 520,
-        child: SingleChildScrollView(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 24,
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _infoRow('Pekerjaan', p.jobTitle ?? '-'),
-              _infoRow('Pelanggan', p.pelangganName ?? '-'),
-              _infoRow('Mitra', p.mitraName ?? '-'),
-              _infoRow('Tanggal', p.formattedDate),
-              const Divider(height: 25),
-              _infoRow('Nilai Pekerjaan',
-                  PaymentModel.formatRupiah(p.jobAmount)),
-              _infoRow(
-                'Komisi (${p.commissionPercent.toStringAsFixed(0)}%)',
-                PaymentModel.formatRupiah(p.commissionAmount),
-              ),
-              _infoRow(
-                'Mitra Terima',
-                PaymentModel.formatRupiah(p.mitraEarning),
-                isBold: true,
-              ),
-              if (p.customerProofUrl != null) ...[
-                const Divider(height: 25),
-                const Text(
-                  'Bukti Transfer dari Pelanggan:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 10),
-                _buildProofImage(
-                  p.customerProofUrl,
-                  title: 'Bukti Transfer Pelanggan',
-                ),
-                const SizedBox(height: 10),
-                if (p.customerBankName != null)
-                  _infoRow('Bank Pengirim', p.customerBankName!),
-                if (p.customerAccountName != null)
-                  _infoRow('Nama Pengirim', p.customerAccountName!),
-              ],
-              if (p.canSettleToMitra) ...[
-                const Divider(height: 25),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.green.withOpacity(0.2)),
+              // ============================================
+              // HEADER
+              // ============================================
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(_radius),
+                    ),
+                    child: const Icon(
+                      Icons.receipt_long,
+                      color: _accent,
+                      size: 20,
+                    ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'PAY-${p.id.toString().padLeft(3, '0')}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: _cellText,
+                          ),
+                    ),
+                  ),
+                  _statusBadge(p),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: _isProcessing
+                        ? null
+                        : () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: _headerText,
+                    ),
+                    splashRadius: 22,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+
+              // ============================================
+              // CONTENT
+              // ============================================
+              Flexible(
+                child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Transfer ke Rekening Mitra:',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13),
+                      _infoRow('Pekerjaan', p.jobTitle ?? '-'),
+                      _infoRow('Pelanggan', p.pelangganName ?? '-'),
+                      _infoRow('Mitra', p.mitraName ?? '-'),
+                      _infoRow('Tanggal', p.formattedDate),
+
+                      const Divider(height: 25, color: _tableDivider),
+
+                      _infoRow(
+                        'Nilai Pekerjaan',
+                        PaymentModel.formatRupiah(p.jobAmount),
                       ),
-                      const SizedBox(height: 10),
-                      _bankRow('Bank', bank['bank_name']?.toString() ?? '-'),
-                      _bankRow('No. Rekening',
-                          bank['account_number']?.toString() ?? '-'),
-                      _bankRow('Atas Nama',
-                          bank['account_name']?.toString() ?? '-'),
-                      const Divider(height: 18),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Jumlah:',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                      _infoRow(
+                        'Komisi (${p.commissionPercent.toStringAsFixed(0)}%)',
+                        PaymentModel.formatRupiah(p.commissionAmount),
+                      ),
+                      _infoRow(
+                        'Mitra Terima',
+                        PaymentModel.formatRupiah(p.mitraEarning),
+                        isBold: true,
+                      ),
+
+                      // Bukti dari pelanggan
+                      if (p.customerProofUrl != null) ...[
+                        const Divider(
+                          height: 25,
+                          color: _tableDivider,
+                        ),
+                        const Text(
+                          'Bukti Transfer dari Pelanggan',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: _cellText,
                           ),
-                          Text(
-                            PaymentModel.formatRupiah(p.mitraEarning),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                              fontSize: 16,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildProofImage(
+                          p.customerProofUrl,
+                          title: 'Bukti Transfer Pelanggan',
+                        ),
+                        const SizedBox(height: 10),
+                        if (p.customerBankName != null)
+                          _infoRow(
+                            'Bank Pengirim',
+                            p.customerBankName!,
+                          ),
+                        if (p.customerAccountName != null)
+                          _infoRow(
+                            'Nama Pengirim',
+                            p.customerAccountName!,
+                          ),
+                      ],
+
+                      // Rekening mitra (untuk transfer)
+                      if (p.canSettleToMitra) ...[
+                        const Divider(
+                          height: 25,
+                          color: _tableDivider,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _successColor.withOpacity(0.06),
+                            borderRadius:
+                                BorderRadius.circular(_radius),
+                            border: Border.all(
+                              color: _successColor.withOpacity(0.2),
                             ),
                           ),
-                        ],
-                      ),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Transfer ke Rekening Mitra',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: _cellText,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              _bankRow(
+                                'Bank',
+                                bank['bank_name']?.toString() ?? '-',
+                              ),
+                              _bankRow(
+                                'No. Rekening',
+                                bank['account_number']?.toString() ?? '-',
+                              ),
+                              _bankRow(
+                                'Atas Nama',
+                                bank['account_name']?.toString() ?? '-',
+                              ),
+                              const Divider(
+                                height: 18,
+                                color: _tableDivider,
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Jumlah:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: _cellText,
+                                    ),
+                                  ),
+                                  Text(
+                                    PaymentModel.formatRupiah(
+                                      p.mitraEarning,
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: _successColor,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Bukti transfer ke mitra
+                      if (p.mitraProofUrl != null) ...[
+                        const Divider(
+                          height: 25,
+                          color: _tableDivider,
+                        ),
+                        const Text(
+                          'Bukti Transfer ke Mitra',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: _cellText,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildProofImage(
+                          p.mitraProofUrl,
+                          title: 'Bukti Transfer ke Mitra',
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ],
-              if (p.mitraProofUrl != null) ...[
-                const Divider(height: 25),
-                const Text(
-                  'Bukti Transfer ke Mitra:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 10),
-                _buildProofImage(
-                  p.mitraProofUrl,
-                  title: 'Bukti Transfer ke Mitra',
-                ),
-              ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // ============================================
+              // ACTIONS
+              // ============================================
+              _buildActions(),
             ],
           ),
         ),
       ),
-      actions: _buildActions(),
     );
   }
 
   // ============================================================
   // ACTIONS
   // ============================================================
-  List<Widget> _buildActions() {
+
+  Widget _buildActions() {
     final p = widget.payment;
-    final actions = <Widget>[];
 
-    if (p.canVerifyCustomerProof) {
-      actions.add(
-        TextButton(
-          onPressed: _isProcessing ? null : () => _verifyProof('reject'),
-          child: const Text('Tolak Bukti',
-              style: TextStyle(color: Colors.red)),
-        ),
-      );
-      actions.add(
-        ElevatedButton.icon(
-          onPressed: _isProcessing ? null : () => _verifyProof('approve'),
-          icon: const Icon(Icons.check_circle, size: 18),
-          label: const Text('Verifikasi'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      );
-    }
-
-    if (p.canSettleToMitra) {
-      actions.add(
-        TextButton(
-          onPressed: _isProcessing ? null : _refund,
-          child: const Text('Refund',
-              style: TextStyle(color: Colors.red)),
-        ),
-      );
-      actions.add(
-        ElevatedButton.icon(
-          onPressed: _isProcessing ? null : _settleToMitra,
-          icon: const Icon(Icons.send, size: 18),
-          label: const Text('Transfer ke Mitra'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      );
-    }
-
+    // Kalau pending (belum ada aksi)
     if (p.isPending) {
-      actions.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Text(
-            'Menunggu pelanggan transfer...',
-            style: TextStyle(color: Colors.orange, fontSize: 13),
+      return Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(_radius),
+                border: Border.all(color: _accent.withOpacity(0.25)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.hourglass_top,
+                    color: _accent,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Menunggu pelanggan transfer...',
+                      style: TextStyle(
+                        color: _accent,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 10),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 46),
+              foregroundColor: const Color(0xFF374151),
+              side: const BorderSide(color: Color(0xFFD1D5DB)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(_radius),
+              ),
+            ),
+            child: const Text(
+              'Tutup',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       );
     }
 
-    actions.add(
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Tutup'),
-      ),
-    );
+    return Row(
+      children: [
+        // Kiri: tombol sekunder (Tolak / Refund)
+        if (p.canVerifyCustomerProof)
+          TextButton.icon(
+            onPressed: _isProcessing
+                ? null
+                : () => _verifyProof('reject'),
+            icon: const Icon(Icons.cancel_outlined, size: 16),
+            label: const Text(
+              'Tolak',
+              style: TextStyle(fontSize: 13),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: _dangerColor,
+            ),
+          ),
 
-    return actions;
+        if (p.canSettleToMitra)
+          TextButton.icon(
+            onPressed: _isProcessing ? null : _refund,
+            icon: const Icon(Icons.assignment_return_outlined,
+                size: 16),
+            label: const Text(
+              'Refund',
+              style: TextStyle(fontSize: 13),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: _dangerColor,
+            ),
+          ),
+
+        const Spacer(),
+
+        // Tutup
+        if (!p.canVerifyCustomerProof && !p.canSettleToMitra)
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 46),
+              foregroundColor: const Color(0xFF374151),
+              side: const BorderSide(color: Color(0xFFD1D5DB)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(_radius),
+              ),
+            ),
+            child: const Text(
+              'Tutup',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+
+        // Aksi utama
+        if (p.canVerifyCustomerProof) ...[
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            onPressed: _isProcessing
+                ? null
+                : () => _verifyProof('approve'),
+            icon: _isProcessing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.check_circle, size: 18),
+            label: const Text(
+              'Verifikasi',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _infoColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 46),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(_radius),
+              ),
+            ),
+          ),
+        ],
+
+        if (p.canSettleToMitra) ...[
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            onPressed: _isProcessing ? null : _settleToMitra,
+            icon: const Icon(Icons.send, size: 18),
+            label: const Text(
+              'Transfer ke Mitra',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _successColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 46),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(_radius),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   // ============================================================
   // HELPERS
   // ============================================================
+
   Widget _infoRow(String label, String value, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -585,13 +1129,22 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
         children: [
           SizedBox(
             width: 140,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: _headerText,
+                fontSize: 12.5,
+              ),
+            ),
           ),
           Expanded(
             child: Text(
               value,
               style: TextStyle(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+                fontSize: isBold ? 13.5 : 13,
+                fontWeight:
+                    isBold ? FontWeight.w700 : FontWeight.w500,
+                color: _cellText,
               ),
             ),
           ),
@@ -607,16 +1160,28 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label,
-                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: _headerText,
+                fontSize: 12.5,
+              ),
+            ),
           ),
-          const Text(': ', style: TextStyle(color: Colors.grey)),
+          const Text(
+            ': ',
+            style: TextStyle(
+              color: _headerText,
+              fontSize: 12.5,
+            ),
+          ),
           Expanded(
             child: SelectableText(
               value,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 fontSize: 13,
+                color: _cellText,
               ),
             ),
           ),
@@ -647,18 +1212,18 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'settled':
-        return Colors.green;
+        return _successColor;
       case 'paid':
-        return Colors.blue;
+        return _infoColor;
       case 'waiting_verification':
-        return Colors.purple;
+        return _purpleColor;
       case 'pending':
-        return Colors.orange;
+        return _accent;
       case 'refunded':
       case 'failed':
-        return Colors.red;
+        return _dangerColor;
       default:
-        return Colors.grey;
+        return _headerText;
     }
   }
 
@@ -670,6 +1235,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 // ================================================================
 // FULLSCREEN IMAGE VIEWER
 // ================================================================
+
 class _FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
   final String title;
@@ -680,7 +1246,8 @@ class _FullScreenImageViewer extends StatefulWidget {
   });
 
   @override
-  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+  State<_FullScreenImageViewer> createState() =>
+      _FullScreenImageViewerState();
 }
 
 class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
@@ -747,7 +1314,9 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
             loadingBuilder: (context, child, progress) {
               if (progress == null) return child;
               return const Center(
-                child: CircularProgressIndicator(color: Colors.orange),
+                child: CircularProgressIndicator(
+                  color: Color(0xFFF97316),
+                ),
               );
             },
             errorBuilder: (_, __, ___) => const Center(
