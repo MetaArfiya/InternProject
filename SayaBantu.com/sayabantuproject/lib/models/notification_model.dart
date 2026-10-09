@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 
 class NotificationModel {
   final String id;         // ← UUID (String), bukan int

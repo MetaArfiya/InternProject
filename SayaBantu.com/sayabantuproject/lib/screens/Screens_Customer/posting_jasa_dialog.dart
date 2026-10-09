@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/job_model.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 import '../../screens/Screens_Customer/map_picker_screen.dart';
 import '../../theme/app_colors.dart';
 
@@ -347,9 +347,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token') ??
-          prefs.getString('token') ??
+      final token = AuthStorage.getString('auth_token') ??
+          AuthStorage.getString('token') ??
           '';
 
       if (token.isEmpty) {

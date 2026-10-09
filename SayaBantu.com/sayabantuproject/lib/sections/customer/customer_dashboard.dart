@@ -53,22 +53,27 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // DESIGN TOKENS
   // ============================================================
 
-  static const double _bodyFontSize = 13;
-  static const double _buttonFontSize = 13;
-  static const double _dialogTitleFontSize = 18;
-  static const double _smallRadius = 12;
-
+  static const double _buttonRadius = 12;
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
+  static const double _bodyFontSize = 13;
 
   // ✅ Aksen warna — konsisten dengan brand teal
   static const Color _accent = AppColors.primaryTeal;
 
-  // Warna tabel
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
   static const Color _headerText = AppColors.grey500;
   static const Color _cellText = AppColors.grey900;
+
+  // ============================================================
+  // SPACING — mengikuti pola DashboardHeader
+  //   title → 6 → subtitle → 16 → elemen berikutnya
+  // ============================================================
+
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _gapTitleToContent = 16;
 
   @override
   void initState() {
@@ -139,29 +144,22 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     try {
       final response = await ApiService.post(
         '/jobs/${job.id}/verify-proof',
-        {
-          'status': 'approved',
-        },
+        {'status': 'approved'},
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        _showSnack(
-          'Pekerjaan berhasil dikonfirmasi selesai!',
-          success: true,
-        );
+        _showSnack('Pekerjaan berhasil dikonfirmasi selesai!', success: true);
         _fetchMyJobs();
       } else {
         String message = 'Gagal konfirmasi (${response.statusCode})';
-
         try {
           final decoded = jsonDecode(response.body);
           if (decoded['message'] != null) {
             message = decoded['message'].toString();
           }
         } catch (_) {}
-
         _showSnack(message);
       }
     } catch (e) {
@@ -179,29 +177,22 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     try {
       final response = await ApiService.post(
         '/jobs/${job.id}/cancel-customer',
-        {
-          'reason': 'Dibatalkan oleh pelanggan',
-        },
+        {'reason': 'Dibatalkan oleh pelanggan'},
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        _showSnack(
-          'Pekerjaan berhasil dibatalkan.',
-          success: true,
-        );
+        _showSnack('Pekerjaan berhasil dibatalkan.', success: true);
         _fetchMyJobs();
       } else {
         String message = 'Gagal membatalkan (${response.statusCode})';
-
         try {
           final decoded = jsonDecode(response.body);
           if (decoded['message'] != null) {
             message = decoded['message'].toString();
           }
         } catch (_) {}
-
         _showSnack(message);
       }
     } catch (e) {
@@ -215,16 +206,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(fontSize: _bodyFontSize),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         backgroundColor: success ? AppColors.primaryTeal : Colors.red,
       ),
     );
   }
-
-  // ============================================================
-  // TAMBAH PEKERJAAN
-  // ============================================================
 
   void addJob(JobModel job) {
     setState(() {
@@ -233,19 +220,16 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   // ============================================================
-  // CEK APAKAH TOMBOL "KONFIRMASI SELESAI" HARUS MUNCUL
+  // CEK TOMBOL
   // ============================================================
 
   bool _canConfirm(JobModel job) {
     final s = job.status.toLowerCase();
-
     final isWaitingConfirm = s == 'menunggu konfirmasi selesai' ||
         s == 'menunggu konfirmasi' ||
         s.contains('konfirmasi');
-
     final hasProof = job.completionPhotoUrl != null &&
         job.completionPhotoUrl!.trim().isNotEmpty;
-
     return isWaitingConfirm && hasProof;
   }
 
@@ -293,18 +277,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       switch (_statusFilter) {
         case 'menunggu_konfirmasi':
           return s.contains('konfirmasi');
-
         case 'sedang_dikerjakan':
           return s.contains('dikerjakan') ||
               s.contains('proses') ||
               s.contains('pengerjaan');
-
         case 'selesai':
           return !s.contains('konfirmasi') && s.contains('selesai');
-
         case 'dibatalkan':
           return s.contains('batal') || s.contains('cancel');
-
         case 'menunggu_offer':
           return s.contains('mencari') ||
               s.contains('cari') ||
@@ -316,7 +296,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               s == 'pending' ||
               s == 'baru' ||
               s == 'diposting';
-
         default:
           return true;
       }
@@ -377,7 +356,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
         final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
-        final sectionGap = isMobile ? 20.0 : 24.0;
 
         return Container(
           width: double.infinity,
@@ -399,7 +377,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   },
                 ),
 
-                SizedBox(height: sectionGap),
+                const SizedBox(height: _gapAfterHeader),
 
                 _buildStatistics(
                   isMobile: isMobile,
@@ -408,17 +386,17 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   completedJobs: _countCompletedJobs(),
                 ),
 
-                SizedBox(height: sectionGap),
+                const SizedBox(height: _gapBetweenSections),
 
-                _buildFilterBar(isMobile),
+                _buildFilterBar(context, isMobile),
 
-                SizedBox(height: isMobile ? 14 : 18),
+                const SizedBox(height: _gapBetweenSections),
 
-                _buildSectionTitle(isMobile),
+                _buildSectionTitle(context),
 
-                SizedBox(height: isMobile ? 12 : 16),
+                const SizedBox(height: _gapTitleToContent),
 
-                _buildJobContent(isMobile),
+                _buildJobContent(context, isMobile),
               ],
             ),
           ),
@@ -496,7 +474,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // FILTER BAR
   // ============================================================
 
-  Widget _buildFilterBar(bool isMobile) {
+  Widget _buildFilterBar(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
     final totalFiltered = _filteredJobs.length;
 
     return Container(
@@ -520,32 +499,26 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   size: 18,
                   color: AppColors.grey500,
                 ),
-
                 const SizedBox(width: 10),
-
                 Text(
                   'Filter Status:',
-                  style: TextStyle(
-                    fontSize: isMobile ? 12.5 : 13,
+                  style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                     color: AppColors.grey600,
                   ),
                 ),
-
                 const SizedBox(width: 10),
-
-                _buildStatusFilterDropdown(isMobile),
+                _buildStatusFilterDropdown(context, isMobile),
               ],
             ),
           ),
-
-          _buildCountBadge(totalFiltered),
+          _buildCountBadge(context, totalFiltered),
         ],
       ),
     );
   }
 
-  Widget _buildCountBadge(int count) {
+  Widget _buildCountBadge(BuildContext context, int count) {
     return Container(
       width: 32,
       height: 32,
@@ -556,16 +529,17 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       ),
       child: Text(
         '$count',
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: _accent,
-        ),
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: _accent,
+            ),
       ),
     );
   }
 
-  Widget _buildStatusFilterDropdown(bool isMobile) {
+  Widget _buildStatusFilterDropdown(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       height: 34,
       constraints: BoxConstraints(
@@ -591,8 +565,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               color: AppColors.grey500,
             ),
           ),
-          style: TextStyle(
-            fontSize: isMobile ? 12 : 12.5,
+          style: textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.grey900,
           ),
@@ -613,29 +586,20 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
   // ============================================================
   // JUDUL SECTION
+  // ------------------------------------------------------------
+  // ✅ SAMA PERSIS dengan judul "Pekerjaan Saya" di DashboardHeader:
+  //    - Tanpa bar / dekorasi
+  //    - Font headlineSmall + bold
+  //    - Warna default theme
+  //    - Letak di kiri (sejajar dengan judul halaman)
   // ============================================================
 
-  Widget _buildSectionTitle(bool isMobile) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: isMobile ? 18 : 20,
-          decoration: BoxDecoration(
-            color: _accent,
-            borderRadius: BorderRadius.circular(2),
+  Widget _buildSectionTitle(BuildContext context) {
+    return Text(
+      'Daftar Pekerjaan',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'Daftar Pekerjaan',
-          style: TextStyle(
-            fontSize: isMobile ? 15 : 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.grey800,
-          ),
-        ),
-      ],
     );
   }
 
@@ -643,7 +607,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // JOB CONTENT
   // ============================================================
 
-  Widget _buildJobContent(bool isMobile) {
+  Widget _buildJobContent(BuildContext context, bool isMobile) {
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
@@ -654,17 +618,17 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     }
 
     if (_errorMessage != null) {
-      return _buildErrorState();
+      return _buildErrorState(context);
     }
 
     if (_jobs.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(context);
     }
 
     final filtered = _filteredJobs;
 
     if (filtered.isEmpty) {
-      return _buildNoFilterResultState();
+      return _buildNoFilterResultState(context);
     }
 
     if (isMobile) {
@@ -683,17 +647,19 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       );
     }
 
-    return _buildJobsTable();
+    return _buildJobsTable(context);
   }
 
-  Widget _buildNoFilterResultState() {
+  Widget _buildNoFilterResultState(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.filter_alt_off_outlined,
               size: 42,
               color: AppColors.grey400,
@@ -725,7 +691,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // TABEL PEKERJAAN
   // ============================================================
 
-  Widget _buildJobsTable() {
+  Widget _buildJobsTable(BuildContext context) {
     final rows = _pagedJobs;
 
     return Container(
@@ -737,48 +703,43 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTableHeaderRow(),
-
+          _buildTableHeaderRow(context),
           const Divider(height: 1, thickness: 1, color: _tableDivider),
-
           for (int i = 0; i < rows.length; i++) ...[
-            _buildTableDataRow(rows[i]),
+            _buildTableDataRow(context, rows[i]),
             if (i != rows.length - 1)
               const Divider(height: 1, thickness: 1, color: _tableDivider),
           ],
-
           const Divider(height: 1, thickness: 1, color: _tableDivider),
-
-          _buildTableFooter(),
+          _buildTableFooter(context),
         ],
       ),
     );
   }
 
-  Widget _buildTableHeaderRow() {
+  Widget _buildTableHeaderRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 4, child: _headerCell('Pekerjaan')),
-          Expanded(flex: 2, child: _headerCell('Mitra')),
-          Expanded(flex: 2, child: _headerCell('Kategori')),
-          Expanded(flex: 3, child: _headerCell('Lokasi')),
-          Expanded(flex: 2, child: _headerCell('Tanggal')),
-          Expanded(flex: 4, child: _headerCell('Aksi')),
+          Expanded(flex: 4, child: _headerCell(context, 'Pekerjaan')),
+          Expanded(flex: 2, child: _headerCell(context, 'Mitra')),
+          Expanded(flex: 2, child: _headerCell(context, 'Kategori')),
+          Expanded(flex: 3, child: _headerCell(context, 'Lokasi')),
+          Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
+          Expanded(flex: 4, child: _headerCell(context, 'Aksi')),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text) {
+  Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: _headerText,
-      ),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: _headerText,
+          ),
     );
   }
 
@@ -786,13 +747,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // DATA ROW
   // ============================================================
 
-  Widget _buildTableDataRow(JobModel job) {
+  Widget _buildTableDataRow(BuildContext context, JobModel job) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Kolom 1
           Expanded(
             flex: 4,
             child: Row(
@@ -808,30 +770,26 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                         job.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: _cellText,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      _buildStatusBadge(job.status),
+                      _buildStatusBadge(context, job.status),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-
-          // Kolom 2
           Expanded(
             flex: 2,
             child: Text(
               job.partnerName ?? '-',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: job.partnerName != null
                     ? _cellText
                     : AppColors.grey400,
@@ -839,47 +797,37 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               ),
             ),
           ),
-
-          // Kolom 3
           Expanded(
             flex: 2,
             child: Text(
               job.category,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
                 height: 1.3,
               ),
             ),
           ),
-
-          // Kolom 4
           Expanded(
             flex: 3,
             child: Text(
               job.location ?? '-',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
                 height: 1.3,
               ),
             ),
           ),
-
-          // Kolom 5
           Expanded(
             flex: 2,
             child: Text(
               _formatDate(job.createdAt),
-              style: const TextStyle(fontSize: 13, color: _cellText),
+              style: textTheme.bodyMedium?.copyWith(color: _cellText),
             ),
           ),
-
-          // Kolom 6
           Expanded(
             flex: 4,
             child: Wrap(
@@ -887,6 +835,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               runSpacing: 6,
               children: [
                 _pillButton(
+                  context: context,
                   icon: Icons.visibility_outlined,
                   label: 'Detail',
                   bgColor: AppColors.grey100,
@@ -894,6 +843,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   onTap: () => _showJobDetailDialog(job),
                 ),
                 _pillButton(
+                  context: context,
                   icon: Icons.local_offer_outlined,
                   label: 'Lihat Offer',
                   bgColor: AppColors.mint.withOpacity(0.15),
@@ -902,6 +852,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 ),
                 if (_canConfirm(job))
                   _pillButton(
+                    context: context,
                     icon: Icons.verified_outlined,
                     label: 'Konfirmasi Selesai',
                     bgColor: const Color(0xFF16A34A),
@@ -910,6 +861,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   ),
                 if (_canCancel(job))
                   _pillButton(
+                    context: context,
                     icon: Icons.cancel_outlined,
                     label: 'Batalkan',
                     bgColor: const Color(0xFFFEE2E2),
@@ -981,7 +933,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // STATUS BADGE
   // ============================================================
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(BuildContext context, String status) {
     final s = status.toLowerCase();
 
     Color bg;
@@ -1015,11 +967,10 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       ),
       child: Text(
         status,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: fg,
+            ),
       ),
     );
   }
@@ -1029,6 +980,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // ============================================================
 
   Widget _pillButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color bgColor,
@@ -1050,11 +1002,10 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: fgColor,
-                ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
+                    ),
               ),
             ],
           ),
@@ -1067,7 +1018,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // FOOTER TABEL
   // ============================================================
 
-  Widget _buildTableFooter() {
+  Widget _buildTableFooter(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final total = _filteredJobs.length;
     final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
     final end = (_currentPage * _rowsPerPage).clamp(0, total);
@@ -1080,12 +1032,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         children: [
           Text(
             'Menampilkan $start–$end dari $total pekerjaan',
-            style: const TextStyle(fontSize: 12.5, color: _headerText),
+            style: textTheme.bodySmall?.copyWith(color: _headerText),
           ),
           const Spacer(),
           Row(
             children: [
-              _buildRowsPerPageDropdown(),
+              _buildRowsPerPageDropdown(context),
               const SizedBox(width: 12),
               _navButton(
                 icon: Icons.chevron_left,
@@ -1093,7 +1045,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 onTap: () => _goToPage(_currentPage - 1),
               ),
               const SizedBox(width: 8),
-              _pageIndicator(),
+              _pageIndicator(context),
               const SizedBox(width: 8),
               _navButton(
                 icon: Icons.chevron_right,
@@ -1107,7 +1059,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     );
   }
 
-  Widget _buildRowsPerPageDropdown() {
+  Widget _buildRowsPerPageDropdown(BuildContext context) {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1177,7 +1129,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     );
   }
 
-  Widget _pageIndicator() {
+  Widget _pageIndicator(BuildContext context) {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1261,7 +1213,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Detail Pekerjaan',
                             style: TextStyle(
@@ -1283,28 +1235,25 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                       ],
                     ),
                   ),
-
                   const Divider(height: 1, color: Color(0xFFE5E7EB)),
-
                   Flexible(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _dialogJobHeader(job),
+                          _dialogJobHeader(dialogContext, job),
                           const SizedBox(height: 18),
-                          _dialogMitra(job),
+                          _dialogMitra(dialogContext, job),
                           const SizedBox(height: 14),
-                          _dialogMetaChips(job),
+                          _dialogMetaChips(dialogContext, job),
                           const SizedBox(height: 16),
-                          _buildStatusBadge(job.status),
-
+                          _buildStatusBadge(dialogContext, job.status),
                           if (_hasProof(job)) ...[
                             const SizedBox(height: 20),
                             const Divider(color: Color(0xFFE5E7EB)),
                             const SizedBox(height: 14),
-                            const Text(
+                            Text(
                               '📷 Bukti Pekerjaan',
                               style: TextStyle(
                                 fontSize: 13,
@@ -1315,10 +1264,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                             const SizedBox(height: 10),
                             _dialogProofImage(job),
                           ],
-
                           if (_hasRating(job)) ...[
                             const SizedBox(height: 18),
-                            _dialogRating(job),
+                            _dialogRating(dialogContext, job),
                           ],
                         ],
                       ),
@@ -1333,11 +1281,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     );
   }
 
-  Widget _dialogJobHeader(JobModel job) {
+  Widget _dialogJobHeader(BuildContext context, JobModel job) {
     final imageUrl = job.imageUrl;
     final hasImage = imageUrl != null &&
         imageUrl.trim().isNotEmpty &&
         imageUrl.trim() != 'null';
+    final textTheme = Theme.of(context).textTheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1397,7 +1346,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     );
   }
 
-  Widget _dialogMitra(JobModel job) {
+  Widget _dialogMitra(BuildContext context, JobModel job) {
     final namaMitra = job.partnerName;
     if (namaMitra == null || namaMitra.trim().isEmpty) {
       return const SizedBox.shrink();
@@ -1413,31 +1362,33 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         const SizedBox(width: 6),
         Text(
           'Mitra: $namaMitra',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF16A34A),
-          ),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF16A34A),
+              ),
         ),
       ],
     );
   }
 
-  Widget _dialogMetaChips(JobModel job) {
+  Widget _dialogMetaChips(BuildContext context, JobModel job) {
     final chips = <Widget>[];
 
     chips.add(_metaChip(
+      context,
       Icons.attach_money,
       'Harga Awal: ${job.price}',
     ));
 
     if (job.acceptedPrice != null && job.acceptedPrice!.trim().isNotEmpty) {
       chips.add(_metaChip(
+        context,
         Icons.payments_outlined,
         'Harga Deal: ${job.acceptedPrice}',
       ));
     } else if (job.finalPrice != null) {
       chips.add(_metaChip(
+        context,
         Icons.payments_outlined,
         'Harga Deal: ${_formatCurrency(job.finalPrice)}',
       ));
@@ -1445,6 +1396,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
     if (_hasValue(job.createdAt)) {
       chips.add(_metaChip(
+        context,
         Icons.access_time,
         'Dibuat: ${_formatDateTime(job.createdAt)}',
       ));
@@ -1452,6 +1404,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
     if (_hasValue(job.startedAt)) {
       chips.add(_metaChip(
+        context,
         Icons.play_circle_outline,
         'Mulai: ${_formatDateTime(job.startedAt)}',
       ));
@@ -1459,6 +1412,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
     if (_hasValue(job.completedAt)) {
       chips.add(_metaChip(
+        context,
         Icons.check_circle_outline,
         'Selesai: ${_formatDateTime(job.completedAt)}',
       ));
@@ -1471,11 +1425,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     );
   }
 
-  Widget _metaChip(IconData icon, String text) {
+  Widget _metaChip(BuildContext context, IconData icon, String text) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.grey500),
+        const Icon(Icons.attach_money, size: 14, color: AppColors.grey500),
         const SizedBox(width: 5),
         Text(
           text,
@@ -1546,7 +1500,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return r != null && r > 0;
   }
 
-  Widget _dialogRating(JobModel job) {
+  Widget _dialogRating(BuildContext context, JobModel job) {
     final rating = job.myRating ?? 0;
 
     return Container(
@@ -1564,11 +1518,10 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           const SizedBox(width: 8),
           Text(
             'Rating Anda: $rating/5',
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFFD97706),
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFD97706),
+                ),
           ),
         ],
       ),
@@ -1618,33 +1571,30 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final textTheme = Theme.of(dialogContext).textTheme;
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Konfirmasi Selesai',
-            style: TextStyle(
-              fontSize: _dialogTitleFontSize,
+            style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
             "Apakah pekerjaan '${selectedJob.title}' sudah selesai dikerjakan?\n\n"
             "Setelah dikonfirmasi, kamu akan diminta melakukan pembayaran.",
-            style: const TextStyle(
-              fontSize: _bodyFontSize,
-              height: 1.5,
-            ),
+            style: textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
+              child: Text(
                 'Batal',
-                style: TextStyle(
-                  fontSize: _buttonFontSize,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1658,18 +1608,18 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   vertical: 14,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(_smallRadius),
+                  borderRadius: BorderRadius.circular(_buttonRadius),
                 ),
               ),
               onPressed: () {
                 Navigator.pop(dialogContext);
                 _completeJob(selectedJob);
               },
-              child: const Text(
+              child: Text(
                 'Ya, Konfirmasi',
-                style: TextStyle(
-                  fontSize: _buttonFontSize,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -1680,13 +1630,15 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   // ============================================================
-  // ✅ KONFIRMASI BATALKAN — DIALOG
+  // KONFIRMASI BATALKAN — DIALOG
   // ============================================================
 
   void _showCancelConfirmation(JobModel selectedJob) {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final textTheme = Theme.of(dialogContext).textTheme;
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -1699,10 +1651,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 size: 22,
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Batalkan Pekerjaan',
-                style: TextStyle(
-                  fontSize: _dialogTitleFontSize,
+                style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1712,19 +1663,15 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             "Apakah kamu yakin ingin membatalkan pekerjaan "
             "'${selectedJob.title}'?\n\n"
             "Tindakan ini tidak bisa dibatalkan.",
-            style: const TextStyle(
-              fontSize: _bodyFontSize,
-              height: 1.5,
-            ),
+            style: textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
+              child: Text(
                 'Tidak',
-                style: TextStyle(
-                  fontSize: _buttonFontSize,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1738,18 +1685,18 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   vertical: 14,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(_smallRadius),
+                  borderRadius: BorderRadius.circular(_buttonRadius),
                 ),
               ),
               onPressed: () {
                 Navigator.pop(dialogContext);
                 _cancelJob(selectedJob);
               },
-              child: const Text(
+              child: Text(
                 'Ya, Batalkan',
-                style: TextStyle(
-                  fontSize: _buttonFontSize,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -1763,7 +1710,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // ERROR STATE
   // ============================================================
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -1779,9 +1728,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             Text(
               _errorMessage ?? 'Terjadi kesalahan.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: textTheme.bodyMedium?.copyWith(
                 color: Colors.red,
-                fontSize: _bodyFontSize,
                 height: 1.4,
               ),
             ),
@@ -1789,11 +1737,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             ElevatedButton.icon(
               onPressed: _fetchMyJobs,
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text(
+              label: Text(
                 'Coba Lagi',
-                style: TextStyle(
-                  fontSize: _buttonFontSize,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               style: ElevatedButton.styleFrom(
@@ -1804,7 +1752,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   vertical: 14,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(_smallRadius),
+                  borderRadius: BorderRadius.circular(_buttonRadius),
                 ),
               ),
             ),
@@ -1818,7 +1766,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   // EMPTY STATE
   // ============================================================
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
@@ -1839,10 +1789,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Belum ada pekerjaan',
-              style: TextStyle(
-                fontSize: 14,
+              style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.grey700,
               ),

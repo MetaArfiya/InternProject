@@ -1,12 +1,12 @@
-import 'dart:async'; // <-- TAMBAHAN: Diperlukan untuk Completer
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 
 import 'analytics_page.dart';
 import 'manage_admin_page.dart';
@@ -73,9 +73,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
   Future<void> _loadSuperAdminProfile() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final savedName = prefs.getString('name');
+      final savedName = AuthStorage.getString('name');
       if (mounted && savedName != null && savedName.trim().isNotEmpty) {
         setState(() {
           superAdminName = savedName.trim();
@@ -117,7 +115,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         });
 
         if (apiName != null && apiName.trim().isNotEmpty) {
-          await prefs.setString('name', apiName.trim());
+          AuthStorage.setString('name', apiName.trim());
         }
       }
     } catch (e) {
@@ -438,8 +436,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
 
       if (token == null || token.isEmpty) {
         throw Exception('Token tidak ditemukan.');
@@ -714,9 +711,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                               }
                             }
 
-                            final prefs =
-                                await SharedPreferences.getInstance();
-                            await prefs.setString('name', newName);
+                            AuthStorage.setString('name', newName);
 
                             if (!mounted) return;
 
@@ -1224,8 +1219,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     await Future<void>.delayed(Duration.zero);
     if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    AuthStorage.clear();
 
     if (!mounted) return;
 

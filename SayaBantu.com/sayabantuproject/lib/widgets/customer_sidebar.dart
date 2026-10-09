@@ -1,14 +1,12 @@
-// lib/widgets/customer_sidebar.dart
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 
 import '../models/sidebar_menu.dart';
 import '../services/api_service.dart';
+import '../services/auth_storage.dart';
 import '../theme/app_colors.dart';
 
 class CustomerSidebar extends StatefulWidget {
@@ -51,10 +49,8 @@ class CustomerSidebarState extends State<CustomerSidebar> {
   // =========================================================
 
   Future<void> loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final savedName = prefs.getString("name") ?? "Pengguna";
-    final savedRole = prefs.getString("role") ?? "Pelanggan";
+    final savedName = AuthStorage.getString("name") ?? "Pengguna";
+    final savedRole = AuthStorage.getString("role") ?? "Pelanggan";
 
     if (!mounted) return;
 
@@ -198,11 +194,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
           fit: BoxFit.cover,
           cacheWidth: 120,
           cacheHeight: 120,
-          loadingBuilder: (
-            context,
-            child,
-            loadingProgress,
-          ) {
+          loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) {
               return child;
             }
@@ -222,11 +214,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               ),
             );
           },
-          errorBuilder: (
-            context,
-            error,
-            stackTrace,
-          ) {
+          errorBuilder: (context, error, stackTrace) {
             debugPrint("GAGAL MENAMPILKAN FOTO CUSTOMER SIDEBAR");
             debugPrint("URL FOTO: $fullPhotoUrl");
             debugPrint("ERROR: $error");
@@ -334,28 +322,14 @@ class CustomerSidebarState extends State<CustomerSidebar> {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.remove('token');
-
-      await prefs.setBool(
-        'isLoggedIn',
-        false,
-      );
-
-      await prefs.remove('name');
-      await prefs.remove('email');
-      await prefs.remove('phone');
-      await prefs.remove('address');
-      await prefs.remove('profile_image_url');
+      // ✅ Clear sessionStorage — hapus semua key auth untuk tab ini
+      AuthStorage.clear();
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LandingPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const LandingPage()),
         (route) => false,
       );
     } catch (e) {
@@ -369,9 +343,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(
-              'Gagal keluar dari akun: $e',
-            ),
+            content: Text('Gagal keluar dari akun: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -402,15 +374,11 @@ class CustomerSidebarState extends State<CustomerSidebar> {
             // =================================================
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
                 children: [
                   _buildProfileImage(),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,9 +393,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                             fontSize: 16,
                           ),
                         ),
-
                         const SizedBox(height: 3),
-
                         Text(
                           role,
                           maxLines: 1,
@@ -456,28 +422,24 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               title: "Beranda",
               menu: SidebarMenu.beranda,
             ),
-
             _menu(
               context,
               icon: Icons.payment_outlined,
               title: "Pembayaran",
               menu: SidebarMenu.pembayaran,
             ),
-
             _menu(
               context,
               icon: Icons.report_problem_outlined,
               title: "Pengaduan",
               menu: SidebarMenu.pengaduan,
             ),
-
             _menu(
               context,
               icon: Icons.notifications_none_outlined,
               title: "Notifikasi",
               menu: SidebarMenu.notifikasi,
             ),
-
             _menu(
               context,
               icon: Icons.settings_outlined,
@@ -534,9 +496,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                   : AppColors.white.withOpacity(0.70),
               size: 22,
             ),
-
             const SizedBox(width: 15),
-
             Expanded(
               child: Text(
                 title,
@@ -576,9 +536,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
 
   Widget _buildLogoutButton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
         onTap: isLoggingOut ? null : _logout,
         borderRadius: BorderRadius.circular(10),
@@ -613,9 +571,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                   color: AppColors.mint, // ← ikon keluar mint
                   size: 20,
                 ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Text(
                   isLoggingOut ? 'Keluar...' : 'Keluar',

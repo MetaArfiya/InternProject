@@ -5,9 +5,9 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 
 class CustomerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
@@ -23,20 +23,24 @@ class CustomerSettingScreen extends StatefulWidget {
 
 class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // =========================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS — disamakan dengan DashboardHeader
   // =========================================================
 
-  static const double _bodyFontSize = 13;
   static const double _buttonFontSize = 13;
+  static const double _bodyFontSize = 13;
   static const double _smallRadius = 12;
   static const double _cardRadius = 16;
-  static const double _dialogTitleFontSize = 18;
 
   static const Color _primaryColor = Color(0xFFF97316);
   static const Color _borderColor = Color(0xFFE5E7EB);
 
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
+
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 20;
+  static const double _gapTitleToContent = 12;
 
   // =========================================================
   // INPUT FORMATTERS
@@ -394,8 +398,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // =========================================================
 
   Future<String> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token') ?? '';
+    return AuthStorage.getString('token') ?? '';
   }
 
   // =========================================================
@@ -503,7 +506,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         SnackBar(
           content: Text(
             message,
-            style: const TextStyle(fontSize: _bodyFontSize),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
           backgroundColor: error ? Colors.red : Colors.green,
           behavior: SnackBarBehavior.floating,
@@ -513,6 +516,9 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
 
   // =========================================================
   // BUILD
+  // =========================================================
+  // ✅ Padding horizontal: mobile 16 / tablet 24 / desktop 28
+  // ✅ Tanpa Center + ConstrainedBox — konten nempel kiri
   // =========================================================
 
   @override
@@ -535,7 +541,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
           final horizontalPadding =
-              isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+              isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
           final verticalPadding = isMobile ? 16.0 : 28.0;
 
           return SingleChildScrollView(
@@ -543,22 +549,18 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               horizontal: horizontalPadding,
               vertical: verticalPadding,
             ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1000),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(isMobile),
-                    SizedBox(height: isMobile ? 20 : 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, isMobile),
 
-                    if (isMobile)
-                      _buildMobileLayout()
-                    else
-                      _buildWebLayout(),
-                  ],
-                ),
-              ),
+                const SizedBox(height: _gapAfterHeader),
+
+                if (isMobile)
+                  _buildMobileLayout(context)
+                else
+                  _buildWebLayout(context),
+              ],
             ),
           );
         },
@@ -567,27 +569,26 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // =========================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pengaturan',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Kelola profil, notifikasi, dan keamanan akun.',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: const Color(0xFF64748B),
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -598,15 +599,15 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // MOBILE LAYOUT
   // =========================================================
 
-  Widget _buildMobileLayout() {
+  Widget _buildMobileLayout(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildProfileHeader(isMobile: true),
-        const SizedBox(height: 24),
+        _buildProfileHeader(context, isMobile: true),
+        const SizedBox(height: _gapBetweenSections),
 
-        _sectionTitle('Informasi Akun'),
-        const SizedBox(height: 12),
+        _sectionTitle(context, 'Informasi Akun'),
+        const SizedBox(height: _gapTitleToContent),
         _buildInfoCard(
           icon: Icons.person_outline,
           title: 'Nama',
@@ -628,14 +629,14 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
           subtitle: address.isEmpty ? '-' : address,
         ),
 
-        const SizedBox(height: 20),
-        _sectionTitle('Notifikasi'),
-        const SizedBox(height: 12),
+        const SizedBox(height: _gapBetweenSections),
+        _sectionTitle(context, 'Notifikasi'),
+        const SizedBox(height: _gapTitleToContent),
         _buildNotificationCard(isMobile: true),
 
-        const SizedBox(height: 20),
-        _sectionTitle('Keamanan'),
-        const SizedBox(height: 12),
+        const SizedBox(height: _gapBetweenSections),
+        _sectionTitle(context, 'Keamanan'),
+        const SizedBox(height: _gapTitleToContent),
         _buildSecurityCard(),
 
         const SizedBox(height: 28),
@@ -647,7 +648,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // WEB LAYOUT
   // =========================================================
 
-  Widget _buildWebLayout() {
+  Widget _buildWebLayout(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -656,10 +657,10 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildProfileHeader(isMobile: false),
-              const SizedBox(height: 20),
-              _sectionTitle('Informasi Akun'),
-              const SizedBox(height: 12),
+              _buildProfileHeader(context, isMobile: false),
+              const SizedBox(height: _gapBetweenSections),
+              _sectionTitle(context, 'Informasi Akun'),
+              const SizedBox(height: _gapTitleToContent),
               _buildInfoCard(
                 icon: Icons.person_outline,
                 title: 'Nama',
@@ -691,12 +692,12 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _sectionTitle('Notifikasi'),
-              const SizedBox(height: 12),
+              _sectionTitle(context, 'Notifikasi'),
+              const SizedBox(height: _gapTitleToContent),
               _buildNotificationCard(isMobile: false),
-              const SizedBox(height: 20),
-              _sectionTitle('Keamanan'),
-              const SizedBox(height: 12),
+              const SizedBox(height: _gapBetweenSections),
+              _sectionTitle(context, 'Keamanan'),
+              const SizedBox(height: _gapTitleToContent),
               _buildSecurityCard(),
             ],
           ),
@@ -706,39 +707,28 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // SECTION TITLE
+  // SECTION TITLE — sama persis dgn judul halaman (tanpa bar)
   // =========================================================
 
-  Widget _sectionTitle(String text) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            color: _primaryColor,
-            borderRadius: BorderRadius.circular(2),
+  Widget _sectionTitle(BuildContext context, String text) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1F2937),
-          ),
-        ),
-      ],
     );
   }
 
   // =========================================================
-  // PROFILE HEADER (FIXED WITH LAYOUT BUILDER)
+  // PROFILE HEADER
   // =========================================================
 
-  Widget _buildProfileHeader({required bool isMobile}) {
+  Widget _buildProfileHeader(
+    BuildContext context, {
+    required bool isMobile,
+  }) {
     final fullPhotoUrl = getFullPhotoUrl();
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 24),
@@ -749,31 +739,27 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Jika lebar kolom kurang dari 450px, gunakan layout vertikal (Column)
-          // untuk menghindari teks menumpuk dan error overflow.
           final isNarrow = constraints.maxWidth < 450;
 
           if (isMobile || isNarrow) {
             return Column(
               children: [
-                _buildAvatar(fullPhotoUrl, radius: 48),
+                _buildAvatar(context, fullPhotoUrl, radius: 48),
                 const SizedBox(height: 16),
                 Text(
                   name,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF111827),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   email,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    color: Color(0xFF64748B),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
                   ),
                 ),
                 if (phone.isNotEmpty) ...[
@@ -781,32 +767,30 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.phone_outlined,
                         size: 14,
-                        color: Color(0xFF94A3B8),
+                        color: Colors.grey.shade500,
                       ),
                       const SizedBox(width: 5),
                       Text(
                         phone,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          color: Color(0xFF64748B),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
                 ],
                 const SizedBox(height: 16),
-                _buildEditProfileButton(),
+                _buildEditProfileButton(context),
               ],
             );
           }
 
-          // Layout Horizontal (Row) untuk layar lebar
           return Row(
             children: [
-              _buildAvatar(fullPhotoUrl, radius: 44),
+              _buildAvatar(context, fullPhotoUrl, radius: 44),
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
@@ -814,36 +798,33 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF111827),
                         height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       email,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey.shade600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     if (phone.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.phone_outlined,
                             size: 14,
-                            color: Color(0xFF94A3B8),
+                            color: Colors.grey.shade500,
                           ),
                           const SizedBox(width: 5),
                           Text(
                             phone,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: Color(0xFF64748B),
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -852,7 +833,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                 ),
               ),
               const SizedBox(width: 16),
-              _buildEditProfileButton(),
+              _buildEditProfileButton(context),
             ],
           );
         },
@@ -861,10 +842,14 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // AVATAR — selalu center
+  // AVATAR
   // =========================================================
 
-  Widget _buildAvatar(String? fullPhotoUrl, {required double radius}) {
+  Widget _buildAvatar(
+    BuildContext context,
+    String? fullPhotoUrl, {
+    required double radius,
+  }) {
     final size = radius * 2;
 
     return Center(
@@ -874,7 +859,6 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Avatar mengisi penuh SizedBox — pasti center
             GestureDetector(
               onTap: () {
                 if (selectedPhotoBytes != null) {
@@ -904,7 +888,6 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               ),
             ),
 
-            // Tombol camera — Positioned absolut
             Positioned(
               right: -2,
               bottom: -2,
@@ -950,22 +933,23 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // EDIT PROFILE BUTTON
   // =========================================================
 
-  Widget _buildEditProfileButton() {
+  Widget _buildEditProfileButton(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: () => _showEditProfileDialog(getFullPhotoUrl()),
-      icon: const Icon(Icons.edit, size: 16),
+      icon: const Icon(Icons.edit, size: 18),
       label: const Text(
         'Edit Profil',
         style: TextStyle(
           fontSize: _buttonFontSize,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
         ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        minimumSize: const Size(0, 48),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_smallRadius),
         ),
@@ -1009,23 +993,21 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFF94A3B8),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                    height: 1.35,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF111827),
+                        height: 1.35,
+                      ),
                 ),
               ],
             ),
@@ -1069,24 +1051,22 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Notifikasi Penawaran',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isMobile
                       ? 'Terima notifikasi ketika mitra mengirim penawaran.'
                       : 'Terima notifikasi ketika mitra mengirim penawaran pada pekerjaan Anda.',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                    height: 1.4,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                        height: 1.4,
+                      ),
                 ),
               ],
             ),
@@ -1147,25 +1127,25 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Keluar dari Akun',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFDC2626),
-                        ),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFFDC2626),
+                                ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'Keluar dari akun SayaBantu.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                        ),
+                        style:
+                            Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
                       ),
                     ],
                   ),
@@ -1184,7 +1164,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // EDIT PROFILE DIALOG — TANPA DISPOSE MANUAL
+  // EDIT PROFILE DIALOG
   // =========================================================
 
   void _showEditProfileDialog(String? fullPhotoUrl) {
@@ -1197,6 +1177,8 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
+        final textTheme = Theme.of(dialogContext).textTheme;
+
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(
@@ -1232,13 +1214,12 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Edit Profil',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF111827),
                             ),
                           ),
                         ),
@@ -1348,11 +1329,10 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           ),
 
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Ketuk foto untuk mengganti',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: Color(0xFF94A3B8),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: const Color(0xFF94A3B8),
                             ),
                           ),
 
@@ -1537,28 +1517,31 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final textTheme = Theme.of(dialogContext).textTheme;
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Logout',
-            style: TextStyle(
-              fontSize: _dialogTitleFontSize,
+            style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
-          content: const Text(
+          content: Text(
             'Apakah Anda yakin ingin keluar dari akun ini?',
-            style: TextStyle(fontSize: _bodyFontSize, height: 1.4),
+            style: textTheme.bodyMedium?.copyWith(height: 1.4),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
+              child: Text(
                 'Batal',
-                style: TextStyle(fontSize: _buttonFontSize),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             ElevatedButton(
@@ -1573,9 +1556,8 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   borderRadius: BorderRadius.circular(_smallRadius),
                 ),
               ),
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
+              onPressed: () {
+                AuthStorage.clear();
                 if (!mounted) return;
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -1583,11 +1565,11 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   (route) => false,
                 );
               },
-              child: const Text(
+              child: Text(
                 'Logout',
-                style: TextStyle(
-                  fontSize: _buttonFontSize,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),

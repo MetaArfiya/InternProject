@@ -147,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
+    } finally { 
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -179,8 +179,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // DIALOG VERIFIKASI WAJIB UNTUK MITRA
   // ============================================================
 
-  void _showMitraVerificationRequiredDialog() {
-    showDialog(
+  Future<void> _showMitraVerificationRequiredDialog() async {
+    // 1. Gunakan await dan tangkap hasil dari dialog
+    final bool? goToLogin = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -189,6 +190,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           insetPadding: const EdgeInsets.all(24),
+          // Tambahkan warna background agar tidak transparan
+          backgroundColor: Theme.of(context).cardColor, 
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Padding(
@@ -318,20 +321,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // =========================================
-                  // BUTTON: LOGIN & VERIFIKASI
+                  // BUTTON: LOGIN & VERIFIKASI (FIXED NAVIGATION)
                   // =========================================
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(dialogContext);
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                          (route) => false,
-                        );
+                        // Cukup tutup dialog dan kirim nilai true
+                        Navigator.pop(dialogContext, true);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
@@ -358,6 +355,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       },
     );
+
+    if (goToLogin == true) {
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
+        (route) => false,
+      );
+    }
   }
 
   // ============================================================

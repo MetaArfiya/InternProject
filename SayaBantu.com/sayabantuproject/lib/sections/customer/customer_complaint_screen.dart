@@ -46,15 +46,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   ];
 
   // ============================================================
-  // STANDARD UI
+  // DESIGN TOKENS — disamakan dengan DashboardHeader
   // ============================================================
 
-  static const double _titleFontSize = 20;
-  static const double _subtitleFontSize = 13;
-  static const double _bodyFontSize = 13;
-  static const double _fieldFontSize = 13;
   static const double _buttonFontSize = 13;
-
+  static const double _fieldFontSize = 13;
   static const double _smallRadius = 12;
 
   static const Color _accent = Color(0xFFF97316);
@@ -62,6 +58,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   static const Color _tableDivider = Color(0xFFF3F4F6);
   static const Color _headerText = Color(0xFF6B7280);
   static const Color _cellText = Color(0xFF111827);
+
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _gapTitleToContent = 16;
 
   // ============================================================
   // INIT
@@ -269,7 +270,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     }
   }
 
-  Widget _statusBadge(String status) {
+  Widget _statusBadge(BuildContext context, String status) {
     final color = _getStatusColor(status);
 
     return Container(
@@ -285,11 +286,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           const SizedBox(width: 5),
           Text(
             status,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ],
       ),
@@ -355,14 +355,16 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Buat Pengaduan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF111827),
+                                  ),
                             ),
                           ),
                           IconButton(
@@ -853,60 +855,73 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
+    final titleAndSubtitle = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pengaduan Saya',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Ajukan dan pantau pengaduan kepada Admin.',
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+
+    final button = ElevatedButton.icon(
+      onPressed: _showCreateComplaintDialog,
+      icon: const Icon(Icons.add, size: 18),
+      label: Text(
+        isMobile ? 'Buat' : 'Buat Pengaduan',
+        style: const TextStyle(
+          fontSize: _buttonFontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _accent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        minimumSize: const Size(0, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_smallRadius),
+        ),
+      ),
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          titleAndSubtitle,
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: button),
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Pengaduan Saya',
-                style: TextStyle(
-                  fontSize: isMobile ? 20 : 24,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Ajukan dan pantau pengaduan kepada Admin.',
-                style: TextStyle(
-                  fontSize: _subtitleFontSize,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        ElevatedButton.icon(
-          onPressed: _showCreateComplaintDialog,
-          icon: const Icon(Icons.add, size: 17),
-          label: Text(
-            isMobile ? 'Buat' : 'Buat Pengaduan',
-            style: const TextStyle(
-              fontSize: _buttonFontSize,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _accent,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(_smallRadius),
-            ),
-          ),
-        ),
+        Expanded(child: titleAndSubtitle),
+        const SizedBox(width: 20),
+        button,
       ],
     );
   }
@@ -915,9 +930,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // SUMMARY — Mobile 2×2, Web 4 kolom
   // ============================================================
 
-  Widget _buildSummary(bool isMobile) {
+  Widget _buildSummary(BuildContext context, bool isMobile) {
     final cards = [
       _summaryCard(
+        context: context,
         title: 'Total',
         fullTitle: 'Total Pengaduan',
         value: '${_summary['total'] ?? 0}',
@@ -925,6 +941,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         color: const Color(0xFF2563EB),
       ),
       _summaryCard(
+        context: context,
         title: 'Menunggu',
         fullTitle: 'Menunggu',
         value: '${_summary['menunggu'] ?? 0}',
@@ -932,6 +949,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         color: _accent,
       ),
       _summaryCard(
+        context: context,
         title: 'Diproses',
         fullTitle: 'Diproses',
         value: '${_summary['diproses'] ?? 0}',
@@ -939,6 +957,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         color: const Color(0xFF7C3AED),
       ),
       _summaryCard(
+        context: context,
         title: 'Selesai',
         fullTitle: 'Selesai',
         value: '${_summary['selesai'] ?? 0}',
@@ -947,9 +966,6 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       ),
     ];
 
-    // ============================================================
-    // MOBILE → 2 kolom × 2 baris
-    // ============================================================
     if (isMobile) {
       return Column(
         children: [
@@ -972,9 +988,6 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       );
     }
 
-    // ============================================================
-    // WEB → 4 kolom sejajar
-    // ============================================================
     return Row(
       children: [
         for (int i = 0; i < cards.length; i++) ...[
@@ -986,6 +999,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   Widget _summaryCard({
+    required BuildContext context,
     required String title,
     required String fullTitle,
     required String value,
@@ -1057,7 +1071,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // FILTER BAR
   // ============================================================
 
-  Widget _buildFilterSection(bool isMobile) {
+  Widget _buildFilterSection(BuildContext context, bool isMobile) {
     const filters = [
       'Semua',
       'Menunggu',
@@ -1066,25 +1080,26 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       'Ditolak',
     ];
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(_smallRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
           const Icon(Icons.filter_list, size: 18, color: Color(0xFF6B7280)),
           const SizedBox(width: 8),
           if (!isMobile) ...[
-            const Text(
+            Text(
               'Filter Status:',
-              style: TextStyle(
-                fontSize: 12.5,
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF374151),
+                color: const Color(0xFF374151),
               ),
             ),
             const SizedBox(width: 12),
@@ -1095,7 +1110,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: _tableBorder),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -1109,10 +1124,9 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                     color: Color(0xFF6B7280),
                   ),
                 ),
-                style: const TextStyle(
-                  fontSize: 12.5,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                 ),
                 items: filters.map((filter) {
                   return DropdownMenuItem<String>(
@@ -1136,8 +1150,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             ),
             child: Text(
               '${_filteredComplaints.length}',
-              style: const TextStyle(
-                fontSize: 12,
+              style: textTheme.labelMedium?.copyWith(
                 color: _accent,
                 fontWeight: FontWeight.w700,
               ),
@@ -1149,30 +1162,16 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // SECTION TITLE
+  // SECTION TITLE — sama persis dgn judul "Pengaduan Saya"
+  //   tanpa bar, pakai headlineSmall + bold
   // ============================================================
 
-  Widget _buildSectionTitle(bool isMobile) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            color: _accent,
-            borderRadius: BorderRadius.circular(2),
+  Widget _buildSectionTitle(BuildContext context) {
+    return Text(
+      'Riwayat Pengaduan',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'Riwayat Pengaduan',
-          style: TextStyle(
-            fontSize: isMobile ? 15 : 16,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
-          ),
-        ),
-      ],
     );
   }
 
@@ -1180,14 +1179,16 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // COMPLAINT CARD (MOBILE)
   // ============================================================
 
-  Widget _buildComplaintCard(ComplaintModel complaint) {
+  Widget _buildComplaintCard(BuildContext context, ComplaintModel complaint) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1198,14 +1199,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               Expanded(
                 child: Text(
                   complaint.code,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
+                    color: _cellText,
                   ),
                 ),
               ),
-              _statusBadge(complaint.status),
+              _statusBadge(context, complaint.status),
             ],
           ),
           const SizedBox(height: 8),
@@ -1213,23 +1213,21 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             complaint.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
+            style: textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
+              color: _cellText,
               height: 1.3,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             complaint.category,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
+            style: textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF64748B),
             ),
           ),
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
           _infoRow(
             Icons.work_outline,
@@ -1247,9 +1245,8 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             complaint.description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: Color(0xFF4B5563),
+            style: textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF4B5563),
               height: 1.4,
             ),
           ),
@@ -1313,7 +1310,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // DESKTOP TABLE
   // ============================================================
 
-  Widget _buildDesktopTable() {
+  Widget _buildDesktopTable(BuildContext context) {
     final rows = _filteredComplaints;
 
     return Container(
@@ -1325,11 +1322,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTableHeaderRow(),
+          _buildTableHeaderRow(context),
           const Divider(height: 1, thickness: 1, color: _tableDivider),
 
           for (int i = 0; i < rows.length; i++) ...[
-            _buildTableDataRow(rows[i]),
+            _buildTableDataRow(context, rows[i]),
             if (i != rows.length - 1)
               const Divider(height: 1, thickness: 1, color: _tableDivider),
           ],
@@ -1338,35 +1335,36 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     );
   }
 
-  Widget _buildTableHeaderRow() {
+  Widget _buildTableHeaderRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 2, child: _headerCell('ID')),
-          Expanded(flex: 4, child: _headerCell('Judul Pengaduan')),
-          Expanded(flex: 3, child: _headerCell('Kategori')),
-          Expanded(flex: 3, child: _headerCell('ID Pekerjaan')),
-          Expanded(flex: 2, child: _headerCell('Tanggal')),
-          Expanded(flex: 3, child: _headerCell('Status')),
-          Expanded(flex: 2, child: _headerCell('Aksi')),
+          Expanded(flex: 2, child: _headerCell(context, 'ID')),
+          Expanded(flex: 4, child: _headerCell(context, 'Judul Pengaduan')),
+          Expanded(flex: 3, child: _headerCell(context, 'Kategori')),
+          Expanded(flex: 3, child: _headerCell(context, 'ID Pekerjaan')),
+          Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
+          Expanded(flex: 3, child: _headerCell(context, 'Status')),
+          Expanded(flex: 2, child: _headerCell(context, 'Aksi')),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text) {
+  Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: _headerText,
-      ),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: _headerText,
+          ),
     );
   }
 
-  Widget _buildTableDataRow(ComplaintModel complaint) {
+  Widget _buildTableDataRow(BuildContext context, ComplaintModel complaint) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -1378,8 +1376,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.code,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: _cellText,
               ),
@@ -1391,8 +1388,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
                 height: 1.3,
               ),
@@ -1404,8 +1400,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.category,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
                 height: 1.3,
               ),
@@ -1417,8 +1412,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.jobCode,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
               ),
             ),
@@ -1427,8 +1421,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             flex: 2,
             child: Text(
               complaint.formattedDate,
-              style: const TextStyle(
-                fontSize: 12.5,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
               ),
             ),
@@ -1437,7 +1430,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             flex: 3,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _statusBadge(complaint.status),
+              child: _statusBadge(context, complaint.status),
             ),
           ),
           Expanded(
@@ -1445,6 +1438,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: _pillButton(
+                context: context,
                 icon: Icons.visibility_outlined,
                 label: 'Detail',
                 bgColor: const Color(0xFFF1F5F9),
@@ -1459,6 +1453,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   Widget _pillButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color bgColor,
@@ -1480,11 +1475,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: fgColor,
-                ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
+                    ),
               ),
             ],
           ),
@@ -1501,6 +1495,8 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final textTheme = Theme.of(dialogContext).textTheme;
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -1534,13 +1530,12 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Detail Pengaduan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827),
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF111827),
                           ),
                         ),
                       ),
@@ -1592,7 +1587,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                   color: Color(0xFF374151),
                                 ),
                               ),
-                              _statusBadge(complaint.status),
+                              _statusBadge(dialogContext, complaint.status),
                             ],
                           ),
                         ],
@@ -1686,6 +1681,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+  // ✅ Padding horizontal disamakan dgn CustomerDashboard
+  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
+  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -1708,7 +1707,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             final isTablet = width >= 700 && width < 1100;
 
             final horizontalPadding =
-                isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
             final verticalPadding = isMobile ? 16.0 : 28.0;
 
             return SingleChildScrollView(
@@ -1717,53 +1716,49 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile),
-                      SizedBox(height: isMobile ? 18 : 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, isMobile),
 
-                      if (_isLoading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 60),
-                            child: CircularProgressIndicator(
-                              color: _accent,
-                            ),
-                          ),
-                        )
-                      else if (_errorMessage != null)
-                        _buildErrorState()
-                      else ...[
-                        _buildSummary(isMobile),
-                        SizedBox(height: isMobile ? 18 : 24),
-                        _buildFilterSection(isMobile),
-                        SizedBox(height: isMobile ? 18 : 24),
-                        _buildSectionTitle(isMobile),
-                        const SizedBox(height: 14),
+                  const SizedBox(height: _gapAfterHeader),
 
-                        if (_filteredComplaints.isEmpty)
-                          _buildEmptyState()
-                        else if (isMobile)
-                          Column(
-                            children: _filteredComplaints
-                                .map((c) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: _buildComplaintCard(c),
-                                    ))
-                                .toList(),
-                          )
-                        else
-                          _buildDesktopTable(),
-                      ],
-                    ],
-                  ),
-                ),
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 60),
+                        child: CircularProgressIndicator(
+                          color: _accent,
+                        ),
+                      ),
+                    )
+                  else if (_errorMessage != null)
+                    _buildErrorState(context)
+                  else ...[
+                    _buildSummary(context, isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildFilterSection(context, isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildSectionTitle(context),
+                    const SizedBox(height: _gapTitleToContent),
+
+                    if (_filteredComplaints.isEmpty)
+                      _buildEmptyState(context)
+                    else if (isMobile)
+                      Column(
+                        children: _filteredComplaints
+                            .map((c) => Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 12,
+                                  ),
+                                  child: _buildComplaintCard(context, c),
+                                ))
+                            .toList(),
+                      )
+                    else
+                      _buildDesktopTable(context),
+                  ],
+                ],
               ),
             );
           },
@@ -1776,7 +1771,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // ERROR STATE
   // ============================================================
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -1827,7 +1822,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // EMPTY STATE
   // ============================================================
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),

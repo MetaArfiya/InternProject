@@ -21,6 +21,9 @@ class StatisticCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+
+        // compact  → mobile 3 kolom  (layout vertikal)
+        // normal   → tablet / desktop (layout horizontal)
         final isCompact = width < 180;
 
         return Container(
@@ -39,14 +42,19 @@ class StatisticCard extends StatelessWidget {
               ),
             ],
           ),
-          child: isCompact ? _buildCompact() : _buildNormal(),
+          child: isCompact ? _buildCompact(context) : _buildNormal(context),
         );
       },
     );
   }
 
-  // COMPACT — MOBILE
-  Widget _buildCompact() {
+  // ============================================================
+  // LAYOUT COMPACT — MOBILE (3 kolom sempit)
+  // ============================================================
+
+  Widget _buildCompact(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -58,32 +66,30 @@ class StatisticCard extends StatelessWidget {
             color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 17,
-          ),
+          child: Icon(icon, color: color, size: 17),
         ),
         const SizedBox(height: 8),
+
+        // Value — pakai titleMedium (16) bold
         Text(
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
+          style: textTheme.titleMedium?.copyWith(
             color: color,
-            fontSize: 17,
             fontWeight: FontWeight.bold,
             height: 1.1,
           ),
         ),
         const SizedBox(height: 2),
+
+        // Title — pakai labelSmall (11)
         Text(
           title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: textTheme.labelSmall?.copyWith(
             color: AppColors.grey600,
-            fontSize: 10.5,
             fontWeight: FontWeight.w500,
             height: 1.2,
           ),
@@ -92,8 +98,13 @@ class StatisticCard extends StatelessWidget {
     );
   }
 
-  // NORMAL — TABLET/DESKTOP
-  Widget _buildNormal() {
+  // ============================================================
+  // LAYOUT NORMAL — TABLET / DESKTOP
+  // ============================================================
+
+  Widget _buildNormal(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       children: [
         Container(
@@ -103,11 +114,7 @@ class StatisticCard extends StatelessWidget {
             color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 23,
-          ),
+          child: Icon(icon, color: color, size: 23),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -119,9 +126,8 @@ class StatisticCard extends StatelessWidget {
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: textTheme.titleLarge?.copyWith(
                   color: color,
-                  fontSize: 19,
                   fontWeight: FontWeight.bold,
                   height: 1.1,
                 ),
@@ -131,10 +137,8 @@ class StatisticCard extends StatelessWidget {
                 title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: textTheme.bodyMedium?.copyWith(
                   color: AppColors.grey600,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
                   height: 1.2,
                 ),
               ),

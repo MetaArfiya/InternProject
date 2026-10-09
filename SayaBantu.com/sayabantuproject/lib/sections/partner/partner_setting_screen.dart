@@ -6,9 +6,9 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_storage.dart';
 
 class PartnerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
@@ -29,23 +29,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   ];
 
   static const List<String> bankList = [
-    'BCA',
-    'Mandiri',
-    'BNI',
-    'BRI',
-    'BSI (Syariah)',
-    'CIMB Niaga',
-    'Permata',
-    'Danamon',
-    'BTN',
-    'OCBC',
-    'Panin',
-    'Maybank',
-    'Bank Mega',
-    'Bukopin',
-    'Bank Jago',
-    'SeaBank',
-    'Lainnya',
+    'BCA', 'Mandiri', 'BNI', 'BRI', 'BSI (Syariah)', 'CIMB Niaga',
+    'Permata', 'Danamon', 'BTN', 'OCBC', 'Panin', 'Maybank',
+    'Bank Mega', 'Bukopin', 'Bank Jago', 'SeaBank', 'Lainnya',
   ];
 
   bool isLoading = true;
@@ -83,10 +69,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   bool isCustomBank = false;
 
   final TextEditingController bankNameController = TextEditingController();
-  final TextEditingController bankAccountNumberController =
-      TextEditingController();
-  final TextEditingController bankAccountNameController =
-      TextEditingController();
+  final TextEditingController bankAccountNumberController = TextEditingController();
+  final TextEditingController bankAccountNameController = TextEditingController();
 
   Uint8List? ktpBytes;
   String? ktpFileName;
@@ -127,11 +111,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   double rating = 0.0;
   int reviewsCount = 0;
 
-  final TextEditingController currentPasswordController =
-      TextEditingController();
+  final TextEditingController currentPasswordController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   bool obscureCurrentPassword = true;
   bool obscureNewPassword = true;
@@ -227,11 +209,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       color: Colors.black54,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 24),
                   ),
                 ),
               ),
@@ -244,9 +222,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
   Future<void> loadProfileFromApi() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final localNotification = prefs.getBool('job_notification');
+      final localNotification = AuthStorage.getBool('job_notification');
       if (localNotification != null && mounted) {
         setState(() => jobNotification = localNotification);
       }
@@ -345,15 +321,15 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             });
           }
 
-          await prefs.setString('name', loadedName);
-          await prefs.setString('email', loadedEmail);
-          await prefs.setString('phone', loadedPhone);
-          await prefs.setString('address', loadedAddress);
+          AuthStorage.setString('name', loadedName);
+          AuthStorage.setString('email', loadedEmail);
+          AuthStorage.setString('phone', loadedPhone);
+          AuthStorage.setString('address', loadedAddress);
           if (loadedPhoto.isNotEmpty) {
-            await prefs.setString('profile_image_url', loadedPhoto);
+            AuthStorage.setString('profile_image_url', loadedPhoto);
           }
           if (loadedNotification != null) {
-            await prefs.setBool('job_notification', loadedNotification);
+            AuthStorage.setBool('job_notification', loadedNotification);
           }
         }
       }
@@ -361,20 +337,17 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       final mitraResponse = await ApiService.get('/mitra/profile');
       if (mitraResponse.statusCode == 200) {
         final mitraResponseData = jsonDecode(mitraResponse.body);
-        final mitra =
-            mitraResponseData['data'] ??
+        final mitra = mitraResponseData['data'] ??
             mitraResponseData['mitra'] ??
             mitraResponseData;
 
         if (mitra is Map) {
           final loadedGender = mitra['gender']?.toString() ?? '';
-          final loadedBirthDate =
-              mitra['birth_date']?.toString() ??
+          final loadedBirthDate = mitra['birth_date']?.toString() ??
               mitra['birthDate']?.toString() ??
               '';
           final loadedCity = mitra['city']?.toString() ?? '';
-          final loadedBio =
-              mitra['bio']?.toString() ??
+          final loadedBio = mitra['bio']?.toString() ??
               mitra['description']?.toString() ??
               '';
 
@@ -412,29 +385,25 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               ? DateTime.tryParse(rawUpdated)
               : null;
 
-          final loadedIsVerified =
-              mitra['is_verified'] == true ||
+          final loadedIsVerified = mitra['is_verified'] == true ||
               mitra['is_verified'] == 1 ||
               mitra['is_verified']?.toString().toLowerCase() == 'true';
 
           String loadedVerificationStatus =
               mitra['verification_status']?.toString() ?? '';
           if (loadedVerificationStatus.isEmpty) {
-            loadedVerificationStatus = loadedIsVerified
-                ? 'Terverifikasi'
-                : 'Belum Diverifikasi';
+            loadedVerificationStatus =
+                loadedIsVerified ? 'Terverifikasi' : 'Belum Diverifikasi';
           }
 
-          final loadedPoint =
-              int.tryParse(
+          final loadedPoint = int.tryParse(
                 mitra['point']?.toString() ??
                     mitra['total_point']?.toString() ??
                     '0',
               ) ??
               0;
 
-          final loadedRating =
-              double.tryParse(
+          final loadedRating = double.tryParse(
                 mitra['rating']?.toString().replaceAll(',', '.') ?? '0',
               ) ??
               0.0;
@@ -578,11 +547,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('name', newName);
-        await prefs.setString('email', newEmail);
-        await prefs.setString('phone', newPhone);
-        await prefs.setString('address', newAddress);
+        AuthStorage.setString('name', newName);
+        AuthStorage.setString('email', newEmail);
+        AuthStorage.setString('phone', newPhone);
+        AuthStorage.setString('address', newAddress);
         if (mounted) {
           setState(() {
             name = newName;
@@ -645,8 +613,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
       request.open('POST', 'http://127.0.0.1:8000/api/user/profile/photo');
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
       if (token != null && token.isNotEmpty) {
         request.setRequestHeader('Authorization', 'Bearer $token');
       }
@@ -655,15 +622,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         if (request.status == 200 || request.status == 201) {
           try {
             final responseData = jsonDecode(request.responseText ?? '');
-            final returnedUrl =
-                responseData['photo_url'] ??
+            final returnedUrl = responseData['photo_url'] ??
                 responseData['url'] ??
                 responseData['photo'] ??
                 responseData['user']?['photo_url'];
             if (returnedUrl != null) {
               final fullUrl = getFullPhotoUrl(returnedUrl.toString());
               if (mounted) setState(() => photoUrl = fullUrl);
-              await prefs.setString('profile_image_url', fullUrl);
+              AuthStorage.setString('profile_image_url', fullUrl);
             }
           } catch (_) {}
           widget.onProfileUpdate();
@@ -786,11 +752,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         return;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('name', fullName);
-      await prefs.setString('email', emailController.text.trim());
-      await prefs.setString('phone', selectedPhone);
-      await prefs.setString('address', selectedAddress);
+      AuthStorage.setString('name', fullName);
+      AuthStorage.setString('email', emailController.text.trim());
+      AuthStorage.setString('phone', selectedPhone);
+      AuthStorage.setString('address', selectedAddress);
 
       if (mounted) {
         setState(() {
@@ -815,9 +780,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   Future<void> saveBankAccount() async {
-    final newBankName = isCustomBank
-        ? bankNameController.text.trim()
-        : bankName.trim();
+    final newBankName =
+        isCustomBank ? bankNameController.text.trim() : bankName.trim();
 
     final newAccountNumber = bankAccountNumberController.text.trim();
     final newAccountName = bankAccountNameController.text.trim();
@@ -886,9 +850,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   Future<void> selectBirthDate() async {
-    DateTime initialDate = DateTime.now().subtract(
-      const Duration(days: 365 * 20),
-    );
+    DateTime initialDate =
+        DateTime.now().subtract(const Duration(days: 365 * 20));
     if (birthDate.isNotEmpty) {
       try {
         initialDate = DateTime.parse(birthDate);
@@ -997,8 +960,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     try {
       setState(() => isLoading = true);
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
 
       final request = html.HttpRequest();
       final formData = html.FormData();
@@ -1070,7 +1032,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           }
         }
 
-        await prefs.setString('verification_status', 'Menunggu Verifikasi');
+        AuthStorage.setString('verification_status', 'Menunggu Verifikasi');
         widget.onProfileUpdate();
         _showMessage(
           'Data verifikasi berhasil dikirim dan menunggu pemeriksaan admin.',
@@ -1152,8 +1114,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         _showMessage('Keahlian berhasil disimpan.');
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('mitra_category', selectedCategory);
+      AuthStorage.setString('mitra_category', selectedCategory);
 
       widget.onProfileUpdate();
     } catch (e) {
@@ -1165,8 +1126,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
   Future<void> uploadSkillPhotos() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
 
       final request = html.HttpRequest();
       final formData = html.FormData();
@@ -1237,8 +1197,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     try {
       setState(() => isLoading = true);
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
 
       final request = html.HttpRequest();
       final formData = html.FormData();
@@ -1375,8 +1334,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     try {
       setState(() => isLoading = true);
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = AuthStorage.getString('token');
 
       final request = html.HttpRequest();
       final formData = html.FormData();
@@ -1482,9 +1440,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
       final lowerName = file.name.toLowerCase();
       final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-      final hasValidExtension = allowedExtensions.any(
-        (ext) => lowerName.endsWith(ext),
-      );
+      final hasValidExtension =
+          allowedExtensions.any((ext) => lowerName.endsWith(ext));
 
       if (!hasValidExtension) {
         if (mounted) {
@@ -1543,12 +1500,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         'is_notification_enabled': value ? 1 : 0,
       });
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('job_notification', value);
+        AuthStorage.setBool('job_notification', value);
       }
     } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('job_notification', value);
+      AuthStorage.setBool('job_notification', value);
     }
   }
 
@@ -1575,15 +1530,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedPassword = prefs.getString('password');
+      final savedPassword = AuthStorage.getString('password');
       if (savedPassword != null &&
           savedPassword.isNotEmpty &&
           savedPassword != current) {
         _showMessage('Password lama tidak sesuai.', error: true);
         return;
       }
-      await prefs.setString('password', newPassword);
+      AuthStorage.setString('password', newPassword);
       currentPasswordController.clear();
       newPasswordController.clear();
       confirmPasswordController.clear();
@@ -1709,22 +1663,23 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                 fit: BoxFit.cover,
                               )
                             : photoUrl.isNotEmpty
-                            ? Image.network(
-                                photoUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
+                                ? Image.network(
+                                    photoUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.person,
+                                        size: 42,
+                                        color: Colors.orange,
+                                      );
+                                    },
+                                  )
+                                : const Icon(
                                     Icons.person,
                                     size: 42,
                                     color: Colors.orange,
-                                  );
-                                },
-                              )
-                            : const Icon(
-                                Icons.person,
-                                size: 42,
-                                color: Colors.orange,
-                              ),
+                                  ),
                       ),
                     ),
                     GestureDetector(
@@ -2208,104 +2163,103 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       controller: birthDateController,
       readOnly: true,
       onTap: selectBirthDate,
-      decoration:
-          _inputDecoration(
-            label: 'Tanggal Lahir',
-            icon: Icons.calendar_month_outlined,
-          ).copyWith(
-            suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-          ),
+      decoration: _inputDecoration(
+        label: 'Tanggal Lahir',
+        icon: Icons.calendar_month_outlined,
+      ).copyWith(
+        suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+      ),
     );
   }
 
   Widget _buildVerificationSection() {
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(
-            icon: Icons.verified_user_outlined,
-            title: 'Verifikasi Mitra',
-            subtitle: 'Upload dokumen untuk memverifikasi identitas kamu.',
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final twoColumn = constraints.maxWidth >= 650;
-              if (!twoColumn) {
-                return Column(
-                  children: [
-                    _documentUploadCard(
-                      title: 'KTP / Identitas',
-                      description:
-                          'Upload foto KTP yang jelas dan dapat dibaca.',
-                      bytes: ktpBytes,
-                      fileName: ktpFileName,
-                      url: ktpUrl,
-                      icon: Icons.credit_card_outlined,
-                      onTap: pickKtp,
-                      onRemove: (ktpBytes != null || ktpUrl.isNotEmpty)
-                          ? removeKtpFile
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
-                    _documentUploadCard(
-                      title: 'Foto Verifikasi Diri',
-                      description:
-                          'Gunakan foto wajah yang jelas untuk verifikasi.',
-                      bytes: selfieBytes,
-                      fileName: selfieFileName,
-                      url: selfieUrl,
-                      icon: Icons.camera_front_outlined,
-                      onTap: pickSelfie,
-                      onRemove: (selfieBytes != null || selfieUrl.isNotEmpty)
-                          ? removeSelfieFile
-                          : null,
-                    ),
-                  ],
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle(
+          icon: Icons.verified_user_outlined,
+          title: 'Verifikasi Mitra',
+          subtitle: 'Upload dokumen untuk memverifikasi identitas kamu.',
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final twoColumn = constraints.maxWidth >= 650;
+            if (!twoColumn) {
+              return Column(
                 children: [
-                  Expanded(
-                    child: _documentUploadCard(
-                      title: 'KTP / Identitas',
-                      description:
-                          'Upload foto KTP yang jelas dan dapat dibaca.',
-                      bytes: ktpBytes,
-                      fileName: ktpFileName,
-                      url: ktpUrl,
-                      icon: Icons.credit_card_outlined,
-                      onTap: pickKtp,
-                      onRemove: (ktpBytes != null || ktpUrl.isNotEmpty)
-                          ? removeKtpFile
-                          : null,
-                    ),
+                  _documentUploadCard(
+                    title: 'KTP / Identitas',
+                    description:
+                        'Upload foto KTP yang jelas dan dapat dibaca.',
+                    bytes: ktpBytes,
+                    fileName: ktpFileName,
+                    url: ktpUrl,
+                    icon: Icons.credit_card_outlined,
+                    onTap: pickKtp,
+                    onRemove: (ktpBytes != null || ktpUrl.isNotEmpty)
+                        ? removeKtpFile
+                        : null,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _documentUploadCard(
-                      title: 'Foto Verifikasi Diri',
-                      description:
-                          'Gunakan foto wajah yang jelas untuk verifikasi.',
-                      bytes: selfieBytes,
-                      fileName: selfieFileName,
-                      url: selfieUrl,
-                      icon: Icons.camera_front_outlined,
-                      onTap: pickSelfie,
-                      onRemove: (selfieBytes != null || selfieUrl.isNotEmpty)
-                          ? removeSelfieFile
-                          : null,
-                    ),
+                  const SizedBox(height: 10),
+                  _documentUploadCard(
+                    title: 'Foto Verifikasi Diri',
+                    description:
+                        'Gunakan foto wajah yang jelas untuk verifikasi.',
+                    bytes: selfieBytes,
+                    fileName: selfieFileName,
+                    url: selfieUrl,
+                    icon: Icons.camera_front_outlined,
+                    onTap: pickSelfie,
+                    onRemove: (selfieBytes != null || selfieUrl.isNotEmpty)
+                        ? removeSelfieFile
+                        : null,
                   ),
                 ],
               );
-            },
-          ),
-          const SizedBox(height: 12),
-          _verificationStatusCard(),
-          const SizedBox(height: 12),
-        ],
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _documentUploadCard(
+                    title: 'KTP / Identitas',
+                    description:
+                        'Upload foto KTP yang jelas dan dapat dibaca.',
+                    bytes: ktpBytes,
+                    fileName: ktpFileName,
+                    url: ktpUrl,
+                    icon: Icons.credit_card_outlined,
+                    onTap: pickKtp,
+                    onRemove: (ktpBytes != null || ktpUrl.isNotEmpty)
+                        ? removeKtpFile
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _documentUploadCard(
+                    title: 'Foto Verifikasi Diri',
+                    description:
+                        'Gunakan foto wajah yang jelas untuk verifikasi.',
+                    bytes: selfieBytes,
+                    fileName: selfieFileName,
+                    url: selfieUrl,
+                    icon: Icons.camera_front_outlined,
+                    onTap: pickSelfie,
+                    onRemove: (selfieBytes != null || selfieUrl.isNotEmpty)
+                        ? removeSelfieFile
+                        : null,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _verificationStatusCard(),
+        const SizedBox(height: 12),
+      ],
     );
   }
 
@@ -2382,41 +2336,43 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     height: 125,
                     color: Colors.grey.shade100,
                     child: hasFile
-                    ? Image.memory(
-                        bytes!,
-                        width: double.infinity,
-                        height: 125,
-                        fit: BoxFit.cover,
-                      )
-                    : hasUrl
-                    ? Image.network(
-                        url,
-                        width: double.infinity,
-                        height: 125,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              size: 34,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          );
-                        },
-                      )
-                    : const Center(
-                        child: Icon(
-                          Icons.image_outlined,
-                          size: 34,
-                          color: Colors.grey,
-                        ),
-                      ),
+                        ? Image.memory(
+                            bytes!,
+                            width: double.infinity,
+                            height: 125,
+                            fit: BoxFit.cover,
+                          )
+                        : hasUrl
+                            ? Image.network(
+                                url,
+                                width: double.infinity,
+                                height: 125,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                    child: Icon(
+                                      Icons.broken_image_outlined,
+                                      size: 34,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const Center(
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  );
+                                },
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.image_outlined,
+                                  size: 34,
+                                  color: Colors.grey,
+                                ),
+                              ),
                   ),
                   if (hasImage && onRemove != null)
                     Positioned(
@@ -2458,8 +2414,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             hasFile
                 ? (fileName ?? 'File dipilih')
                 : hasUrl
-                ? 'File tersimpan'
-                : 'Belum ada file',
+                    ? 'File tersimpan'
+                    : 'Belum ada file',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -2504,16 +2460,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   Widget _verificationStatusCard() {
     final waiting = verificationStatus == 'Menunggu Verifikasi';
     final verified = verificationStatus == 'Terverifikasi';
-    final statusColor = verified
-        ? Colors.green
-        : waiting
-        ? Colors.orange
-        : Colors.grey;
+    final statusColor =
+        verified ? Colors.green : waiting ? Colors.orange : Colors.grey;
     final statusIcon = verified
         ? Icons.verified
         : waiting
-        ? Icons.hourglass_top
-        : Icons.info_outline;
+            ? Icons.hourglass_top
+            : Icons.info_outline;
 
     return Container(
       padding: const EdgeInsets.all(15),
@@ -2556,448 +2509,444 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     final bool hasPending = pendingSkills.isNotEmpty;
 
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(
-            icon: Icons.handyman_outlined,
-            title: 'Keahlian Mitra',
-            subtitle:
-                'Tambahkan kategori keahlian dan foto hasil pekerjaan kamu.',
-          ),
-          const SizedBox(height: 12),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle(
+          icon: Icons.handyman_outlined,
+          title: 'Keahlian Mitra',
+          subtitle:
+              'Tambahkan kategori keahlian dan foto hasil pekerjaan kamu.',
+        ),
+        const SizedBox(height: 12),
 
-          DropdownButtonFormField<String>(
-            value: validCategory ? selectedCategory : null,
-            decoration: _inputDecoration(
-              label: 'Kategori Keahlian',
-              icon: Icons.category_outlined,
+        DropdownButtonFormField<String>(
+          value: validCategory ? selectedCategory : null,
+          decoration: _inputDecoration(
+            label: 'Kategori Keahlian',
+            icon: Icons.category_outlined,
+          ),
+          hint: const Text('Pilih kategori keahlian'),
+          items: categories
+              .map((category) =>
+                  DropdownMenuItem(value: category, child: Text(category)))
+              .toList(),
+          onChanged: hasPending
+              ? null
+              : (value) {
+                  if (value == null) return;
+                  setState(() => selectedCategory = value);
+                },
+        ),
+
+        if (hasPending) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
             ),
-            hint: const Text('Pilih kategori keahlian'),
-            items: categories
-                .map(
-                  (category) =>
-                      DropdownMenuItem(value: category, child: Text(category)),
-                )
-                .toList(),
-            onChanged: hasPending
-                ? null
-                : (value) {
-                    if (value == null) return;
-                    setState(() => selectedCategory = value);
-                  },
-          ),
-
-          if (hasPending) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.hourglass_top,
-                    color: Colors.orange,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Menunggu Persetujuan Admin',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.orange,
-                          ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.hourglass_top,
+                  color: Colors.orange,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Menunggu Persetujuan Admin',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Colors.orange,
                         ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Keahlian baru: "$pendingSkills"\n'
+                        'Keahlian aktif saat ini tetap "$selectedCategory" sampai disetujui admin.',
+                        style: const TextStyle(fontSize: 12, height: 1.4),
+                      ),
+                      if (skillsUpdatedAt != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          'Keahlian baru: "$pendingSkills"\n'
-                          'Keahlian aktif saat ini tetap "$selectedCategory" sampai disetujui admin.',
-                          style: const TextStyle(fontSize: 12, height: 1.4),
-                        ),
-                        if (skillsUpdatedAt != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Diajukan: ${skillsUpdatedAt!.day}/${skillsUpdatedAt!.month}/${skillsUpdatedAt!.year}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                            ),
+                          'Diajukan: ${skillsUpdatedAt!.day}/${skillsUpdatedAt!.month}/${skillsUpdatedAt!.year}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          if (hasPending && pendingSkillPhotoUrls.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3E8FF),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFC4B5FD)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.photo_library_outlined,
-                        size: 16,
-                        color: Color(0xFF7C3AED),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Foto Keahlian Baru (Menunggu ACC)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF7C3AED),
                         ),
-                      ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: pendingSkillPhotoUrls.map((url) {
-                      return GestureDetector(
-                        onTap: () =>
-                            _showImageDialog(context, NetworkImage(url)),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            width: 100,
-                            height: 100,
-                            color: Colors.grey.shade100,
-                            child: Image.network(
-                              url,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.broken_image_outlined,
-                                color: Colors.grey,
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        if (hasPending && pendingSkillPhotoUrls.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3E8FF),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFC4B5FD)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.photo_library_outlined,
+                      size: 16,
+                      color: Color(0xFF7C3AED),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Foto Keahlian Baru (Menunggu ACC)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF7C3AED),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: pendingSkillPhotoUrls.map((url) {
+                    return GestureDetector(
+                      onTap: () =>
+                          _showImageDialog(context, NetworkImage(url)),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          color: Colors.grey.shade100,
+                          child: Image.network(
+                            url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 12),
+
+        const Text(
+          'Foto Keahlian / Hasil Pekerjaan',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'Tambahkan foto hasil pekerjaan untuk meningkatkan kepercayaan pelanggan.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 15),
+
+        if (totalPhotos > 0) ...[
+          LayoutBuilder(
+            builder: (context, constraints) {
+              int columns;
+              if (totalPhotos == 1) {
+                columns = 1;
+              } else if (totalPhotos == 2) {
+                columns = 2;
+              } else {
+                columns = 3;
+              }
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: totalPhotos,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  mainAxisExtent: 180,
+                ),
+                itemBuilder: (context, index) {
+                  final bool isUrl = index < skillPhotoUrls.length;
+                  final String? url = isUrl ? skillPhotoUrls[index] : null;
+                  final Uint8List? bytes = isUrl
+                      ? null
+                      : skillPhotoBytes[index - skillPhotoUrls.length];
+
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showImageDialog(
+                            context,
+                            isUrl ? NetworkImage(url!) : MemoryImage(bytes!),
+                          ),
+                          child: isUrl
+                              ? Image.network(
+                                  url!,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        size: 40,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) {
+                                      return child;
+                                    }
+                                    return Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Image.memory(
+                                  bytes!,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                        Positioned(
+                          right: 6,
+                          top: 6,
+                          child: GestureDetector(
+                            onTap: () {
+                              if (isUrl) {
+                                removeStoredSkillPhoto(index);
+                              } else {
+                                removeSkillPhoto(
+                                  index - skillPhotoUrls.length,
+                                );
+                              }
+                            },
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 17,
+                                color: Colors.white,
                               ),
                             ),
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 12),
-
-          const Text(
-            'Foto Keahlian / Hasil Pekerjaan',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            'Tambahkan foto hasil pekerjaan untuk meningkatkan kepercayaan pelanggan.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
           ),
           const SizedBox(height: 15),
+        ],
 
-          if (totalPhotos > 0) ...[
-            LayoutBuilder(
-              builder: (context, constraints) {
-                int columns;
-                if (totalPhotos == 1) {
-                  columns = 1;
-                } else if (totalPhotos == 2) {
-                  columns = 2;
-                } else {
-                  columns = 3;
-                }
-
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: totalPhotos,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    mainAxisExtent: 180,
-                  ),
-                  itemBuilder: (context, index) {
-                    final bool isUrl = index < skillPhotoUrls.length;
-                    final String? url = isUrl ? skillPhotoUrls[index] : null;
-                    final Uint8List? bytes = isUrl
-                        ? null
-                        : skillPhotoBytes[index - skillPhotoUrls.length];
-
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          GestureDetector(
-                            onTap: () => _showImageDialog(
-                              context,
-                              isUrl ? NetworkImage(url!) : MemoryImage(bytes!),
-                            ),
-                            child: isUrl
-                                ? Image.network(
-                                    url!,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey.shade100,
-                                        child: const Icon(
-                                          Icons.broken_image,
-                                          size: 40,
-                                          color: Colors.grey,
-                                        ),
-                                      );
-                                    },
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
-                                          if (loadingProgress == null) {
-                                            return child;
-                                          }
-                                          return Container(
-                                            color: Colors.grey.shade100,
-                                            child: const Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          );
-                                        },
-                                  )
-                                : Image.memory(
-                                    bytes!,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                          ),
-                          Positioned(
-                            right: 6,
-                            top: 6,
-                            child: GestureDetector(
-                              onTap: () {
-                                if (isUrl) {
-                                  removeStoredSkillPhoto(index);
-                                } else {
-                                  removeSkillPhoto(
-                                    index - skillPhotoUrls.length,
-                                  );
-                                }
-                              },
-                                child: Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 17,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
+        SizedBox(
+          width: double.infinity,
+          height: 38,
+          child: OutlinedButton.icon(
+            onPressed: pickSkillPhoto,
+            icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
+            label: const Text(
+              'Tambah Foto Keahlian',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 15),
-          ],
-
-          SizedBox(
-            width: double.infinity,
-            height: 38,
-            child: OutlinedButton.icon(
-              onPressed: pickSkillPhoto,
-              icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
-              label: const Text(
-                'Tambah Foto Keahlian',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.orange,
+              side: const BorderSide(color: Colors.orange),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.zero,
-              ),
+              padding: EdgeInsets.zero,
             ),
           ),
+        ),
 
-          const SizedBox(height: 10),
-
-        ],
+        const SizedBox(height: 10),
+      ],
     );
   }
 
   Widget _buildCertificateSection() {
     final bool hasPendingCert = pendingCertificateUrl.isNotEmpty;
-    final bool isInPendingMode =
-        hasPendingCert || (pendingSkills.isNotEmpty && certificateBytes != null);
+    final bool isInPendingMode = hasPendingCert ||
+        (pendingSkills.isNotEmpty && certificateBytes != null);
 
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(
-            icon: Icons.assignment_outlined,
-            title: 'Sertifikat',
-            subtitle: 'Upload sertifikat keahlian atau pelatihan.',
-          ),
-          const SizedBox(height: 12),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle(
+          icon: Icons.assignment_outlined,
+          title: 'Sertifikat',
+          subtitle: 'Upload sertifikat keahlian atau pelatihan.',
+        ),
+        const SizedBox(height: 12),
 
-          if (hasPendingCert) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFCD34D)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.hourglass_top,
-                        size: 16,
+        if (hasPendingCert) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFCD34D)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.hourglass_top,
+                      size: 16,
+                      color: Color(0xFFB45309),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Sertifikat Baru (Menunggu ACC Admin)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                         color: Color(0xFFB45309),
                       ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Sertifikat Baru (Menunggu ACC Admin)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFB45309),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: () => _showImageDialog(
-                      context,
-                      NetworkImage(pendingCertificateUrl),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: double.infinity,
-                        height: 180,
-                        color: Colors.grey.shade100,
-                        child: Image.network(
-                          pendingCertificateUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.broken_image_outlined,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () => _showImageDialog(
+                    context,
+                    NetworkImage(pendingCertificateUrl),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: double.infinity,
+                      height: 180,
+                      color: Colors.grey.shade100,
+                      child: Image.network(
+                        pendingCertificateUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.broken_image_outlined,
+                          size: 40,
+                          color: Colors.grey,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Sertifikat ini akan menggantikan sertifikat lama setelah disetujui admin.',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Sertifikat ini akan menggantikan sertifikat lama setelah disetujui admin.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        if (!hasPendingCert && pendingSkills.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFCD34D)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Color(0xFFB45309)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Kamu sedang mengajukan perubahan keahlian. Sertifikat yang kamu upload akan disimpan sebagai sertifikat baru dan menunggu ACC admin.',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade700,
+                      color: Color(0xFFB45309),
                       height: 1.4,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-          ],
-
-          if (!hasPendingCert && pendingSkills.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFCD34D)),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: Color(0xFFB45309)),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Kamu sedang mengajukan perubahan keahlian. Sertifikat yang kamu upload akan disimpan sebagai sertifikat baru dan menunggu ACC admin.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFB45309),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-
-          const Text(
-            'Sertifikat Aktif',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 8),
-          _documentUploadCard(
-            title: 'Sertifikat',
-            description: hasPendingCert
-                ? 'Sertifikat ini akan diganti setelah admin menyetujui pengajuan baru.'
-                : isInPendingMode
-                    ? 'Pilih sertifikat baru untuk diajukan bersama perubahan keahlian.'
-                    : 'Upload sertifikat keahlian (opsional).',
-            bytes: certificateBytes,
-            fileName: certificateFileName,
-            url: certificateUrl,
-            icon: Icons.assignment_outlined,
-            onTap: pickCertificate,
-            onRemove: (certificateBytes != null || certificateUrl.isNotEmpty)
-                ? removeCertificateFile
-                : null,
-          ),
+          const SizedBox(height: 10),
         ],
+
+        const Text(
+          'Sertifikat Aktif',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        _documentUploadCard(
+          title: 'Sertifikat',
+          description: hasPendingCert
+              ? 'Sertifikat ini akan diganti setelah admin menyetujui pengajuan baru.'
+              : isInPendingMode
+                  ? 'Pilih sertifikat baru untuk diajukan bersama perubahan keahlian.'
+                  : 'Upload sertifikat keahlian (opsional).',
+          bytes: certificateBytes,
+          fileName: certificateFileName,
+          url: certificateUrl,
+          icon: Icons.assignment_outlined,
+          onTap: pickCertificate,
+          onRemove: (certificateBytes != null || certificateUrl.isNotEmpty)
+              ? removeCertificateFile
+              : null,
+        ),
+      ],
     );
   }
 
@@ -3028,9 +2977,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       incomplete.add('Alamat minimal 10 karakter');
     }
 
-    final currentBankName = isCustomBank
-        ? bankNameController.text.trim()
-        : bankName.trim();
+    final currentBankName =
+        isCustomBank ? bankNameController.text.trim() : bankName.trim();
     if (currentBankName.isEmpty) incomplete.add('Nama bank');
     if (bankAccountNumberController.text.trim().isEmpty) {
       incomplete.add('Nomor rekening');
@@ -3058,9 +3006,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return incomplete;
   }
 
-  Future<void> _showIncompleteMitraDialog(
-    List<String> incomplete,
-  ) async {
+  Future<void> _showIncompleteMitraDialog(List<String> incomplete) async {
     await showDialog(
       context: context,
       builder: (dialogContext) {
@@ -3219,110 +3165,101 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     final isComplete = incomplete.isEmpty;
 
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(
-            icon: isComplete
-                ? Icons.check_circle_outline
-                : Icons.warning_amber_rounded,
-            title: isComplete
-                ? 'Data Siap Dikirim'
-                : 'Lengkapi Data Mitra',
-            subtitle: isComplete
-                ? 'Semua data wajib sudah lengkap dan siap dikirim untuk verifikasi admin.'
-                : 'Lengkapi data yang masih kurang sebelum mengirim seluruh data mitra.',
-          ),
-          const SizedBox(height: 12),
-          if (!isComplete) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: Colors.orange.shade200,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Data yang belum lengkap:',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xff92400E),
-                    ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle(
+          icon: isComplete
+              ? Icons.check_circle_outline
+              : Icons.warning_amber_rounded,
+          title: isComplete ? 'Data Siap Dikirim' : 'Lengkapi Data Mitra',
+          subtitle: isComplete
+              ? 'Semua data wajib sudah lengkap dan siap dikirim untuk verifikasi admin.'
+              : 'Lengkapi data yang masih kurang sebelum mengirim seluruh data mitra.',
+        ),
+        const SizedBox(height: 12),
+        if (!isComplete) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Data yang belum lengkap:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xff92400E),
                   ),
-                  const SizedBox(height: 9),
-                  ...incomplete.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.circle,
-                            size: 6,
-                            color: Colors.orange,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              item,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xff78350F),
-                              ),
+                ),
+                const SizedBox(height: 9),
+                ...incomplete.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.circle,
+                          size: 6,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xff78350F),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: isLoading ? null : submitAllMitraData,
+            icon: Icon(
+              isComplete ? Icons.send_rounded : Icons.warning_amber_rounded,
+              size: 19,
+            ),
+            label: Text(
+              isComplete
+                  ? 'Simpan & Kirim Data Mitra'
+                  : 'Lengkapi Data Terlebih Dahulu',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 10),
-          ],
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton.icon(
-              onPressed: isLoading ? null : submitAllMitraData,
-              icon: Icon(
-                isComplete
-                    ? Icons.send_rounded
-                    : Icons.warning_amber_rounded,
-                size: 19,
-              ),
-              label: Text(
-                isComplete
-                    ? 'Simpan & Kirim Data Mitra'
-                    : 'Lengkapi Data Terlebih Dahulu',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isComplete
-                    ? Colors.orange
-                    : Colors.grey.shade300,
-                foregroundColor: isComplete
-                    ? Colors.white
-                    : Colors.grey.shade600,
-                disabledBackgroundColor: Colors.grey.shade300,
-                disabledForegroundColor: Colors.grey.shade500,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isComplete ? Colors.orange : Colors.grey.shade300,
+              foregroundColor:
+                  isComplete ? Colors.white : Colors.grey.shade600,
+              disabledBackgroundColor: Colors.grey.shade300,
+              disabledForegroundColor: Colors.grey.shade500,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),
-        ],
+        ),
+      ],
     );
   }
 
@@ -3476,10 +3413,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // LOGOUT SECTION
-  // ============================================================
-
   Widget _buildLogoutSection() {
     return _sectionCard(
       child: Material(
@@ -3541,10 +3474,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // LOGOUT DIALOG
-  // ============================================================
-
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -3574,10 +3503,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
-                'Batal',
-                style: TextStyle(fontSize: 13),
-              ),
+              child: const Text('Batal', style: TextStyle(fontSize: 13)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -3609,14 +3535,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  // ============================================================
-  // LOGOUT PROCESS
-  // ============================================================
-
   Future<void> _logout() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      AuthStorage.clear();
 
       if (!mounted) return;
 
@@ -3733,16 +3654,16 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       maxLength: 100,
       decoration: _inputDecoration(label: label, icon: Icons.lock_outline)
           .copyWith(
-            counterText: '',
-            suffixIcon: IconButton(
-              onPressed: onToggle,
-              icon: Icon(
-                obscureText
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-              ),
-            ),
+        counterText: '',
+        suffixIcon: IconButton(
+          onPressed: onToggle,
+          icon: Icon(
+            obscureText
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
           ),
+        ),
+      ),
     );
   }
 
