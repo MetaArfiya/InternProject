@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/job_model.dart';
 import '../screens/Screens_Customer/posting_jasa_dialog.dart';
+import '../theme/app_colors.dart';
 
 class DashboardHeader extends StatelessWidget {
   final Function(JobModel)? onAddJob;
@@ -10,10 +11,6 @@ class DashboardHeader extends StatelessWidget {
     super.key,
     this.onAddJob,
   });
-
-  // ============================================================
-  // STANDARD UI
-  // ============================================================
 
   static const double _buttonFontSize = 13;
   static const double _buttonRadius = 12;
@@ -24,32 +21,27 @@ class DashboardHeader extends StatelessWidget {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 700;
 
-        // ========================================================
-        // MOBILE
-        // ========================================================
-
         if (isMobile) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Pekerjaan Saya',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.grey900,
+                ),
               ),
-
               const SizedBox(height: 6),
-
-              Text(
+              const Text(
                 'Pantau status semua jasa yang kamu posting',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.grey500,
+                ),
               ),
-
               const SizedBox(height: 16),
-
               SizedBox(
                 width: double.infinity,
                 child: _buildPostButton(context),
@@ -58,49 +50,39 @@ class DashboardHeader extends StatelessWidget {
           );
         }
 
-        // ========================================================
-        // DESKTOP / TABLET
-        // ========================================================
-
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Pekerjaan Saya',
-                    style:
-                        Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.grey900,
+                    ),
                   ),
-
-                  const SizedBox(height: 6),
-
+                  SizedBox(height: 6),
                   Text(
                     'Pantau status semua jasa yang kamu posting',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.grey500,
+                    ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(width: 20),
-
             _buildPostButton(context),
           ],
         );
       },
     );
   }
-
-  // ============================================================
-  // BUTTON POSTING JASA
-  // ============================================================
 
   Widget _buildPostButton(BuildContext context) {
     return ElevatedButton.icon(
@@ -115,8 +97,8 @@ class DashboardHeader extends StatelessWidget {
         }
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xffF97316),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primaryTeal, // ← dari orange
+        foregroundColor: AppColors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(
           horizontal: 16,

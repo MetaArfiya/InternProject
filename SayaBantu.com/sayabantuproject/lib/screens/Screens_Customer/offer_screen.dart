@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/job_model.dart';
 import '../../models/offer_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/offer_card.dart';
 
 class OfferScreen extends StatelessWidget {
@@ -70,7 +71,9 @@ class OfferScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryTeal),
+      ),
     );
 
     try {
@@ -84,7 +87,7 @@ class OfferScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Penawaran berhasil diterima!"),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.primaryTeal, // ← teal
           ),
         );
         onAccept(offer);
@@ -122,18 +125,21 @@ class OfferScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.sectionAltLight, // ← mint muda
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: onBack,
         ),
         elevation: 0,
-        backgroundColor: Theme.of(context).cardColor,
-        foregroundColor: Colors.black,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.grey900,
         title: const Text(
           "Penawaran Mitra",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
+          ),
         ),
       ),
       body: LayoutBuilder(
@@ -150,12 +156,13 @@ class OfferScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isMobile ? 20 : 28,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.grey900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "Budget : ${job.price}",
-                  style: const TextStyle(color: Colors.grey),
+                  style: const TextStyle(color: AppColors.grey500),
                 ),
                 const SizedBox(height: 14),
 
@@ -171,7 +178,10 @@ class OfferScreen extends StatelessWidget {
                       if (snapshot.connectionState ==
                           ConnectionState.waiting) {
                         return const Center(
-                            child: CircularProgressIndicator());
+                          child: CircularProgressIndicator(
+                            color: AppColors.primaryTeal,
+                          ),
+                        );
                       }
 
                       if (snapshot.hasError) {
@@ -190,7 +200,7 @@ class OfferScreen extends StatelessWidget {
                         return const Center(
                           child: Text(
                             "Belum ada mitra yang mengajukan penawaran.",
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: AppColors.grey500),
                           ),
                         );
                       }
@@ -203,6 +213,7 @@ class OfferScreen extends StatelessWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
+                              color: AppColors.grey900,
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -253,15 +264,17 @@ class OfferScreen extends StatelessWidget {
   Widget _buildWebTable(BuildContext context, List<OfferModel> bids) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildTableHeader(),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: AppColors.grey100),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -269,10 +282,7 @@ class OfferScreen extends StatelessWidget {
                   for (int i = 0; i < bids.length; i++) ...[
                     _buildTableRow(context, bids[i]),
                     if (i != bids.length - 1)
-                      const Divider(
-                        height: 1,
-                        color: Color(0xFFF3F4F6),
-                      ),
+                      const Divider(height: 1, color: AppColors.grey100),
                   ],
                 ],
               ),
@@ -304,7 +314,7 @@ class OfferScreen extends StatelessWidget {
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: Color(0xFF6B7280),
+        color: AppColors.grey500,
       ),
     );
   }
@@ -335,12 +345,12 @@ class OfferScreen extends StatelessWidget {
                   radius: 22,
                   backgroundColor: isAccepted
                       ? const Color(0xFFDCFCE7)
-                      : const Color(0xFFFFF3E8),
+                      : AppColors.mint.withOpacity(0.20), // ← dari orange soft
                   child: Icon(
                     Icons.person,
                     color: isAccepted
                         ? const Color(0xFF16A34A)
-                        : const Color(0xFFF97316),
+                        : AppColors.primaryTeal, // ← dari orange
                     size: 24,
                   ),
                 ),
@@ -357,21 +367,21 @@ class OfferScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
+                          color: AppColors.grey900,
                         ),
                       ),
                       if (offer.verified) ...[
                         const SizedBox(height: 4),
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             Icon(Icons.verified,
-                                color: Colors.green, size: 14),
+                                color: Color(0xFF16A34A), size: 14),
                             SizedBox(width: 4),
                             Text(
                               'Terverifikasi',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.green,
+                                color: Color(0xFF16A34A),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -390,7 +400,10 @@ class OfferScreen extends StatelessWidget {
             flex: 2,
             child: Text(
               '${offer.jobsCompleted} Job',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF111827)),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.grey900,
+              ),
             ),
           ),
 
@@ -404,7 +417,7 @@ class OfferScreen extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: isAccepted
                     ? const Color(0xFF16A34A)
-                    : const Color(0xFFF97316),
+                    : AppColors.primaryTeal, // ← dari orange
               ),
             ),
           ),
@@ -446,8 +459,9 @@ class OfferScreen extends StatelessWidget {
       icon = Icons.cancel;
       label = 'Ditolak';
     } else {
-      bg = const Color(0xFFFEF3C7);
-      fg = const Color(0xFFD97706);
+      // pending → mint/teal (dari amber)
+      bg = AppColors.mint.withOpacity(0.20);
+      fg = AppColors.primaryTeal;
       icon = Icons.hourglass_top;
       label = 'Menunggu';
     }
@@ -492,8 +506,8 @@ class OfferScreen extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            foregroundColor: const Color(0xFF334155),
-            side: const BorderSide(color: Color(0xFFD1D5DB)),
+            foregroundColor: AppColors.grey700,
+            side: const BorderSide(color: AppColors.grey300),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -511,10 +525,10 @@ class OfferScreen extends StatelessWidget {
           onPressed:
               _canRespond ? () => _showAcceptDialog(context, offer) : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.primaryTeal, // ← dari green
             foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFE5E7EB),
-            disabledForegroundColor: const Color(0xFF9CA3AF),
+            disabledBackgroundColor: AppColors.grey200,
+            disabledForegroundColor: AppColors.grey400,
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             shape: RoundedRectangleBorder(
@@ -531,11 +545,11 @@ class OfferScreen extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             foregroundColor: const Color(0xFFDC2626),
-            disabledForegroundColor: const Color(0xFF9CA3AF),
+            disabledForegroundColor: AppColors.grey400,
             side: BorderSide(
               color: _canRespond
                   ? const Color(0xFFDC2626)
-                  : const Color(0xFFE5E7EB),
+                  : AppColors.grey200,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -551,7 +565,7 @@ class OfferScreen extends StatelessWidget {
           label: const Text('Lihat Profil',
               style: TextStyle(fontSize: 12.5)),
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF7C3AED),
+            foregroundColor: AppColors.primaryTeal, // ← dari ungu
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
@@ -571,18 +585,31 @@ class OfferScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
-        title: const Text("Konfirmasi"),
+        title: const Text(
+          "Konfirmasi",
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.grey900,
+          ),
+        ),
         content: Text(
           "Apakah Anda yakin ingin memilih ${offer.name} sebagai mitra?",
+          style: const TextStyle(
+            color: AppColors.grey700,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Batal"),
+            child: const Text(
+              "Batal",
+              style: TextStyle(color: AppColors.grey600),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.primaryTeal, // ← dari green
               foregroundColor: Colors.white,
             ),
             onPressed: () {
@@ -633,8 +660,9 @@ class OfferScreen extends StatelessWidget {
       icon = Icons.cancel_outlined;
       message = 'Pekerjaan ini sudah dibatalkan.';
     } else {
-      bg = const Color(0xFFE0E7FF);
-      fg = const Color(0xFF4F46E5);
+      // default → mint/teal (dari ungu)
+      bg = AppColors.mint.withOpacity(0.20);
+      fg = AppColors.primaryTeal;
       icon = Icons.info_outline;
       message = 'Status pekerjaan: $status';
     }

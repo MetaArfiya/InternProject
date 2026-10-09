@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class PartnerProfileScreen extends StatefulWidget {
   final VoidCallback onFinish;
@@ -21,7 +22,8 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   Map<String, dynamic>? _profileData;
   String _errorMessage = '';
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
 
   @override
   void initState() {
@@ -226,15 +228,19 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
+      backgroundColor: AppColors.sectionAltLight, // ← mint muda
       appBar: AppBar(
         title: const Text(
           "Profil Mitra",
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            color: AppColors.grey900,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.grey900,
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
@@ -243,18 +249,19 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accent))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryTeal),
+            )
           : _errorMessage.isNotEmpty
               ? _ErrorView(message: _errorMessage, onRetry: _fetchMitraProfile)
               : RefreshIndicator(
                   onRefresh: _fetchMitraProfile,
-                  color: _accent,
+                  color: AppColors.primaryTeal,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final width = constraints.maxWidth;
                       final isMobile = width < 700;
-                      final isTablet =
-                          width >= 700 && width < 1100;
+                      final isTablet = width >= 700 && width < 1100;
 
                       final horizontalPadding =
                           isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
@@ -315,12 +322,13 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            // ✅ dari orange → teal gradient
             gradient: const LinearGradient(
-              colors: [_accent, Color(0xffFDBA74)],
+              colors: [AppColors.primaryTeal, AppColors.mint],
             ),
             boxShadow: [
               BoxShadow(
-                color: _accent.withOpacity(0.25),
+                color: AppColors.primaryTeal.withOpacity(0.25),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -328,14 +336,14 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           ),
           child: CircleAvatar(
             radius: isMobile ? 42 : 52,
-            backgroundColor: const Color(0xffFFE7D1),
+            backgroundColor: AppColors.mint.withOpacity(0.30),
             backgroundImage: photo != null ? NetworkImage(photo) : null,
             onBackgroundImageError: photo != null ? (_, __) {} : null,
             child: photo == null
                 ? Icon(
                     Icons.person,
                     size: isMobile ? 50 : 60,
-                    color: _accent,
+                    color: AppColors.primaryTeal,
                   )
                 : null,
           ),
@@ -353,7 +361,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           style: TextStyle(
             fontSize: isMobile ? 20 : 22,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.grey900,
             height: 1.2,
           ),
         ),
@@ -363,60 +371,64 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           runSpacing: 6,
           alignment: WrapAlignment.center,
           children: [
-            // Rating chip
+            // Rating chip — tetap amber (bintang)
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.star, color: Colors.amber, size: 15),
+                  const Icon(Icons.star, color: Color(0xFFF59E0B), size: 15),
                   const SizedBox(width: 4),
                   Text(
                     rating.toStringAsFixed(1),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12.5,
-                      color: Colors.black87,
+                      color: AppColors.grey900,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Container(
                     width: 1,
                     height: 12,
-                    color: Colors.black.withOpacity(0.15),
+                    color: AppColors.grey900.withOpacity(0.15),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     '$reviews Review',
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey[700]),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.grey700,
+                    ),
                   ),
                 ],
               ),
             ),
-            // Verified chip
+            // Verified chip — tetap hijau (konotasi)
             if (verified)
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.verified, color: Colors.green, size: 14),
+                    Icon(Icons.verified,
+                        color: Color(0xFF16A34A), size: 14),
                     SizedBox(width: 5),
                     Text(
                       "Terverifikasi",
                       style: TextStyle(
-                        color: Colors.green,
+                        color: Color(0xFF16A34A),
                         fontWeight: FontWeight.w600,
                         fontSize: 11.5,
                       ),
@@ -431,7 +443,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
 
     return _Card(
       child: isMobile
-          // MOBILE — Column: avatar di atas, info di bawah
           ? Column(
               children: [
                 avatar,
@@ -439,7 +450,6 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                 nameAndRating,
               ],
             )
-          // WEB — Row: avatar kiri, info kanan
           : Row(
               children: [
                 avatar,
@@ -494,8 +504,8 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           const SizedBox(height: 10),
           Text(
             _get(['about', 'bio'], 'Belum ada deskripsi profil.').toString(),
-            style: TextStyle(
-              color: Colors.grey[700],
+            style: const TextStyle(
+              color: AppColors.grey700,
               height: 1.55,
               fontSize: 13.5,
             ),
@@ -521,15 +531,18 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               if (skills.isNotEmpty)
                 Text(
                   '${skills.length} item',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.grey500,
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 14),
           if (skills.isEmpty)
-            Text(
+            const Text(
               'Belum ada keahlian terdaftar.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: AppColors.grey600, fontSize: 13),
             )
           else
             _buildSkillsContent(skills, isMobile),
@@ -555,13 +568,13 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xffFFE7D1),
+              color: AppColors.mint.withOpacity(0.15), // ← dari orange soft
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               label,
               style: const TextStyle(
-                color: _accent,
+                color: AppColors.primaryTeal, // ← teal
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5,
               ),
@@ -608,12 +621,14 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               : null,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(
+                color: AppColors.primaryTeal.withOpacity(0.10),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: AppColors.darkTeal.withOpacity(0.03),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -635,10 +650,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
                     border: Border(
-                      top: BorderSide(color: Colors.grey.shade100),
+                      top: BorderSide(color: AppColors.grey100),
                     ),
                   ),
                   child: Text(
@@ -649,7 +664,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
-                      color: Colors.black87,
+                      color: AppColors.grey900,
                       height: 1.25,
                     ),
                   ),
@@ -679,7 +694,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               const Spacer(),
               Text(
                 '${certs.length} item',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.grey500,
+                ),
               ),
             ],
           ),
@@ -721,12 +739,14 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                     : null,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(
+                      color: AppColors.primaryTeal.withOpacity(0.10),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: AppColors.darkTeal.withOpacity(0.03),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -781,10 +801,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                        decoration: const BoxDecoration(
+                          color: AppColors.white,
                           border: Border(
-                            top: BorderSide(color: Colors.grey.shade100),
+                            top: BorderSide(color: AppColors.grey100),
                           ),
                         ),
                         child: Text(
@@ -795,7 +815,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
-                            color: Colors.black87,
+                            color: AppColors.grey900,
                             height: 1.25,
                           ),
                         ),
@@ -829,7 +849,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.grey900,
           ),
         ),
       ],
@@ -1067,11 +1087,14 @@ class _Card extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.08),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.darkTeal.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1098,11 +1121,14 @@ class _StatisticCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.08),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.darkTeal.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1110,7 +1136,7 @@ class _StatisticCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xffF97316), size: 20),
+          Icon(icon, color: AppColors.primaryTeal, size: 20), // ← teal
           const SizedBox(height: 8),
           Text(
             value,
@@ -1119,7 +1145,7 @@ class _StatisticCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: AppColors.grey900,
             ),
           ),
           const SizedBox(height: 2),
@@ -1128,7 +1154,10 @@ class _StatisticCard extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 10.5, color: Colors.grey[600]),
+            style: const TextStyle(
+              fontSize: 10.5,
+              color: AppColors.grey600,
+            ),
           ),
         ],
       ),
@@ -1154,14 +1183,14 @@ class _NetworkImage extends StatelessWidget {
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
         return Container(
-          color: Colors.orange.shade50,
+          color: AppColors.mint.withOpacity(0.15),
           child: const Center(
             child: SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Color(0xffF97316),
+                color: AppColors.primaryTeal,
               ),
             ),
           ),
@@ -1176,9 +1205,13 @@ class _NetworkImage extends StatelessWidget {
 
   Widget _fallback() {
     return Container(
-      color: Colors.orange.shade50,
+      color: AppColors.mint.withOpacity(0.15),
       child: Center(
-        child: Icon(fallbackIcon, color: const Color(0xffF97316), size: 32),
+        child: Icon(
+          fallbackIcon,
+          color: AppColors.primaryTeal,
+          size: 32,
+        ),
       ),
     );
   }
@@ -1198,17 +1231,21 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 56),
+            const Icon(
+              Icons.error_outline,
+              color: Colors.redAccent,
+              size: 56,
+            ),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[700]),
+              style: const TextStyle(color: AppColors.grey700),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xffF97316),
+                backgroundColor: AppColors.primaryTeal, // ← teal
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),

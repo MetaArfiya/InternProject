@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/sidebar_menu.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/customer_sidebar.dart';
 
 import '../../models/job_model.dart';
@@ -38,7 +39,8 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   final GlobalKey<CustomerSidebarState> _sidebarKey =
       GlobalKey<CustomerSidebarState>();
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ Aksen warna — konsisten dengan brand teal
+  static const Color _accent = AppColors.primaryTeal;
 
   // ==========================================================
   // INIT
@@ -47,11 +49,11 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   @override
   void initState() {
     super.initState();
-    _restoreSelectedMenu();  // ✅ BARU
+    _restoreSelectedMenu();
   }
 
   // ==========================================================
-  // ✅ RESTORE SELECTED MENU
+  // RESTORE SELECTED MENU
   // ==========================================================
 
   Future<void> _restoreSelectedMenu() async {
@@ -62,7 +64,6 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
 
     for (final menu in SidebarMenu.values) {
       if (menu.name == savedName && mounted) {
-        // Skip halaman yang butuh state khusus
         if (menu == SidebarMenu.penawaran) return;
         if (menu == SidebarMenu.profilMitra) return;
 
@@ -75,11 +76,10 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   }
 
   // ==========================================================
-  // ✅ SAVE SELECTED MENU
+  // SAVE SELECTED MENU
   // ==========================================================
 
   Future<void> _saveSelectedMenu(SidebarMenu menu) async {
-    // Skip halaman yang butuh state khusus
     if (menu == SidebarMenu.penawaran) return;
     if (menu == SidebarMenu.profilMitra) return;
 
@@ -104,7 +104,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       }
     });
 
-    _saveSelectedMenu(menu);  // ✅ SAVE
+    _saveSelectedMenu(menu);
 
     final scaffoldState = Scaffold.maybeOf(context);
 
@@ -140,7 +140,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       selectedJob = null;
     });
 
-    _saveSelectedMenu(menu);  // ✅ SAVE
+    _saveSelectedMenu(menu);
   }
 
   int _bottomNavCurrentIndex() {
@@ -263,7 +263,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(28),
         child: Column(
@@ -271,16 +271,19 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.grey900,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.grey500,
+              ),
             ),
             const SizedBox(height: 24),
             Container(
@@ -290,9 +293,11 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                 vertical: 48,
               ),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xffE5E7EB)),
+                border: Border.all(
+                  color: AppColors.primaryTeal.withOpacity(0.10),
+                ),
               ),
               child: Column(
                 children: [
@@ -300,10 +305,14 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xffF1F5F9),
+                      color: AppColors.mint.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, size: 24, color: Colors.grey),
+                    child: Icon(
+                      icon,
+                      size: 24,
+                      color: AppColors.primaryTeal,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -312,6 +321,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: AppColors.grey700,
                     ),
                   ),
                 ],
@@ -354,14 +364,14 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
 
   Widget _buildMobileLayout() {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.sectionAltLight,
 
       appBar: AppBar(
         toolbarHeight: 52,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.grey800,
         automaticallyImplyLeading: false,
         title: null,
         titleSpacing: 0,
@@ -369,6 +379,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
           IconButton(
             tooltip: 'Notifikasi',
             icon: const Icon(Icons.notifications_outlined),
+            color: AppColors.grey700,
             onPressed: () {
               setState(() {
                 selectedMenu = SidebarMenu.notifikasi;
@@ -379,6 +390,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
           IconButton(
             tooltip: 'Pengaduan',
             icon: const Icon(Icons.report_problem_outlined),
+            color: AppColors.grey700,
             onPressed: () {
               setState(() {
                 selectedMenu = SidebarMenu.pengaduan;
@@ -398,7 +410,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
 
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           border: Border(
             top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
           ),
@@ -409,9 +421,9 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
             currentIndex: _bottomNavCurrentIndex(),
             onTap: _onBottomNavTap,
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            selectedItemColor: _accent,
-            unselectedItemColor: const Color(0xFF94A3B8),
+            backgroundColor: AppColors.white,
+            selectedItemColor: _accent, // ← teal
+            unselectedItemColor: AppColors.grey400,
             selectedFontSize: 11,
             unselectedFontSize: 11,
             selectedLabelStyle: const TextStyle(

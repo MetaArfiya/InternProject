@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/job_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/pekerjaan_card.dart';
 import '../../widgets/statistic_card.dart';
@@ -60,13 +61,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
 
-  static const Color _accent = Colors.orange;
+  // ✅ Aksen warna — konsisten dengan brand teal
+  static const Color _accent = AppColors.primaryTeal;
 
   // Warna tabel
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
   @override
   void initState() {
@@ -170,12 +172,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
   // ============================================================
   // ✅ BATALKAN PEKERJAAN — API CALL
-  // Endpoint: POST /jobs/{id}/cancel
+  // Endpoint: POST /jobs/{id}/cancel-customer
   // ============================================================
 
-    Future<void> _cancelJob(JobModel job) async {
+  Future<void> _cancelJob(JobModel job) async {
     try {
-      // ✅ Endpoint khusus pelanggan
       final response = await ApiService.post(
         '/jobs/${job.id}/cancel-customer',
         {
@@ -216,7 +217,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           message,
           style: const TextStyle(fontSize: _bodyFontSize),
         ),
-        backgroundColor: success ? Colors.green : Colors.red,
+        backgroundColor: success ? AppColors.primaryTeal : Colors.red,
       ),
     );
   }
@@ -250,20 +251,17 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
   // ============================================================
   // ✅ CEK APAKAH TOMBOL "BATALKAN" HARUS MUNCUL
-  // Hanya muncul kalau pekerjaan BELUM dikerjakan mitra
   // ============================================================
 
   bool _canCancel(JobModel job) {
     final s = job.status.toLowerCase().trim();
 
-    // Sudah selesai / dibatalkan → tidak bisa cancel
     if (s.contains('selesai') ||
         s.contains('batal') ||
         s.contains('cancel')) {
       return false;
     }
 
-    // Sedang dikerjakan / menunggu konfirmasi → tidak bisa cancel
     if (s.contains('dikerjakan') ||
         s.contains('proses') ||
         s.contains('pengerjaan') ||
@@ -271,7 +269,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       return false;
     }
 
-    // Yang bisa dibatalkan: "Mencari Mitra" dan varian awal lainnya
     return s.contains('mencari') ||
         s.contains('cari') ||
         s.contains('mitra') ||
@@ -385,7 +382,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: AppColors.sectionAltLight, // ← dari theme → mint muda
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
@@ -464,19 +461,19 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         icon: Icons.assignment,
         value: totalJobs.toString(),
         title: 'Total Posting',
-        color: Colors.blue,
+        color: AppColors.primaryTeal, // ← teal
       ),
       StatisticCard(
         icon: Icons.settings,
         value: runningJobs.toString(),
         title: 'Sedang Berjalan',
-        color: Colors.orange,
+        color: AppColors.mint, // ← mint
       ),
       StatisticCard(
         icon: Icons.check_circle,
         value: completedJobs.toString(),
         title: 'Selesai',
-        color: Colors.green,
+        color: const Color(0xFF16A34A), // ← tetap hijau (untuk "selesai")
       ),
     ];
 
@@ -509,7 +506,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         vertical: isMobile ? 10 : 12,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _tableBorder),
       ),
@@ -521,7 +518,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 const Icon(
                   Icons.tune,
                   size: 18,
-                  color: Color(0xFF6B7280),
+                  color: AppColors.grey500,
                 ),
 
                 const SizedBox(width: 10),
@@ -531,7 +528,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   style: TextStyle(
                     fontSize: isMobile ? 12.5 : 13,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF4B5563),
+                    color: AppColors.grey600,
                   ),
                 ),
 
@@ -577,7 +574,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _tableBorder),
       ),
@@ -591,13 +588,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             child: Icon(
               Icons.keyboard_arrow_down,
               size: 18,
-              color: Color(0xFF6B7280),
+              color: AppColors.grey500,
             ),
           ),
           style: TextStyle(
             fontSize: isMobile ? 12 : 12.5,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF111827),
+            color: AppColors.grey900,
           ),
           items: _statusFilterOptions.map((opt) {
             return DropdownMenuItem<String>(
@@ -635,7 +632,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           style: TextStyle(
             fontSize: isMobile ? 15 : 16,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
+            color: AppColors.grey800,
           ),
         ),
       ],
@@ -699,14 +696,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             Icon(
               Icons.filter_alt_off_outlined,
               size: 42,
-              color: Colors.grey.shade400,
+              color: AppColors.grey400,
             ),
             const SizedBox(height: 12),
             Text(
               'Tidak ada pekerjaan dengan filter ini',
               style: TextStyle(
                 fontSize: _bodyFontSize,
-                color: Colors.grey.shade600,
+                color: AppColors.grey600,
               ),
             ),
             const SizedBox(height: 12),
@@ -714,6 +711,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               onPressed: () => _changeStatusFilter('semua'),
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Reset Filter'),
+              style: TextButton.styleFrom(
+                foregroundColor: _accent,
+              ),
             ),
           ],
         ),
@@ -730,7 +730,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _tableBorder),
       ),
@@ -834,7 +834,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 fontSize: 13,
                 color: job.partnerName != null
                     ? _cellText
-                    : const Color(0xFF9CA3AF),
+                    : AppColors.grey400,
                 height: 1.3,
               ),
             ),
@@ -889,15 +889,15 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 _pillButton(
                   icon: Icons.visibility_outlined,
                   label: 'Detail',
-                  bgColor: const Color(0xFFF1F5F9),
-                  fgColor: const Color(0xFF334155),
+                  bgColor: AppColors.grey100,
+                  fgColor: AppColors.grey700,
                   onTap: () => _showJobDetailDialog(job),
                 ),
                 _pillButton(
                   icon: Icons.local_offer_outlined,
                   label: 'Lihat Offer',
-                  bgColor: const Color(0xFFF3E8FF),
-                  fgColor: const Color(0xFF7C3AED),
+                  bgColor: AppColors.mint.withOpacity(0.15),
+                  fgColor: AppColors.primaryTeal,
                   onTap: () => widget.onOpenOffer(job),
                 ),
                 if (_canConfirm(job))
@@ -908,7 +908,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     fgColor: Colors.white,
                     onTap: () => _showCompleteConfirmation(job),
                   ),
-                // ✅ TOMBOL BATALKAN
                 if (_canCancel(job))
                   _pillButton(
                     icon: Icons.cancel_outlined,
@@ -941,7 +940,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       child: Container(
         width: 52,
         height: 52,
-        color: const Color(0xFFF3F4F6),
+        color: AppColors.grey100,
         child: hasImage
             ? Image.network(
                 imageUrl,
@@ -956,7 +955,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF9CA3AF),
+                        color: AppColors.grey400,
                       ),
                     ),
                   );
@@ -965,14 +964,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   return const Icon(
                     Icons.image_not_supported_outlined,
                     size: 20,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.grey400,
                   );
                 },
               )
             : const Icon(
                 Icons.image_outlined,
                 size: 20,
-                color: Color(0xFF9CA3AF),
+                color: AppColors.grey400,
               ),
       ),
     );
@@ -1003,8 +1002,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFFD97706);
     } else {
-      bg = const Color(0xFFE0E7FF);
-      fg = const Color(0xFF4F46E5);
+      // default: "mencari mitra" dll → mint/teal
+      bg = AppColors.mint.withOpacity(0.18);
+      fg = AppColors.primaryTeal;
     }
 
     return Container(
@@ -1112,7 +1112,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _tableBorder),
       ),
@@ -1125,13 +1125,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             child: Icon(
               Icons.keyboard_arrow_down,
               size: 16,
-              color: Color(0xFF6B7280),
+              color: AppColors.grey500,
             ),
           ),
           style: const TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
+            color: AppColors.grey900,
           ),
           items: _rowsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
@@ -1153,7 +1153,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1164,17 +1164,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: enabled
-                  ? const Color(0xFFD1D5DB)
-                  : const Color(0xFFE5E7EB),
+              color: enabled ? AppColors.grey300 : AppColors.grey200,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: enabled
-                ? const Color(0xFF374151)
-                : const Color(0xFFD1D5DB),
+            color: enabled ? AppColors.grey700 : AppColors.grey300,
           ),
         ),
       ),
@@ -1187,7 +1183,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFEDE9FE),
+        color: AppColors.mint.withOpacity(0.20), // ← dari ungu → mint
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1195,7 +1191,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         style: const TextStyle(
           fontSize: 12.5,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF7C3AED),
+          color: AppColors.primaryTeal, // ← teal
         ),
       ),
     );
@@ -1255,7 +1251,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             constraints: const BoxConstraints(maxWidth: 720, maxHeight: 680),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
@@ -1271,7 +1267,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
+                              color: AppColors.grey900,
                             ),
                           ),
                         ),
@@ -1280,7 +1276,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                           icon: const Icon(
                             Icons.close,
                             size: 20,
-                            color: Color(0xFF6B7280),
+                            color: AppColors.grey500,
                           ),
                           splashRadius: 22,
                         ),
@@ -1313,7 +1309,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF374151),
+                                color: AppColors.grey700,
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -1351,7 +1347,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           child: Container(
             width: 88,
             height: 88,
-            color: const Color(0xFFF3F4F6),
+            color: AppColors.grey100,
             child: hasImage
                 ? Image.network(
                     imageUrl,
@@ -1360,13 +1356,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.image_not_supported_outlined,
-                      color: Color(0xFF9CA3AF),
+                      color: AppColors.grey400,
                       size: 24,
                     ),
                   )
                 : const Icon(
                     Icons.image_outlined,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.grey400,
                     size: 24,
                   ),
           ),
@@ -1381,7 +1377,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
+                  color: AppColors.grey900,
                   height: 1.3,
                 ),
               ),
@@ -1390,7 +1386,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 job.description,
                 style: const TextStyle(
                   fontSize: 12.5,
-                  color: Color(0xFF6B7280),
+                  color: AppColors.grey500,
                   height: 1.4,
                 ),
               ),
@@ -1479,13 +1475,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: const Color(0xFF6B7280)),
+        Icon(icon, size: 14, color: AppColors.grey500),
         const SizedBox(width: 5),
         Text(
           text,
           style: const TextStyle(
             fontSize: 12,
-            color: Color(0xFF4B5563),
+            color: AppColors.grey600,
           ),
         ),
       ],
@@ -1508,18 +1504,18 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           if (progress == null) return child;
           return Container(
             height: 200,
-            color: const Color(0xFFF3F4F6),
+            color: AppColors.grey100,
             alignment: Alignment.center,
             child: const CircularProgressIndicator(
               strokeWidth: 2,
-              color: Color(0xFF9CA3AF),
+              color: AppColors.grey400,
             ),
           );
         },
         errorBuilder: (_, __, ___) {
           return Container(
             height: 200,
-            color: const Color(0xFFF3F4F6),
+            color: AppColors.grey100,
             alignment: Alignment.center,
             child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1527,14 +1523,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                 Icon(
                   Icons.broken_image_outlined,
                   size: 32,
-                  color: Color(0xFF9CA3AF),
+                  color: AppColors.grey400,
                 ),
                 SizedBox(height: 6),
                 Text(
                   'Gagal memuat gambar',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.grey400,
                   ),
                 ),
               ],
@@ -1655,7 +1651,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: const Color(0xFF16A34A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -1848,7 +1844,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF374151),
+                color: AppColors.grey700,
               ),
             ),
             const SizedBox(height: 6),
@@ -1856,7 +1852,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               'Yuk, posting pekerjaan pertamamu lewat tombol di atas.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.grey600,
                 fontSize: _bodyFontSize,
                 height: 1.4,
               ),

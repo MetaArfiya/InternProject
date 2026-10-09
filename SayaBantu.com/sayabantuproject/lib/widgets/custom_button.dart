@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import 'safe_mouse_region.dart';
+
 class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
-  final Color backgroundColor;
-  final Color textColor;
-  final double width;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final double? width;
   final double height;
   final double borderRadius;
   final bool outlined;
@@ -17,22 +21,24 @@ class CustomButton extends StatelessWidget {
     super.key,
     required this.text,
     this.onPressed,
-    this.backgroundColor = const Color(0xffF97316),
-    this.textColor = Colors.white,
-    this.width = 180,
-    this.height = 56,
-    this.borderRadius = 14,
+    this.backgroundColor,
+    this.textColor,
+    this.width,
+    this.height = 48,
+    this.borderRadius = 12,
     this.outlined = false,
     this.icon,
-    this.fontSize = 16,
+    this.fontSize = 14,
     this.fontWeight = FontWeight.w700,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bg = backgroundColor ?? AppColors.primaryTeal;
+    final fg = textColor ?? AppColors.white;
     final radius = BorderRadius.circular(borderRadius);
 
-    return MouseRegion(
+    return SafeMouseRegion(
       cursor: onPressed == null
           ? SystemMouseCursors.basic
           : SystemMouseCursors.click,
@@ -45,31 +51,32 @@ class CustomButton extends StatelessWidget {
             width: width,
             height: height,
             decoration: BoxDecoration(
-              color: outlined ? Colors.transparent : backgroundColor,
+              color: outlined ? Colors.transparent : bg,
               borderRadius: radius,
               border: outlined
                   ? Border.all(
-                      color: Color.fromRGBO(
-                        255,
-                        255,
-                        255,
-                        0.35,
-                      ),
-                      width: 1.2,
+                      color: fg.withOpacity(0.5),
+                      width: 1.5,
                     )
                   : null,
             ),
             alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: fontSize,
-                    fontWeight: fontWeight,
+                Flexible(
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.buttonPrimary.copyWith(
+                      color: fg,
+                      fontSize: fontSize,
+                      fontWeight: fontWeight,
+                    ),
                   ),
                 ),
                 if (icon != null) ...[
@@ -77,7 +84,7 @@ class CustomButton extends StatelessWidget {
                   Icon(
                     icon,
                     size: 18,
-                    color: textColor,
+                    color: fg,
                   ),
                 ],
               ],
