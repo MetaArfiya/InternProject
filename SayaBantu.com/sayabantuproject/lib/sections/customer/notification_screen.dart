@@ -18,6 +18,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // ============================================================
+  // SPACING — mengikuti pola DashboardHeader
+  // ============================================================
+  static const double _gapAfterHeader = 16;
+
   @override
   void initState() {
     super.initState();
@@ -27,51 +32,58 @@ class _NotificationScreenState extends State<NotificationScreen> {
   // ============================================================
   // FETCH NOTIFIKASI DARI API
   // ============================================================
+
   Future<void> _loadNotifications() async {
-  if (!mounted) return;
+    if (!mounted) return;
 
-  setState(() {
-    _isLoading = true;
-    _errorMessage = null;
-  });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  try {
-    final response = await ApiService.get('/notifications');
+    try {
+      final response = await ApiService.get('/notifications');
 
-    debugPrint('🔔 NOTIFICATIONS STATUS: ${response.statusCode}');
-    debugPrint('🔔 NOTIFICATIONS BODY: ${response.body}');
+      debugPrint('🔔 NOTIFICATIONS STATUS: ${response.statusCode}');
+      debugPrint('🔔 NOTIFICATIONS BODY: ${response.body}');
 
-    final Map<String, dynamic> body = jsonDecode(response.body);
+      final Map<String, dynamic> body = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      // ✅ SESUAI CONTROLLER: pakai key 'notifications'
-      final List<dynamic> rawData = body['notifications'] ?? [];
+      if (response.statusCode == 200) {
+        final List<dynamic> rawData = body['notifications'] ?? [];
 
-      final loaded = rawData
-          .whereType<Map<String, dynamic>>()
-          .map((json) => NotificationModel.fromJson(json))
-          .toList();
+        final loaded = rawData
+            .whereType<Map<String, dynamic>>()
+            .map((json) => NotificationModel.fromJson(json))
+            .toList();
+
+        if (!mounted) return;
+
+        setState(() {
+          _notifications = loaded;
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Gagal memuat notifikasi (${response.statusCode})');
+      }
+    } catch (e) {
+      debugPrint('❌ NOTIFICATIONS ERROR: $e');
 
       if (!mounted) return;
 
       setState(() {
-        _notifications = loaded;
         _isLoading = false;
+        _errorMessage = e.toString();
       });
-    } else {
-      throw Exception('Gagal memuat notifikasi (${response.statusCode})');
     }
-  } catch (e) {
-    debugPrint('❌ NOTIFICATIONS ERROR: $e');
-
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-      _errorMessage = e.toString();
-    });
   }
-}
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+  // ✅ Padding horizontal: mobile 16 / tablet 24 / desktop 28
+  // ✅ Tanpa Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -81,21 +93,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
       color: theme.scaffoldBackgroundColor,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 700;
+          final width = constraints.maxWidth;
+          final isMobile = width < 700;
+          final isTablet = width >= 700 && width < 1100;
+
+          final horizontalPadding =
+              isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+          final verticalPadding = isMobile ? 16.0 : 28.0;
 
           return RefreshIndicator(
             onRefresh: _loadNotifications,
+            color: const Color(0xFFF97316),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 16 : 28,
-                vertical: isMobile ? 16 : 24,
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ============================================
-                  // HEADER
+                  // HEADER — sama persis dgn "Pekerjaan Saya"
                   // ============================================
                   Text(
                     'Notifikasi',
@@ -107,15 +126,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   Text(
                     'Semua aktivitas terbaru akan muncul di sini.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
+                      color: Colors.grey.shade600,
                     ),
                   ),
-                  const SizedBox(height: 24),
+
+                  const SizedBox(height: _gapAfterHeader),
 
                   // ============================================
                   // CONTENT
                   // ============================================
-                  _buildContent(isMobile),
+                  _buildContent(context, isMobile),
                 ],
               ),
             ),
@@ -125,9 +145,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Widget _buildContent(bool isMobile) {
+  Widget _buildContent(BuildContext context, bool isMobile) {
     if (_isLoading) return _buildLoadingState();
-    if (_errorMessage != null) return _buildErrorState();
+    if (_errorMessage != null) return _buildErrorState(context);
     if (_notifications.isEmpty) return _buildEmptyState(context);
 
     return ListView.separated(
@@ -150,14 +170,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 60),
-      child: const Center(child: CircularProgressIndicator()),
+      child: const Center(
+        child: CircularProgressIndicator(color: Color(0xFFF97316)),
+      ),
     );
   }
 
   // ==========================================================
   // ERROR
   // ==========================================================
-  Widget _buildErrorState() {
+  Widget _buildErrorState(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
@@ -168,21 +190,25 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off_outlined,
-              size: 48, color: Color(0xFFEF4444)),
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 48,
+            color: Color(0xFFEF4444),
+          ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Gagal memuat notifikasi',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
           ),
           const SizedBox(height: 6),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -218,25 +244,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
               color: const Color(0xffF1F5F9),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.notifications_none_outlined,
               size: 24,
-              color: Colors.grey,
+              color: Colors.grey.shade500,
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Belum ada notifikasi',
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 5),
-          const Text(
+          Text(
             'Semua aktivitas terbaru akan muncul di sini.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade600,
+            ),
           ),
         ],
       ),

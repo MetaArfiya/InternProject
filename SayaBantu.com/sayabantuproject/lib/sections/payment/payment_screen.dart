@@ -37,11 +37,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
   int _rowsPerPage = 10;
   static const List<int> _rowsPerPageOptions = [10, 25, 50, 100];
 
+  // ============================================================
+  // DESIGN TOKENS — disamakan dengan DashboardHeader
+  // ============================================================
+
   static const Color _accent = Color(0xFFF97316);
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
   static const Color _headerText = Color(0xFF6B7280);
   static const Color _cellText = Color(0xFF111827);
+  static const double _buttonRadius = 12;
+
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _gapTitleToContent = 16;
 
   bool get _isMitra => widget.role.toLowerCase() == 'mitra';
 
@@ -167,13 +177,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // OPEN DETAIL — endpoint berbeda per role
+  // OPEN DETAIL
   // ============================================================
 
-      Future<void> _openPaymentDetail(PaymentModel p) async {
-    // ============================================================
-    // MITRA — kirim PaymentModel langsung ke dialog
-    // ============================================================
+  Future<void> _openPaymentDetail(PaymentModel p) async {
     if (_isMitra) {
       await showDialog<bool>(
         context: context,
@@ -183,9 +190,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    // ============================================================
-    // PELANGGAN — seperti semula
-    // ============================================================
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -260,6 +264,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+  // ✅ Padding horizontal disamakan dengan CustomerDashboard
+  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
+  // ✅ TIDAK ada `Center` + `ConstrainedBox` — konten nempel kiri
+  //    biar jarak dari sidebar sama dengan halaman lain
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +285,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               final isTablet = width >= 700 && width < 1100;
 
               final horizontalPadding =
-                  isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+                  isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
               final verticalPadding = isMobile ? 16.0 : 28.0;
 
               return SingleChildScrollView(
@@ -285,42 +294,38 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   horizontal: horizontalPadding,
                   vertical: verticalPadding,
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1200),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(isMobile),
-                        SizedBox(height: isMobile ? 18 : 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context),
 
-                        if (_isLoading)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 60),
-                              child: CircularProgressIndicator(color: _accent),
-                            ),
-                          )
-                        else if (_errorMessage != null)
-                          _buildErrorState()
-                        else ...[
-                          _buildSummary(isMobile),
-                          SizedBox(height: isMobile ? 18 : 24),
-                          _buildFilterBar(isMobile),
-                          SizedBox(height: isMobile ? 18 : 24),
-                          _buildListTitle(isMobile),
-                          const SizedBox(height: 14),
+                    const SizedBox(height: _gapAfterHeader),
 
-                          if (_filteredPayments.isEmpty)
-                            _buildEmptyState()
-                          else if (isMobile)
-                            _buildMobileList()
-                          else
-                            _buildWebTable(),
-                        ],
-                      ],
-                    ),
-                  ),
+                    if (_isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 60),
+                          child: CircularProgressIndicator(color: _accent),
+                        ),
+                      )
+                    else if (_errorMessage != null)
+                      _buildErrorState(context)
+                    else ...[
+                      _buildSummary(isMobile),
+                      const SizedBox(height: _gapBetweenSections),
+                      _buildFilterBar(context, isMobile),
+                      const SizedBox(height: _gapBetweenSections),
+                      _buildListTitle(context),
+                      const SizedBox(height: _gapTitleToContent),
+
+                      if (_filteredPayments.isEmpty)
+                        _buildEmptyState(context)
+                      else if (isMobile)
+                        _buildMobileList(context)
+                      else
+                        _buildWebTable(context),
+                    ],
+                  ],
                 ),
               );
             },
@@ -331,19 +336,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pembayaran',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
@@ -351,9 +356,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _isMitra
               ? 'Lihat riwayat pendapatan dari pekerjaan yang telah selesai.'
               : 'Lihat riwayat transaksi dan pembayaran pekerjaan.',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: const Color(0xFF64748B),
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -495,26 +499,27 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // FILTER BAR
   // ============================================================
 
-  Widget _buildFilterBar(bool isMobile) {
+  Widget _buildFilterBar(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(_buttonRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
           const Icon(Icons.filter_list, size: 18, color: Color(0xFF6B7280)),
           const SizedBox(width: 8),
           if (!isMobile) ...[
-            const Text(
+            Text(
               'Filter Status:',
-              style: TextStyle(
-                fontSize: 12.5,
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF374151),
+                color: const Color(0xFF374151),
               ),
             ),
             const SizedBox(width: 12),
@@ -525,7 +530,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(color: _tableBorder),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -539,10 +544,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     color: Color(0xFF6B7280),
                   ),
                 ),
-                style: const TextStyle(
-                  fontSize: 12.5,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                 ),
                 items: _filterOptions.map((status) {
                   return DropdownMenuItem<String>(
@@ -569,8 +573,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             child: Text(
               '${_filteredPayments.length}',
-              style: const TextStyle(
-                fontSize: 12,
+              style: textTheme.labelMedium?.copyWith(
                 color: _accent,
                 fontWeight: FontWeight.w700,
               ),
@@ -582,30 +585,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // LIST TITLE
+  // LIST TITLE — sama persis dgn judul "Pembayaran" (tanpa bar)
   // ============================================================
 
-  Widget _buildListTitle(bool isMobile) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            color: _accent,
-            borderRadius: BorderRadius.circular(2),
+  Widget _buildListTitle(BuildContext context) {
+    return Text(
+      _isMitra ? 'Riwayat Pendapatan' : 'Riwayat Pembayaran',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          _isMitra ? 'Riwayat Pendapatan' : 'Riwayat Pembayaran',
-          style: TextStyle(
-            fontSize: isMobile ? 15 : 16,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
-          ),
-        ),
-      ],
     );
   }
 
@@ -613,29 +601,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // MOBILE — LIST CARD
   // ============================================================
 
-  Widget _buildMobileList() {
+  Widget _buildMobileList(BuildContext context) {
     return Column(
       children: _filteredPayments.map((p) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildMobilePaymentCard(p),
+          child: _buildMobilePaymentCard(context, p),
         );
       }).toList(),
     );
   }
 
-  Widget _buildMobilePaymentCard(PaymentModel p) {
+  Widget _buildMobilePaymentCard(BuildContext context, PaymentModel p) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -661,10 +650,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       p.jobTitle ?? 'Pekerjaan',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: _cellText,
                         height: 1.25,
                       ),
                     ),
@@ -673,29 +661,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       _isMitra
                           ? 'Pelanggan: ${p.pelangganName ?? "-"}'
                           : 'Mitra: ${p.mitraName ?? "-"}',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF64748B),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       p.formattedDate,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                      style: textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFF9CA3AF),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              _statusBadge(p),
+              _statusBadge(context, p),
             ],
           ),
-
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
 
           _detailRow(
@@ -730,7 +715,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ],
 
-          // UPLOAD INFO
           if (p.customerProofUploadedAt != null) ...[
             const SizedBox(height: 12),
             _buildUploadInfo(
@@ -750,14 +734,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ],
 
-          // TOMBOL AKSI
-          ..._buildActionButtonsMobile(p),
+          ..._buildActionButtonsMobile(context, p),
         ],
       ),
     );
   }
 
-  List<Widget> _buildActionButtonsMobile(PaymentModel p) {
+  List<Widget> _buildActionButtonsMobile(
+    BuildContext context,
+    PaymentModel p,
+  ) {
     final widgets = <Widget>[];
 
     if (!_isMitra && p.canUploadCustomerProof) {
@@ -786,7 +772,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
     }
 
-    widgets.addAll(_buildStatusInfoBlock(p));
+    widgets.addAll(_buildStatusInfoBlock(context, p));
 
     if (!_isMitra && p.customerProofUploadedAt != null) {
       widgets.add(const SizedBox(height: 12));
@@ -809,13 +795,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               );
             }
-            return _buildRatingSection(p, snapshot.data);
+            return _buildRatingSection(context, p, snapshot.data);
           },
         ),
       );
     }
 
-    // ✅ Detail — untuk SEMUA role (mitra & pelanggan)
     widgets.add(const SizedBox(height: 6));
     widgets.add(
       TextButton.icon(
@@ -839,7 +824,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // WEB — TABEL
   // ============================================================
 
-  Widget _buildWebTable() {
+  Widget _buildWebTable(BuildContext context) {
     final rows = _pagedPayments;
 
     return Container(
@@ -851,56 +836,62 @@ class _PaymentScreenState extends State<PaymentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTableHeaderRow(),
+          _buildTableHeaderRow(context),
           const Divider(height: 1, thickness: 1, color: _tableDivider),
 
           for (int i = 0; i < rows.length; i++) ...[
-            _buildTableDataRow(rows[i]),
+            _buildTableDataRow(context, rows[i]),
             if (i != rows.length - 1)
               const Divider(height: 1, thickness: 1, color: _tableDivider),
           ],
 
           const Divider(height: 1, thickness: 1, color: _tableDivider),
-          _buildTableFooter(),
+          _buildTableFooter(context),
         ],
       ),
     );
   }
 
-  Widget _buildTableHeaderRow() {
+  Widget _buildTableHeaderRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 4, child: _headerCell('Pekerjaan')),
-          Expanded(flex: 3, child: _headerCell(_isMitra ? 'Pelanggan' : 'Mitra')),
-          Expanded(flex: 2, child: _headerCell('Tanggal')),
-          Expanded(flex: 3, child: _headerCell(_isMitra ? 'Pendapatan' : 'Total')),
-          Expanded(flex: 3, child: _headerCell('Status')),
-          Expanded(flex: 4, child: _headerCell('Aksi')),
+          Expanded(flex: 4, child: _headerCell(context, 'Pekerjaan')),
+          Expanded(
+            flex: 3,
+            child: _headerCell(context, _isMitra ? 'Pelanggan' : 'Mitra'),
+          ),
+          Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
+          Expanded(
+            flex: 3,
+            child: _headerCell(context, _isMitra ? 'Pendapatan' : 'Total'),
+          ),
+          Expanded(flex: 3, child: _headerCell(context, 'Status')),
+          Expanded(flex: 4, child: _headerCell(context, 'Aksi')),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text) {
+  Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: _headerText,
-      ),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: _headerText,
+          ),
     );
   }
 
-  Widget _buildTableDataRow(PaymentModel p) {
+  Widget _buildTableDataRow(BuildContext context, PaymentModel p) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Pekerjaan
           Expanded(
             flex: 4,
             child: Row(
@@ -928,8 +919,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         p.jobTitle ?? 'Pekerjaan',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: _cellText,
                         ),
@@ -937,9 +927,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const SizedBox(height: 3),
                       Text(
                         '#PAY-${p.id.toString().padLeft(3, '0')}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9CA3AF),
+                        style: textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF9CA3AF),
                         ),
                       ),
                     ],
@@ -949,7 +938,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
 
-          // Mitra / Pelanggan
           Expanded(
             flex: 3,
             child: Text(
@@ -958,58 +946,50 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   : (p.mitraName ?? '-'),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 color: _cellText,
                 height: 1.3,
               ),
             ),
           ),
 
-          // Tanggal
           Expanded(
             flex: 2,
             child: Text(
               p.formattedDate,
-              style: const TextStyle(fontSize: 12.5, color: _cellText),
+              style: textTheme.bodyMedium?.copyWith(color: _cellText),
             ),
           ),
 
-          // Total
           Expanded(
             flex: 3,
             child: Text(
               PaymentModel.formatRupiah(
                 _isMitra ? p.mitraEarning : p.totalPaid,
               ),
-              style: TextStyle(
-                fontSize: 13.5,
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: _isMitra
-                    ? const Color(0xFF16A34A)
-                    : _accent,
+                color: _isMitra ? const Color(0xFF16A34A) : _accent,
               ),
             ),
           ),
 
-          // Status
           Expanded(
             flex: 3,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _statusBadge(p),
+              child: _statusBadge(context, p),
             ),
           ),
 
-          // Aksi
           Expanded(
             flex: 4,
             child: Wrap(
               spacing: 6,
               runSpacing: 6,
               children: [
-                // ✅ Detail — untuk SEMUA role
                 _pillButton(
+                  context: context,
                   icon: Icons.visibility_outlined,
                   label: 'Detail',
                   bgColor: const Color(0xFFF1F5F9),
@@ -1017,9 +997,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   onTap: () => _openPaymentDetail(p),
                 ),
 
-                // Upload bukti — pelanggan saja
                 if (!_isMitra && p.canUploadCustomerProof)
                   _pillButton(
+                    context: context,
                     icon: Icons.upload_file,
                     label: 'Upload Bukti',
                     bgColor: _accent,
@@ -1027,11 +1007,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     onTap: () => _openPaymentDetail(p),
                   ),
 
-                // Beri rating — pelanggan saja
                 if (!_isMitra &&
                     p.customerProofUploadedAt != null &&
                     p.isSettled)
                   _pillButton(
+                    context: context,
                     icon: Icons.star_rate_rounded,
                     label: 'Beri Rating',
                     bgColor: const Color(0xFFD97706),
@@ -1047,6 +1027,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _pillButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color bgColor,
@@ -1068,11 +1049,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: fgColor,
-                ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
+                    ),
               ),
             ],
           ),
@@ -1085,7 +1065,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // TABLE FOOTER
   // ============================================================
 
-  Widget _buildTableFooter() {
+  Widget _buildTableFooter(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final total = _filteredPayments.length;
     final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
     final end = (_currentPage * _rowsPerPage).clamp(0, total);
@@ -1098,12 +1079,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           Text(
             'Menampilkan $start–$end dari $total pembayaran',
-            style: const TextStyle(fontSize: 12.5, color: _headerText),
+            style: textTheme.bodySmall?.copyWith(color: _headerText),
           ),
           const Spacer(),
           Row(
             children: [
-              _buildRowsPerPageDropdown(),
+              _buildRowsPerPageDropdown(context),
               const SizedBox(width: 12),
               _navButton(
                 icon: Icons.chevron_left,
@@ -1111,7 +1092,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 onTap: () => _goToPage(_currentPage - 1),
               ),
               const SizedBox(width: 8),
-              _pageIndicator(),
+              _pageIndicator(context),
               const SizedBox(width: 8),
               _navButton(
                 icon: Icons.chevron_right,
@@ -1125,7 +1106,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildRowsPerPageDropdown() {
+  Widget _buildRowsPerPageDropdown(BuildContext context) {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1146,11 +1127,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               color: Color(0xFF6B7280),
             ),
           ),
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
           items: _rowsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
               value: value,
@@ -1199,7 +1179,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _pageIndicator() {
+  Widget _pageIndicator(BuildContext context) {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1210,11 +1190,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Text(
         'Hal $_currentPage / $_totalPages',
-        style: const TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF7C3AED),
-        ),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF7C3AED),
+            ),
       ),
     );
   }
@@ -1223,7 +1202,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // STATUS INFO BLOCK
   // ============================================================
 
-  List<Widget> _buildStatusInfoBlock(PaymentModel p) {
+  List<Widget> _buildStatusInfoBlock(
+    BuildContext context,
+    PaymentModel p,
+  ) {
     if (!_isMitra) {
       if (p.isWaitingVerification) {
         return [
@@ -1345,6 +1327,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
 
   Widget _buildRatingSection(
+    BuildContext context,
     PaymentModel p,
     Map<String, dynamic>? ratingStatus,
   ) {
@@ -1432,7 +1415,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // STATUS BADGE
   // ============================================================
 
-  Widget _statusBadge(PaymentModel p) {
+  Widget _statusBadge(BuildContext context, PaymentModel p) {
     final color = _statusColor(p.status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -1442,11 +1425,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Text(
         p.statusLabel,
-        style: TextStyle(
-          color: color,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w600,
-        ),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }
@@ -1546,7 +1528,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ERROR & EMPTY
   // ============================================================
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -1557,8 +1539,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline,
-              color: Color(0xFFDC2626), size: 48),
+          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 48),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
@@ -1584,7 +1565,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     final isFiltered = _selectedStatus != 'Semua';
 
     return Container(
