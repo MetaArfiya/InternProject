@@ -38,20 +38,23 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   static const List<int> _rowsPerPageOptions = [10, 25, 50, 100];
 
   // ============================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
   // ============================================================
 
-  static const double _bodyFontSize = 13;
-  static const double _fieldFontSize = 13;
   static const double _buttonFontSize = 13;
-  static const double _cardRadius = 14;
+  static const double _fieldFontSize = 13;
   static const double _smallRadius = 12;
 
   static const Color _accent = Color(0xFFF97316);
-  static const Color _borderColor = Color(0xFFE5E7EB);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
 
-  static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100;
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _gapTitleToContent = 16;
 
   final List<String> _categories = const [
     'Aplikasi',
@@ -139,11 +142,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   int _parseIntSafe(dynamic value) {
     if (value == null) return 0;
 
-    // Coba parse sebagai int dulu
     final parsed = int.tryParse(value.toString());
     if (parsed != null && parsed >= 0) return parsed;
 
-    // Coba parse sebagai double (kalau ada desimal)
     final asDouble = double.tryParse(value.toString());
     if (asDouble != null && asDouble.isFinite && asDouble >= 0) {
       return asDouble.toInt();
@@ -166,20 +167,17 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // ============================================================
 
   int get _totalPages {
-    // ✅ Guard: kalau list kosong atau rowsPerPage tidak valid
     if (_filteredComplaints.isEmpty) return 1;
     if (_rowsPerPage <= 0) return 1;
 
     final total = (_filteredComplaints.length / _rowsPerPage).ceil();
 
-    // ✅ Guard: kalau hasilnya NaN / Infinity, return 1
     if (!total.isFinite || total < 1) return 1;
 
     return total;
   }
 
   List<ComplaintModel> get _pagedComplaints {
-    // ✅ Guard
     if (_rowsPerPage <= 0) return _filteredComplaints;
 
     final list = _filteredComplaints;
@@ -237,10 +235,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     }
   }
 
-  Widget _statusBadge(String status) {
+  Widget _statusBadge(BuildContext context, String status) {
     final color = _getStatusColor(status);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
@@ -248,15 +247,14 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_getStatusIcon(status), size: 13, color: color),
+          Icon(_getStatusIcon(status), size: 14, color: color),
           const SizedBox(width: 5),
           Text(
             status,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ],
       ),
@@ -266,211 +264,206 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+  // ✅ Padding horizontal disamakan dgn CustomerDashboard
+  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
+  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isMobile = width < _mobileBreakpoint;
-        final isTablet =
-            width >= _mobileBreakpoint && width < _tabletBreakpoint;
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: RefreshIndicator(
+        onRefresh: _loadComplaints,
+        color: _accent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final isMobile = width < 700;
+            final isTablet = width >= 700 && width < 1100;
 
-        final horizontalPadding =
-            isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
-        final verticalPadding = isMobile ? 16.0 : 28.0;
+            final horizontalPadding =
+                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final verticalPadding = isMobile ? 16.0 : 28.0;
 
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: RefreshIndicator(
-            onRefresh: _loadComplaints,
-            color: _accent,
-            child: SingleChildScrollView(
+            return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile),
-                      SizedBox(height: isMobile ? 20 : 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, isMobile),
 
-                      if (_isLoading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 80),
-                            child: CircularProgressIndicator(color: _accent),
-                          ),
-                        )
-                      else if (_errorMessage != null)
-                        _buildError()
-                      else ...[
-                        _buildSummary(isMobile),
-                        SizedBox(height: isMobile ? 20 : 24),
-                        _sectionTitle('Riwayat Laporan', isMobile),
-                        const SizedBox(height: 14),
-                        _buildFilterSection(isMobile),
-                        const SizedBox(height: 16),
+                  const SizedBox(height: _gapAfterHeader),
 
-                        if (_filteredComplaints.isEmpty)
-                          _buildEmptyState()
-                        else if (isMobile)
-                          Column(
-                            children: _filteredComplaints
-                                .map((c) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 12),
-                                      child: _buildComplaintCard(c),
-                                    ))
-                                .toList(),
-                          )
-                        else
-                          _buildDesktopTable(),
-                      ],
-                    ],
-                  ),
-                ),
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 60),
+                        child: CircularProgressIndicator(color: _accent),
+                      ),
+                    )
+                  else if (_errorMessage != null)
+                    _buildError(context)
+                  else ...[
+                    _buildSummary(context, isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildFilterSection(context, isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildSectionTitle(context),
+                    const SizedBox(height: _gapTitleToContent),
+
+                    if (_filteredComplaints.isEmpty)
+                      _buildEmptyState(context)
+                    else if (isMobile)
+                      Column(
+                        children: _filteredComplaints
+                            .map((c) => Padding(
+                                  padding:
+                                      const EdgeInsets.only(bottom: 12),
+                                  child: _buildComplaintCard(context, c),
+                                ))
+                            .toList(),
+                      )
+                    else
+                      _buildDesktopTable(context),
+                  ],
+                ],
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
+    final titleAndSubtitle = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Lapor Masalah',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Laporkan bug atau kirim saran untuk pengembangan aplikasi.',
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+
+    final button = ElevatedButton.icon(
+      onPressed: _showCreateComplaintDialog,
+      icon: const Icon(Icons.add, size: 18),
+      label: Text(
+        isMobile ? 'Lapor' : 'Lapor Sekarang',
+        style: const TextStyle(
+          fontSize: _buttonFontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _accent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        minimumSize: const Size(0, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_smallRadius),
+        ),
+      ),
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          titleAndSubtitle,
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: button),
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Lapor Masalah',
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 26,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Laporkan bug atau kirim saran untuk pengembangan aplikasi.',
-                style: TextStyle(
-                  fontSize: isMobile ? 12.5 : 13,
-                  color: const Color(0xFF64748B),
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        ElevatedButton.icon(
-          onPressed: _showCreateComplaintDialog,
-          icon: const Icon(Icons.add, size: 17),
-          label: Text(
-            isMobile ? 'Lapor' : 'Lapor Sekarang',
-            style: const TextStyle(
-              fontSize: _buttonFontSize,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _accent,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(_smallRadius),
-            ),
-          ),
-        ),
+        Expanded(child: titleAndSubtitle),
+        const SizedBox(width: 20),
+        button,
       ],
     );
   }
 
   // ============================================================
-  // SECTION TITLE
+  // SECTION TITLE — sama persis dgn judul "Pengaduan Saya"
   // ============================================================
 
-  Widget _sectionTitle(String text, bool isMobile) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            color: _accent,
-            borderRadius: BorderRadius.circular(2),
+  Widget _buildSectionTitle(BuildContext context) {
+    return Text(
+      'Riwayat Laporan',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: isMobile ? 15 : 16,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
-          ),
-        ),
-      ],
     );
   }
 
   // ============================================================
-  // SUMMARY
+  // SUMMARY — Mobile 2×2, Web 4 kolom
   // ============================================================
 
-  Widget _buildSummary(bool isMobile) {
+  Widget _buildSummary(BuildContext context, bool isMobile) {
     final cards = [
       _summaryCard(
+        context: context,
         title: 'Total',
         fullTitle: 'Total Laporan',
         value: '${_summary['total'] ?? 0}',
         icon: Icons.report_problem_outlined,
         color: const Color(0xFF2563EB),
-        isCompact: isMobile,
       ),
       _summaryCard(
+        context: context,
         title: 'Menunggu',
         fullTitle: 'Menunggu',
         value: '${_summary['menunggu'] ?? 0}',
         icon: Icons.access_time,
         color: _accent,
-        isCompact: isMobile,
       ),
       _summaryCard(
+        context: context,
         title: 'Diproses',
         fullTitle: 'Diproses',
         value: '${_summary['diproses'] ?? 0}',
         icon: Icons.sync,
         color: const Color(0xFF7C3AED),
-        isCompact: isMobile,
       ),
       _summaryCard(
+        context: context,
         title: 'Selesai',
         fullTitle: 'Selesai',
         value: '${_summary['selesai'] ?? 0}',
         icon: Icons.check_circle_outline,
         color: const Color(0xFF16A34A),
-        isCompact: isMobile,
       ),
     ];
 
@@ -507,62 +500,64 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   Widget _summaryCard({
+    required BuildContext context,
     required String title,
     required String fullTitle,
     required String value,
     required IconData icon,
     required Color color,
-    required bool isCompact,
   }) {
     return Container(
-      padding: EdgeInsets.all(isCompact ? 12 : 18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-        border: Border.all(color: _borderColor),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _tableBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: isCompact ? 34 : 46,
-            height: isCompact ? 34 : 46,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(isCompact ? 9 : 11),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: isCompact ? 17 : 22,
-            ),
+            child: Icon(icon, color: color, size: 21),
           ),
-          SizedBox(width: isCompact ? 10 : 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: isCompact ? 18 : 20,
+                  style: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
+                    color: Color(0xFF0F172A),
                     height: 1.1,
-                  ),
-                ),
-                SizedBox(height: isCompact ? 2 : 3),
-                Text(
-                  isCompact ? title : fullTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: isCompact ? 10.5 : 12,
-                    color: const Color(0xFF64748B),
-                    fontWeight: FontWeight.w500,
-                    height: 1.15,
                   ),
                 ),
               ],
@@ -574,10 +569,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // FILTER
+  // FILTER BAR
   // ============================================================
 
-  Widget _buildFilterSection(bool isMobile) {
+  Widget _buildFilterSection(BuildContext context, bool isMobile) {
     const filters = [
       'Semua',
       'Menunggu',
@@ -586,25 +581,26 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       'Ditolak',
     ];
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _borderColor),
+        borderRadius: BorderRadius.circular(_smallRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
           const Icon(Icons.filter_list, size: 18, color: Color(0xFF6B7280)),
           const SizedBox(width: 8),
           if (!isMobile) ...[
-            const Text(
+            Text(
               'Filter Status:',
-              style: TextStyle(
-                fontSize: 12.5,
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF374151),
+                color: const Color(0xFF374151),
               ),
             ),
             const SizedBox(width: 12),
@@ -615,7 +611,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _borderColor),
+              border: Border.all(color: _tableBorder),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -629,10 +625,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                     color: Color(0xFF6B7280),
                   ),
                 ),
-                style: const TextStyle(
-                  fontSize: 12.5,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                 ),
                 items: filters.map((filter) {
                   return DropdownMenuItem<String>(
@@ -654,13 +649,12 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withOpacity(0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${_filteredComplaints.length}',
-              style: const TextStyle(
-                fontSize: 12,
+              style: textTheme.labelMedium?.copyWith(
                 color: _accent,
                 fontWeight: FontWeight.w700,
               ),
@@ -675,14 +669,19 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // MOBILE — CARD
   // ============================================================
 
-  Widget _buildComplaintCard(ComplaintModel complaint) {
+  Widget _buildComplaintCard(
+    BuildContext context,
+    ComplaintModel complaint,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,10 +695,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                   children: [
                     Text(
                       complaint.code,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: _cellText,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -707,10 +705,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                       complaint.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
+                        color: _cellText,
                         height: 1.3,
                       ),
                     ),
@@ -718,7 +715,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              _statusBadge(complaint.status),
+              _statusBadge(context, complaint.status),
             ],
           ),
 
@@ -727,7 +724,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withOpacity(0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -741,7 +738,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           ),
 
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
 
           _infoRow(
@@ -756,9 +753,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             complaint.description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: Color(0xFF4B5563),
+            style: textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF4B5563),
               height: 1.45,
             ),
           ),
@@ -772,10 +768,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               icon: const Icon(Icons.visibility_outlined, size: 16),
               label: const Text(
                 'Lihat Detail',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 12.5),
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 11),
@@ -795,7 +788,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   Widget _infoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF94A3B8)),
+        Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
         const SizedBox(width: 8),
         SizedBox(
           width: 95,
@@ -827,62 +820,66 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // WEB — TABEL DENGAN PAGINATION
   // ============================================================
 
-  Widget _buildDesktopTable() {
+  Widget _buildDesktopTable(BuildContext context) {
     final rows = _pagedComplaints;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTableHeaderRow(),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
+          _buildTableHeaderRow(context),
+          const Divider(height: 1, thickness: 1, color: _tableDivider),
 
           for (int i = 0; i < rows.length; i++) ...[
-            _buildTableDataRow(rows[i]),
+            _buildTableDataRow(context, rows[i]),
             if (i != rows.length - 1)
-              const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
+              const Divider(height: 1, thickness: 1, color: _tableDivider),
           ],
 
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
-          _buildTableFooter(),
+          const Divider(height: 1, thickness: 1, color: _tableDivider),
+          _buildTableFooter(context),
         ],
       ),
     );
   }
 
-  Widget _buildTableHeaderRow() {
+  Widget _buildTableHeaderRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 2, child: _headerCell('ID')),
-          Expanded(flex: 4, child: _headerCell('Judul Laporan')),
-          Expanded(flex: 3, child: _headerCell('Kategori')),
-          Expanded(flex: 2, child: _headerCell('Tanggal')),
-          Expanded(flex: 3, child: _headerCell('Status')),
-          Expanded(flex: 2, child: _headerCell('Aksi')),
+          Expanded(flex: 2, child: _headerCell(context, 'ID')),
+          Expanded(flex: 4, child: _headerCell(context, 'Judul Laporan')),
+          Expanded(flex: 3, child: _headerCell(context, 'Kategori')),
+          Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
+          Expanded(flex: 3, child: _headerCell(context, 'Status')),
+          Expanded(flex: 2, child: _headerCell(context, 'Aksi')),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text) {
+  Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: Color(0xFF6B7280),
-      ),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: _headerText,
+          ),
     );
   }
 
-  Widget _buildTableDataRow(ComplaintModel complaint) {
+  Widget _buildTableDataRow(
+    BuildContext context,
+    ComplaintModel complaint,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -894,10 +891,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               complaint.code,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
+              style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                color: _cellText,
               ),
             ),
           ),
@@ -907,9 +903,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               complaint.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF111827),
+              style: textTheme.bodyMedium?.copyWith(
+                color: _cellText,
                 height: 1.3,
               ),
             ),
@@ -920,9 +915,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               complaint.category,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF111827),
+              style: textTheme.bodyMedium?.copyWith(
+                color: _cellText,
               ),
             ),
           ),
@@ -930,9 +924,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             flex: 2,
             child: Text(
               complaint.formattedDate,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: Color(0xFF111827),
+              style: textTheme.bodyMedium?.copyWith(
+                color: _cellText,
               ),
             ),
           ),
@@ -940,7 +933,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             flex: 3,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _statusBadge(complaint.status),
+              child: _statusBadge(context, complaint.status),
             ),
           ),
           Expanded(
@@ -948,6 +941,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: _pillButton(
+                context: context,
                 icon: Icons.visibility_outlined,
                 label: 'Detail',
                 bgColor: const Color(0xFFF1F5F9),
@@ -962,6 +956,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   Widget _pillButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color bgColor,
@@ -983,11 +978,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: fgColor,
-                ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
+                    ),
               ),
             ],
           ),
@@ -1000,17 +994,17 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // TABLE FOOTER — PAGINATION DENGAN GUARD NaN
   // ============================================================
 
-  Widget _buildTableFooter() {
+  Widget _buildTableFooter(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     final total = _filteredComplaints.length;
     final totalPages = _totalPages;
 
-    // ✅ Guard: kalau total = 0
     final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
     final end = total == 0
         ? 0
         : (_currentPage * _rowsPerPage).clamp(0, total);
 
-    // ✅ Guard: pastikan currentPage tidak melewati totalPages
     final safePage = _currentPage.clamp(1, totalPages);
 
     final canPrev = safePage > 1;
@@ -1022,15 +1016,12 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         children: [
           Text(
             'Menampilkan $start–$end dari $total aktivitas',
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: Color(0xFF6B7280),
-            ),
+            style: textTheme.bodySmall?.copyWith(color: _headerText),
           ),
           const Spacer(),
           Row(
             children: [
-              _buildRowsPerPageDropdown(),
+              _buildRowsPerPageDropdown(context),
               const SizedBox(width: 12),
               _navButton(
                 icon: Icons.chevron_left,
@@ -1038,7 +1029,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                 onTap: () => _goToPage(safePage - 1),
               ),
               const SizedBox(width: 8),
-              _pageIndicator(safePage, totalPages),
+              _pageIndicator(context, safePage, totalPages),
               const SizedBox(width: 8),
               _navButton(
                 icon: Icons.chevron_right,
@@ -1052,14 +1043,14 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     );
   }
 
-  Widget _buildRowsPerPageDropdown() {
+  Widget _buildRowsPerPageDropdown(BuildContext context) {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
@@ -1073,11 +1064,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               color: Color(0xFF6B7280),
             ),
           ),
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
           items: _rowsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
               value: value,
@@ -1126,7 +1116,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     );
   }
 
-  Widget _pageIndicator(int page, int totalPages) {
+  Widget _pageIndicator(
+    BuildContext context,
+    int page,
+    int totalPages,
+  ) {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1137,11 +1131,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       ),
       child: Text(
         'Hal $page / $totalPages',
-        style: const TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF7C3AED),
-        ),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF7C3AED),
+            ),
       ),
     );
   }
@@ -1195,14 +1188,16 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Lapor Masalah',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF111827),
+                                  ),
                             ),
                           ),
                           IconButton(
@@ -1450,7 +1445,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _borderColor),
+        borderSide: const BorderSide(color: _tableBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -1521,6 +1516,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final textTheme = Theme.of(dialogContext).textTheme;
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -1553,13 +1550,12 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Detail Laporan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827),
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF111827),
                           ),
                         ),
                       ),
@@ -1610,7 +1606,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                   color: Color(0xFF374151),
                                 ),
                               ),
-                              _statusBadge(complaint.status),
+                              _statusBadge(dialogContext, complaint.status),
                             ],
                           ),
                         ],
@@ -1688,7 +1684,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: Text(
         text,
@@ -1705,7 +1701,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // ERROR & EMPTY
   // ============================================================
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -1749,7 +1745,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -1771,6 +1767,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           const SizedBox(height: 14),
           const Text(
             'Belum ada laporan.',
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
               color: Color(0xFF64748B),

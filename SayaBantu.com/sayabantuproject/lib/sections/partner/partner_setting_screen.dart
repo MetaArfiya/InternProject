@@ -20,6 +20,25 @@ class PartnerSettingScreen extends StatefulWidget {
 }
 
 class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
+  // ============================================================
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // ============================================================
+
+  static const Color _accent = Color(0xFFF97316);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _cardRadius = 14;
+  static const double _smallRadius = 12;
+
+  // ============================================================
+  // FORMATTERS & DATA
+  // ============================================================
+
   static final List<TextInputFormatter> nameFormatters = [
     FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s.,'-]")),
   ];
@@ -33,6 +52,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     'Permata', 'Danamon', 'BTN', 'OCBC', 'Panin', 'Maybank',
     'Bank Mega', 'Bukopin', 'Bank Jago', 'SeaBank', 'Lainnya',
   ];
+
+  // ============================================================
+  // STATE
+  // ============================================================
 
   bool isLoading = true;
   bool isUploadingPhoto = false;
@@ -69,8 +92,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   bool isCustomBank = false;
 
   final TextEditingController bankNameController = TextEditingController();
-  final TextEditingController bankAccountNumberController = TextEditingController();
-  final TextEditingController bankAccountNameController = TextEditingController();
+  final TextEditingController bankAccountNumberController =
+      TextEditingController();
+  final TextEditingController bankAccountNameController =
+      TextEditingController();
 
   Uint8List? ktpBytes;
   String? ktpFileName;
@@ -111,13 +136,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   double rating = 0.0;
   int reviewsCount = 0;
 
-  final TextEditingController currentPasswordController = TextEditingController();
+  final TextEditingController currentPasswordController =
+      TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   bool obscureCurrentPassword = true;
   bool obscureNewPassword = true;
   bool obscureConfirmPassword = true;
+
+  // ============================================================
+  // INIT / DISPOSE
+  // ============================================================
 
   @override
   void initState() {
@@ -147,6 +178,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
     super.dispose();
   }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
 
   String getFullPhotoUrl(String value) {
     String raw = value.trim();
@@ -209,7 +244,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       color: Colors.black54,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 24),
+                    child:
+                        const Icon(Icons.close, color: Colors.white, size: 24),
                   ),
                 ),
               ),
@@ -219,6 +255,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       },
     );
   }
+
+  // ============================================================
+  // LOAD PROFILE (tidak diubah)
+  // ============================================================
 
   Future<void> loadProfileFromApi() async {
     try {
@@ -285,8 +325,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           bool? loadedNotification;
           final apiNotification = userData['is_notification_enabled'];
           if (apiNotification != null) {
-            loadedNotification =
-                apiNotification == true ||
+            loadedNotification = apiNotification == true ||
                 apiNotification == 1 ||
                 apiNotification.toString().toLowerCase() == 'true';
           }
@@ -295,11 +334,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           int? nestedPoint;
           bool? nestedVerified;
           if (nestedMitra is Map) {
-            nestedPoint = int.tryParse(nestedMitra['point']?.toString() ?? '0');
-            nestedVerified =
-                nestedMitra['is_verified'] == true ||
+            nestedPoint =
+                int.tryParse(nestedMitra['point']?.toString() ?? '0');
+            nestedVerified = nestedMitra['is_verified'] == true ||
                 nestedMitra['is_verified'] == 1 ||
-                nestedMitra['is_verified']?.toString().toLowerCase() == 'true';
+                nestedMitra['is_verified']?.toString().toLowerCase() ==
+                    'true';
           }
 
           if (mounted) {
@@ -435,7 +475,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           }
 
           String loadedPendingCert = '';
-          final rawPendingCert = mitra['pending_certificate']?.toString() ?? '';
+          final rawPendingCert =
+              mitra['pending_certificate']?.toString() ?? '';
           if (rawPendingCert.isNotEmpty && rawPendingCert != 'null') {
             loadedPendingCert = getFullPhotoUrl(rawPendingCert);
           }
@@ -508,6 +549,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
+  // ============================================================
+  // SAVE BASIC PROFILE (tidak diubah)
+  // ============================================================
+
   Future<void> saveBasicProfile() async {
     final newName = nameController.text.trim();
     final newEmail = emailController.text.trim();
@@ -576,6 +621,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       if (mounted) setState(() => isLoading = false);
     }
   }
+
+  // ============================================================
+  // PICK & UPLOAD PROFILE PHOTO (tidak diubah)
+  // ============================================================
 
   Future<void> pickProfilePhoto() async {
     final image = await _pickImageFile(
@@ -681,6 +730,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
+  // ============================================================
+  // SAVE IDENTITY (tidak diubah)
+  // ============================================================
+
   Future<void> saveIdentity() async {
     final fullName = fullNameController.text.trim();
     final selectedCity = cityController.text.trim();
@@ -747,7 +800,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         'city': selectedCity,
         'bio': selectedDescription,
       });
-      if (mitraResponse.statusCode != 200 && mitraResponse.statusCode != 201) {
+      if (mitraResponse.statusCode != 200 &&
+          mitraResponse.statusCode != 201) {
         _showMessage('Gagal memperbarui identitas mitra.', error: true);
         return;
       }
@@ -778,6 +832,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       if (mounted) setState(() => isLoading = false);
     }
   }
+
+  // ============================================================
+  // SAVE BANK ACCOUNT (tidak diubah)
+  // ============================================================
 
   Future<void> saveBankAccount() async {
     final newBankName =
@@ -849,6 +907,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
+  // ============================================================
+  // DATE PICKER (tidak diubah)
+  // ============================================================
+
   Future<void> selectBirthDate() async {
     DateTime initialDate =
         DateTime.now().subtract(const Duration(days: 365 * 20));
@@ -876,6 +938,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       });
     }
   }
+
+  // ============================================================
+  // REMOVE FILES
+  // ============================================================
 
   void removeKtpFile() {
     if (!mounted) return;
@@ -906,6 +972,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     });
     _showMessage('Berkas sertifikat dihapus dari formulir.');
   }
+
+  // ============================================================
+  // PICK KTP / SELFIE / CERTIFICATE
+  // ============================================================
 
   Future<void> pickKtp() async {
     final image = await _pickImageFile(
@@ -939,6 +1009,67 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
     _showMessage('Foto verifikasi berhasil dipilih.');
   }
+
+  Future<void> pickCertificate() async {
+    final image = await _pickImageFile(
+      maxSizeInBytes: 2 * 1024 * 1024,
+      uploadLabel: 'sertifikat',
+    );
+    if (image == null) return;
+
+    if (mounted) {
+      setState(() {
+        certificateBytes = image.bytes;
+        certificateFileName = image.name;
+        certificateUrl = '';
+      });
+    }
+    _showMessage(
+      'Sertifikat berhasil dipilih. Klik "Simpan & Kirim Data Mitra" untuk menyimpan.',
+    );
+  }
+
+  Future<void> pickSkillPhoto() async {
+    if (pendingSkills.isNotEmpty) {
+      final int currentPendingCount = pendingSkillPhotoUrls.length;
+      if (currentPendingCount >= 6) {
+        _showMessage('Maksimal 6 foto keahlian baru.', error: true);
+        return;
+      }
+
+      final image = await _pickImageFile(
+        maxSizeInBytes: 2 * 1024 * 1024,
+        uploadLabel: 'foto keahlian',
+      );
+      if (image == null) return;
+
+      await _uploadSinglePendingPhoto(image);
+      return;
+    }
+
+    if (skillPhotoBytes.length >= 6) {
+      _showMessage('Maksimal 6 foto keahlian.', error: true);
+      return;
+    }
+
+    final image = await _pickImageFile(
+      maxSizeInBytes: 2 * 1024 * 1024,
+      uploadLabel: 'foto keahlian',
+    );
+    if (image == null) return;
+
+    if (mounted) {
+      setState(() {
+        skillPhotoBytes.add(image.bytes);
+        skillPhotoNames.add(image.name);
+      });
+    }
+    _showMessage('Foto keahlian berhasil ditambahkan.');
+  }
+
+  // ============================================================
+  // SUBMIT VERIFICATION (tidak diubah)
+  // ============================================================
 
   Future<void> submitVerification() async {
     if (ktpBytes == null) {
@@ -1003,7 +1134,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
           if (mounted) {
             setState(() {
-              if (newKtp.isNotEmpty && newKtp != 'null' && newKtp != '(NUUL)') {
+              if (newKtp.isNotEmpty &&
+                  newKtp != 'null' &&
+                  newKtp != '(NUUL)') {
                 ktpUrl = getFullPhotoUrl(newKtp);
                 ktpBytes = null;
                 ktpFileName = null;
@@ -1053,6 +1186,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       if (mounted) setState(() => isLoading = false);
     }
   }
+
+  // ============================================================
+  // SAVE SKILL & UPLOAD SKILL PHOTOS (tidak diubah)
+  // ============================================================
 
   Future<void> saveSkill() async {
     if (selectedCategory.isEmpty) {
@@ -1273,63 +1410,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
-  Future<void> pickCertificate() async {
-    final image = await _pickImageFile(
-      maxSizeInBytes: 2 * 1024 * 1024,
-      uploadLabel: 'sertifikat',
-    );
-    if (image == null) return;
-
-    if (mounted) {
-      setState(() {
-        certificateBytes = image.bytes;
-        certificateFileName = image.name;
-        certificateUrl = '';
-      });
-    }
-    _showMessage(
-      'Sertifikat berhasil dipilih. Klik "Simpan & Kirim Data Mitra" untuk menyimpan.',
-    );
-  }
-
-  Future<void> pickSkillPhoto() async {
-    if (pendingSkills.isNotEmpty) {
-      final int currentPendingCount = pendingSkillPhotoUrls.length;
-      if (currentPendingCount >= 6) {
-        _showMessage('Maksimal 6 foto keahlian baru.', error: true);
-        return;
-      }
-
-      final image = await _pickImageFile(
-        maxSizeInBytes: 2 * 1024 * 1024,
-        uploadLabel: 'foto keahlian',
-      );
-      if (image == null) return;
-
-      await _uploadSinglePendingPhoto(image);
-      return;
-    }
-
-    if (skillPhotoBytes.length >= 6) {
-      _showMessage('Maksimal 6 foto keahlian.', error: true);
-      return;
-    }
-
-    final image = await _pickImageFile(
-      maxSizeInBytes: 2 * 1024 * 1024,
-      uploadLabel: 'foto keahlian',
-    );
-    if (image == null) return;
-
-    if (mounted) {
-      setState(() {
-        skillPhotoBytes.add(image.bytes);
-        skillPhotoNames.add(image.name);
-      });
-    }
-    _showMessage('Foto keahlian berhasil ditambahkan.');
-  }
-
   Future<void> _uploadSinglePendingPhoto(_PickedImage image) async {
     try {
       setState(() => isLoading = true);
@@ -1412,6 +1492,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
+  // ============================================================
+  // PICK IMAGE HELPER (tidak diubah)
+  // ============================================================
+
   Future<_PickedImage?> _pickImageFile({
     String? capture,
     int maxSizeInBytes = 5 * 1024 * 1024,
@@ -1493,6 +1577,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return completer.future;
   }
 
+  // ============================================================
+  // NOTIFICATION & PASSWORD (tidak diubah)
+  // ============================================================
+
   Future<void> updateNotification(bool value) async {
     setState(() => jobNotification = value);
     try {
@@ -1560,42 +1648,71 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       );
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
+  // ✅ Padding horizontal mobile 16 / tablet 24 / desktop 28
+  // ✅ Header pakai textTheme
+  // ✅ Tidak ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 700;
-        return Scaffold(
-          backgroundColor: const Color(0xffF8FAFC),
-          body: SafeArea(
+        final width = constraints.maxWidth;
+        final isMobile = width < 700;
+        final isTablet = width >= 700 && width < 1100;
+
+        final horizontalPadding =
+            isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+        final verticalPadding = isMobile ? 16.0 : 28.0;
+
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: SafeArea(
             child: isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: Colors.orange),
+                    child: CircularProgressIndicator(color: _accent),
                   )
                 : SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      isMobile ? 14 : 20,
-                      18,
-                      isMobile ? 14 : 20,
-                      28,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildPageHeader(),
-                        const SizedBox(height: 18),
-                        _buildProfileHeader(),
-                        const SizedBox(height: 18),
+                        _buildPageHeader(context),
+
+                        const SizedBox(height: _gapAfterHeader),
+
+                        _buildProfileHeader(context),
+
+                        const SizedBox(height: _gapBetweenSections),
+
                         _buildIdentitySection(),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: _gapBetweenSections),
+
                         _buildBankAccountSection(),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: _gapBetweenSections),
+
                         _buildVerificationSkillCertificateSection(),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: _gapBetweenSections),
+
                         _buildNotificationSection(),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: _gapBetweenSections),
+
                         _buildSecuritySection(),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: _gapBetweenSections),
+
                         _buildLogoutSection(),
                       ],
                     ),
@@ -1606,28 +1723,38 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
-  Widget _buildPageHeader() {
+  // ============================================================
+  // PAGE HEADER — sama persis dgn DashboardHeader
+  // ============================================================
+
+  Widget _buildPageHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Pengaturan',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: Color(0xff111827),
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Kelola profil, identitas, verifikasi, dan pengaturan akun kamu.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildProfileHeader() {
+  // ============================================================
+  // PROFILE HEADER
+  // ============================================================
+
+  Widget _buildProfileHeader(BuildContext context) {
     return _sectionCard(
       child: Column(
         children: [
@@ -1637,7 +1764,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               GestureDetector(
                 onTap: () {
                   if (selectedPhotoBytes != null) {
-                    _showImageDialog(context, MemoryImage(selectedPhotoBytes!));
+                    _showImageDialog(
+                      context,
+                      MemoryImage(selectedPhotoBytes!),
+                    );
                   } else if (photoUrl.isNotEmpty) {
                     _showImageDialog(context, NetworkImage(photoUrl));
                   }
@@ -1650,9 +1780,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       height: 76,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.orange.shade50,
+                        color: _accent.withOpacity(0.10),
                         border: Border.all(
-                          color: Colors.orange.shade200,
+                          color: _accent.withOpacity(0.3),
                           width: 2,
                         ),
                       ),
@@ -1671,14 +1801,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                       return const Icon(
                                         Icons.person,
                                         size: 42,
-                                        color: Colors.orange,
+                                        color: _accent,
                                       );
                                     },
                                   )
                                 : const Icon(
                                     Icons.person,
                                     size: 42,
-                                    color: Colors.orange,
+                                    color: _accent,
                                   ),
                       ),
                     ),
@@ -1688,7 +1818,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         width: 30,
                         height: 30,
                         decoration: const BoxDecoration(
-                          color: Colors.orange,
+                          color: _accent,
                           shape: BoxShape.circle,
                         ),
                         child: isUploadingPhoto
@@ -1719,6 +1849,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
+                        color: _cellText,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -1737,14 +1868,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         _badge(
                           icon: Icons.stars,
                           label: '$totalPoint Poin',
-                          color: Colors.orange,
+                          color: _accent,
                         ),
                         _badge(
                           icon: Icons.star,
                           label: rating > 0
                               ? '${rating.toStringAsFixed(1)} ($reviewsCount ulasan)'
                               : 'Belum ada ulasan',
-                          color: const Color(0xffFBBF24),
+                          color: const Color(0xFFFBBF24),
                         ),
                         _badge(
                           icon: isVerified
@@ -1753,7 +1884,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                           label: isVerified
                               ? 'Terverifikasi'
                               : 'Belum Terverifikasi',
-                          color: isVerified ? Colors.green : Colors.grey,
+                          color: isVerified
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFF6B7280),
                         ),
                       ],
                     ),
@@ -1763,7 +1896,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          const Divider(height: 1),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 20),
           _profileBasicForm(),
         ],
@@ -1777,7 +1910,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       children: [
         const Text(
           'Profil Dasar',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: _cellText,
+          ),
         ),
         const SizedBox(height: 12),
         LayoutBuilder(
@@ -1878,6 +2015,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ],
     );
   }
+
+  // ============================================================
+  // IDENTITY SECTION
+  // ============================================================
 
   Widget _buildIdentitySection() {
     return _sectionCard(
@@ -1980,6 +2121,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
+  // ============================================================
+  // BANK ACCOUNT SECTION
+  // ============================================================
+
   Widget _buildBankAccountSection() {
     return _sectionCard(
       child: Column(
@@ -2058,14 +2203,20 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.08),
+              color: const Color(0xFFD97706).withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFFD97706).withOpacity(0.3),
+              ),
             ),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                Icon(
+                  Icons.info_outline,
+                  color: Color(0xFFD97706),
+                  size: 20,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -2081,6 +2232,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // DROPDOWN & FIELD HELPERS
+  // ============================================================
 
   Widget _genderDropdown() {
     final validGender = ['Laki-laki', 'Perempuan'].contains(gender);
@@ -2171,6 +2326,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // VERIFICATION SECTION
+  // ============================================================
 
   Widget _buildVerificationSection() {
     return Column(
@@ -2280,9 +2439,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xffF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xffE2E8F0)),
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(_smallRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2293,10 +2452,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 width: 34,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: _accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(icon, color: Colors.orange, size: 18),
+                child: Icon(icon, color: _accent, size: 18),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -2305,7 +2464,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xff1F2937),
+                    color: _cellText,
                   ),
                 ),
               ),
@@ -2421,7 +2580,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             style: TextStyle(
               fontSize: 10,
               color: hasUrl || hasFile
-                  ? Colors.green.shade600
+                  ? const Color(0xFF16A34A)
                   : Colors.grey.shade500,
             ),
           ),
@@ -2432,7 +2591,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             child: OutlinedButton.icon(
               onPressed: onTap,
               icon: Icon(
-                hasImage ? Icons.refresh_rounded : Icons.cloud_upload_outlined,
+                hasImage
+                    ? Icons.refresh_rounded
+                    : Icons.cloud_upload_outlined,
                 size: 14,
               ),
               label: Text(
@@ -2443,8 +2604,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange,
-                side: const BorderSide(color: Colors.orange),
+                foregroundColor: _accent,
+                side: const BorderSide(color: _accent),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(7),
                 ),
@@ -2460,8 +2621,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   Widget _verificationStatusCard() {
     final waiting = verificationStatus == 'Menunggu Verifikasi';
     final verified = verificationStatus == 'Terverifikasi';
-    final statusColor =
-        verified ? Colors.green : waiting ? Colors.orange : Colors.grey;
+    final statusColor = verified
+        ? const Color(0xFF16A34A)
+        : waiting
+            ? _accent
+            : const Color(0xFF6B7280);
     final statusIcon = verified
         ? Icons.verified
         : waiting
@@ -2471,9 +2635,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+        color: statusColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(_smallRadius),
+        border: Border.all(color: statusColor.withOpacity(0.25)),
       ),
       child: Row(
         children: [
@@ -2502,6 +2666,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // SKILL SECTION
+  // ============================================================
 
   Widget _buildSkillSection() {
     final validCategory = categories.contains(selectedCategory);
@@ -2543,16 +2711,16 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.08),
+              color: _accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              border: Border.all(color: _accent.withOpacity(0.3)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(
                   Icons.hourglass_top,
-                  color: Colors.orange,
+                  color: _accent,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -2565,7 +2733,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: Colors.orange,
+                          color: _accent,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -2658,7 +2826,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
         const Text(
           'Foto Keahlian / Hasil Pekerjaan',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: _cellText,
+          ),
         ),
         const SizedBox(height: 5),
         Text(
@@ -2697,7 +2869,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       : skillPhotoBytes[index - skillPhotoUrls.length];
 
                   return ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(_smallRadius),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -2712,7 +2884,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                   width: double.infinity,
                                   height: double.infinity,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
+                                  errorBuilder:
+                                      (context, error, stackTrace) {
                                     return Container(
                                       color: Colors.grey.shade100,
                                       child: const Icon(
@@ -2798,8 +2971,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
             ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.orange,
-              side: const BorderSide(color: Colors.orange),
+              foregroundColor: _accent,
+              side: const BorderSide(color: _accent),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -2812,6 +2985,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ],
     );
   }
+
+  // ============================================================
+  // CERTIFICATE SECTION
+  // ============================================================
 
   Widget _buildCertificateSection() {
     final bool hasPendingCert = pendingCertificateUrl.isNotEmpty;
@@ -2907,7 +3084,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 16, color: Color(0xFFB45309)),
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Color(0xFFB45309),
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -2927,7 +3108,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
         const Text(
           'Sertifikat Aktif',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: _cellText,
+          ),
         ),
         const SizedBox(height: 8),
         _documentUploadCard(
@@ -2949,6 +3134,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ],
     );
   }
+
+  // ============================================================
+  // INCOMPLETE DATA CHECK
+  // ============================================================
 
   List<String> _getIncompleteMitraData() {
     final incomplete = <String>[];
@@ -3010,75 +3199,131 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     await showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange.shade700,
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Data Belum Lengkap',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          content: SizedBox(
-            width: 430,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Silakan lengkapi data berikut sebelum mengirim data mitra:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xff475569),
-                    height: 1.4,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.warning_amber_rounded,
+                          color: _accent,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Data Belum Lengkap',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _cellText,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF6B7280),
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                ...incomplete.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 9),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 18,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Silakan lengkapi data berikut sebelum mengirim data mitra:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      height: 1.5,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  ...incomplete.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 9),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: _accent,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Mengerti',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Mengerti'),
-            ),
-          ],
         );
       },
     );
   }
+
+  // ============================================================
+  // SUBMIT ALL
+  // ============================================================
 
   Future<void> submitAllMitraData() async {
     final incomplete = _getIncompleteMitraData();
@@ -3091,25 +3336,129 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Simpan & Kirim Data Mitra?'),
-          content: const Text(
-            'Pastikan seluruh data dan berkas sudah benar. Data akan diproses oleh admin untuk verifikasi.',
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: _accent,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Simpan & Kirim Data Mitra?',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _cellText,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () =>
+                            Navigator.pop(dialogContext, false),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF6B7280),
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Pastikan seluruh data dan berkas sudah benar. Data akan diproses oleh admin untuk verifikasi.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, false),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 46),
+                            foregroundColor: const Color(0xFF374151),
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Kirim Data',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              child: const Text('Kirim Data'),
             ),
-          ],
+          ),
         );
       },
     );
@@ -3160,6 +3509,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
+  // ============================================================
+  // SUBMIT ALL SECTION
+  // ============================================================
+
   Widget _buildSubmitAllSection() {
     final incomplete = _getIncompleteMitraData();
     final isComplete = incomplete.isEmpty;
@@ -3182,9 +3535,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: _accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.orange.shade200),
+              border: Border.all(color: _accent.withOpacity(0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3194,7 +3547,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xff92400E),
+                    color: Color(0xFF92400E),
                   ),
                 ),
                 const SizedBox(height: 9),
@@ -3207,7 +3560,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         const Icon(
                           Icons.circle,
                           size: 6,
-                          color: Colors.orange,
+                          color: _accent,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -3215,7 +3568,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                             item,
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xff78350F),
+                              color: Color(0xFF78350F),
                             ),
                           ),
                         ),
@@ -3247,7 +3600,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isComplete ? Colors.orange : Colors.grey.shade300,
+              backgroundColor:
+                  isComplete ? _accent : Colors.grey.shade300,
               foregroundColor:
                   isComplete ? Colors.white : Colors.grey.shade600,
               disabledBackgroundColor: Colors.grey.shade300,
@@ -3270,21 +3624,25 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         children: [
           _buildVerificationSection(),
           const SizedBox(height: 16),
-          const Divider(height: 1),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 16),
           _buildSkillSection(),
           const SizedBox(height: 16),
-          const Divider(height: 1),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 16),
           _buildCertificateSection(),
           const SizedBox(height: 16),
-          const Divider(height: 1),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 18),
           _buildSubmitAllSection(),
         ],
       ),
     );
   }
+
+  // ============================================================
+  // NOTIFICATION SECTION
+  // ============================================================
 
   Widget _buildNotificationSection() {
     return _sectionCard(
@@ -3298,11 +3656,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
             decoration: BoxDecoration(
-              color: const Color(0xffF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xffE2E8F0)),
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(_smallRadius),
+              border: Border.all(color: _tableBorder),
             ),
             child: Row(
               children: [
@@ -3310,10 +3671,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
+                    color: _accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.work_outline, color: Colors.orange),
+                  child: const Icon(Icons.work_outline, color: _accent),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(
@@ -3325,7 +3686,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xff111827),
+                          color: _cellText,
                         ),
                       ),
                       SizedBox(height: 3),
@@ -3338,7 +3699,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 ),
                 Switch(
                   value: jobNotification,
-                  activeColor: Colors.orange,
+                  activeColor: _accent,
                   onChanged: updateNotification,
                 ),
               ],
@@ -3349,6 +3710,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
+  // ============================================================
+  // SECURITY SECTION
+  // ============================================================
+
   Widget _buildSecuritySection() {
     return _sectionCard(
       child: Column(
@@ -3357,7 +3722,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           _sectionTitle(
             icon: Icons.lock_outline,
             title: 'Keamanan',
-            subtitle: 'Ubah password akun untuk menjaga keamanan akun kamu.',
+            subtitle:
+                'Ubah password akun untuk menjaga keamanan akun kamu.',
           ),
           const SizedBox(height: 12),
           _passwordField(
@@ -3393,15 +3759,17 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               icon: const Icon(Icons.lock_reset_outlined, size: 18),
               label: const Text(
                 'Ubah Password',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: _accent,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
+                minimumSize: const Size(0, 44),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -3413,13 +3781,17 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     );
   }
 
+  // ============================================================
+  // LOGOUT SECTION
+  // ============================================================
+
   Widget _buildLogoutSection() {
     return _sectionCard(
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: _showLogoutDialog,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(_smallRadius),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
@@ -3428,12 +3800,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.10),
+                    color: const Color(0xFFDC2626).withOpacity(0.10),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     Icons.logout,
-                    color: Colors.red,
+                    color: Color(0xFFDC2626),
                     size: 20,
                   ),
                 ),
@@ -3478,58 +3850,129 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Row(
-            children: [
-              Icon(Icons.logout, color: Color(0xFFDC2626)),
-              SizedBox(width: 10),
-              Text(
-                'Logout',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
           ),
-          content: const Text(
-            'Apakah Anda yakin ingin keluar dari akun ini?',
-            style: TextStyle(fontSize: 13, height: 1.4),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.logout,
+                          color: Color(0xFFDC2626),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Keluar dari Akun',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _cellText,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF6B7280),
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Apakah Anda yakin ingin keluar dari akun ini?',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 46),
+                            foregroundColor: const Color(0xFF374151),
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(dialogContext);
+                            await _logout();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Logout',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal', style: TextStyle(fontSize: 13)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                await _logout();
-              },
-              child: const Text(
-                'Logout',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -3552,17 +3995,21 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     }
   }
 
+  // ============================================================
+  // SHARED WIDGETS
+  // ============================================================
+
   Widget _sectionCard({required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -3577,35 +4024,38 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     required String title,
     required String subtitle,
   }) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: Colors.orange.shade50,
+            color: _accent.withOpacity(0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: Colors.orange, size: 20),
+          child: Icon(icon, color: _accent, size: 20),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xff111827),
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: _cellText,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                style: textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
               ),
             ],
           ),
@@ -3652,8 +4102,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       controller: controller,
       obscureText: obscureText,
       maxLength: 100,
-      decoration: _inputDecoration(label: label, icon: Icons.lock_outline)
-          .copyWith(
+      decoration: _inputDecoration(
+        label: label,
+        icon: Icons.lock_outline,
+      ).copyWith(
         counterText: '',
         suffixIcon: IconButton(
           onPressed: onToggle,
@@ -3679,22 +4131,24 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       hintText: hintText,
       prefixIcon: Icon(icon, size: 18),
       filled: true,
-      fillColor: const Color(0xffF8FAFC),
+      fillColor: const Color(0xFFF9FAFB),
       counterText: showCounter ? null : '',
-      labelStyle: const TextStyle(fontSize: 11, color: Color(0xff64748B)),
-      hintStyle: const TextStyle(fontSize: 11, color: Color(0xff94A3B8)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      labelStyle: const TextStyle(fontSize: 13, color: _headerText),
+      hintStyle:
+          const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xffE2E8F0)),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _tableBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xffE2E8F0)),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _tableBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.orange, width: 1.5),
+        borderSide: const BorderSide(color: _accent, width: 1.5),
       ),
     );
   }
@@ -3705,23 +4159,22 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 5),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
           ),
         ],
       ),

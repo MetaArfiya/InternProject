@@ -19,7 +19,17 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  // ============================================================
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // ============================================================
+
   static const Color _accent = Color(0xFFF97316);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
 
   @override
   void initState() {
@@ -96,78 +106,77 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+  // ✅ Padding horizontal disamakan dgn CustomerDashboard
+  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
+  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isMobile = width < 700;
-        final isTablet = width >= 700 && width < 1100;
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: RefreshIndicator(
+        onRefresh: _refreshOffers,
+        color: _accent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final isMobile = width < 700;
+            final isTablet = width >= 700 && width < 1100;
 
-        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
-        final verticalPadding = isMobile ? 16.0 : 28.0;
+            final horizontalPadding =
+                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final verticalPadding = isMobile ? 16.0 : 28.0;
 
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: RefreshIndicator(
-            onRefresh: _refreshOffers,
-            color: _accent,
-            child: SingleChildScrollView(
+            return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile),
-                      SizedBox(height: isMobile ? 18 : 24),
-                      _buildContent(
-                        isMobile: isMobile,
-                        isTablet: isTablet,
-                      ),
-                    ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+
+                  const SizedBox(height: _gapAfterHeader),
+
+                  _buildContent(
+                    isMobile: isMobile,
+                    isTablet: isTablet,
                   ),
-                ),
+                ],
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Penawaran Aktif Saya',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
-            height: 1.2,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Seluruh penawaran yang sedang menunggu respon atau telah diproses.',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: const Color(0xFF64748B),
-            height: 1.4,
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -183,9 +192,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     required bool isTablet,
   }) {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 60),
           child: CircularProgressIndicator(color: _accent),
         ),
       );
@@ -237,8 +246,8 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,13 +256,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
           // HEADER
           // ==========================================
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 4,
+                    horizontal: 10,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
                     color: _accent.withOpacity(0.12),
@@ -272,13 +281,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
 
           // ==========================================
           // BODY
           // ==========================================
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Column(
               children: List.generate(
                 cells.length,
@@ -313,9 +322,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // =============================================
           // LABEL — lebih tua, lebih tebal
-          // =============================================
           SizedBox(
             width: 100,
             child: Text(
@@ -331,9 +338,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
 
           const SizedBox(width: 12),
 
-          // =============================================
           // VALUE — rata KIRI, dekat label
-          // =============================================
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
@@ -354,11 +359,11 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _tableBorder),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
@@ -375,11 +380,11 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _tableBorder),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             child: SizedBox(
               width: constraints.maxWidth,
               child: _buildTable(isTablet: false),
@@ -415,8 +420,8 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
               7: FlexColumnWidth(1.55),
             },
       border: const TableBorder(
-        bottom: BorderSide(color: Color(0xFFF3F4F6)),
-        horizontalInside: BorderSide(color: Color(0xFFF3F4F6)),
+        bottom: BorderSide(color: _tableDivider),
+        horizontalInside: BorderSide(color: _tableDivider),
       ),
       children: [
         _buildTableHeader(),
@@ -449,14 +454,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
 
   Widget _headerCell(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Text(
         text,
         style: const TextStyle(
-          color: Color(0xFF374151),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.3,
+          color: _headerText,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
