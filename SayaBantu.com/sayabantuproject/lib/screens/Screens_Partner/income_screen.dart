@@ -23,15 +23,19 @@ class _IncomeScreenState extends State<IncomeScreen> {
   List<MonthlyEarningModel> _monthly = [];
 
   // ============================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
   // ============================================================
 
   static const Color _accent = Color(0xFFF97316);
-  static const Color _bg = Color(0xFFF5F7FB);
-  static const Color _border = Color(0xFFE5E7EB);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
 
-  static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100;
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _cardRadius = 14;
+  static const double _smallRadius = 12;
 
   @override
   void initState() {
@@ -117,96 +121,92 @@ class _IncomeScreenState extends State<IncomeScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+  // ✅ Padding horizontal mobile 16 / tablet 24 / desktop 28
+  // ✅ Header pakai textTheme
+  // ✅ Tidak ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadData,
-          color: _accent,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final isMobile = width < _mobileBreakpoint;
-              final isTablet =
-                  width >= _mobileBreakpoint && width < _tabletBreakpoint;
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        color: _accent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final isMobile = width < 700;
+            final isTablet = width >= 700 && width < 1100;
 
-              final horizontalPadding =
-                  isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
-              final verticalPadding = isMobile ? 16.0 : 28.0;
+            final horizontalPadding =
+                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final verticalPadding = isMobile ? 16.0 : 28.0;
 
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: verticalPadding,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1200),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(isMobile),
-                        SizedBox(height: isMobile ? 18 : 24),
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
 
-                        if (_isLoading)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 80),
-                              child: CircularProgressIndicator(color: _accent),
-                            ),
-                          )
-                        else if (_error != null)
-                          _buildError()
-                        else if (_monthly.isEmpty)
-                          _buildEmptyState()
-                        else ...[
-                          _buildSummaryCards(isMobile: isMobile),
-                          SizedBox(height: isMobile ? 20 : 24),
-                          _buildChartCard(isMobile: isMobile),
-                          SizedBox(height: isMobile ? 20 : 24),
-                          _buildRecentIncomeCard(isMobile: isMobile),
-                          const SizedBox(height: 28),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+                  const SizedBox(height: _gapAfterHeader),
+
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 60),
+                        child: CircularProgressIndicator(color: _accent),
+                      ),
+                    )
+                  else if (_error != null)
+                    _buildError()
+                  else if (_monthly.isEmpty)
+                    _buildEmptyState()
+                  else ...[
+                    _buildSummaryCards(isMobile: isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildChartCard(context, isMobile: isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildRecentIncomeCard(context, isMobile: isMobile),
+                    const SizedBox(height: 28),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — sama persis dgn DashboardHeader
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Penghasilan',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
-            height: 1.2,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Pantau pendapatan dari pekerjaan yang telah selesai.',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: const Color(0xFF64748B),
-            height: 1.4,
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -221,44 +221,41 @@ class _IncomeScreenState extends State<IncomeScreen> {
     final s = _summary;
     final gap = isMobile ? 8.0 : 16.0;
 
-    return SizedBox(
-      height: isMobile ? 110 : 130,
-      child: Row(
-        children: [
-          Expanded(
-            child: _summaryCard(
-              title: isMobile ? 'Total' : 'Total Penghasilan',
-              value: formatRupiah(s?.totalPendapatan ?? 0),
-              subtitle: isMobile ? 'Akumulasi' : 'Akumulasi $_monthsCount bulan',
-              icon: Icons.account_balance_wallet_outlined,
-              iconColor: _accent,
-              isCompact: isMobile,
-            ),
-          ),
-          SizedBox(width: gap),
-          Expanded(
-            child: _summaryCard(
-              title: isMobile ? 'Selesai' : 'Pekerjaan Selesai',
-              value: '${s?.totalPekerjaan ?? 0}',
-              subtitle: isMobile ? 'Pekerjaan' : 'Total pekerjaan',
-              icon: Icons.check_circle_outline,
-              iconColor: const Color(0xFF16A34A),
-              isCompact: isMobile,
-            ),
-          ),
-          SizedBox(width: gap),
-          Expanded(
-            child: _summaryCard(
-              title: isMobile ? 'Rata-rata' : 'Rata-rata Penghasilan',
-              value: formatRupiah(s?.rataRataPerBulan ?? 0),
-              subtitle: isMobile ? 'Per bulan' : 'Per bulan',
-              icon: Icons.trending_up,
-              iconColor: const Color(0xFF2563EB),
-              isCompact: isMobile,
-            ),
-          ),
-        ],
+    final cards = [
+      _summaryCard(
+        title: isMobile ? 'Total' : 'Total Penghasilan',
+        value: formatRupiah(s?.totalPendapatan ?? 0),
+        subtitle:
+            isMobile ? 'Akumulasi' : 'Akumulasi $_monthsCount bulan',
+        icon: Icons.account_balance_wallet_outlined,
+        iconColor: _accent,
+        isCompact: isMobile,
       ),
+      _summaryCard(
+        title: isMobile ? 'Selesai' : 'Pekerjaan Selesai',
+        value: '${s?.totalPekerjaan ?? 0}',
+        subtitle: isMobile ? 'Pekerjaan' : 'Total pekerjaan',
+        icon: Icons.check_circle_outline,
+        iconColor: const Color(0xFF16A34A),
+        isCompact: isMobile,
+      ),
+      _summaryCard(
+        title: isMobile ? 'Rata-rata' : 'Rata-rata Penghasilan',
+        value: formatRupiah(s?.rataRataPerBulan ?? 0),
+        subtitle: 'Per bulan',
+        icon: Icons.trending_up,
+        iconColor: const Color(0xFF2563EB),
+        isCompact: isMobile,
+      ),
+    ];
+
+    return Row(
+      children: [
+        for (int i = 0; i < cards.length; i++) ...[
+          Expanded(child: cards[i]),
+          if (i != cards.length - 1) SizedBox(width: gap),
+        ],
+      ],
     );
   }
 
@@ -271,57 +268,75 @@ class _IncomeScreenState extends State<IncomeScreen> {
     required bool isCompact,
   }) {
     return Container(
-      padding: EdgeInsets.all(isCompact ? 10 : 18),
+      padding: EdgeInsets.all(isCompact ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(isCompact ? 12 : 16),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          // Icon
           Container(
-            width: isCompact ? 28 : 38,
-            height: isCompact ? 28 : 38,
+            width: isCompact ? 34 : 42,
+            height: isCompact ? 34 : 42,
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(isCompact ? 7 : 10),
+              borderRadius: BorderRadius.circular(isCompact ? 9 : 11),
             ),
             child: Icon(
               icon,
               color: iconColor,
-              size: isCompact ? 15 : 20,
+              size: isCompact ? 17 : 21,
             ),
           ),
-          SizedBox(height: isCompact ? 6 : 10),
-
-          // Value
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: isCompact ? 13 : 18,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
-              height: 1.1,
-            ),
-          ),
-          SizedBox(height: isCompact ? 2 : 4),
-
-          // Title
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: isCompact ? 9.5 : 12,
-              color: const Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-              height: 1.15,
+          SizedBox(width: isCompact ? 10 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF64748B),
+                    fontSize: isCompact ? 10.5 : 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: isCompact ? 2 : 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isCompact ? 13 : 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                    height: 1.1,
+                  ),
+                ),
+                if (!isCompact) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -333,7 +348,10 @@ class _IncomeScreenState extends State<IncomeScreen> {
   // CHART CARD
   // ============================================================
 
-  Widget _buildChartCard({required bool isMobile}) {
+  Widget _buildChartCard(
+    BuildContext context, {
+    required bool isMobile,
+  }) {
     final incomeData = _monthly.map((m) => m.totalPendapatan).toList();
     final maxIncome = incomeData.isEmpty
         ? 1000000.0
@@ -342,12 +360,14 @@ class _IncomeScreenState extends State<IncomeScreen> {
     final maxY = (maxIncome / 500000).ceil() * 500000.0;
     final safeMaxY = maxY <= 0 ? 1000000.0 : maxY;
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,10 +382,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   children: [
                     Text(
                       'Grafik Penghasilan',
-                      style: TextStyle(
-                        fontSize: isMobile ? 15 : 17,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827),
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: _cellText,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -373,9 +392,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       isMobile
                           ? 'Perkembangan per bulan'
                           : 'Perkembangan penghasilan setiap bulan',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                   ],
@@ -388,7 +406,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _border),
+                  border: Border.all(color: _tableBorder),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -402,10 +420,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
                         color: Color(0xFF6B7280),
                       ),
                     ),
-                    style: const TextStyle(
-                      fontSize: 12.5,
+                    style: textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF111827),
+                      color: _cellText,
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -446,8 +463,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: safeMaxY / 5,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: const Color(0xFFF3F4F6),
+                  getDrawingHorizontalLine: (value) => const FlLine(
+                    color: _tableDivider,
                     strokeWidth: 1,
                   ),
                 ),
@@ -555,30 +572,33 @@ class _IncomeScreenState extends State<IncomeScreen> {
   // RECENT INCOME CARD
   // ============================================================
 
-  Widget _buildRecentIncomeCard({required bool isMobile}) {
+  Widget _buildRecentIncomeCard(
+    BuildContext context, {
+    required bool isMobile,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Ringkasan Penghasilan Bulanan',
-            style: TextStyle(
-              fontSize: isMobile ? 15 : 17,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF111827),
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: _cellText,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             'Rincian per bulan',
-            style: TextStyle(
-              fontSize: 12,
+            style: textTheme.bodySmall?.copyWith(
               color: const Color(0xFF64748B),
             ),
           ),
@@ -594,7 +614,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 if (index != _monthly.length - 1)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4),
-                    child: Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    child: Divider(height: 1, color: _tableDivider),
                   ),
               ],
             );
@@ -614,7 +634,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             height: isMobile ? 38 : 44,
             decoration: BoxDecoration(
               color: _accent.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
+              borderRadius: BorderRadius.circular(isMobile ? 10 : 11),
             ),
             child: Icon(
               Icons.payments_outlined,
@@ -634,7 +654,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   style: TextStyle(
                     fontSize: isMobile ? 13 : 13.5,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
+                    color: _cellText,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -674,17 +694,25 @@ class _IncomeScreenState extends State<IncomeScreen> {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: const Color(0xFFFCA5A5)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 48),
+          const Icon(
+            Icons.error_outline,
+            color: Color(0xFFDC2626),
+            size: 48,
+          ),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Error',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13),
+            style: const TextStyle(
+              color: Color(0xFFDC2626),
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -727,7 +755,11 @@ class _IncomeScreenState extends State<IncomeScreen> {
           const SizedBox(height: 14),
           const Text(
             'Belum ada data penghasilan.',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 13,
+            ),
           ),
         ],
       ),

@@ -26,11 +26,20 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   int _userPoints = 0;
 
   // ============================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
   // ============================================================
 
-  static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100;
+  static const Color _accent = Color(0xFFF97316);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+
+  static const double _smallRadius = 12;
+
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
 
   @override
   void initState() {
@@ -57,8 +66,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         List<dynamic> jobListJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          var target =
-              decodedData['jobs'] ?? decodedData['data'] ?? [];
+          var target = decodedData['jobs'] ?? decodedData['data'] ?? [];
 
           if (target is List) {
             jobListJson = target;
@@ -113,94 +121,140 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   // ============================================================
-  // KONFIRMASI
+  // KONFIRMASI — disamakan style dialog dgn halaman lain
   // ============================================================
 
   void _showTakeOfferConfirmation(PartnerJobModel job) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Konfirmasi Penawaran"),
-        content: Text(
-          "Apakah Anda yakin ingin mengajukan penawaran "
-          "untuk pekerjaan '${job.title}'?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Batal"),
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.local_offer_outlined,
+                          color: _accent,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Konfirmasi Penawaran',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF111827),
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF6B7280),
+                        ),
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Apakah Anda yakin ingin mengajukan penawaran untuk pekerjaan "${job.title}"?',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 46),
+                            foregroundColor: const Color(0xFF374151),
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(dialogContext);
+                            widget.onTakeOffer(job);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Ya, Ajukan',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              widget.onTakeOffer(job);
-            },
-            child: const Text("Ya, Ajukan"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isMobile = width < _mobileBreakpoint;
-        final isTablet =
-            width >= _mobileBreakpoint && width < _tabletBreakpoint;
-
-        final padding = isMobile ? 16.0 : (isTablet ? 24.0 : 30.0);
-
-        return Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ==================================================
-              // HEADER
-              // ==================================================
-              Text(
-                "Lowongan Tersedia",
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 28,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Temukan pekerjaan yang sesuai dengan keahlianmu.",
-                style: TextStyle(
-                  color: const Color(0xFF64748B),
-                  fontSize: isMobile ? 12.5 : 13,
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // ==================================================
-              // STATISTIC CARDS — 3 SEJAJAR
-              // ==================================================
-              _buildStatRow(isMobile: isMobile),
-
-              const SizedBox(height: 22),
-
-              // ==================================================
-              // MAIN CONTENT
-              // ==================================================
-              Expanded(child: _buildContent()),
-            ],
           ),
         );
       },
@@ -208,50 +262,144 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   // ============================================================
-  // 3 KOTAK SEJAJAR — TANPA SCROLL
+  // BUILD
+  // ============================================================
+  // ✅ Padding horizontal disamakan dgn CustomerDashboard
+  //    mobile 16 / tablet 24 / desktop 28  (bukan 30)
+  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: RefreshIndicator(
+        onRefresh: _fetchDashboardData,
+        color: _accent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final isMobile = width < 700;
+            final isTablet = width >= 700 && width < 1100;
+
+            final horizontalPadding =
+                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final verticalPadding = isMobile ? 16.0 : 28.0;
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+
+                  const SizedBox(height: _gapAfterHeader),
+
+                  _buildStatRow(isMobile: isMobile),
+
+                  const SizedBox(height: _gapBetweenSections),
+
+                  _buildSectionTitle(context),
+
+                  const SizedBox(height: _gapBetweenSections),
+
+                  _buildContent(context, isMobile: isMobile),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // HEADER — sama persis dgn DashboardHeader
+  // ============================================================
+
+  Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Lowongan Tersedia',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Temukan pekerjaan yang sesuai dengan keahlianmu.',
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // SECTION TITLE — sama persis dgn judul "Riwayat ..." halaman lain
+  // ============================================================
+
+  Widget _buildSectionTitle(BuildContext context) {
+    return Text(
+      'Daftar Lowongan',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+    );
+  }
+
+  // ============================================================
+  // 3 KOTAK SEJAJAR
   // ============================================================
 
   Widget _buildStatRow({required bool isMobile}) {
+    final cards = [
+      _statCard(
+        icon: Icons.work_outline,
+        title: 'Lowongan',
+        fullTitle: 'Total Lowongan',
+        value: _jobs.length.toString(),
+        color: const Color(0xFF2563EB),
+        isCompact: isMobile,
+      ),
+      _statCard(
+        icon: Icons.description_outlined,
+        title: 'Penawaran',
+        fullTitle: 'Penawaran Aktif',
+        value: _activeOffersCount.toString(),
+        color: _accent,
+        isCompact: isMobile,
+      ),
+      _statCard(
+        icon: Icons.stars,
+        title: 'Poin',
+        fullTitle: 'Total Poin',
+        value: _userPoints.toString(),
+        color: const Color(0xFF16A34A),
+        isCompact: isMobile,
+      ),
+    ];
+
     final gap = isMobile ? 8.0 : 16.0;
 
-    return SizedBox(
-      height: isMobile ? 112 : 130,   // ← SEBELUM: 100 : 110
-      child: Row(
-        children: [
-          Expanded(
-            child: _statCard(
-              icon: Icons.work_outline,
-              title: 'Lowongan',
-              fullTitle: 'Total Lowongan',
-              value: _jobs.length.toString(),
-              color: const Color(0xFF2563EB),
-              isCompact: isMobile,
-            ),
-          ),
-          SizedBox(width: gap),
-          Expanded(
-            child: _statCard(
-              icon: Icons.description_outlined,
-              title: 'Penawaran',
-              fullTitle: 'Penawaran Aktif',
-              value: _activeOffersCount.toString(),
-              color: const Color(0xFFF97316),
-              isCompact: isMobile,
-            ),
-          ),
-          SizedBox(width: gap),
-          Expanded(
-            child: _statCard(
-              icon: Icons.stars,
-              title: 'Poin',
-              fullTitle: 'Total Poin',
-              value: _userPoints.toString(),
-              color: const Color(0xFF16A34A),
-              isCompact: isMobile,
-            ),
-          ),
+    return Row(
+      children: [
+        for (int i = 0; i < cards.length; i++) ...[
+          Expanded(child: cards[i]),
+          if (i != cards.length - 1) SizedBox(width: gap),
         ],
-      ),
+      ],
     );
   }
 
@@ -264,57 +412,63 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     required bool isCompact,
   }) {
     return Container(
-      padding: EdgeInsets.all(isCompact ? 10 : 16),
+      padding: EdgeInsets.all(isCompact ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _tableBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          // Icon
           Container(
-            width: isCompact ? 28 : 36,
-            height: isCompact ? 28 : 36,
+            width: isCompact ? 34 : 42,
+            height: isCompact ? 34 : 42,
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(isCompact ? 7 : 10),
+              borderRadius: BorderRadius.circular(isCompact ? 9 : 11),
             ),
             child: Icon(
               icon,
               color: color,
-              size: isCompact ? 15 : 20,
+              size: isCompact ? 17 : 21,
             ),
           ),
-          SizedBox(height: isCompact ? 6 : 8),
-
-          // Value
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: isCompact ? 18 : 22,
-              fontWeight: FontWeight.w700,
-              color: color,
-              height: 1.1,
-            ),
-          ),
-          SizedBox(height: isCompact ? 2 : 3),
-
-          // Title
-          Text(
-            isCompact ? title : fullTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: isCompact ? 10 : 12,
-              color: const Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-              height: 1.15,
+          SizedBox(width: isCompact ? 10 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  isCompact ? title : fullTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF64748B),
+                    fontSize: isCompact ? 10.5 : 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: isCompact ? 2 : 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isCompact ? 18 : 20,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                    height: 1.1,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -326,63 +480,115 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   // CONTENT
   // ============================================================
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context, {required bool isMobile}) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 60),
+          child: CircularProgressIndicator(color: _accent),
+        ),
+      );
     }
 
     if (_errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _fetchDashboardData,
-              icon: const Icon(Icons.refresh),
-              label: const Text("Coba Lagi"),
-            ),
-          ],
-        ),
-      );
+      return _buildErrorState();
     }
 
     if (_jobs.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _fetchDashboardData,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 80),
-            Center(
-              child: Text(
-                "Belum ada lowongan pekerjaan saat ini.",
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            ),
-          ],
-        ),
-      );
+      return _buildEmptyState();
     }
 
-    return RefreshIndicator(
-      onRefresh: _fetchDashboardData,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _jobs.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final job = _jobs[index];
-          return PartnerJobCard(
-            job: job,
-            onTakeOffer: () => _showTakeOfferConfirmation(job),
-          );
-        },
+    return Column(
+      children: [
+        for (int i = 0; i < _jobs.length; i++) ...[
+          PartnerJobCard(
+            job: _jobs[i],
+            onTakeOffer: () => _showTakeOfferConfirmation(_jobs[i]),
+          ),
+          if (i != _jobs.length - 1) const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // ERROR & EMPTY
+  // ============================================================
+
+  Widget _buildErrorState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 48,
+            color: Color(0xFFDC2626),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _errorMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFFDC2626),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _fetchDashboardData,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _accent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.work_outline,
+              size: 34,
+              color: _accent.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Belum ada lowongan pekerjaan saat ini.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ],
       ),
     );
   }

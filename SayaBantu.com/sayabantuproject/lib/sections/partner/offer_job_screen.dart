@@ -35,15 +35,20 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   bool _isSubmitting = false;
 
   // ============================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
   // ============================================================
 
   static const Color _accent = Color(0xFFF97316);
-  static const Color _borderColor = Color(0xFFE5E7EB);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+
   static const double _commissionPercent = 15.0;
 
-  static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100;
+  // Spacing — mengikuti pola DashboardHeader
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
 
   @override
   void dispose() {
@@ -216,6 +221,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // ============================================================
   // BUILD
   // ============================================================
+  // ✅ Padding horizontal disamakan dgn CustomerDashboard
+  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
+  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -238,12 +247,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
-          final isMobile = width < _mobileBreakpoint;
-          final isTablet =
-              width >= _mobileBreakpoint && width < _tabletBreakpoint;
+          final isMobile = width < 700;
+          final isTablet = width >= 700 && width < 1100;
 
           final horizontalPadding =
-              isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+              isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
           final verticalPadding = isMobile ? 16.0 : 28.0;
 
           return SingleChildScrollView(
@@ -251,14 +259,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               horizontal: horizontalPadding,
               vertical: verticalPadding,
             ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: isMobile
-                    ? _buildMobileLayout()
-                    : _buildWebLayout(),
-              ),
-            ),
+            child: isMobile
+                ? _buildMobileLayout()
+                : _buildWebLayout(),
           );
         },
       ),
@@ -276,11 +279,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         // 3 kotak sejajar (budget / harga / komisi)
         _buildSummaryBoxes(isMobile: true),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: _gapBetweenSections),
 
         _buildJobInfoCard(isMobile: true),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: _gapBetweenSections),
 
         _buildOfferForm(isMobile: true),
       ],
@@ -298,7 +301,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         // 3 kotak sejajar (budget / harga / komisi)
         _buildSummaryBoxes(isMobile: false),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: _gapBetweenSections),
 
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +387,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,7 +451,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +463,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             style: TextStyle(
               fontSize: isMobile ? 20 : 22,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF111827),
+              color: _cellText,
               height: 1.3,
             ),
           ),
@@ -494,7 +497,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           ),
 
           const SizedBox(height: 20),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 16),
 
           Wrap(
@@ -529,7 +532,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,7 +567,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           ),
 
           const SizedBox(height: 18),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 18),
 
           // HARGA
@@ -622,11 +625,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _borderColor),
+                borderSide: const BorderSide(color: _tableBorder),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _borderColor),
+                borderSide: const BorderSide(color: _tableBorder),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -670,11 +673,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _borderColor),
+                borderSide: const BorderSide(color: _tableBorder),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _borderColor),
+                borderSide: const BorderSide(color: _tableBorder),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
