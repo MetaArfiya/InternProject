@@ -28,18 +28,30 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // NAVIGATION
   // =========================================================
 
-  /// Index halaman yang aktif:
-  /// 0 = Analytics
-  /// 1 = Kelola Admin
-  /// 2 = Mitra Aktif
-  /// 3 = Pengaturan Sistem
-  /// 4 = Profil
-  /// 5 = Log Aktivitas (hanya via AppBar di mobile)
   int _selectedIndex = 0;
 
-  static const Color _accent = Color(0xFFEF476F);
-  static const Color _sidebarBg = Color(0xFF0E172A);
-  static const Color _sidebarSelected = Color(0xFF1E2A40);
+  // =========================================================
+  // DESIGN TOKENS — disamakan dengan AdminLayout
+  // =========================================================
+
+  static const Color _accent = Color(0xFFEF476F); // ← pink Super Admin
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+
+  // ✅ Background disamakan dengan AdminLayout
+  static const Color _bg = Color(0xFFF4F7FB);
+
+  // Token sidebar — sama dengan AdminLayout
+  static const Color _sidebarBg = Color(0xFF0F172A);
+  static const Color _sidebarText = Color(0xFFE2E8F0);
+  static const Color _sidebarMuted = Color(0xFF94A3B8);
+
+  static const double _radius = 10;
+
+  // Lebar sidebar — sama dengan AdminLayout
+  static const double _sidebarTablet = 230;
+  static const double _sidebarDesktop = 250;
+  static const double _tabletBreakpoint = 1100;
 
   // =========================================================
   // SUPER ADMIN DATA
@@ -366,7 +378,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // =========================================================
 
   Future<void> _pickProfilePhoto() async {
-    // Gunakan Completer agar fungsi ini menunggu sampai file selesai dibaca
     final completer = Completer<void>();
 
     final input = html.FileUploadInputElement();
@@ -410,13 +421,11 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             );
           }
         } finally {
-          // Tandai bahwa proses sudah selesai, apapun hasilnya
           completer.complete();
         }
       });
     });
 
-    // Kembalikan Future yang akan selesai ketika completer.complete() dipanggil
     return completer.future;
   }
 
@@ -579,9 +588,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                             onTap: isSavingProfile || isUploadingPhoto
                                 ? null
                                 : () async {
-                                    // Tunggu proses pemilihan dan pembacaan foto selesai
                                     await _pickProfilePhoto();
-                                    // Setelah selesai, perbarui tampilan dialog
                                     if (mounted) {
                                       setDialogState(() {});
                                     }
@@ -805,7 +812,9 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 700;
-        if (isDesktop) return _buildDesktopLayout();
+        if (isDesktop) {
+          return _buildDesktopLayout(constraints.maxWidth);
+        }
         return _buildMobileLayout();
       },
     );
@@ -815,15 +824,23 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // DESKTOP LAYOUT — Sidebar kiri
   // =========================================================
 
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(double screenWidth) {
+    final isTablet = screenWidth < _tabletBreakpoint;
+    final sidebarWidth = isTablet ? _sidebarTablet : _sidebarDesktop;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F7FB),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildSidebar(),
-          Expanded(child: _buildContentArea()),
-        ],
+      backgroundColor: _bg,
+      body: SafeArea(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: sidebarWidth,
+              child: _buildSidebar(),
+            ),
+            Expanded(child: _buildContentArea()),
+          ],
+        ),
       ),
     );
   }
@@ -834,9 +851,8 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
   Widget _buildMobileLayout() {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F7FB),
+      backgroundColor: _bg,
 
-      // APPBAR — tanpa title, dengan ikon Log Aktivitas
       appBar: AppBar(
         toolbarHeight: 56,
         elevation: 0,
@@ -845,7 +861,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         foregroundColor: const Color(0xFF0E172A),
         automaticallyImplyLeading: false,
 
-        // Avatar + nama
         title: Row(
           children: [
             _buildSuperAdminProfileImage(size: 34),
@@ -868,7 +883,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           ],
         ),
 
-        // Ikon: Log Aktivitas
         actions: [
           IconButton(
             tooltip: 'Log Aktivitas',
@@ -890,15 +904,13 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         ],
       ),
 
-      // BODY
       body: _buildContentArea(),
 
-      // BOTTOM NAVIGATION — 5 tab
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(
-            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+            top: BorderSide(color: _tableBorder, width: 1),
           ),
         ),
         child: SafeArea(
@@ -915,7 +927,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
             selectedItemColor: _accent,
-            unselectedItemColor: const Color(0xFF94A3B8),
+            unselectedItemColor: _sidebarMuted,
             selectedFontSize: 10.5,
             unselectedFontSize: 10.5,
             selectedLabelStyle: const TextStyle(
@@ -986,55 +998,46 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // SIDEBAR — hanya untuk desktop
+  // SIDEBAR
   // =========================================================
 
   Widget _buildSidebar() {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      width: 220,
+      width: double.infinity,
       height: double.infinity,
       color: _sidebarBg,
       child: Column(
         children: [
-          // HEADER SUPER ADMIN
-          Container(
-            height: 85,
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0xFF243047)),
-              ),
-            ),
+          const SizedBox(height: 22),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                _buildSuperAdminProfileImage(size: 42),
-                const SizedBox(width: 10),
+                _buildSuperAdminProfileImage(size: 46),
+                const SizedBox(width: 12),
                 Expanded(
                   child: InkWell(
                     onTap: _showEditProfileDialog,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           superAdminName,
-                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: _sidebarText,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        const Text(
+                        const SizedBox(height: 3),
+                        Text(
                           'Full Control Access',
-                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Color(0xFFFF4F4F),
-                            fontSize: 10,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFFFF4F4F),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1046,44 +1049,50 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 28),
 
-          // MENU — 6 item (Profil sebelum Log)
           _buildMenuItem(
             index: 0,
-            icon: Icons.bar_chart_rounded,
+            icon: Icons.bar_chart_outlined,
+            activeIcon: Icons.bar_chart_rounded,
             title: 'Analytics',
           ),
           _buildMenuItem(
             index: 1,
-            icon: Icons.admin_panel_settings_rounded,
+            icon: Icons.admin_panel_settings_outlined,
+            activeIcon: Icons.admin_panel_settings_rounded,
             title: 'Kelola Admin',
           ),
           _buildMenuItem(
             index: 2,
-            icon: Icons.engineering_rounded,
+            icon: Icons.engineering_outlined,
+            activeIcon: Icons.engineering_rounded,
             title: 'Mitra Aktif',
           ),
           _buildMenuItem(
             index: 3,
-            icon: Icons.settings_rounded,
+            icon: Icons.settings_outlined,
+            activeIcon: Icons.settings_rounded,
             title: 'Pengaturan Sistem',
           ),
           _buildMenuItem(
             index: 4,
-            icon: Icons.person_rounded,
+            icon: Icons.person_outline,
+            activeIcon: Icons.person_rounded,
             title: 'Profil',
           ),
           _buildMenuItem(
             index: 5,
-            icon: Icons.folder_rounded,
+            icon: Icons.folder_outlined,
+            activeIcon: Icons.folder_rounded,
             title: 'Log Aktivitas',
           ),
 
           const Spacer(),
 
           _buildLogoutButton(),
-          const SizedBox(height: 15),
+
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -1096,82 +1105,96 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   Widget _buildMenuItem({
     required int index,
     required IconData icon,
+    required IconData activeIcon,
     required String title,
   }) {
-    final bool selected = _selectedIndex == index;
+    final textTheme = Theme.of(context).textTheme;
+    final bool active = _selectedIndex == index;
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
-      child: Container(
-        height: 43,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: selected ? _sidebarSelected : Colors.transparent,
-          border: Border(
-            left: BorderSide(
-              color: selected ? const Color(0xFFFF4848) : Colors.transparent,
-              width: 3,
-            ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: active
+                ? _accent.withOpacity(0.14)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
           ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 17),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected ? Colors.white : const Color(0xFF91A0B9),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? Colors.white : const Color(0xFF91A0B9),
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+          child: Row(
+            children: [
+              Icon(
+                active ? activeIcon : icon,
+                size: 20,
+                color: active ? _accent : _sidebarText,
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight:
+                        active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? _accent : _sidebarText,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   // =========================================================
-  // LOGOUT BUTTON (desktop sidebar)
+  // LOGOUT BUTTON
   // =========================================================
 
   Widget _buildLogoutButton() {
-    return InkWell(
-      onTap: _logout,
-      child: Container(
-        height: 48,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 17),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.logout_rounded,
-              size: 17,
-              color: Color(0xFFFF6B6B),
-            ),
-            const SizedBox(width: 11),
-            const Text(
-              'Logout',
-              style: TextStyle(
-                color: Color(0xFFFF6B6B),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: InkWell(
+        onTap: _logout,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: _dangerColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.logout_outlined,
+                size: 20,
+                color: _dangerColor,
               ),
-            ),
-          ],
+              const SizedBox(width: 13),
+              Expanded(
+                child: Text(
+                  'Keluar',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: _dangerColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1202,7 +1225,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
             ElevatedButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF4848),
+                backgroundColor: _dangerColor,
                 foregroundColor: Colors.white,
                 elevation: 0,
               ),
@@ -1265,13 +1288,13 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 700;
-        final horizontalPadding = isMobile ? 16.0 : 32.0;
+        final horizontalPadding = isMobile ? 16.0 : 28.0;
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: const Color(0xFFF5F7FB),
+          color: _bg,
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
@@ -1283,12 +1306,11 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // HEADER
                     Text(
                       'Profil Super Admin',
                       style: TextStyle(
-                        fontSize: isMobile ? 22 : 26,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                         color: const Color(0xFF0F172A),
                         height: 1.2,
                       ),
@@ -1297,22 +1319,21 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                     Text(
                       'Kelola informasi profil akun Super Admin.',
                       style: TextStyle(
-                        fontSize: isMobile ? 12.5 : 13,
-                        color: const Color(0xFF64748B),
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
                         height: 1.4,
                       ),
                     ),
 
-                    SizedBox(height: isMobile ? 20 : 24),
+                    const SizedBox(height: 24),
 
-                    // PROFILE CARD
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.all(isMobile ? 20 : 26),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        border: Border.all(color: _tableBorder),
                       ),
                       child: Column(
                         children: [
@@ -1367,9 +1388,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           ),
                           const SizedBox(height: 20),
 
-                          // ============================
-                          // TOMBOL EDIT PROFIL
-                          // ============================
                           SizedBox(
                             width: double.infinity,
                             height: 48,
@@ -1397,9 +1415,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                             ),
                           ),
 
-                          // ============================
-                          // TOMBOL LOGOUT (TAMBAHAN)
-                          // ============================
                           const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
@@ -1436,7 +1451,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
                     const SizedBox(height: 16),
 
-                    // INFO NOTE
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(

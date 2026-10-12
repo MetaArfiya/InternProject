@@ -9,10 +9,7 @@ import '../../services/api_service.dart';
 class AdminVerificationScreen extends StatefulWidget {
   final ValueChanged<int>? onPendingCountChanged;
 
-  const AdminVerificationScreen({
-    super.key,
-    this.onPendingCountChanged,
-  });
+  const AdminVerificationScreen({super.key, this.onPendingCountChanged});
 
   @override
   State<AdminVerificationScreen> createState() =>
@@ -90,21 +87,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
   void _startAutoRefresh() {
     _autoRefreshTimer?.cancel();
-    _autoRefreshTimer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) async {
-        if (!mounted) return;
-        if (isProcessing) return;
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (!mounted) return;
+      if (isProcessing) return;
 
-        if (_selectedTab == 'pending') {
-          await _fetchUnverifiedMitra();
-        } else if (_selectedTab == 'verified') {
-          await _fetchVerifiedMitra();
-        } else if (_selectedTab == 'pendingSkills') {
-          await _fetchPendingSkills();
-        }
-      },
-    );
+      if (_selectedTab == 'pending') {
+        await _fetchUnverifiedMitra();
+      } else if (_selectedTab == 'verified') {
+        await _fetchVerifiedMitra();
+      } else if (_selectedTab == 'pendingSkills') {
+        await _fetchPendingSkills();
+      }
+    });
   }
 
   Future<void> _initialize() async {
@@ -147,22 +141,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        if (decoded is! Map) throw Exception('Format response API tidak valid.');
+        if (decoded is! Map)
+          throw Exception('Format response API tidak valid.');
 
         final dynamic statistics = decoded['statistics'];
         if (statistics is Map) {
-          waitingCount = int.tryParse(
-                statistics['menunggu']?.toString() ?? '0',
-              ) ??
-              0;
-          approvedToday = int.tryParse(
+          waitingCount =
+              int.tryParse(statistics['menunggu']?.toString() ?? '0') ?? 0;
+          approvedToday =
+              int.tryParse(
                 statistics['disetujui_hari_ini']?.toString() ?? '0',
               ) ??
               0;
-          rejected = int.tryParse(
-                statistics['ditolak']?.toString() ?? '0',
-              ) ??
-              0;
+          rejected =
+              int.tryParse(statistics['ditolak']?.toString() ?? '0') ?? 0;
         }
 
         final dynamic rawData = decoded['data'];
@@ -173,20 +165,22 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               ? item
               : Map<String, dynamic>.from(item);
           final rawUser = mitra['user'];
-          final user = rawUser is Map
-              ? Map<String, dynamic>.from(rawUser)
-              : {};
+          final user = rawUser is Map ? Map<String, dynamic>.from(rawUser) : {};
 
-          final String name = user['name']?.toString() ??
+          final String name =
+              user['name']?.toString() ??
               mitra['name']?.toString() ??
               'Tanpa Nama';
-          final String email = user['email']?.toString() ??
+          final String email =
+              user['email']?.toString() ??
               mitra['email']?.toString() ??
               'Tanpa Email';
-          final String category = mitra['skills']?.toString() ??
+          final String category =
+              mitra['skills']?.toString() ??
               mitra['category']?.toString() ??
               'Umum';
-          final String city = user['city']?.toString() ??
+          final String city =
+              user['city']?.toString() ??
               mitra['city']?.toString() ??
               user['address']?.toString() ??
               mitra['address']?.toString() ??
@@ -198,7 +192,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           final rawSkillPhotos = mitra['skill_photos'];
           final rawProfilePhoto = user['photo_profile'];
 
-          bool hasKtp = verificationImage != null &&
+          bool hasKtp =
+              verificationImage != null &&
               verificationImage.toString().isNotEmpty &&
               verificationImage.toString() != 'null';
 
@@ -206,7 +201,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           if (rawCertificate is List) {
             hasCertificate = rawCertificate.isNotEmpty;
           } else if (rawCertificate != null) {
-            hasCertificate = rawCertificate.toString().isNotEmpty &&
+            hasCertificate =
+                rawCertificate.toString().isNotEmpty &&
                 rawCertificate.toString() != 'null';
           }
 
@@ -277,17 +273,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               ? item
               : Map<String, dynamic>.from(item);
           final rawUser = mitra['user'];
-          final user = rawUser is Map
-              ? Map<String, dynamic>.from(rawUser)
-              : {};
+          final user = rawUser is Map ? Map<String, dynamic>.from(rawUser) : {};
 
           List<dynamic> skillPhotos = [];
           if (mitra['skill_photos'] is List) {
             skillPhotos = mitra['skill_photos'] as List;
           } else if (mitra['skill_photos'] is String) {
             try {
-              final decodedPhotos =
-                  jsonDecode(mitra['skill_photos'].toString());
+              final decodedPhotos = jsonDecode(
+                mitra['skill_photos'].toString(),
+              );
               if (decodedPhotos is List) skillPhotos = decodedPhotos;
             } catch (_) {}
           }
@@ -295,10 +290,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           return {
             'id': mitra['id'],
             'user_id': mitra['user_id'],
-            'name': mitra['name']?.toString() ??
+            'name':
+                mitra['name']?.toString() ??
                 user['name']?.toString() ??
                 'Tanpa Nama',
-            'email': mitra['email']?.toString() ??
+            'email':
+                mitra['email']?.toString() ??
                 user['email']?.toString() ??
                 'Tanpa Email',
             'phone': mitra['phone']?.toString() ?? '-',
@@ -309,7 +306,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             'city': mitra['city']?.toString() ?? '-',
             'bio': mitra['bio'],
             'skills': mitra['skills'],
-            'category': mitra['category']?.toString() ??
+            'category':
+                mitra['category']?.toString() ??
                 mitra['skills']?.toString() ??
                 'Umum',
             'certificate': mitra['certificate'],
@@ -326,9 +324,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             'verified_by': mitra['verified_by'],
             'verified_at': mitra['verified_at'],
             'created_at': mitra['created_at'],
-            'time': _formatTime(
-              mitra['verified_at'] ?? mitra['created_at'],
-            ),
+            'time': _formatTime(mitra['verified_at'] ?? mitra['created_at']),
             'user': user,
           };
         }).toList();
@@ -373,8 +369,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             pendingPhotos = mitra['pending_skill_photos'] as List;
           } else if (mitra['pending_skill_photos'] is String) {
             try {
-              final decoded =
-                  jsonDecode(mitra['pending_skill_photos'].toString());
+              final decoded = jsonDecode(
+                mitra['pending_skill_photos'].toString(),
+              );
               if (decoded is List) pendingPhotos = decoded;
             } catch (_) {}
           }
@@ -434,10 +431,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return ((total - 1) ~/ _itemsPerPage) + 1;
   }
 
-  List<Map<String, dynamic>> _slice(
-    List<Map<String, dynamic>> list,
-    int page,
-  ) {
+  List<Map<String, dynamic>> _slice(List<Map<String, dynamic>> list, int page) {
     final start = (page - 1) * _itemsPerPage;
     if (start >= list.length) return [];
     final end = (start + _itemsPerPage).clamp(0, list.length);
@@ -509,10 +503,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       context,
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => _FullScreenImageViewer(
-          imageUrl: imageUrl,
-          title: title,
-        ),
+        builder: (_) =>
+            _FullScreenImageViewer(imageUrl: imageUrl, title: title),
       ),
     );
   }
@@ -573,7 +565,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
       if (difference.isNegative) return 'Baru saja';
       if (difference.inMinutes < 1) return 'Baru saja';
-      if (difference.inMinutes < 60) return '${difference.inMinutes} menit lalu';
+      if (difference.inMinutes < 60)
+        return '${difference.inMinutes} menit lalu';
       if (difference.inHours < 24) return '${difference.inHours} jam lalu';
       if (difference.inDays < 7) return '${difference.inDays} hari lalu';
       return '${date.day}/${date.month}/${date.year}';
@@ -621,7 +614,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       return;
     }
 
-    final bool ok = await showDialog<bool>(
+    final bool ok =
+        await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) {
@@ -673,8 +667,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                   color: Color(0xFFD1D5DB),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(_radius),
+                                  borderRadius: BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: const Text(
@@ -706,8 +699,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(_radius),
+                                  borderRadius: BorderRadius.circular(_radius),
                                 ),
                               ),
                             ),
@@ -727,10 +719,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     setState(() => isProcessing = true);
 
     try {
-      final response = await ApiService.post(
-        '/admin/verify-mitra/$id',
-        {'admin_id': adminId, 'action': 'approve'},
-      );
+      final response = await ApiService.post('/admin/verify-mitra/$id', {
+        'admin_id': adminId,
+        'action': 'approve',
+      });
 
       if (!mounted) return;
 
@@ -833,18 +825,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       contentPadding: const EdgeInsets.all(12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
+                        borderSide: const BorderSide(color: _tableBorder),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
+                        borderSide: const BorderSide(color: _tableBorder),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _accent, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: _accent,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -860,12 +852,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
                             foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
                           child: const Text(
@@ -901,8 +890,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
                         ),
@@ -921,10 +909,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     setState(() => isProcessing = true);
 
     try {
-      final response = await ApiService.post(
-        '/admin/verify-mitra/$id',
-        {'admin_id': adminId, 'action': 'reject', 'reason': reason},
-      );
+      final response = await ApiService.post('/admin/verify-mitra/$id', {
+        'admin_id': adminId,
+        'action': 'reject',
+        'reason': reason,
+      });
 
       if (!mounted) return;
 
@@ -970,7 +959,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       return;
     }
 
-    final bool ok = await showDialog<bool>(
+    final bool ok =
+        await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) {
@@ -1024,8 +1014,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                   color: Color(0xFFD1D5DB),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(_radius),
+                                  borderRadius: BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: const Text(
@@ -1057,8 +1046,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(_radius),
+                                  borderRadius: BorderRadius.circular(_radius),
                                 ),
                               ),
                             ),
@@ -1078,8 +1066,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     setState(() => isProcessing = true);
 
     try {
-      final response =
-          await ApiService.post('/admin/approve-skill/$userId', {});
+      final response = await ApiService.post(
+        '/admin/approve-skill/$userId',
+        {},
+      );
 
       if (!mounted) return;
 
@@ -1172,18 +1162,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       contentPadding: const EdgeInsets.all(12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
+                        borderSide: const BorderSide(color: _tableBorder),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
+                        borderSide: const BorderSide(color: _tableBorder),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _accent, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: _accent,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -1199,12 +1189,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
                             foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
                           child: const Text(
@@ -1223,9 +1210,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           onPressed: () {
                             final text = controller.text.trim();
                             controller.dispose();
-                            Navigator.of(dialogContext).pop(
-                              text.isEmpty ? 'Ditolak oleh admin.' : text,
-                            );
+                            Navigator.of(
+                              dialogContext,
+                            ).pop(text.isEmpty ? 'Ditolak oleh admin.' : text);
                           },
                           icon: const Icon(Icons.close, size: 18),
                           label: const Text(
@@ -1241,8 +1228,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
                         ),
@@ -1261,10 +1247,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     setState(() => isProcessing = true);
 
     try {
-      final response = await ApiService.post(
-        '/admin/reject-skill/$userId',
-        {'note': reason},
-      );
+      final response = await ApiService.post('/admin/reject-skill/$userId', {
+        'note': reason,
+      });
 
       if (!mounted) return;
 
@@ -1358,8 +1343,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     }
 
     final List<String> oldCerts = _buildCertificateUrls(item['certificate']);
-    final List<String> newCerts =
-        _buildCertificateUrls(item['pending_certificate']);
+    final List<String> newCerts = _buildCertificateUrls(
+      item['pending_certificate'],
+    );
 
     showDialog<void>(
       context: context,
@@ -1407,8 +1393,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () =>
-                            Navigator.pop(dialogContext),
+                        onPressed: () => Navigator.pop(dialogContext),
                         icon: const Icon(
                           Icons.close,
                           size: 20,
@@ -1449,8 +1434,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               spacing: 8,
                               runSpacing: 8,
                               children: newPhotos
-                                  .map((url) =>
-                                      _skillPhotoThumb(url, 'Foto Baru'))
+                                  .map(
+                                    (url) => _skillPhotoThumb(url, 'Foto Baru'),
+                                  )
                                   .toList(),
                             ),
                           if (newCerts.isNotEmpty) ...[
@@ -1467,10 +1453,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               children: newCerts
                                   .asMap()
                                   .entries
-                                  .map((e) => _skillPhotoThumb(
-                                        e.value,
-                                        'Sertifikat Baru ${e.key + 1}',
-                                      ))
+                                  .map(
+                                    (e) => _skillPhotoThumb(
+                                      e.value,
+                                      'Sertifikat Baru ${e.key + 1}',
+                                    ),
+                                  )
                                   .toList(),
                             ),
                           ],
@@ -1478,8 +1466,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           _sectionBanner(
                             icon: Icons.history,
                             color: _mutedText,
-                            text:
-                                'Foto Keahlian SAAT INI — "$currentSkills"',
+                            text: 'Foto Keahlian SAAT INI — "$currentSkills"',
                           ),
                           const SizedBox(height: 10),
                           if (oldPhotos.isEmpty)
@@ -1498,8 +1485,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               spacing: 8,
                               runSpacing: 8,
                               children: oldPhotos
-                                  .map((url) =>
-                                      _skillPhotoThumb(url, 'Foto Lama'))
+                                  .map(
+                                    (url) => _skillPhotoThumb(url, 'Foto Lama'),
+                                  )
                                   .toList(),
                             ),
                           if (oldCerts.isNotEmpty) ...[
@@ -1507,8 +1495,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             _sectionBanner(
                               icon: Icons.assignment,
                               color: _mutedText,
-                              text:
-                                  'Sertifikat SAAT INI (${oldCerts.length})',
+                              text: 'Sertifikat SAAT INI (${oldCerts.length})',
                             ),
                             const SizedBox(height: 10),
                             Wrap(
@@ -1517,10 +1504,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               children: oldCerts
                                   .asMap()
                                   .entries
-                                  .map((e) => _skillPhotoThumb(
-                                        e.value,
-                                        'Sertifikat Lama ${e.key + 1}',
-                                      ))
+                                  .map(
+                                    (e) => _skillPhotoThumb(
+                                      e.value,
+                                      'Sertifikat Lama ${e.key + 1}',
+                                    ),
+                                  )
                                   .toList(),
                             ),
                           ],
@@ -1597,8 +1586,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
   void _viewDocuments(Map<String, dynamic> partner) {
     final String? profilePhoto = partner['profile_photo']?.toString();
-    final String? verificationImage =
-        partner['verification_image']?.toString();
+    final String? verificationImage = partner['verification_image']?.toString();
     final String? selfieImage = partner['selfie_image']?.toString();
     final dynamic certificateRaw = partner['certificate'];
     final dynamic skillPhotosRaw = partner['skill_photos'];
@@ -1783,7 +1771,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 );
                                 final title =
                                     doc['title']?.toString() ?? 'Dokumen';
-                                final iconData = doc['icon'] as IconData? ??
+                                final iconData =
+                                    doc['icon'] as IconData? ??
                                     Icons.image_outlined;
 
                                 return Container(
@@ -1798,8 +1787,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                             width: 28,
                                             height: 28,
                                             decoration: BoxDecoration(
-                                              color: _purpleColor
-                                                  .withOpacity(0.12),
+                                              color: _purpleColor.withOpacity(
+                                                0.12,
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(7),
                                             ),
@@ -1816,9 +1806,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                               title,
                                               style: textTheme.bodyMedium
                                                   ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                color: _cellText,
-                                              ),
+                                                    fontWeight: FontWeight.w700,
+                                                    color: _cellText,
+                                                  ),
                                             ),
                                           ),
                                         ],
@@ -1836,52 +1826,59 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                               ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                        _radius),
+                                                      _radius,
+                                                    ),
                                                 child: Image.network(
                                                   url,
                                                   width: double.infinity,
                                                   height: 200,
                                                   fit: BoxFit.cover,
-                                                  loadingBuilder: (context,
-                                                      child, progress) {
-                                                    if (progress == null) {
-                                                      return child;
-                                                    }
-                                                    return Container(
-                                                      width: double.infinity,
-                                                      height: 200,
-                                                      decoration:
-                                                          BoxDecoration(
-                                                        color: const Color(
-                                                            0xFFF9FAFB),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(
-                                                                    _radius),
-                                                      ),
-                                                      child: const Center(
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                  errorBuilder:
-                                                      (_, __, ___) =>
-                                                          Container(
+                                                  loadingBuilder:
+                                                      (
+                                                        context,
+                                                        child,
+                                                        progress,
+                                                      ) {
+                                                        if (progress == null) {
+                                                          return child;
+                                                        }
+                                                        return Container(
+                                                          width:
+                                                              double.infinity,
+                                                          height: 200,
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(
+                                                              0xFFF9FAFB,
+                                                            ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  _radius,
+                                                                ),
+                                                          ),
+                                                          child: const Center(
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                ),
+                                                          ),
+                                                        );
+                                                      },
+                                                  errorBuilder: (_, __, ___) => Container(
                                                     width: double.infinity,
                                                     height: 200,
                                                     decoration: BoxDecoration(
                                                       color: const Color(
-                                                          0xFFFEF2F2),
+                                                        0xFFFEF2F2,
+                                                      ),
                                                       borderRadius:
-                                                          BorderRadius
-                                                              .circular(
-                                                                  _radius),
+                                                          BorderRadius.circular(
+                                                            _radius,
+                                                          ),
                                                       border: Border.all(
                                                         color: const Color(
-                                                            0xFFFCA5A5),
+                                                          0xFFFCA5A5,
+                                                        ),
                                                       ),
                                                     ),
                                                     child: const Column(
@@ -1893,8 +1890,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                           Icons
                                                               .broken_image_outlined,
                                                           size: 42,
-                                                          color:
-                                                              Color(0xFFDC2626),
+                                                          color: Color(
+                                                            0xFFDC2626,
+                                                          ),
                                                         ),
                                                         SizedBox(height: 8),
                                                         Text(
@@ -1902,7 +1900,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                           style: TextStyle(
                                                             fontSize: 12,
                                                             color: Color(
-                                                                0xFFDC2626),
+                                                              0xFFDC2626,
+                                                            ),
                                                           ),
                                                         ),
                                                       ],
@@ -1914,17 +1913,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                 bottom: 8,
                                                 right: 8,
                                                 child: Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 6,
-                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 6,
+                                                      ),
                                                   decoration: BoxDecoration(
                                                     color: Colors.black
                                                         .withOpacity(0.6),
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            20),
+                                                          20,
+                                                        ),
                                                   ),
                                                   child: const Row(
                                                     mainAxisSize:
@@ -1957,10 +1957,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                           width: double.infinity,
                                           height: 100,
                                           decoration: BoxDecoration(
-                                            color:
-                                                const Color(0xFFF9FAFB),
-                                            borderRadius:
-                                                BorderRadius.circular(_radius),
+                                            color: const Color(0xFFF9FAFB),
+                                            borderRadius: BorderRadius.circular(
+                                              _radius,
+                                            ),
                                           ),
                                           child: const Center(
                                             child: Text(
@@ -1988,12 +1988,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 44),
                             foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
                           child: const Text(
@@ -2045,18 +2042,19 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // HEADER dengan avatar
                   Row(
                     children: [
                       CircleAvatar(
                         radius: 26,
                         backgroundColor: _infoColor.withOpacity(0.12),
-                        backgroundImage: (profilePhoto != null &&
+                        backgroundImage:
+                            (profilePhoto != null &&
                                 profilePhoto.isNotEmpty &&
                                 profilePhoto != 'null')
                             ? NetworkImage(_buildImageUrl(profilePhoto))
                             : null,
-                        child: (profilePhoto == null ||
+                        child:
+                            (profilePhoto == null ||
                                 profilePhoto.isEmpty ||
                                 profilePhoto == 'null')
                             ? const Icon(
@@ -2178,10 +2176,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             'No. Rekening',
                             partner['bank_account_number'],
                           ),
-                          _dataRow(
-                            'Atas Nama',
-                            partner['bank_account_name'],
-                          ),
+                          _dataRow('Atas Nama', partner['bank_account_name']),
 
                           const SizedBox(height: 20),
                           _dialogSectionTitle(
@@ -2215,10 +2210,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 Navigator.pop(dialogContext);
                                 _viewDocuments(partner);
                               },
-                              icon: const Icon(
-                                Icons.folder_open,
-                                size: 16,
-                              ),
+                              icon: const Icon(Icons.folder_open, size: 16),
                               label: const Text(
                                 'Lihat Semua Berkas',
                                 style: TextStyle(fontSize: 13),
@@ -2232,18 +2224,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                   vertical: 12,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(_radius),
+                                  borderRadius: BorderRadius.circular(_radius),
                                 ),
                               ),
                             ),
                           ),
 
                           const SizedBox(height: 20),
-                          _dialogSectionTitle(
-                            'Status',
-                            Icons.info_outline,
-                          ),
+                          _dialogSectionTitle('Status', Icons.info_outline),
                           const SizedBox(height: 10),
                           _dataRow(
                             'Status Verifikasi',
@@ -2255,10 +2243,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             'Tanggal Verifikasi',
                             partner['verified_at'],
                           ),
-                          _dataRow(
-                            'Terdaftar Sejak',
-                            partner['created_at'],
-                          ),
+                          _dataRow('Terdaftar Sejak', partner['created_at']),
                         ],
                       ),
                     ),
@@ -2273,12 +2258,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 44),
                             foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                              borderRadius: BorderRadius.circular(_radius),
                             ),
                           ),
                           child: const Text(
@@ -2319,10 +2301,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   Widget _dataRow(String label, dynamic value) {
-    final text =
-        (value == null || value.toString().isEmpty || value == 'null')
-            ? '-'
-            : value.toString();
+    final text = (value == null || value.toString().isEmpty || value == 'null')
+        ? '-'
+        : value.toString();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -2394,8 +2375,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   child: const Center(
                     child: Text(
                       'Gagal memuat',
-                      style:
-                          TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                     ),
                   ),
                 ),
@@ -2408,7 +2388,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // BUILD
+  // BUILD — header selalu tampil, loading spinner di bawah header
+  //         (sama persis dengan AdminComplaintScreen)
   // ============================================================
 
   @override
@@ -2419,102 +2400,103 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         width: double.infinity,
         height: double.infinity,
         color: Theme.of(context).scaffoldBackgroundColor,
-        child: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: _accent),
-              )
-            : RefreshIndicator(
-                onRefresh: () async {
-                  if (_selectedTab == 'pending') {
-                    await _fetchUnverifiedMitra();
-                  } else if (_selectedTab == 'verified') {
-                    await _fetchVerifiedMitra();
-                  } else {
-                    await _fetchPendingSkills();
-                  }
-                },
-                color: _accent,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final isMobile = width < 700;
-                    final isTablet = width >= 700 && width < 1100;
+        child: RefreshIndicator(
+          onRefresh: () async {
+            if (_selectedTab == 'pending') {
+              await _fetchUnverifiedMitra();
+            } else if (_selectedTab == 'verified') {
+              await _fetchVerifiedMitra();
+            } else {
+              await _fetchPendingSkills();
+            }
+          },
+          color: _accent,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final isMobile = width < 700;
+              final isTablet = width >= 700 && width < 1100;
 
-                    final horizontalPadding =
-                        isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
-                    final verticalPadding = isMobile ? 16.0 : 28.0;
+              final horizontalPadding = isMobile
+                  ? 16.0
+                  : (isTablet ? 24.0 : 28.0);
+              final verticalPadding = isMobile ? 16.0 : 28.0;
 
-                    return SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
-                        vertical: verticalPadding,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(context, isMobile),
-                          const SizedBox(height: _gapAfterHeader),
-                          _buildTabSelector(isMobile),
-                          const SizedBox(height: _gapBetweenSections),
-
-                          if (_selectedTab == 'pending') ...[
-                            _summary(isMobile),
-                            const SizedBox(height: _gapBetweenSections),
-                            partners.isEmpty ? _empty() : _table(isMobile),
-                          ] else if (_selectedTab == 'verified') ...[
-                            _buildVerifiedList(isMobile),
-                          ] else ...[
-                            _buildPendingSkillsList(isMobile),
-                          ],
-
-                          if (!isLoading &&
-                              _selectedTab == 'pending' &&
-                              partners.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: partners.length,
-                              currentPage: _pendingPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _pendingPage = p),
-                              label: 'mitra',
-                            ),
-                          ] else if (_selectedTab == 'verified' &&
-                              verifiedPartners.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: verifiedPartners.length,
-                              currentPage: _verifiedPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _verifiedPage = p),
-                              label: 'mitra',
-                            ),
-                          ] else if (_selectedTab == 'pendingSkills' &&
-                              pendingSkillsList.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: pendingSkillsList.length,
-                              currentPage: _skillsPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _skillsPage = p),
-                              label: 'pengajuan',
-                            ),
-                          ],
-
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    );
-                  },
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
                 ),
-              ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // HEADER selalu tampil
+                    _buildHeader(context, isMobile),
+                    const SizedBox(height: _gapAfterHeader),
+
+                    if (isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 60),
+                          child: CircularProgressIndicator(color: _accent),
+                        ),
+                      )
+                    else ...[
+                      _buildTabSelector(isMobile),
+                      const SizedBox(height: _gapBetweenSections),
+
+                      if (_selectedTab == 'pending') ...[
+                        _summary(isMobile),
+                        const SizedBox(height: _gapBetweenSections),
+                        partners.isEmpty ? _empty() : _table(isMobile),
+                      ] else if (_selectedTab == 'verified') ...[
+                        _buildVerifiedList(isMobile),
+                      ] else ...[
+                        _buildPendingSkillsList(isMobile),
+                      ],
+
+                      if (_selectedTab == 'pending' && partners.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: partners.length,
+                          currentPage: _pendingPage,
+                          onPageChanged: (p) =>
+                              setState(() => _pendingPage = p),
+                          label: 'mitra',
+                        ),
+                      ] else if (_selectedTab == 'verified' &&
+                          verifiedPartners.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: verifiedPartners.length,
+                          currentPage: _verifiedPage,
+                          onPageChanged: (p) =>
+                              setState(() => _verifiedPage = p),
+                          label: 'mitra',
+                        ),
+                      ] else if (_selectedTab == 'pendingSkills' &&
+                          pendingSkillsList.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: pendingSkillsList.length,
+                          currentPage: _skillsPage,
+                          onPageChanged: (p) => setState(() => _skillsPage = p),
+                          label: 'pengajuan',
+                        ),
+                      ],
+                    ],
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
-
-  // ============================================================
-  // HEADER
-  // ============================================================
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
     final textTheme = Theme.of(context).textTheme;
@@ -2523,6 +2505,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: Text(
@@ -2532,30 +2515,38 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 ),
               ),
             ),
-            IconButton(
-              onPressed: () async {
-                if (_selectedTab == 'pending') {
-                  await _fetchUnverifiedMitra();
-                } else if (_selectedTab == 'verified') {
-                  await _fetchVerifiedMitra();
-                } else {
-                  await _fetchPendingSkills();
-                }
-                if (!mounted) return;
-                _message('Data diperbarui.');
-              },
-              icon: const Icon(Icons.refresh, size: 20, color: _mutedText),
-              tooltip: 'Refresh',
-              splashRadius: 22,
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                onPressed: () async {
+                  if (_selectedTab == 'pending') {
+                    await _fetchUnverifiedMitra();
+                  } else if (_selectedTab == 'verified') {
+                    await _fetchVerifiedMitra();
+                  } else {
+                    await _fetchPendingSkills();
+                  }
+                  if (!mounted) return;
+                  _message('Data diperbarui.');
+                },
+                icon: const Icon(Icons.refresh, size: 20, color: _mutedText),
+                tooltip: 'Refresh',
+                padding: EdgeInsets.zero,
+                splashRadius: 16,
+                constraints: const BoxConstraints.tightFor(
+                  width: 32,
+                  height: 32,
+                ),
+                visualDensity: VisualDensity.compact,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           _subtitleForTab(),
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
         ),
       ],
     );
@@ -2612,8 +2603,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               count: pendingSkillsList.length,
               isActive: _selectedTab == 'pendingSkills',
               activeColor: _purpleColor,
-              onTap: () =>
-                  setState(() => _selectedTab = 'pendingSkills'),
+              onTap: () => setState(() => _selectedTab = 'pendingSkills'),
             ),
           ),
         ],
@@ -2751,10 +2741,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                     items: _itemsPerPageOptions
-                        .map((n) => DropdownMenuItem<int>(
-                              value: n,
-                              child: Text('$n / hal'),
-                            ))
+                        .map(
+                          (n) => DropdownMenuItem<int>(
+                            value: n,
+                            child: Text('$n / hal'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) {
                       if (v == null) return;
@@ -3194,10 +3186,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color:
-                          onTap == null ? const Color(0xFF9CA3AF) : fgColor,
-                    ),
+                  fontWeight: FontWeight.w600,
+                  color: onTap == null ? const Color(0xFF9CA3AF) : fgColor,
+                ),
               ),
             ],
           ),
@@ -3246,9 +3237,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     if (isLoadingVerified && verifiedPartners.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: CircularProgressIndicator(color: _accent),
-        ),
+        child: Center(child: CircularProgressIndicator(color: _accent)),
       );
     }
 
@@ -3503,8 +3492,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             children: [
               Expanded(child: _verifiedName(p)),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: _successColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -3512,9 +3503,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 child: Text(
                   'Terverifikasi',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: _successColor,
-                      ),
+                    fontWeight: FontWeight.w700,
+                    color: _successColor,
+                  ),
                 ),
               ),
             ],
@@ -3555,10 +3546,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   icon: const Icon(Icons.person_search, size: 15),
                   label: const Text(
                     'Data Lengkap',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _infoColor,
@@ -3578,17 +3566,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   icon: const Icon(Icons.folder_open, size: 15),
                   label: const Text(
                     'Berkas',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 44),
                     foregroundColor: _purpleColor,
-                    side: BorderSide(
-                      color: _purpleColor.withOpacity(0.4),
-                    ),
+                    side: BorderSide(color: _purpleColor.withOpacity(0.4)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(_radius),
                     ),
@@ -3610,9 +3593,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     if (isLoadingPendingSkills && pendingSkillsList.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: CircularProgressIndicator(color: _accent),
-        ),
+        child: Center(child: CircularProgressIndicator(color: _accent)),
       );
     }
 
@@ -3807,17 +3788,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     width: 34,
                     height: 34,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.person,
-                      size: 18,
-                      color: _mutedText,
-                    ),
+                    errorBuilder: (_, __, ___) =>
+                        const Icon(Icons.person, size: 18, color: _mutedText),
                   )
-                : const Icon(
-                    Icons.person,
-                    size: 18,
-                    color: _mutedText,
-                  ),
+                : const Icon(Icons.person, size: 18, color: _mutedText),
           ),
         ),
         const SizedBox(width: 8),
@@ -3986,10 +3960,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              color: _mutedText,
-            ),
+            style: const TextStyle(fontSize: 13, color: _mutedText),
           ),
         ],
       ),
@@ -4005,14 +3976,10 @@ class _FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
   final String title;
 
-  const _FullScreenImageViewer({
-    required this.imageUrl,
-    required this.title,
-  });
+  const _FullScreenImageViewer({required this.imageUrl, required this.title});
 
   @override
-  State<_FullScreenImageViewer> createState() =>
-      _FullScreenImageViewerState();
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
 }
 
 class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
@@ -4052,10 +4019,7 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
         backgroundColor: const Color(0xFF111827),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          widget.title,
-          style: const TextStyle(fontSize: 16),
-        ),
+        title: Text(widget.title, style: const TextStyle(fontSize: 16)),
         actions: [
           if (_isZoomed)
             IconButton(
@@ -4085,8 +4049,7 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.broken_image,
-                      color: Color(0xFF9CA3AF), size: 64),
+                  Icon(Icons.broken_image, color: Color(0xFF9CA3AF), size: 64),
                   SizedBox(height: 12),
                   Text(
                     'Gagal memuat gambar',

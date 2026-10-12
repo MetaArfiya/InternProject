@@ -90,14 +90,26 @@ class SystemSettingsPage extends StatefulWidget {
 
 class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS (disamakan dengan AdminVerificationScreen)
   // ============================================================
 
   static const Color _accent = Color(0xFFF04444);
-  static const Color _bg = Color(0xFFF5F7FB);
-  static const Color _border = Color(0xFFE5E7EB);
-  static const Color _darkText = Color(0xFF0F172A);
+  static const Color _successColor = Color(0xFF16A34A);
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _infoColor = Color(0xFF2563EB);
+  static const Color _warningColor = Color(0xFFD97706);
+  static const Color _purpleColor = Color(0xFF7C3AED);
+
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
   static const Color _mutedText = Color(0xFF64748B);
+
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _cardRadius = 14;
+  static const double _radius = 10;
 
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
@@ -290,13 +302,13 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
         final horizontalPadding =
-            isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+            isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: _bg,
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: RefreshIndicator(
             onRefresh: _loadSettings,
             color: _accent,
@@ -306,27 +318,24 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPageHeader(isMobile),
-                      SizedBox(height: isMobile ? 18 : 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPageHeader(context, isMobile),
+                  const SizedBox(height: _gapAfterHeader),
 
-                      if (_isLoading)
-                        _buildLoading()
-                      else if (_errorMessage != null)
-                        _buildError()
-                      else ...[
-                        _buildMainContent(isMobile: isMobile),
-                        SizedBox(height: isMobile ? 16 : 20),
-                        _buildActionButtons(isMobile),
-                      ],
-                    ],
-                  ),
-                ),
+                  if (_isLoading)
+                    _buildLoading()
+                  else if (_errorMessage != null)
+                    _buildError()
+                  else ...[
+                    _buildMainContent(isMobile: isMobile),
+                    const SizedBox(height: _gapBetweenSections),
+                    _buildActionButtons(isMobile),
+                  ],
+
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
           ),
@@ -336,16 +345,44 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   }
 
   // ============================================================
+  // HEADER — disamakan dgn AdminVerificationScreen:
+  //   • Judul: headlineSmall + bold
+  //   • Subtitle: bodyMedium + grey.shade600
+  //   • Jarak judul → subtitle = 6 px
+  // ============================================================
+  Widget _buildPageHeader(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pengaturan Sistem',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Konfigurasi aturan poin dan komisi platform',
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
   // MAIN CONTENT — 2 kolom di web, stack di mobile
   // ============================================================
-
   Widget _buildMainContent({required bool isMobile}) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPointSettingsCard(),
-          const SizedBox(height: 16),
+          const SizedBox(height: _gapBetweenSections),
           _buildCommissionCard(),
         ],
       );
@@ -362,77 +399,13 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   }
 
   // ============================================================
-  // HEADER
-  // ============================================================
-
-  Widget _buildPageHeader(bool isMobile) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: isMobile ? 42 : 48,
-          height: isMobile ? 42 : 48,
-          decoration: BoxDecoration(
-            color: _accent.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.settings_outlined,
-            color: _accent,
-            size: isMobile ? 22 : 26,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Pengaturan Sistem',
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 26,
-                  fontWeight: FontWeight.w700,
-                  color: _darkText,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Konfigurasi aturan poin dan komisi platform',
-                style: TextStyle(
-                  fontSize: isMobile ? 12.5 : 13,
-                  color: _mutedText,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // LOADING
+  // LOADING — disamakan dgn AdminVerificationScreen
   // ============================================================
   Widget _buildLoading() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border),
-      ),
-      child: const Column(
-        children: [
-          CircularProgressIndicator(color: _accent),
-          SizedBox(height: 16),
-          Text(
-            'Mengambil konfigurasi sistem...',
-            style: TextStyle(color: _mutedText, fontSize: 13),
-          ),
-        ],
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: CircularProgressIndicator(color: _accent),
       ),
     );
   }
@@ -446,15 +419,15 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: const Color(0xFFFCA5A5)),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.error_outline,
-            size: 48,
-            color: Color(0xFFDC2626),
+            size: 42,
+            color: _dangerColor,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -462,7 +435,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: Color(0xFF7F1D1D),
-              fontSize: 14,
+              fontSize: 13.5,
             ),
           ),
           const SizedBox(height: 8),
@@ -485,7 +458,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(_radius),
               ),
             ),
           ),
@@ -512,32 +485,32 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           const SizedBox(height: 18),
           _buildPointSetting(
             icon: Icons.check_circle_outline,
-            iconColor: const Color(0xFF00A86B),
+            iconColor: _successColor,
             title: 'Poin per pekerjaan selesai',
             controller: _jobPointController,
             suffix: 'poin',
             borderColor: const Color(0xFF9DE7D1),
-            textColor: const Color(0xFF00A86B),
+            textColor: _successColor,
           ),
           const SizedBox(height: 14),
           _buildPointSetting(
             icon: Icons.cancel_outlined,
-            iconColor: const Color(0xFFEF4444),
+            iconColor: _dangerColor,
             title: 'Poin dipotong jika dibatalkan',
             controller: _cancelPointController,
             suffix: 'poin',
             borderColor: const Color(0xFFFFB5B5),
-            textColor: const Color(0xFFEF4444),
+            textColor: _dangerColor,
           ),
           const SizedBox(height: 14),
           _buildPointSetting(
             icon: Icons.star_outline,
-            iconColor: const Color(0xFFF59E0B),
+            iconColor: _warningColor,
             title: 'Bonus poin rating ≥ 4.8',
             controller: _ratingBonusController,
             suffix: 'poin',
             borderColor: const Color(0xFFFFD89A),
-            textColor: const Color(0xFFF59E0B),
+            textColor: _warningColor,
           ),
           const SizedBox(height: 18),
           _buildPointSummary(),
@@ -562,8 +535,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
@@ -655,8 +628,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -666,32 +639,32 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
-              color: _darkText,
+              color: _cellText,
             ),
           ),
           const SizedBox(height: 10),
           _buildSummaryRow(
             icon: Icons.check_circle,
-            iconColor: const Color(0xFF00A86B),
+            iconColor: _successColor,
             label: 'Selesai kerja',
             value: '+$jobPoint poin',
-            valueColor: const Color(0xFF00A86B),
+            valueColor: _successColor,
           ),
           const SizedBox(height: 6),
           _buildSummaryRow(
             icon: Icons.cancel,
-            iconColor: const Color(0xFFEF4444),
+            iconColor: _dangerColor,
             label: 'Batalkan',
             value: '-$cancelPoint poin',
-            valueColor: const Color(0xFFEF4444),
+            valueColor: _dangerColor,
           ),
           const SizedBox(height: 6),
           _buildSummaryRow(
             icon: Icons.star,
-            iconColor: const Color(0xFFF59E0B),
+            iconColor: _warningColor,
             label: 'Bonus rating',
             value: '+$ratingBonus poin',
-            valueColor: const Color(0xFFF59E0B),
+            valueColor: _warningColor,
           ),
         ],
       ),
@@ -748,8 +721,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _border),
+              borderRadius: BorderRadius.circular(_radius),
+              border: Border.all(color: _tableBorder),
             ),
             child: Row(
               children: [
@@ -868,8 +841,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -887,7 +860,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: _darkText,
+                  color: _cellText,
                 ),
               ),
             ],
@@ -896,7 +869,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           _buildSimulationRow(
             'Transaksi',
             'Rp 200.000',
-            const Color(0xFF64748B),
+            _mutedText,
           ),
           const SizedBox(height: 6),
           _buildSimulationRow(
@@ -908,7 +881,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           _buildSimulationRow(
             'Mitra terima',
             'Rp ${_formatCurrency(partnerReceive)}',
-            const Color(0xFF00A86B),
+            _successColor,
           ),
         ],
       ),
@@ -949,8 +922,15 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: child,
     );
@@ -973,7 +953,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           height: 38,
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_radius),
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
@@ -987,7 +967,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: _darkText,
+                  color: _cellText,
                 ),
               ),
               const SizedBox(height: 3),
@@ -1062,7 +1042,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           disabledForegroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_radius),
           ),
           elevation: 0,
         ),
@@ -1096,9 +1076,9 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           foregroundColor: _mutedText,
           backgroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          side: const BorderSide(color: _border),
+          side: const BorderSide(color: _tableBorder),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_radius),
           ),
         ),
       ),
@@ -1238,12 +1218,14 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   void _showMessage(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : const Color(0xFF16A34A),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? _dangerColor : _successColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 }

@@ -31,8 +31,8 @@ class _AdminLayoutState extends State<AdminLayout> {
   // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);       // orange
-  static const Color _accentLight = Color(0xFFFB923C);  // orange muda
+  static const Color _accent = Color(0xFFF97316);
+  static const Color _accentLight = Color(0xFFFB923C);
   static const Color _successColor = Color(0xFF16A34A);
   static const Color _dangerColor = Color(0xFFDC2626);
   static const Color _tableBorder = Color(0xFFE5E7EB);
@@ -43,10 +43,9 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   static const Color _bg = Color(0xFFF4F7FB);
 
-  // Tokens khusus sidebar gelap
-  static const Color _sidebarBg = Color(0xFF0F172A);      // navy gelap
-  static const Color _sidebarText = Color(0xFFE2E8F0);    // abu terang
-  static const Color _sidebarMuted = Color(0xFF94A3B8);   // abu redup
+  static const Color _sidebarBg = Color(0xFF0F172A);
+  static const Color _sidebarText = Color(0xFFE2E8F0);
+  static const Color _sidebarMuted = Color(0xFF94A3B8);
 
   static const double _radius = 10;
 
@@ -342,34 +341,36 @@ class _AdminLayoutState extends State<AdminLayout> {
             )
           : null,
 
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (!isMobile)
-            SizedBox(
-              width: isTablet ? 240 : 260,
-              child: _buildSidebar(context),
-            ),
+      body: SafeArea(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!isMobile)
+              SizedBox(
+                width: isTablet ? 230 : 250,
+                child: _buildSidebar(context),
+              ),
 
-          Expanded(
-            child: IndexedStack(
-              index: _getMenuIndex(),
-              children: [
-                const AdminVerificationScreen(),
-                const AdminComplaintScreen(),
-                AdminDailyReportScreen(
-                  key: ValueKey('report_$_reportRefreshKey'),
-                ),
-                const AdminRatingScreen(),
-                const AdminPaymentScreen(),
-                AdminProfileScreen(
-                  onProfileUpdated: _loadAdminProfile,
-                  onLogout: () => _showLogoutDialog(context),
-                ),
-              ],
+            Expanded(
+              child: IndexedStack(
+                index: _getMenuIndex(),
+                children: [
+                  const AdminVerificationScreen(),
+                  const AdminComplaintScreen(),
+                  AdminDailyReportScreen(
+                    key: ValueKey('report_$_reportRefreshKey'),
+                  ),
+                  const AdminRatingScreen(),
+                  const AdminPaymentScreen(),
+                  AdminProfileScreen(
+                    onProfileUpdated: _loadAdminProfile,
+                    onLogout: () => _showLogoutDialog(context),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
 
       bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
@@ -481,9 +482,6 @@ class _AdminLayoutState extends State<AdminLayout> {
         children: [
           const SizedBox(height: 22),
 
-          // ==========================================
-          // PROFIL ADMIN
-          // ==========================================
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -519,9 +517,6 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           const SizedBox(height: 28),
 
-          // ==========================================
-          // MENU
-          // ==========================================
           _menuItem(
             context: context,
             icon: Icons.verified_outlined,
@@ -573,9 +568,6 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           const Spacer(),
 
-          // ==========================================
-          // LOGOUT
-          // ==========================================
           _logoutButton(context),
 
           const SizedBox(height: 20),
@@ -598,7 +590,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // MENU ITEM — sidebar gelap
+  // MENU ITEM
   // =========================================================
 
   Widget _menuItem({
@@ -671,7 +663,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // LOGOUT BUTTON — sidebar gelap
+  // LOGOUT BUTTON
   // =========================================================
 
   Widget _logoutButton(BuildContext context) {

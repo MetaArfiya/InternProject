@@ -14,6 +14,31 @@ class SuperAdminAnalyticsPage extends StatefulWidget {
 
 class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // ================================================================
+  // DESIGN TOKENS (disamakan dengan AdminVerificationScreen)
+  // ================================================================
+
+  static const Color _accent = Color(0xFFF97316);
+  static const Color _successColor = Color(0xFF16A34A);
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _infoColor = Color(0xFF2563EB);
+  static const Color _warningColor = Color(0xFFD97706);
+  static const Color _purpleColor = Color(0xFF7C3AED);
+
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
+  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _cellText = Color(0xFF111827);
+  static const Color _mutedText = Color(0xFF64748B);
+
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _cardRadius = 14;
+  static const double _radius = 10;
+
+  static const double _mobileBreakpoint = 700;
+  static const double _tabletBreakpoint = 1100;
+
+  // ================================================================
   // STATE - ANALYTICS
   // ================================================================
   bool _isLoading = true;
@@ -45,18 +70,6 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   Map<String, dynamic> _paymentPerStatus = {};
   List<dynamic> _paymentChart = [];
   List<dynamic> _paymentTopMitra = [];
-
-  // ================================================================
-  // DESIGN TOKENS
-  // ================================================================
-
-  static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100;
-
-  static const Color _bg = Color(0xFFF5F7FB);
-  static const Color _border = Color(0xFFE5E7EB);
-  static const Color _darkText = Color(0xFF0F172A);
-  static const Color _mutedText = Color(0xFF64748B);
 
   // ================================================================
   // LIFECYCLE
@@ -164,7 +177,8 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
         // PAYMENT
         // ============================================================
         if (overviewData != null) {
-          _paymentTotalPembayaran = _toDouble(overviewData['total_pembayaran']);
+          _paymentTotalPembayaran =
+              _toDouble(overviewData['total_pembayaran']);
           _paymentTotalKomisi = _toDouble(overviewData['total_komisi']);
           _paymentTotalMitraEarning =
               _toDouble(overviewData['total_mitra_earning']);
@@ -257,27 +271,23 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
             width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
         final horizontalPadding =
-            isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+            isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: _bg,
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: RefreshIndicator(
             onRefresh: _loadAll,
+            color: _accent,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: _buildContent(width, isMobile),
-                ),
-              ),
+              child: _buildContent(context, isMobile),
             ),
           ),
         );
@@ -285,12 +295,12 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
     );
   }
 
-  Widget _buildContent(double width, bool isMobile) {
+  Widget _buildContent(BuildContext context, bool isMobile) {
     if (_isLoading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 100),
+        padding: EdgeInsets.symmetric(vertical: 60),
         child: Center(
-          child: CircularProgressIndicator(color: Color(0xFFF97316)),
+          child: CircularProgressIndicator(color: _accent),
         ),
       );
     }
@@ -305,8 +315,8 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
         // ==================================================
         // HEADER
         // ==================================================
-        _buildHeader(isMobile),
-        SizedBox(height: isMobile ? 20 : 26),
+        _buildHeader(context, isMobile),
+        const SizedBox(height: _gapAfterHeader),
 
         // ==================================================
         // GENERAL STATS
@@ -347,25 +357,28 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           ],
         ),
 
-        SizedBox(height: isMobile ? 18 : 22),
+        const SizedBox(height: _gapBetweenSections),
 
         // ==================================================
         // JOB CHART
         // ==================================================
         _JobChartCard(data: _jobSelesaiPerHari),
 
-        SizedBox(height: isMobile ? 22 : 28),
+        const SizedBox(height: _gapBetweenSections),
 
         // ==================================================
         // PEMBAYARAN
         // ==================================================
         _buildSectionLabel('Analytics Pembayaran', isMobile),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Ringkasan transaksi dan pencairan dana platform',
-          style: TextStyle(fontSize: 12, color: _mutedText),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 12,
+                color: _mutedText,
+              ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
         _buildStatGrid(
           isMobile: isMobile,
@@ -401,7 +414,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           ],
         ),
 
-        SizedBox(height: isMobile ? 18 : 22),
+        const SizedBox(height: _gapBetweenSections),
 
         // ==================================================
         // PAYMENT CHART + TOP MITRA
@@ -412,7 +425,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           right: _TopMitraCard(data: _paymentTopMitra),
         ),
 
-        SizedBox(height: isMobile ? 18 : 22),
+        const SizedBox(height: _gapBetweenSections),
 
         // ==================================================
         // BOTTOM ROW
@@ -423,34 +436,36 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           second: _UserGrowthCard(data: _pertumbuhanPengguna),
           third: _PaymentStatusCard(data: _paymentPerStatus),
         ),
+
+        const SizedBox(height: 24),
       ],
     );
   }
 
   // ================================================================
-  // HEADER
+  // HEADER — disamakan dgn AdminVerificationScreen:
+  //   • Judul: headlineSmall + bold
+  //   • Subtitle: bodyMedium + grey.shade600
+  //   • Jarak judul → subtitle = 6 px
   // ================================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Analytics Platform',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
-            color: _darkText,
-            height: 1.2,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Ringkasan performa SiapBantu.com — $_periode',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: _mutedText,
-            height: 1.4,
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -462,23 +477,23 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // ================================================================
 
   Widget _buildSectionLabel(String text, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
         Container(
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            color: const Color(0xFFF97316),
+            color: _accent,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           text,
-          style: TextStyle(
-            fontSize: isMobile ? 15 : 17,
+          style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF1F2937),
+            color: _cellText,
           ),
         ),
       ],
@@ -530,11 +545,28 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(data.icon, size: 21, color: data.color),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,46 +577,35 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF8092A9),
-                    letterSpacing: 0.3,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: _mutedText,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   data.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: data.color,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   data.description,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 10.5,
                     color: Color(0xFF94A3B8),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: data.color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(data.icon, size: 20, color: data.color),
           ),
         ],
       ),
@@ -604,7 +625,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       return Column(
         children: [
           left,
-          const SizedBox(height: 16),
+          const SizedBox(height: _gapBetweenSections),
           right,
         ],
       );
@@ -629,9 +650,9 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       return Column(
         children: [
           first,
-          const SizedBox(height: 16),
+          const SizedBox(height: _gapBetweenSections),
           second,
-          const SizedBox(height: 16),
+          const SizedBox(height: _gapBetweenSections),
           third,
         ],
       );
@@ -658,7 +679,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: const Color(0xFFFCA5A5)),
       ),
       child: Column(
@@ -666,7 +687,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           const Icon(
             Icons.error_outline_rounded,
             size: 48,
-            color: Color(0xFFDC2626),
+            color: _dangerColor,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -694,11 +715,11 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF97316),
+              backgroundColor: _accent,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(_radius),
               ),
             ),
           ),

@@ -20,25 +20,23 @@ class DashboardHeader extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 700;
+        final textTheme = Theme.of(context).textTheme;
 
         if (isMobile) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Pekerjaan Saya',
-                style: TextStyle(
-                  fontSize: 22,
+                style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.grey900,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Pantau status semua jasa yang kamu posting',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.grey500,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 16),
@@ -53,24 +51,21 @@ class DashboardHeader extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Pekerjaan Saya',
-                    style: TextStyle(
-                      fontSize: 22,
+                    style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.grey900,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
                     'Pantau status semua jasa yang kamu posting',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.grey500,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],

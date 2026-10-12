@@ -22,14 +22,26 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   String? _errorMessage;
 
   // ============================================================
-  // DESIGN TOKENS
+  // DESIGN TOKENS (disamakan dengan AdminVerificationScreen)
   // ============================================================
 
   static const Color _accent = Color(0xFF2563EB);
-  static const Color _bg = Color(0xFFF5F7FB);
-  static const Color _borderColor = Color(0xFFE5E7EB);
+  static const Color _successColor = Color(0xFF16A34A);
+  static const Color _dangerColor = Color(0xFFDC2626);
+  static const Color _infoColor = Color(0xFF2563EB);
+  static const Color _warningColor = Color(0xFFD97706);
+  static const Color _purpleColor = Color(0xFF7C3AED);
+
+  static const Color _tableBorder = Color(0xFFE5E7EB);
+  static const Color _tableDivider = Color(0xFFF3F4F6);
   static const Color _headerText = Color(0xFF6B7280);
   static const Color _cellText = Color(0xFF111827);
+  static const Color _mutedText = Color(0xFF64748B);
+
+  static const double _gapAfterHeader = 16;
+  static const double _gapBetweenSections = 16;
+  static const double _cardRadius = 14;
+  static const double _radius = 10;
 
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
@@ -154,15 +166,17 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isMobile = width < _mobileBreakpoint;
-        final isTablet = width >= _mobileBreakpoint && width < _tabletBreakpoint;
+        final isTablet =
+            width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
-        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+        final horizontalPadding =
+            isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: _bg,
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: RefreshIndicator(
             onRefresh: _loadAdmins,
             color: _accent,
@@ -172,32 +186,27 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile),
-                      SizedBox(height: isMobile ? 18 : 24),
-                      _buildSearchAndAction(isMobile),
-                      SizedBox(height: isMobile ? 16 : 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, isMobile),
+                  const SizedBox(height: _gapAfterHeader),
+                  _buildSearchAndAction(isMobile),
+                  const SizedBox(height: _gapBetweenSections),
 
-                      if (_isLoading)
-                        _buildLoading()
-                      else if (_errorMessage != null)
-                        _buildError()
-                      else if (_filteredAdmins.isEmpty)
-                        _buildEmptyState()
-                      else if (isMobile)
-                        _buildMobileList()
-                      else
-                        _buildDesktopTable(),
+                  if (_isLoading)
+                    _buildLoading()
+                  else if (_errorMessage != null)
+                    _buildError()
+                  else if (_filteredAdmins.isEmpty)
+                    _buildEmptyState()
+                  else if (isMobile)
+                    _buildMobileList()
+                  else
+                    _buildDesktopTable(),
 
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
           ),
@@ -207,29 +216,29 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // HEADER
+  // HEADER — disamakan dgn AdminVerificationScreen:
+  //   • Judul: headlineSmall + bold
+  //   • Subtitle: bodyMedium + grey.shade600
+  //   • Jarak judul → subtitle = 6 px
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Kelola Admin',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
-            height: 1.2,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Kelola akun dan akses administrator platform.',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: const Color(0xFF64748B),
-            height: 1.4,
+          style: textTheme.bodyMedium?.copyWith(
+            color: Colors.grey.shade600,
           ),
         ),
       ],
@@ -266,18 +275,18 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
       height: 46,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor),
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(fontSize: 13.5, color: Color(0xFF334155)),
+        style: const TextStyle(fontSize: 13, color: _cellText),
         decoration: const InputDecoration(
           hintText: 'Cari nama, email, atau nomor telepon...',
           hintStyle: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
           prefixIcon: Icon(
             Icons.search,
-            color: Color(0xFF6B7280),
+            color: _headerText,
             size: 20,
           ),
           border: InputBorder.none,
@@ -303,7 +312,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_radius),
           ),
         ),
       ),
@@ -311,27 +320,14 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // LOADING
+  // LOADING — disamakan dgn AdminVerificationScreen
   // ============================================================
 
   Widget _buildLoading() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
-      ),
-      child: const Column(
-        children: [
-          CircularProgressIndicator(color: _accent),
-          SizedBox(height: 16),
-          Text(
-            'Mengambil data admin...',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-          ),
-        ],
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: CircularProgressIndicator(color: _accent),
       ),
     );
   }
@@ -346,7 +342,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: const Color(0xFFFCA5A5)),
       ),
       child: Column(
@@ -354,7 +350,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           const Icon(
             Icons.error_outline,
             size: 42,
-            color: Color(0xFFDC2626),
+            color: _dangerColor,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -362,7 +358,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: Color(0xFF7F1D1D),
-              fontSize: 14,
+              fontSize: 13.5,
             ),
           ),
           const SizedBox(height: 8),
@@ -385,7 +381,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(_radius),
               ),
             ),
           ),
@@ -395,17 +391,17 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // EMPTY
+  // EMPTY — disamakan dgn _buildEmptyCard di AdminVerificationScreen
   // ============================================================
 
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 48),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         children: [
@@ -425,10 +421,10 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           const SizedBox(height: 14),
           const Text(
             'Admin tidak ditemukan',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF374151),
               fontSize: 13,
+              color: _mutedText,
             ),
           ),
         ],
@@ -437,7 +433,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // WEB — TABEL
+  // WEB — TABEL (disamakan dgn tabel AdminVerificationScreen)
   // ============================================================
 
   Widget _buildDesktopTable() {
@@ -446,47 +442,86 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor),
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildTableHeaderRow(),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
-
-          for (int i = 0; i < admins.length; i++) ...[
-            _buildTableDataRow(admins[i]),
-            if (i != admins.length - 1)
-              const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
-          ],
+          ...List.generate(
+            admins.length,
+            (i) => _buildTableDataRow(admins[i]),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildTableHeaderRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
-        children: [
-          Expanded(flex: 3, child: _headerCell('Admin')),
-          Expanded(flex: 3, child: _headerCell('Kontak')),
-          Expanded(flex: 2, child: _headerCell('Status')),
-          Expanded(flex: 3, child: _headerCell('Login Terakhir')),
-          Expanded(flex: 2, child: _headerCell('Aksi')),
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(_radius)),
       ),
-    );
-  }
-
-  Widget _headerCell(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: _headerText,
+      child: const Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              'Admin',
+              style: TextStyle(
+                fontSize: 12,
+                color: _headerText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              'Kontak',
+              style: TextStyle(
+                fontSize: 12,
+                color: _headerText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Status',
+              style: TextStyle(
+                fontSize: 12,
+                color: _headerText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              'Login Terakhir',
+              style: TextStyle(
+                fontSize: 12,
+                color: _headerText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Aksi',
+              style: TextStyle(
+                fontSize: 12,
+                color: _headerText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -498,8 +533,11 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     final status = _getStatus(admin);
     final lastLogin = _formatDate(admin['last_login_at']);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: _tableDivider)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -521,7 +559,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           color: _cellText,
                         ),
                       ),
@@ -529,7 +567,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                       const Text(
                         'Admin',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 11,
                           color: Color(0xFF9CA3AF),
                         ),
                       ),
@@ -562,7 +600,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 11,
                     color: Color(0xFF9CA3AF),
                   ),
                 ),
@@ -588,7 +626,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 12.5,
-                color: Color(0xFF475569),
+                color: _cellText,
                 height: 1.3,
               ),
             ),
@@ -609,7 +647,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                 _iconButton(
                   icon: Icons.delete_outline,
                   tooltip: 'Hapus',
-                  color: const Color(0xFFDC2626),
+                  color: _dangerColor,
                   onTap: () => _deleteAdmin(admin),
                 ),
               ],
@@ -678,8 +716,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: _tableBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,8 +738,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: Color(0xFF111827),
+                        fontSize: 13,
+                        color: _cellText,
                         height: 1.25,
                       ),
                     ),
@@ -709,7 +747,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     const Text(
                       'Admin',
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 11,
                         color: Color(0xFF9CA3AF),
                       ),
                     ),
@@ -722,7 +760,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
 
           _mobileInfo(Icons.email_outlined, email),
@@ -732,7 +770,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           _mobileInfo(Icons.access_time_outlined, lastLogin),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 10),
 
           // AKSI
@@ -747,11 +785,11 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     style: TextStyle(fontSize: 12.5),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF334155),
+                    foregroundColor: const Color(0xFF374151),
                     side: const BorderSide(color: Color(0xFFD1D5DB)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(_radius),
                     ),
                   ),
                 ),
@@ -766,11 +804,11 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     style: TextStyle(fontSize: 12.5),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFDC2626),
+                    foregroundColor: _dangerColor,
                     side: const BorderSide(color: Color(0xFFFCA5A5)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(_radius),
                     ),
                   ),
                 ),
@@ -795,7 +833,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF475569),
+              color: _cellText,
               height: 1.35,
             ),
           ),
@@ -851,9 +889,11 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     final active = status == 'Aktif';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: active ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+        color: active
+            ? _successColor.withOpacity(0.12)
+            : const Color(0xFFCBD5E1).withOpacity(0.4),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -863,9 +903,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: active
-                  ? const Color(0xFF16A34A)
-                  : const Color(0xFF9CA3AF),
+              color: active ? _successColor : const Color(0xFF9CA3AF),
               shape: BoxShape.circle,
             ),
           ),
@@ -873,11 +911,9 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           Text(
             status,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: active
-                  ? const Color(0xFF15803D)
-                  : const Color(0xFF64748B),
+              color: active ? const Color(0xFF15803D) : _mutedText,
             ),
           ),
         ],
@@ -910,6 +946,47 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     } catch (_) {
       return value.toString();
     }
+  }
+
+  // ============================================================
+  // DIALOG HEADER HELPER (disamakan dgn AdminVerificationScreen)
+  // ============================================================
+
+  Widget _dialogHeader(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: _cellText,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close, size: 20, color: _headerText),
+          splashRadius: 22,
+        ),
+      ],
+    );
   }
 
   // ============================================================
@@ -946,47 +1023,12 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // HEADER
-                      Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: _accent.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.person_add_alt_1,
-                              color: _accent,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Tambah Admin',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: isSubmitting
-                                ? null
-                                : () => Navigator.pop(dialogContext),
-                            icon: const Icon(
-                              Icons.close,
-                              size: 20,
-                              color: Color(0xFF6B7280),
-                            ),
-                            splashRadius: 22,
-                          ),
-                        ],
+                      _dialogHeader(
+                        dialogContext,
+                        icon: Icons.person_add_alt_1,
+                        color: _accent,
+                        title: 'Tambah Admin',
                       ),
-
                       const SizedBox(height: 12),
                       const Divider(height: 1),
                       const SizedBox(height: 16),
@@ -1050,7 +1092,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                   color: Color(0xFFD1D5DB),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: const Text(
@@ -1174,7 +1217,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: isSubmitting
@@ -1264,47 +1308,12 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // HEADER
-                      Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: _accent.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.edit_outlined,
-                              color: _accent,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Edit Admin',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: isSubmitting
-                                ? null
-                                : () => Navigator.pop(dialogContext),
-                            icon: const Icon(
-                              Icons.close,
-                              size: 20,
-                              color: Color(0xFF6B7280),
-                            ),
-                            splashRadius: 22,
-                          ),
-                        ],
+                      _dialogHeader(
+                        dialogContext,
+                        icon: Icons.edit_outlined,
+                        color: _accent,
+                        title: 'Edit Admin',
                       ),
-
                       const SizedBox(height: 12),
                       const Divider(height: 1),
                       const SizedBox(height: 16),
@@ -1349,15 +1358,16 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF9FAFB),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: _borderColor),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
+                                  border: Border.all(color: _tableBorder),
                                 ),
                                 child: Row(
                                   children: [
                                     const Icon(
                                       Icons.toggle_on_outlined,
                                       size: 20,
-                                      color: Color(0xFF6B7280),
+                                      color: _headerText,
                                     ),
                                     const SizedBox(width: 10),
                                     const Expanded(
@@ -1405,7 +1415,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                   color: Color(0xFFD1D5DB),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: const Text(
@@ -1517,7 +1528,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: isSubmitting
@@ -1571,120 +1583,165 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) {
         bool isDeleting = false;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Row(
-                children: [
-                  Icon(
-                    Icons.delete_outline,
-                    color: Color(0xFFDC2626),
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Hapus Admin',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
               ),
-              content: Text(
-                'Apakah kamu yakin ingin menghapus admin "$name"?\n\n'
-                'Tindakan ini tidak dapat dibatalkan.',
-                style: const TextStyle(fontSize: 13, height: 1.5),
-              ),
-              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              actions: [
-                TextButton(
-                  onPressed: isDeleting
-                      ? null
-                      : () => Navigator.pop(dialogContext),
-                  child: const Text(
-                    'Batal',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: isDeleting
-                      ? null
-                      : () async {
-                          setDialogState(() => isDeleting = true);
-
-                          try {
-                            final response = await ApiService.delete(
-                              '/superadmin/admins/$id',
-                            );
-
-                            if (response.statusCode == 200) {
-                              if (dialogContext.mounted) {
-                                Navigator.pop(dialogContext);
-                              }
-
-                              _showMessage('Admin berhasil dihapus.');
-                              await _loadAdmins();
-                            } else {
-                              String message = 'Gagal menghapus admin.';
-                              try {
-                                final body =
-                                    jsonDecode(response.body);
-                                message =
-                                    body['message']?.toString() ?? message;
-                              } catch (_) {}
-
-                              if (dialogContext.mounted) {
-                                setDialogState(() => isDeleting = false);
-                              }
-
-                              _showMessage(message, isError: true);
-                            }
-                          } catch (e) {
-                            if (dialogContext.mounted) {
-                              setDialogState(() => isDeleting = false);
-                            }
-
-                            _showMessage(
-                              'Terjadi kesalahan: $e',
-                              isError: true,
-                            );
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: isDeleting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Hapus',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _dialogHeader(
+                        dialogContext,
+                        icon: Icons.delete_outline,
+                        color: _dangerColor,
+                        title: 'Hapus Admin',
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Apakah kamu yakin ingin menghapus admin "$name"?\n\n'
+                        'Tindakan ini tidak dapat dibatalkan.',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF374151),
+                          height: 1.5,
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: isDeleting
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 46),
+                                foregroundColor: const Color(0xFF374151),
+                                side: const BorderSide(
+                                  color: Color(0xFFD1D5DB),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
+                                ),
+                              ),
+                              child: const Text(
+                                'Batal',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              onPressed: isDeleting
+                                  ? null
+                                  : () async {
+                                      setDialogState(
+                                          () => isDeleting = true);
+
+                                      try {
+                                        final response =
+                                            await ApiService.delete(
+                                          '/superadmin/admins/$id',
+                                        );
+
+                                        if (response.statusCode == 200) {
+                                          if (dialogContext.mounted) {
+                                            Navigator.pop(dialogContext);
+                                          }
+
+                                          _showMessage(
+                                              'Admin berhasil dihapus.');
+                                          await _loadAdmins();
+                                        } else {
+                                          String message =
+                                              'Gagal menghapus admin.';
+                                          try {
+                                            final body =
+                                                jsonDecode(response.body);
+                                            message =
+                                                body['message']?.toString() ??
+                                                    message;
+                                          } catch (_) {}
+
+                                          if (dialogContext.mounted) {
+                                            setDialogState(
+                                                () => isDeleting = false);
+                                          }
+
+                                          _showMessage(message,
+                                              isError: true);
+                                        }
+                                      } catch (e) {
+                                        if (dialogContext.mounted) {
+                                          setDialogState(
+                                              () => isDeleting = false);
+                                        }
+
+                                        _showMessage(
+                                          'Terjadi kesalahan: $e',
+                                          isError: true,
+                                        );
+                                      }
+                                    },
+                              icon: isDeleting
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.delete_outline,
+                                      size: 18),
+                              label: Text(
+                                isDeleting ? 'Menghapus...' : 'Hapus',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _dangerColor,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(0, 46),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             );
           },
         );
@@ -1722,19 +1779,19 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           vertical: 14,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _borderColor),
+          borderRadius: BorderRadius.circular(_radius),
+          borderSide: const BorderSide(color: _tableBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _borderColor),
+          borderRadius: BorderRadius.circular(_radius),
+          borderSide: const BorderSide(color: _tableBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(_radius),
           borderSide: const BorderSide(color: _accent, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(_radius),
           borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
       ),
@@ -1748,12 +1805,14 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   void _showMessage(String message, {bool isError = false}) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : const Color(0xFF16A34A),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? _dangerColor : _successColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 }
