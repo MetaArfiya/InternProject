@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/complaint_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class PartnerComplaintScreen extends StatefulWidget {
   const PartnerComplaintScreen({super.key});
@@ -29,29 +30,25 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
 
   String _selectedFilter = 'Semua';
 
-  // ============================================================
-  // PAGINATION STATE (web tabel)
-  // ============================================================
-
   int _currentPage = 1;
   int _rowsPerPage = 10;
   static const List<int> _rowsPerPageOptions = [10, 25, 50, 100];
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
   static const double _buttonFontSize = 13;
   static const double _fieldFontSize = 13;
   static const double _smallRadius = 12;
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
   static const double _gapTitleToContent = 16;
@@ -135,10 +132,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     }
   }
 
-  // ============================================================
-  // HELPER: PARSE INT DENGAN GUARD NaN
-  // ============================================================
-
   int _parseIntSafe(dynamic value) {
     if (value == null) return 0;
 
@@ -163,7 +156,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // PAGINATION HELPERS — DENGAN GUARD NaN
+  // PAGINATION
   // ============================================================
 
   int get _totalPages {
@@ -208,15 +201,15 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Menunggu':
-        return _accent;
+        return _accent; // teal
       case 'Diproses':
-        return const Color(0xFF7C3AED);
+        return AppColors.primaryTeal; // ← dari ungu
       case 'Selesai':
-        return const Color(0xFF16A34A);
+        return const Color(0xFF16A34A); // hijau
       case 'Ditolak':
-        return const Color(0xFFDC2626);
+        return const Color(0xFFDC2626); // merah
       default:
-        return const Color(0xFF6B7280);
+        return AppColors.grey500;
     }
   }
 
@@ -251,10 +244,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           const SizedBox(width: 5),
           Text(
             status,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -264,17 +258,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dgn CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
-  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: RefreshIndicator(
         onRefresh: _loadComplaints,
         color: _accent,
@@ -343,26 +333,27 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
-
-    final titleAndSubtitle = Column(
+    final titleAndSubtitle = const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Lapor Masalah',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Laporkan bug atau kirim saran untuk pengembangan aplikasi.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -379,7 +370,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accent,
+        backgroundColor: _accent, // ← teal
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(
@@ -415,52 +406,46 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // SECTION TITLE — sama persis dgn judul "Pengaduan Saya"
+  // SECTION TITLE
   // ============================================================
 
   Widget _buildSectionTitle(BuildContext context) {
-    return Text(
+    return const Text(
       'Riwayat Laporan',
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.grey900,
+      ),
     );
   }
 
   // ============================================================
-  // SUMMARY — Mobile 2×2, Web 4 kolom
+  // SUMMARY
   // ============================================================
 
   Widget _buildSummary(BuildContext context, bool isMobile) {
     final cards = [
       _summaryCard(
-        context: context,
         title: 'Total',
-        fullTitle: 'Total Laporan',
         value: '${_summary['total'] ?? 0}',
         icon: Icons.report_problem_outlined,
-        color: const Color(0xFF2563EB),
+        color: AppColors.primaryTeal, // ← dari biru
       ),
       _summaryCard(
-        context: context,
         title: 'Menunggu',
-        fullTitle: 'Menunggu',
         value: '${_summary['menunggu'] ?? 0}',
         icon: Icons.access_time,
-        color: _accent,
+        color: const Color(0xFFF59E0B), // amber
       ),
       _summaryCard(
-        context: context,
         title: 'Diproses',
-        fullTitle: 'Diproses',
         value: '${_summary['diproses'] ?? 0}',
         icon: Icons.sync,
-        color: const Color(0xFF7C3AED),
+        color: AppColors.primaryTeal, // ← dari ungu
       ),
       _summaryCard(
-        context: context,
         title: 'Selesai',
-        fullTitle: 'Selesai',
         value: '${_summary['selesai'] ?? 0}',
         icon: Icons.check_circle_outline,
         color: const Color(0xFF16A34A),
@@ -500,9 +485,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   Widget _summaryCard({
-    required BuildContext context,
     required String title,
-    required String fullTitle,
     required String value,
     required IconData icon,
     required Color color,
@@ -510,12 +493,14 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.darkTeal.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -543,7 +528,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF64748B),
+                    color: AppColors.grey500,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -556,7 +541,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.grey900,
                     height: 1.1,
                   ),
                 ),
@@ -581,26 +566,25 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       'Ditolak',
     ];
 
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_smallRadius),
         border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_list, size: 18, color: Color(0xFF6B7280)),
+          const Icon(Icons.filter_list, size: 18, color: AppColors.grey500),
           const SizedBox(width: 8),
           if (!isMobile) ...[
-            Text(
+            const Text(
               'Filter Status:',
-              style: textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF374151),
+                color: AppColors.grey700,
+                fontSize: 13,
               ),
             ),
             const SizedBox(width: 12),
@@ -609,7 +593,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _tableBorder),
             ),
@@ -622,12 +606,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 18,
-                    color: Color(0xFF6B7280),
+                    color: AppColors.grey500,
                   ),
                 ),
-                style: textTheme.bodyMedium?.copyWith(
+                style: const TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF111827),
+                  color: AppColors.grey900,
+                  fontSize: 13,
                 ),
                 items: filters.map((filter) {
                   return DropdownMenuItem<String>(
@@ -654,9 +639,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             ),
             child: Text(
               '${_filteredComplaints.length}',
-              style: textTheme.labelMedium?.copyWith(
+              style: const TextStyle(
                 color: _accent,
                 fontWeight: FontWeight.w700,
+                fontSize: 12,
               ),
             ),
           ),
@@ -673,15 +659,15 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     BuildContext context,
     ComplaintModel complaint,
   ) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,9 +681,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                   children: [
                     Text(
                       complaint.code,
-                      style: textTheme.bodyMedium?.copyWith(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: _cellText,
+                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -705,10 +692,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                       complaint.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: _cellText,
                         height: 1.3,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -732,7 +720,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: _accent,
+                color: _accent, // ← teal
               ),
             ),
           ),
@@ -753,9 +741,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             complaint.description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF4B5563),
+            style: const TextStyle(
+              color: AppColors.grey700,
               height: 1.45,
+              fontSize: 12,
             ),
           ),
 
@@ -772,8 +761,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 11),
-                foregroundColor: const Color(0xFF7C3AED),
-                side: const BorderSide(color: Color(0xFFD1D5DB)),
+                foregroundColor: _accent, // ← dari ungu
+                side: const BorderSide(color: AppColors.grey300),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -788,7 +777,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   Widget _infoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+        Icon(icon, size: 16, color: AppColors.grey400),
         const SizedBox(width: 8),
         SizedBox(
           width: 95,
@@ -796,7 +785,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             label,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
         ),
@@ -808,7 +797,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             style: const TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
+              color: _cellText,
             ),
           ),
         ),
@@ -817,7 +806,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // WEB — TABEL DENGAN PAGINATION
+  // DESKTOP TABLE
   // ============================================================
 
   Widget _buildDesktopTable(BuildContext context) {
@@ -825,7 +814,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _tableBorder),
       ),
@@ -867,10 +856,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: _headerText,
-          ),
+      style: const TextStyle(
+        fontWeight: FontWeight.w500,
+        color: _headerText,
+        fontSize: 13,
+      ),
     );
   }
 
@@ -878,8 +868,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     BuildContext context,
     ComplaintModel complaint,
   ) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -891,9 +879,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               complaint.code,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: _cellText,
+                fontSize: 13,
               ),
             ),
           ),
@@ -903,9 +892,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               complaint.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
                 height: 1.3,
+                fontSize: 13,
               ),
             ),
           ),
@@ -915,8 +905,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               complaint.category,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
+                fontSize: 13,
               ),
             ),
           ),
@@ -924,8 +915,9 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             flex: 2,
             child: Text(
               complaint.formattedDate,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
+                fontSize: 13,
               ),
             ),
           ),
@@ -944,8 +936,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                 context: context,
                 icon: Icons.visibility_outlined,
                 label: 'Detail',
-                bgColor: const Color(0xFFF1F5F9),
-                fgColor: const Color(0xFF334155),
+                bgColor: AppColors.grey100,
+                fgColor: AppColors.grey700,
                 onTap: () => _showComplaintDetail(complaint),
               ),
             ),
@@ -978,10 +970,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: fgColor,
-                    ),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: fgColor,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -991,12 +984,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // TABLE FOOTER — PAGINATION DENGAN GUARD NaN
+  // TABLE FOOTER
   // ============================================================
 
   Widget _buildTableFooter(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     final total = _filteredComplaints.length;
     final totalPages = _totalPages;
 
@@ -1016,7 +1007,10 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         children: [
           Text(
             'Menampilkan $start–$end dari $total aktivitas',
-            style: textTheme.bodySmall?.copyWith(color: _headerText),
+            style: const TextStyle(
+              color: _headerText,
+              fontSize: 12,
+            ),
           ),
           const Spacer(),
           Row(
@@ -1048,7 +1042,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _tableBorder),
       ),
@@ -1061,13 +1055,14 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             child: Icon(
               Icons.keyboard_arrow_down,
               size: 16,
-              color: Color(0xFF6B7280),
+              color: AppColors.grey500,
             ),
           ),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF111827),
-              ),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.grey900,
+            fontSize: 12,
+          ),
           items: _rowsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
               value: value,
@@ -1088,7 +1083,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1099,17 +1094,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: enabled
-                  ? const Color(0xFFD1D5DB)
-                  : const Color(0xFFE5E7EB),
+              color: enabled ? AppColors.grey300 : AppColors.grey200,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: enabled
-                ? const Color(0xFF374151)
-                : const Color(0xFFD1D5DB),
+            color: enabled ? AppColors.grey700 : AppColors.grey300,
           ),
         ),
       ),
@@ -1126,15 +1117,16 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFEDE9FE),
+        color: AppColors.mint.withOpacity(0.20), // ← dari ungu
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         'Hal $page / $totalPages',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF7C3AED),
-            ),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppColors.primaryTeal, // ← teal
+          fontSize: 12,
+        ),
       ),
     );
   }
@@ -1188,16 +1180,14 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
+                          const Expanded(
                             child: Text(
                               'Lapor Masalah',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF111827),
-                                  ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.grey900,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -1207,7 +1197,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                             icon: const Icon(
                               Icons.close,
                               size: 20,
-                              color: Color(0xFF6B7280),
+                              color: AppColors.grey500,
                             ),
                             splashRadius: 22,
                           ),
@@ -1223,14 +1213,16 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Info box → mint soft
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
+                                  color: AppColors.mint.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: const Color(0xFFBFDBFE),
+                                    color: AppColors.primaryTeal
+                                        .withOpacity(0.20),
                                   ),
                                 ),
                                 child: const Row(
@@ -1238,7 +1230,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                     Icon(
                                       Icons.info_outline,
                                       size: 16,
-                                      color: Color(0xFF2563EB),
+                                      color: AppColors.primaryTeal,
                                     ),
                                     SizedBox(width: 8),
                                     Expanded(
@@ -1246,7 +1238,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                         'Gunakan form ini untuk melaporkan bug atau memberi saran tentang aplikasi.',
                                         style: TextStyle(
                                           fontSize: 11.5,
-                                          color: Color(0xFF2563EB),
+                                          color: AppColors.darkTeal,
                                           height: 1.35,
                                         ),
                                       ),
@@ -1263,7 +1255,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                 decoration: _inputDecoration('Kategori'),
                                 style: const TextStyle(
                                   fontSize: _fieldFontSize,
-                                  color: Color(0xFF111827),
+                                  color: AppColors.grey900,
                                 ),
                                 items: _categories.map((c) {
                                   return DropdownMenuItem<String>(
@@ -1322,13 +1314,12 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: isSubmitting
-                                  ? null
-                                  : () => Navigator.pop(dialogContext),
+                                  ? null                                  : () => Navigator.pop(dialogContext),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 46),
-                                foregroundColor: const Color(0xFF374151),
+                                foregroundColor: AppColors.grey700,
                                 side: const BorderSide(
-                                  color: Color(0xFFD1D5DB),
+                                  color: AppColors.grey300,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -1362,7 +1353,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                             content: Text(
                                               'Judul dan deskripsi harus diisi.',
                                             ),
-                                            backgroundColor: Colors.orange,
+                                            backgroundColor:
+                                                Color(0xFFF59E0B),
                                           ),
                                         );
                                         return;
@@ -1388,7 +1380,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _accent,
+                                backgroundColor: _accent, // ← teal
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
@@ -1442,6 +1434,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _tableBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -1451,10 +1444,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: _accent, width: 1.5),
       ),
-      labelStyle: const TextStyle(fontSize: _fieldFontSize),
+      labelStyle: const TextStyle(
+        fontSize: _fieldFontSize,
+        color: AppColors.grey600,
+      ),
       hintStyle: const TextStyle(
         fontSize: _fieldFontSize,
-        color: Color(0xFF9CA3AF),
+        color: AppColors.grey400,
       ),
     );
   }
@@ -1482,7 +1478,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Laporan berhasil dikirim. Terima kasih!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.primaryTeal, // ← teal
           ),
         );
         return true;
@@ -1516,8 +1512,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -1550,12 +1544,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Detail Laporan',
-                          style: textTheme.titleMedium?.copyWith(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF111827),
+                            color: AppColors.grey900,
+                            fontSize: 16,
                           ),
                         ),
                       ),
@@ -1564,7 +1559,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                         icon: const Icon(
                           Icons.close,
                           size: 20,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.grey500,
                         ),
                         splashRadius: 22,
                       ),
@@ -1603,7 +1598,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF374151),
+                                  color: AppColors.grey700,
                                 ),
                               ),
                               _statusBadge(dialogContext, complaint.status),
@@ -1639,7 +1634,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1F2937),
+            color: AppColors.grey800,
           ),
         ),
       ],
@@ -1658,7 +1653,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               label,
               style: const TextStyle(
                 fontSize: 13,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
           ),
@@ -1668,7 +1663,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                color: AppColors.grey900,
               ),
             ),
           ),
@@ -1682,7 +1677,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _tableBorder),
       ),
@@ -1690,7 +1685,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         text,
         style: const TextStyle(
           fontSize: 13,
-          color: Color(0xFF374151),
+          color: AppColors.grey700,
           height: 1.5,
         ),
       ),
@@ -1732,7 +1727,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
+              backgroundColor: _accent, // ← teal
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1770,7 +1765,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
         ],

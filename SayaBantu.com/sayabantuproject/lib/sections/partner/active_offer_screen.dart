@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/active_offer_card.dart';
 import '../../services/api_service.dart';
 import '../../models/active_offer_model.dart';
+import '../../theme/app_colors.dart';
 
 class ActiveOfferScreen extends StatefulWidget {
   const ActiveOfferScreen({super.key});
@@ -20,15 +21,15 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   String _errorMessage = '';
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
+  static const Color _headerText = AppColors.grey500;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
 
   @override
@@ -106,17 +107,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dgn CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
-  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: RefreshIndicator(
         onRefresh: _refreshOffers,
         color: _accent,
@@ -157,26 +154,27 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Penawaran Aktif Saya',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Seluruh penawaran yang sedang menunggu respon atau telah diproses.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -245,16 +243,16 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ==========================================
           // HEADER
-          // ==========================================
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Row(
@@ -273,7 +271,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: _accent,
+                      color: _accent, // ← teal
                     ),
                   ),
                 ),
@@ -283,9 +281,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
 
           const Divider(height: 1, color: _tableDivider),
 
-          // ==========================================
           // BODY
-          // ==========================================
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Column(
@@ -309,7 +305,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   }
 
   // ============================================================
-  // RECEIPT ROW — label jelas, value rapat ke kiri
+  // RECEIPT ROW
   // ============================================================
 
   Widget _buildReceiptRow({
@@ -322,14 +318,14 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // LABEL — lebih tua, lebih tebal
+          // LABEL
           SizedBox(
             width: 100,
             child: Text(
               label,
               style: const TextStyle(
                 fontSize: 12.5,
-                color: Color(0xFF334155), // slate-700
+                color: AppColors.grey700, // ← slate-700
                 fontWeight: FontWeight.w600,
                 height: 1.3,
               ),
@@ -338,7 +334,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
 
           const SizedBox(width: 12),
 
-          // VALUE — rata KIRI, dekat label
+          // VALUE
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
@@ -358,7 +354,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     if (isTablet) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: _tableBorder),
         ),
@@ -379,7 +375,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
       builder: (context, constraints) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _tableBorder),
           ),
@@ -437,32 +433,18 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   }
 
   TableRow _buildTableHeader() {
-    return TableRow(
-      decoration: const BoxDecoration(color: Colors.white),
+    return const TableRow(
+      decoration: BoxDecoration(color: AppColors.white),
       children: [
-        _headerCell('NO'),
-        _headerCell('NAMA PEKERJAAN'),
-        _headerCell('HARGA'),
-        _headerCell('PERINGKAT'),
-        _headerCell('STATUS'),
-        _headerCell('BUKTI'),
-        _headerCell('ACC PELANGGAN'),
-        _headerCell('AKSI'),
+        _HeaderCell('NO'),
+        _HeaderCell('NAMA PEKERJAAN'),
+        _HeaderCell('HARGA'),
+        _HeaderCell('PERINGKAT'),
+        _HeaderCell('STATUS'),
+        _HeaderCell('BUKTI'),
+        _HeaderCell('ACC PELANGGAN'),
+        _HeaderCell('AKSI'),
       ],
-    );
-  }
-
-  Widget _headerCell(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: _headerText,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
     );
   }
 
@@ -502,7 +484,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
+              backgroundColor: _accent, // ← teal
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -539,11 +521,34 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
             'Belum ada penawaran aktif.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
               fontSize: 13,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// HEADER CELL (widget kecil untuk TableRow)
+// ============================================================
+class _HeaderCell extends StatelessWidget {
+  final String text;
+  const _HeaderCell(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFF6B7280),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

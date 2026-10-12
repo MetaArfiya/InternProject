@@ -8,6 +8,7 @@ import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
+import '../../theme/app_colors.dart';
 
 class CustomerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
@@ -23,7 +24,7 @@ class CustomerSettingScreen extends StatefulWidget {
 
 class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   // =========================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader
+  // DESIGN TOKENS
   // =========================================================
 
   static const double _buttonFontSize = 13;
@@ -31,13 +32,13 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   static const double _smallRadius = 12;
   static const double _cardRadius = 16;
 
-  static const Color _primaryColor = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _primaryColor = AppColors.primaryTeal;
   static const Color _borderColor = Color(0xFFE5E7EB);
 
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 20;
   static const double _gapTitleToContent = 12;
@@ -506,9 +507,10 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         SnackBar(
           content: Text(
             message,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: const TextStyle(fontSize: 13),
           ),
-          backgroundColor: error ? Colors.red : Colors.green,
+          // ✅ success → teal, error → merah
+          backgroundColor: error ? Colors.red : AppColors.primaryTeal,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -516,9 +518,6 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
 
   // =========================================================
   // BUILD
-  // =========================================================
-  // ✅ Padding horizontal: mobile 16 / tablet 24 / desktop 28
-  // ✅ Tanpa Center + ConstrainedBox — konten nempel kiri
   // =========================================================
 
   @override
@@ -532,7 +531,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.sectionAltLight, // ← mint muda
       body: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
@@ -569,26 +568,27 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // =========================================================
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pengaturan',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Kelola profil, notifikasi, dan keamanan akun.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -707,15 +707,17 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // SECTION TITLE — sama persis dgn judul halaman (tanpa bar)
+  // SECTION TITLE
   // =========================================================
 
   Widget _sectionTitle(BuildContext context, String text) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.grey900,
+      ),
     );
   }
 
@@ -728,14 +730,15 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
     required bool isMobile,
   }) {
     final fullPhotoUrl = getFullPhotoUrl();
-    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _borderColor),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -749,17 +752,19 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                 Text(
                   name,
                   textAlign: TextAlign.center,
-                  style: textTheme.titleMedium?.copyWith(
+                  style: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF111827),
+                    color: AppColors.grey900,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   email,
                   textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.grey600,
                   ),
                 ),
                 if (phone.isNotEmpty) ...[
@@ -767,16 +772,17 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.phone_outlined,
                         size: 14,
-                        color: Colors.grey.shade500,
+                        color: AppColors.grey500,
                       ),
                       const SizedBox(width: 5),
                       Text(
                         phone,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.grey600,
                         ),
                       ),
                     ],
@@ -798,33 +804,36 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   children: [
                     Text(
                       name,
-                      style: textTheme.titleLarge?.copyWith(
+                      style: const TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF111827),
+                        color: AppColors.grey900,
                         height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       email,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade600,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.grey600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     if (phone.isNotEmpty)
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.phone_outlined,
                             size: 14,
-                            color: Colors.grey.shade500,
+                            color: AppColors.grey500,
                           ),
                           const SizedBox(width: 5),
                           Text(
                             phone,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.grey600,
                             ),
                           ),
                         ],
@@ -872,7 +881,8 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               },
               child: CircleAvatar(
                 radius: radius,
-                backgroundColor: const Color(0xFFFFF3E8),
+                // ✅ dari peach → mint soft
+                backgroundColor: AppColors.mint.withOpacity(0.25),
                 backgroundImage: selectedPhotoBytes != null
                     ? MemoryImage(selectedPhotoBytes!)
                     : fullPhotoUrl != null
@@ -892,7 +902,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               right: -2,
               bottom: -2,
               child: Material(
-                color: _primaryColor,
+                color: _primaryColor, // ← teal
                 shape: const CircleBorder(),
                 elevation: 2,
                 child: InkWell(
@@ -945,7 +955,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _primaryColor,
+        backgroundColor: _primaryColor, // ← teal
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -971,9 +981,11 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _borderColor),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Row(
         children: [
@@ -993,21 +1005,23 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w500,
-                      ),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.grey400,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF111827),
-                        height: 1.35,
-                      ),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grey900,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
@@ -1026,9 +1040,11 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _borderColor),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1051,22 +1067,24 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Notifikasi Penawaran',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827),
-                      ),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.grey900,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isMobile
                       ? 'Terima notifikasi ketika mitra mengirim penawaran.'
                       : 'Terima notifikasi ketika mitra mengirim penawaran pada pekerjaan Anda.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                        height: 1.4,
-                      ),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.grey600,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -1074,7 +1092,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
           const SizedBox(width: 10),
           Switch(
             value: jobNotification,
-            activeColor: _primaryColor,
+            activeColor: _primaryColor, // ← teal
             onChanged: (value) async {
               setState(() => jobNotification = value);
               await updateNotificationStatus(value);
@@ -1092,16 +1110,18 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
   }
 
   // =========================================================
-  // SECURITY CARD
+  // SECURITY CARD (LOGOUT)
   // =========================================================
 
   Widget _buildSecurityCard() {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _borderColor),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1131,21 +1151,21 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Keluar dari Akun',
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFDC2626),
-                                ),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFDC2626),
+                        ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      const Text(
                         'Keluar dari akun SayaBantu.',
-                        style:
-                            Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey.shade600,
-                                ),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.grey600,
+                        ),
                       ),
                     ],
                   ),
@@ -1153,7 +1173,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                 const Icon(
                   Icons.chevron_right,
                   size: 22,
-                  color: Color(0xFF9CA3AF),
+                  color: AppColors.grey400,
                 ),
               ],
             ),
@@ -1177,8 +1197,6 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
         return Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(
@@ -1189,7 +1207,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
             constraints: const BoxConstraints(maxWidth: 500),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -1214,12 +1232,13 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
+                        const Expanded(
                           child: Text(
                             'Edit Profil',
-                            style: textTheme.titleMedium?.copyWith(
+                            style: TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF111827),
+                              color: AppColors.grey900,
                             ),
                           ),
                         ),
@@ -1228,7 +1247,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           icon: const Icon(
                             Icons.close,
                             size: 20,
-                            color: Color(0xFF6B7280),
+                            color: AppColors.grey500,
                           ),
                           splashRadius: 22,
                         ),
@@ -1269,8 +1288,8 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                                   children: [
                                     CircleAvatar(
                                       radius: 45,
-                                      backgroundColor:
-                                          const Color(0xFFFFF3E8),
+                                      backgroundColor: AppColors.mint
+                                          .withOpacity(0.25),
                                       backgroundImage:
                                           selectedPhotoBytes != null
                                               ? MemoryImage(
@@ -1329,10 +1348,11 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           ),
 
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             'Ketuk foto untuk mengganti',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF94A3B8),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.grey400,
                             ),
                           ),
 
@@ -1391,7 +1411,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                                 Navigator.pop(dialogContext),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size(0, 46),
-                              foregroundColor: const Color(0xFF374151),
+                              foregroundColor: AppColors.grey700,
                               side: const BorderSide(
                                 color: Color(0xFFD1D5DB),
                               ),
@@ -1413,7 +1433,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           flex: 2,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _primaryColor,
+                              backgroundColor: _primaryColor, // ← teal
                               foregroundColor: Colors.white,
                               minimumSize: const Size(0, 46),
                               elevation: 0,
@@ -1496,6 +1516,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -1517,30 +1538,36 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Text(
+          title: const Text(
             'Logout',
-            style: textTheme.titleMedium?.copyWith(
+            style: TextStyle(
+              fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: AppColors.grey900,
             ),
           ),
-          content: Text(
+          content: const Text(
             'Apakah Anda yakin ingin keluar dari akun ini?',
-            style: textTheme.bodyMedium?.copyWith(height: 1.4),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: AppColors.grey700,
+            ),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
+              child: const Text(
                 'Batal',
-                style: textTheme.bodyMedium?.copyWith(
+                style: TextStyle(
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
+                  color: AppColors.grey600,
                 ),
               ),
             ),
@@ -1565,9 +1592,10 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   (route) => false,
                 );
               },
-              child: Text(
+              child: const Text(
                 'Logout',
-                style: textTheme.bodyMedium?.copyWith(
+                style: TextStyle(
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),

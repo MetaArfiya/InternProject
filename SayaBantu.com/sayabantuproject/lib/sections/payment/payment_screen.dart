@@ -9,6 +9,7 @@ import '../../../services/payment_service.dart';
 import '../../../sections/customer/payment_detail_dialog.dart' as customer;
 import '../../../sections/partner/payment_detail_dialog.dart' as partner;
 import '../../../sections/customer/rating_dialog.dart';
+import '../../../theme/app_colors.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String role; // 'mitra' atau 'pelanggan'
@@ -38,17 +39,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
   static const List<int> _rowsPerPageOptions = [10, 25, 50, 100];
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
   static const double _buttonRadius = 12;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
   static const double _gapTitleToContent = 16;
@@ -254,7 +255,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Terima kasih! Rating berhasil dikirim.'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primaryTeal, // ← teal
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -264,16 +265,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dengan CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
-  // ✅ TIDAK ada `Center` + `ConstrainedBox` — konten nempel kiri
-  //    biar jarak dari sidebar sama dengan halaman lain
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.sectionAltLight, // ← mint muda
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadPayments,
@@ -336,19 +332,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Pembayaran',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
         const SizedBox(height: 6),
@@ -356,8 +352,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _isMitra
               ? 'Lihat riwayat pendapatan dari pekerjaan yang telah selesai.'
               : 'Lihat riwayat transaksi dan pembayaran pekerjaan.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -387,7 +384,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         shortTitle: 'Pending',
         value: PaymentModel.formatRupiah(s.totalPending),
         icon: Icons.hourglass_top,
-        color: _accent,
+        color: _accent, // teal
       ));
       cards.add(_SummaryData(
         title: 'Transaksi',
@@ -409,7 +406,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         shortTitle: 'Transaksi',
         value: '${s.totalTransaksi}',
         icon: Icons.receipt_long_outlined,
-        color: _accent,
+        color: _accent, // teal
       ));
       cards.add(_SummaryData(
         title: 'Komisi Aplikasi',
@@ -444,9 +441,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 12 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,7 +473,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             style: TextStyle(
               fontSize: isCompact ? 13.5 : 16,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
+              color: AppColors.grey900,
               height: 1.1,
             ),
           ),
@@ -485,7 +484,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: isCompact ? 9.5 : 12,
-              color: const Color(0xFF64748B),
+              color: AppColors.grey500,
               fontWeight: FontWeight.w500,
               height: 1.15,
             ),
@@ -500,26 +499,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
 
   Widget _buildFilterBar(BuildContext context, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_buttonRadius),
         border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_list, size: 18, color: Color(0xFF6B7280)),
+          const Icon(Icons.filter_list, size: 18, color: AppColors.grey500),
           const SizedBox(width: 8),
           if (!isMobile) ...[
-            Text(
+            const Text(
               'Filter Status:',
-              style: textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF374151),
+                color: AppColors.grey700,
+                fontSize: 13,
               ),
             ),
             const SizedBox(width: 12),
@@ -528,7 +526,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _tableBorder),
             ),
@@ -541,12 +539,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 18,
-                    color: Color(0xFF6B7280),
+                    color: AppColors.grey500,
                   ),
                 ),
-                style: textTheme.bodyMedium?.copyWith(
+                style: const TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF111827),
+                  color: AppColors.grey900,
+                  fontSize: 13,
                 ),
                 items: _filterOptions.map((status) {
                   return DropdownMenuItem<String>(
@@ -573,9 +572,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             child: Text(
               '${_filteredPayments.length}',
-              style: textTheme.labelMedium?.copyWith(
+              style: const TextStyle(
                 color: _accent,
                 fontWeight: FontWeight.w700,
+                fontSize: 12,
               ),
             ),
           ),
@@ -585,15 +585,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // LIST TITLE — sama persis dgn judul "Pembayaran" (tanpa bar)
+  // LIST TITLE
   // ============================================================
 
   Widget _buildListTitle(BuildContext context) {
     return Text(
       _isMitra ? 'Riwayat Pendapatan' : 'Riwayat Pembayaran',
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.grey900,
+      ),
     );
   }
 
@@ -613,14 +615,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildMobilePaymentCard(BuildContext context, PaymentModel p) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -650,9 +652,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       p.jobTitle ?? 'Pekerjaan',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: _cellText,
+                        fontSize: 13.5,
                         height: 1.25,
                       ),
                     ),
@@ -661,15 +664,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       _isMitra
                           ? 'Pelanggan: ${p.pelangganName ?? "-"}'
                           : 'Mitra: ${p.mitraName ?? "-"}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
+                      style: const TextStyle(
+                        color: AppColors.grey600,
+                        fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       p.formattedDate,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF9CA3AF),
+                      style: const TextStyle(
+                        color: AppColors.grey400,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -759,7 +764,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
+              backgroundColor: _accent, // ← teal
               foregroundColor: Colors.white,
               minimumSize: const Size(0, 42),
               elevation: 0,
@@ -811,7 +816,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           style: TextStyle(fontSize: 12.5),
         ),
         style: TextButton.styleFrom(
-          foregroundColor: const Color(0xFF7C3AED),
+          foregroundColor: _accent, // ← dari ungu
           padding: const EdgeInsets.symmetric(vertical: 8),
         ),
       ),
@@ -829,7 +834,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _tableBorder),
       ),
@@ -877,16 +882,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: _headerText,
-          ),
+      style: const TextStyle(
+        fontWeight: FontWeight.w500,
+        color: _headerText,
+        fontSize: 13,
+      ),
     );
   }
 
   Widget _buildTableDataRow(BuildContext context, PaymentModel p) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -919,16 +923,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         p.jobTitle ?? 'Pekerjaan',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyMedium?.copyWith(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: _cellText,
+                          fontSize: 13,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         '#PAY-${p.id.toString().padLeft(3, '0')}',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF9CA3AF),
+                        style: const TextStyle(
+                          color: AppColors.grey400,
+                          fontSize: 11,
                         ),
                       ),
                     ],
@@ -946,9 +952,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   : (p.mitraName ?? '-'),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
                 height: 1.3,
+                fontSize: 13,
               ),
             ),
           ),
@@ -957,7 +964,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             flex: 2,
             child: Text(
               p.formattedDate,
-              style: textTheme.bodyMedium?.copyWith(color: _cellText),
+              style: const TextStyle(color: _cellText, fontSize: 13),
             ),
           ),
 
@@ -967,9 +974,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               PaymentModel.formatRupiah(
                 _isMitra ? p.mitraEarning : p.totalPaid,
               ),
-              style: textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: _isMitra ? const Color(0xFF16A34A) : _accent,
+                fontSize: 13,
               ),
             ),
           ),
@@ -992,8 +1000,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   context: context,
                   icon: Icons.visibility_outlined,
                   label: 'Detail',
-                  bgColor: const Color(0xFFF1F5F9),
-                  fgColor: const Color(0xFF334155),
+                  bgColor: AppColors.grey100,
+                  fgColor: AppColors.grey700,
                   onTap: () => _openPaymentDetail(p),
                 ),
 
@@ -1002,7 +1010,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     context: context,
                     icon: Icons.upload_file,
                     label: 'Upload Bukti',
-                    bgColor: _accent,
+                    bgColor: _accent, // ← teal
                     fgColor: Colors.white,
                     onTap: () => _openPaymentDetail(p),
                   ),
@@ -1014,7 +1022,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     context: context,
                     icon: Icons.star_rate_rounded,
                     label: 'Beri Rating',
-                    bgColor: const Color(0xFFD97706),
+                    bgColor: const Color(0xFFD97706), // tetap amber
                     fgColor: Colors.white,
                     onTap: () => _showRatingDialog(p),
                   ),
@@ -1049,10 +1057,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: fgColor,
-                    ),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: fgColor,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -1066,7 +1075,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
 
   Widget _buildTableFooter(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final total = _filteredPayments.length;
     final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
     final end = (_currentPage * _rowsPerPage).clamp(0, total);
@@ -1079,7 +1087,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           Text(
             'Menampilkan $start–$end dari $total pembayaran',
-            style: textTheme.bodySmall?.copyWith(color: _headerText),
+            style: const TextStyle(
+              color: _headerText,
+              fontSize: 12,
+            ),
           ),
           const Spacer(),
           Row(
@@ -1111,7 +1122,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _tableBorder),
       ),
@@ -1124,13 +1135,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Icon(
               Icons.keyboard_arrow_down,
               size: 16,
-              color: Color(0xFF6B7280),
+              color: AppColors.grey500,
             ),
           ),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF111827),
-              ),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.grey900,
+            fontSize: 12,
+          ),
           items: _rowsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
               value: value,
@@ -1151,7 +1163,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1162,17 +1174,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: enabled
-                  ? const Color(0xFFD1D5DB)
-                  : const Color(0xFFE5E7EB),
+              color: enabled ? AppColors.grey300 : AppColors.grey200,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: enabled
-                ? const Color(0xFF374151)
-                : const Color(0xFFD1D5DB),
+            color: enabled ? AppColors.grey700 : AppColors.grey300,
           ),
         ),
       ),
@@ -1185,15 +1193,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFEDE9FE),
+        color: AppColors.mint.withOpacity(0.20), // ← dari ungu
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         'Hal $_currentPage / $_totalPages',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF7C3AED),
-            ),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppColors.primaryTeal, // ← teal
+          fontSize: 12,
+        ),
       ),
     );
   }
@@ -1212,7 +1221,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 12),
           _buildStatusInfo(
             icon: Icons.hourglass_top,
-            color: const Color(0xFF7C3AED),
+            color: AppColors.primaryTeal, // ← dari ungu
             message: 'Bukti transfer sedang diverifikasi admin.',
           ),
         ];
@@ -1351,7 +1360,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           children: [
             const Row(
               children: [
-                Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 16),
+                Icon(Icons.check_circle,
+                    color: Color(0xFF16A34A), size: 16),
                 SizedBox(width: 6),
                 Text(
                   'Anda sudah memberi rating',
@@ -1367,7 +1377,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Row(
               children: List.generate(5, (i) {
                 return Icon(
-                  i < stars ? Icons.star_rounded : Icons.star_border_rounded,
+                  i < stars
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
                   color: const Color(0xFFF59E0B),
                   size: 20,
                 );
@@ -1399,7 +1411,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD97706),
+          backgroundColor: const Color(0xFFD97706), // tetap amber
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 42),
           elevation: 0,
@@ -1425,10 +1437,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Text(
         p.statusLabel,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
       ),
     );
   }
@@ -1440,14 +1453,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
       case 'paid':
         return const Color(0xFF2563EB);
       case 'waiting_verification':
-        return const Color(0xFF7C3AED);
+        return AppColors.primaryTeal; // ← dari ungu
       case 'pending':
-        return _accent;
+        return _accent; // teal
       case 'refunded':
       case 'failed':
         return const Color(0xFFDC2626);
       default:
-        return const Color(0xFF6B7280);
+        return AppColors.grey500;
     }
   }
 
@@ -1504,7 +1517,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         Text(
           title,
           style: const TextStyle(
-            color: Color(0xFF64748B),
+            color: AppColors.grey600,
             fontSize: 12.5,
           ),
         ),
@@ -1516,7 +1529,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             style: TextStyle(
               fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
               fontSize: isBold ? 14 : 13,
-              color: valueColor ?? const Color(0xFF111827),
+              color: valueColor ?? AppColors.grey900,
             ),
           ),
         ),
@@ -1539,12 +1552,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 48),
+          const Icon(Icons.error_outline,
+              color: Color(0xFFDC2626), size: 48),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13),
+            style: const TextStyle(
+              color: Color(0xFFDC2626),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -1595,7 +1612,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     : 'Belum ada transaksi pembayaran.'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
               fontSize: 13,
             ),
           ),

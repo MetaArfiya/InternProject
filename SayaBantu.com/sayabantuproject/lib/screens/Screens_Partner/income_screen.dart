@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/monthly_earning_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class IncomeScreen extends StatefulWidget {
   const IncomeScreen({super.key});
@@ -23,14 +24,15 @@ class _IncomeScreenState extends State<IncomeScreen> {
   List<MonthlyEarningModel> _monthly = [];
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -121,17 +123,13 @@ class _IncomeScreenState extends State<IncomeScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal mobile 16 / tablet 24 / desktop 28
-  // ✅ Header pakai textTheme
-  // ✅ Tidak ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: RefreshIndicator(
         onRefresh: _loadData,
         color: _accent,
@@ -187,26 +185,27 @@ class _IncomeScreenState extends State<IncomeScreen> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Penghasilan',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Pantau pendapatan dari pekerjaan yang telah selesai.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -214,7 +213,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
   }
 
   // ============================================================
-  // SUMMARY CARDS — 3 SEJAJAR (mobile & web)
+  // SUMMARY CARDS
   // ============================================================
 
   Widget _buildSummaryCards({required bool isMobile}) {
@@ -228,7 +227,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         subtitle:
             isMobile ? 'Akumulasi' : 'Akumulasi $_monthsCount bulan',
         icon: Icons.account_balance_wallet_outlined,
-        iconColor: _accent,
+        iconColor: _accent, // ← teal
         isCompact: isMobile,
       ),
       _summaryCard(
@@ -236,7 +235,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         value: '${s?.totalPekerjaan ?? 0}',
         subtitle: isMobile ? 'Pekerjaan' : 'Total pekerjaan',
         icon: Icons.check_circle_outline,
-        iconColor: const Color(0xFF16A34A),
+        iconColor: const Color(0xFF16A34A), // tetap hijau (success)
         isCompact: isMobile,
       ),
       _summaryCard(
@@ -244,7 +243,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         value: formatRupiah(s?.rataRataPerBulan ?? 0),
         subtitle: 'Per bulan',
         icon: Icons.trending_up,
-        iconColor: const Color(0xFF2563EB),
+        iconColor: AppColors.primaryTeal, // ← dari biru
         isCompact: isMobile,
       ),
     ];
@@ -270,12 +269,14 @@ class _IncomeScreenState extends State<IncomeScreen> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 12 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.darkTeal.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -307,7 +308,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: const Color(0xFF64748B),
+                    color: AppColors.grey500,
                     fontSize: isCompact ? 10.5 : 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -320,7 +321,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   style: TextStyle(
                     fontSize: isCompact ? 13 : 16,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
+                    color: AppColors.grey900,
                     height: 1.1,
                   ),
                 ),
@@ -332,7 +333,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 10.5,
-                      color: Color(0xFF94A3B8),
+                      color: AppColors.grey400,
                     ),
                   ),
                 ],
@@ -360,14 +361,14 @@ class _IncomeScreenState extends State<IncomeScreen> {
     final maxY = (maxIncome / 500000).ceil() * 500000.0;
     final safeMaxY = maxY <= 0 ? 1000000.0 : maxY;
 
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,11 +381,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Grafik Penghasilan',
-                      style: textTheme.titleMedium?.copyWith(
+                      style: TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: _cellText,
+                        color: AppColors.grey900,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -392,8 +394,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       isMobile
                           ? 'Perkembangan per bulan'
                           : 'Perkembangan penghasilan setiap bulan',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF64748B),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.grey500,
                       ),
                     ),
                   ],
@@ -404,7 +407,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                 height: 34,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
+                  color: AppColors.grey50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _tableBorder),
                 ),
@@ -417,12 +420,13 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         size: 16,
-                        color: Color(0xFF6B7280),
+                        color: AppColors.grey500,
                       ),
                     ),
-                    style: textTheme.bodySmall?.copyWith(
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: _cellText,
+                      color: AppColors.grey900,
+                      fontSize: 12,
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -492,7 +496,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                             _monthly[index].bulanLabel,
                             style: const TextStyle(
                               fontSize: 10.5,
-                              color: Color(0xFF94A3B8),
+                              color: AppColors.grey400,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -511,7 +515,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                             '0',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Color(0xFF94A3B8),
+                              color: AppColors.grey400,
                             ),
                           );
                         }
@@ -519,7 +523,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                           '${(value / 1000000).toStringAsFixed(1)}jt',
                           style: const TextStyle(
                             fontSize: 10,
-                            color: Color(0xFF94A3B8),
+                            color: AppColors.grey400,
                           ),
                         );
                       },
@@ -540,9 +544,9 @@ class _IncomeScreenState extends State<IncomeScreen> {
                       getDotPainter: (spot, percent, bar, index) {
                         return FlDotCirclePainter(
                           radius: 3.5,
-                          color: Colors.white,
+                          color: AppColors.white,
                           strokeWidth: 2.5,
-                          strokeColor: _accent,
+                          strokeColor: _accent, // ← teal
                         );
                       },
                     ),
@@ -552,12 +556,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          _accent.withOpacity(0.2),
+                          _accent.withOpacity(0.2), // ← teal soft
                           _accent.withOpacity(0.02),
                         ],
                       ),
                     ),
-                    color: _accent,
+                    color: _accent, // ← teal
                   ),
                 ],
               ),
@@ -576,30 +580,32 @@ class _IncomeScreenState extends State<IncomeScreen> {
     BuildContext context, {
     required bool isMobile,
   }) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Ringkasan Penghasilan Bulanan',
-            style: textTheme.titleMedium?.copyWith(
+            style: TextStyle(
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: _cellText,
+              color: AppColors.grey900,
             ),
           ),
           const SizedBox(height: 6),
-          Text(
+          const Text(
             'Rincian per bulan',
-            style: textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF64748B),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.grey500,
             ),
           ),
           SizedBox(height: isMobile ? 14 : 18),
@@ -638,7 +644,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             ),
             child: Icon(
               Icons.payments_outlined,
-              color: _accent,
+              color: _accent, // ← teal
               size: isMobile ? 18 : 20,
             ),
           ),
@@ -662,7 +668,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   '${m.jumlahPekerjaan} pekerjaan selesai',
                   style: TextStyle(
                     fontSize: isMobile ? 11 : 11.5,
-                    color: const Color(0xFF94A3B8),
+                    color: AppColors.grey400,
                   ),
                 ),
               ],
@@ -676,7 +682,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             style: TextStyle(
               fontSize: isMobile ? 13 : 14,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF16A34A),
+              color: AppColors.primaryTeal, // ← dari hijau
             ),
           ),
         ],
@@ -720,7 +726,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
+              backgroundColor: _accent, // ← teal
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -757,7 +763,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             'Belum ada data penghasilan.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
               fontSize: 13,
             ),
           ),

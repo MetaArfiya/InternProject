@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/complaint_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 // ============================================================
 // MODE FIELD PEKERJAAN
@@ -46,20 +47,20 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   ];
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader
+  // DESIGN TOKENS
   // ============================================================
 
   static const double _buttonFontSize = 13;
   static const double _fieldFontSize = 13;
   static const double _smallRadius = 12;
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
   static const double _gapTitleToContent = 16;
@@ -243,15 +244,15 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Menunggu':
-        return Colors.orange;
+        return const Color(0xFFF59E0B); // amber
       case 'Diproses':
-        return Colors.blue;
+        return AppColors.primaryTeal; // ← dari biru
       case 'Selesai':
-        return Colors.green;
+        return const Color(0xFF16A34A); // hijau
       case 'Ditolak':
-        return Colors.red;
+        return const Color(0xFFDC2626); // merah
       default:
-        return Colors.grey;
+        return AppColors.grey500;
     }
   }
 
@@ -286,10 +287,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           const SizedBox(width: 5),
           Text(
             status,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -355,16 +357,14 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
+                          const Expanded(
                             child: Text(
                               'Buat Pengaduan',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF111827),
-                                  ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.grey900,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -374,7 +374,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                             icon: const Icon(
                               Icons.close,
                               size: 20,
-                              color: Color(0xFF6B7280),
+                              color: AppColors.grey500,
                             ),
                             splashRadius: 22,
                           ),
@@ -385,7 +385,6 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                       const Divider(height: 1),
                       const SizedBox(height: 16),
 
-                      // FORM (scrollable)
                       Flexible(
                         child: SingleChildScrollView(
                           child: Column(
@@ -398,12 +397,9 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                 decoration: _inputDecoration(
                                   'Kategori Pengaduan',
                                 ),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: _fieldFontSize,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color,
+                                  color: AppColors.grey900,
                                 ),
                                 items: _categories.map((category) {
                                   return DropdownMenuItem<String>(
@@ -494,14 +490,12 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                   : () => Navigator.pop(dialogContext),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 46),
-                                foregroundColor:
-                                    const Color(0xFF374151),
+                                foregroundColor: AppColors.grey700,
                                 side: const BorderSide(
-                                  color: Color(0xFFD1D5DB),
+                                  color: AppColors.grey300,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               child: const Text(
@@ -527,15 +521,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                           .trim();
 
                                       if (title.isEmpty || desc.isEmpty) {
-                                        ScaffoldMessenger.of(
-                                                this.context)
+                                        ScaffoldMessenger.of(this.context)
                                             .showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               'Judul dan deskripsi harus diisi.',
                                             ),
-                                            backgroundColor:
-                                                Colors.orange,
+                                            backgroundColor: Color(0xFFF59E0B),
                                           ),
                                         );
                                         return;
@@ -544,15 +536,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                       if (jobMode ==
                                               _JobFieldMode.required &&
                                           selectedJobId == null) {
-                                        ScaffoldMessenger.of(
-                                                this.context)
+                                        ScaffoldMessenger.of(this.context)
                                             .showSnackBar(
                                           SnackBar(
                                             content: Text(
                                               'Kategori "$selectedCategory" wajib memilih pekerjaan terkait.',
                                             ),
-                                            backgroundColor:
-                                                Colors.orange,
+                                            backgroundColor: const Color(0xFFF59E0B),
                                           ),
                                         );
                                         return;
@@ -580,21 +570,19 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _accent,
+                                backgroundColor: _accent, // ← teal
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               child: isSubmitting
                                   ? const SizedBox(
                                       width: 18,
                                       height: 18,
-                                      child:
-                                          CircularProgressIndicator(
+                                      child: CircularProgressIndicator(
                                         strokeWidth: 2,
                                         color: Colors.white,
                                       ),
@@ -643,7 +631,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.withOpacity(0.35)),
+          border: Border.all(color: AppColors.grey300),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Row(
@@ -670,12 +658,12 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           color: isBlocking
-              ? Colors.orange.withOpacity(0.08)
-              : Colors.grey.shade50,
+              ? const Color(0xFFF59E0B).withOpacity(0.08)
+              : AppColors.grey50,
           border: Border.all(
             color: isBlocking
-                ? Colors.orange.withOpacity(0.4)
-                : Colors.grey.withOpacity(0.35),
+                ? const Color(0xFFF59E0B).withOpacity(0.4)
+                : AppColors.grey300,
           ),
           borderRadius: BorderRadius.circular(8),
         ),
@@ -686,7 +674,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                   ? Icons.warning_amber_rounded
                   : Icons.info_outline,
               size: 16,
-              color: isBlocking ? Colors.orange : Colors.grey.shade500,
+              color: isBlocking ? const Color(0xFFF59E0B) : AppColors.grey500,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -696,8 +684,9 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                     : 'Anda belum memiliki pekerjaan. Pengaduan akan dikirim tanpa terkait pekerjaan.',
                 style: TextStyle(
                   fontSize: _fieldFontSize - 1,
-                  color:
-                      isBlocking ? Colors.orange.shade800 : Colors.grey,
+                  color: isBlocking
+                      ? const Color(0xFFD97706)
+                      : AppColors.grey600,
                 ),
               ),
             ),
@@ -714,15 +703,15 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             ? OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: Colors.orange.withOpacity(0.55),
+                  color: const Color(0xFFF59E0B).withOpacity(0.55),
                   width: 1.3,
                 ),
               )
             : null,
       ),
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: _fieldFontSize,
-        color: Theme.of(context).textTheme.bodyMedium?.color,
+        color: AppColors.grey900,
       ),
       items: [
         if (isRequired)
@@ -734,7 +723,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               style: TextStyle(
                 fontSize: _fieldFontSize,
                 fontStyle: FontStyle.italic,
-                color: Colors.grey,
+                color: AppColors.grey500,
               ),
             ),
           )
@@ -746,7 +735,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               style: TextStyle(
                 fontSize: _fieldFontSize,
                 fontStyle: FontStyle.italic,
-                color: Colors.grey,
+                color: AppColors.grey500,
               ),
             ),
           ),
@@ -781,21 +770,23 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.grey300),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(
-          color: Colors.grey.withOpacity(0.35),
-        ),
+        borderSide: const BorderSide(color: AppColors.grey300),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: _accent, width: 1.5),
       ),
-      labelStyle: const TextStyle(fontSize: _fieldFontSize),
-      hintStyle: TextStyle(
+      labelStyle: const TextStyle(
         fontSize: _fieldFontSize,
-        color: Colors.grey.shade500,
+        color: AppColors.grey600,
+      ),
+      hintStyle: const TextStyle(
+        fontSize: _fieldFontSize,
+        color: AppColors.grey400,
       ),
     );
   }
@@ -825,7 +816,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pengaduan berhasil dibuat.'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.primaryTeal, // ← teal
           ),
         );
         return true;
@@ -855,26 +846,27 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
-
     final titleAndSubtitle = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Pengaduan Saya',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
         const SizedBox(height: 6),
-        Text(
+        const Text(
           'Ajukan dan pantau pengaduan kepada Admin.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -891,7 +883,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accent,
+        backgroundColor: _accent, // ← teal
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(
@@ -927,39 +919,31 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // SUMMARY — Mobile 2×2, Web 4 kolom
+  // SUMMARY
   // ============================================================
 
   Widget _buildSummary(BuildContext context, bool isMobile) {
     final cards = [
       _summaryCard(
-        context: context,
         title: 'Total',
-        fullTitle: 'Total Pengaduan',
         value: '${_summary['total'] ?? 0}',
         icon: Icons.report_problem_outlined,
-        color: const Color(0xFF2563EB),
+        color: AppColors.primaryTeal, // ← dari biru
       ),
       _summaryCard(
-        context: context,
         title: 'Menunggu',
-        fullTitle: 'Menunggu',
         value: '${_summary['menunggu'] ?? 0}',
         icon: Icons.access_time,
-        color: _accent,
+        color: const Color(0xFFF59E0B),
       ),
       _summaryCard(
-        context: context,
         title: 'Diproses',
-        fullTitle: 'Diproses',
         value: '${_summary['diproses'] ?? 0}',
         icon: Icons.sync,
-        color: const Color(0xFF7C3AED),
+        color: AppColors.primaryTeal, // ← dari ungu
       ),
       _summaryCard(
-        context: context,
         title: 'Selesai',
-        fullTitle: 'Selesai',
         value: '${_summary['selesai'] ?? 0}',
         icon: Icons.check_circle_outline,
         color: const Color(0xFF16A34A),
@@ -999,9 +983,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   Widget _summaryCard({
-    required BuildContext context,
     required String title,
-    required String fullTitle,
     required String value,
     required IconData icon,
     required Color color,
@@ -1009,12 +991,14 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.darkTeal.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1042,7 +1026,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF64748B),
+                    color: AppColors.grey500,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1055,7 +1039,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.grey900,
                     height: 1.1,
                   ),
                 ),
@@ -1080,26 +1064,25 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       'Ditolak',
     ];
 
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_smallRadius),
         border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_list, size: 18, color: Color(0xFF6B7280)),
+          const Icon(Icons.filter_list, size: 18, color: AppColors.grey500),
           const SizedBox(width: 8),
           if (!isMobile) ...[
-            Text(
+            const Text(
               'Filter Status:',
-              style: textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF374151),
+                color: AppColors.grey700,
+                fontSize: 13,
               ),
             ),
             const SizedBox(width: 12),
@@ -1108,7 +1091,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _tableBorder),
             ),
@@ -1121,12 +1104,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 18,
-                    color: Color(0xFF6B7280),
+                    color: AppColors.grey500,
                   ),
                 ),
-                style: textTheme.bodyMedium?.copyWith(
+                style: const TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF111827),
+                  color: AppColors.grey900,
+                  fontSize: 13,
                 ),
                 items: filters.map((filter) {
                   return DropdownMenuItem<String>(
@@ -1150,9 +1134,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             ),
             child: Text(
               '${_filteredComplaints.length}',
-              style: textTheme.labelMedium?.copyWith(
+              style: const TextStyle(
                 color: _accent,
                 fontWeight: FontWeight.w700,
+                fontSize: 12,
               ),
             ),
           ),
@@ -1162,16 +1147,17 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   }
 
   // ============================================================
-  // SECTION TITLE — sama persis dgn judul "Pengaduan Saya"
-  //   tanpa bar, pakai headlineSmall + bold
+  // SECTION TITLE
   // ============================================================
 
   Widget _buildSectionTitle(BuildContext context) {
-    return Text(
+    return const Text(
       'Riwayat Pengaduan',
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.grey900,
+      ),
     );
   }
 
@@ -1180,15 +1166,15 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // ============================================================
 
   Widget _buildComplaintCard(BuildContext context, ComplaintModel complaint) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1199,9 +1185,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               Expanded(
                 child: Text(
                   complaint.code,
-                  style: textTheme.bodyMedium?.copyWith(
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: _cellText,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -1213,27 +1200,25 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             complaint.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodyMedium?.copyWith(
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               color: _cellText,
               height: 1.3,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             complaint.category,
-            style: textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF64748B),
+            style: const TextStyle(
+              color: AppColors.grey600,
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 14),
           const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
-          _infoRow(
-            Icons.work_outline,
-            'ID Pekerjaan',
-            complaint.jobCode,
-          ),
+          _infoRow(Icons.work_outline, 'ID Pekerjaan', complaint.jobCode),
           const SizedBox(height: 8),
           _infoRow(
             Icons.calendar_today_outlined,
@@ -1245,9 +1230,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             complaint.description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF4B5563),
+            style: const TextStyle(
+              color: AppColors.grey700,
               height: 1.4,
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 14),
@@ -1262,8 +1248,8 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 11),
-                foregroundColor: const Color(0xFF7C3AED),
-                side: const BorderSide(color: Color(0xFFD1D5DB)),
+                foregroundColor: _accent, // ← dari ungu
+                side: const BorderSide(color: AppColors.grey300),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1278,7 +1264,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   Widget _infoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+        Icon(icon, size: 16, color: AppColors.grey400),
         const SizedBox(width: 8),
         SizedBox(
           width: 95,
@@ -1286,7 +1272,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             label,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
         ),
@@ -1298,7 +1284,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             style: const TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
+              color: _cellText,
             ),
           ),
         ),
@@ -1315,7 +1301,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _tableBorder),
       ),
@@ -1355,16 +1341,15 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: _headerText,
-          ),
+      style: const TextStyle(
+        fontWeight: FontWeight.w500,
+        color: _headerText,
+        fontSize: 13,
+      ),
     );
   }
 
   Widget _buildTableDataRow(BuildContext context, ComplaintModel complaint) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
@@ -1376,9 +1361,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.code,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: _cellText,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1388,9 +1374,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
                 height: 1.3,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1400,9 +1387,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.category,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
                 height: 1.3,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1412,8 +1400,9 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               complaint.jobCode,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1421,8 +1410,9 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             flex: 2,
             child: Text(
               complaint.formattedDate,
-              style: textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
                 color: _cellText,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1441,8 +1431,8 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 context: context,
                 icon: Icons.visibility_outlined,
                 label: 'Detail',
-                bgColor: const Color(0xFFF1F5F9),
-                fgColor: const Color(0xFF334155),
+                bgColor: AppColors.grey100,
+                fgColor: AppColors.grey700,
                 onTap: () => _showComplaintDetail(complaint),
               ),
             ),
@@ -1475,10 +1465,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: fgColor,
-                    ),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: fgColor,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -1495,8 +1486,6 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -1513,7 +1502,6 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // HEADER
                   Row(
                     children: [
                       Container(
@@ -1530,12 +1518,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Detail Pengaduan',
-                          style: textTheme.titleMedium?.copyWith(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF111827),
+                            color: AppColors.grey900,
+                            fontSize: 16,
                           ),
                         ),
                       ),
@@ -1544,7 +1533,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                         icon: const Icon(
                           Icons.close,
                           size: 20,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.grey500,
                         ),
                         splashRadius: 22,
                       ),
@@ -1584,7 +1573,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF374151),
+                                  color: AppColors.grey700,
                                 ),
                               ),
                               _statusBadge(dialogContext, complaint.status),
@@ -1620,7 +1609,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1F2937),
+            color: AppColors.grey800,
           ),
         ),
       ],
@@ -1632,15 +1621,15 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Text(
         value,
         style: const TextStyle(
           fontSize: 13,
-          color: Color(0xFF374151),
+          color: AppColors.grey700,
           height: 1.5,
         ),
       ),
@@ -1659,7 +1648,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               label,
               style: const TextStyle(
                 fontSize: 13,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
           ),
@@ -1669,7 +1658,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                color: AppColors.grey900,
               ),
             ),
           ),
@@ -1681,17 +1670,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dgn CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
-  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: RefreshIndicator(
         onRefresh: () async {
           await Future.wait([
@@ -1848,7 +1833,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 : 'Tidak ada pengaduan dengan status "$_selectedFilter".',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
               fontSize: 13,
             ),
           ),

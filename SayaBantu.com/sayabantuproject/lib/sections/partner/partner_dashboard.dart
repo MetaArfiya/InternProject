@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/partner_job_model.dart';
 import '../../widgets/partner_job_card.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class PartnerDashboard extends StatefulWidget {
   final Function(PartnerJobModel) onTakeOffer;
@@ -26,18 +27,18 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   int _userPoints = 0;
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
   static const double _smallRadius = 12;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
 
@@ -121,7 +122,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   // ============================================================
-  // KONFIRMASI — disamakan style dialog dgn halaman lain
+  // KONFIRMASI
   // ============================================================
 
   void _showTakeOfferConfirmation(PartnerJobModel job) {
@@ -161,16 +162,14 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Konfirmasi Penawaran',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF111827),
-                              ),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -178,7 +177,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                         icon: const Icon(
                           Icons.close,
                           size: 20,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.grey500,
                         ),
                         splashRadius: 22,
                       ),
@@ -193,7 +192,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                     'Apakah Anda yakin ingin mengajukan penawaran untuk pekerjaan "${job.title}"?',
                     style: const TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF374151),
+                      color: AppColors.grey700,
                       height: 1.5,
                     ),
                   ),
@@ -207,9 +206,9 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                           onPressed: () => Navigator.pop(dialogContext),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
+                            foregroundColor: AppColors.grey700,
                             side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
+                              color: AppColors.grey300,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -233,7 +232,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                             widget.onTakeOffer(job);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _accent,
+                            backgroundColor: _accent, // ← teal
                             foregroundColor: Colors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
@@ -264,17 +263,13 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dgn CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 30)
-  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: RefreshIndicator(
         onRefresh: _fetchDashboardData,
         color: _accent,
@@ -320,26 +315,27 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Lowongan Tersedia',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Temukan pekerjaan yang sesuai dengan keahlianmu.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -347,15 +343,17 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   // ============================================================
-  // SECTION TITLE — sama persis dgn judul "Riwayat ..." halaman lain
+  // SECTION TITLE
   // ============================================================
 
   Widget _buildSectionTitle(BuildContext context) {
-    return Text(
+    return const Text(
       'Daftar Lowongan',
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.grey900,
+      ),
     );
   }
 
@@ -370,7 +368,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         title: 'Lowongan',
         fullTitle: 'Total Lowongan',
         value: _jobs.length.toString(),
-        color: const Color(0xFF2563EB),
+        color: AppColors.primaryTeal, // ← dari biru
         isCompact: isMobile,
       ),
       _statCard(
@@ -386,7 +384,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         title: 'Poin',
         fullTitle: 'Total Poin',
         value: _userPoints.toString(),
-        color: const Color(0xFF16A34A),
+        color: const Color(0xFF16A34A), // tetap hijau (poin)
         isCompact: isMobile,
       ),
     ];
@@ -414,12 +412,14 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 12 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.darkTeal.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -451,7 +451,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: const Color(0xFF64748B),
+                    color: AppColors.grey500,
                     fontSize: isCompact ? 10.5 : 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -464,7 +464,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                   style: TextStyle(
                     fontSize: isCompact ? 18 : 20,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
+                    color: AppColors.grey900,
                     height: 1.1,
                   ),
                 ),
@@ -547,7 +547,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
+              backgroundColor: _accent, // ← teal
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -585,7 +585,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
         ],

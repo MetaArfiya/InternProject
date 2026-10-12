@@ -7,6 +7,7 @@ import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 import '../models/partner_sidebar_menu.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
+import '../theme/app_colors.dart';
 
 class PartnerSidebar extends StatefulWidget {
   final PartnerSidebarMenu activeMenu;
@@ -60,16 +61,9 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       initials = getInitials(savedName);
     });
 
-    // =======================================================
     // AMBIL DATA USER
-    // =======================================================
-
     try {
       final response = await ApiService.get('/user');
-
-      debugPrint("===== PARTNER SIDEBAR USER =====");
-      debugPrint("STATUS : ${response.statusCode}");
-      debugPrint("BODY   : ${response.body}");
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
@@ -82,9 +76,6 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           final apiName = userData['name']?.toString();
           final dynamic apiPhoto = userData['photo_url'];
           final apiPhotoUrl = apiPhoto?.toString();
-
-          debugPrint("NAMA USER        : $apiName");
-          debugPrint("PHOTO URL DARI API: $apiPhotoUrl");
 
           if (!mounted) return;
 
@@ -102,9 +93,6 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               photoUrl = null;
             }
           });
-
-          debugPrint("PHOTO URL STATE : $photoUrl");
-          debugPrint("FULL PHOTO URL  : ${getFullPhotoUrl()}");
         }
       } else {
         debugPrint("GAGAL MEMUAT USER: ${response.statusCode}");
@@ -113,16 +101,9 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       debugPrint("ERROR LOAD USER PARTNER SIDEBAR: $e");
     }
 
-    // =======================================================
     // AMBIL DATA PROFIL MITRA
-    // =======================================================
-
     try {
       final response = await ApiService.get('/mitra/profile');
-
-      debugPrint("===== PARTNER SIDEBAR MITRA =====");
-      debugPrint("STATUS : ${response.statusCode}");
-      debugPrint("BODY   : ${response.body}");
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
@@ -212,13 +193,13 @@ class PartnerSidebarState extends State<PartnerSidebar> {
         height: 52,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.orange,
+          color: AppColors.mint, // ← dari orange
         ),
         alignment: Alignment.center,
         child: Text(
           initials,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.darkTeal, // ← text dark teal
             fontSize: 17,
             fontWeight: FontWeight.bold,
           ),
@@ -231,7 +212,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
       height: 52,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.orange,
+        color: AppColors.mint,
       ),
       child: ClipOval(
         child: Image.network(
@@ -249,14 +230,14 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             return Container(
               width: 52,
               height: 52,
-              color: Colors.orange,
+              color: AppColors.mint,
               alignment: Alignment.center,
               child: const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.darkTeal,
                 ),
               ),
             );
@@ -269,12 +250,12 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             return Container(
               width: 52,
               height: 52,
-              color: Colors.orange,
+              color: AppColors.mint,
               alignment: Alignment.center,
               child: Text(
                 initials,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.darkTeal,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
@@ -303,36 +284,49 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.logout, color: Colors.red),
+                  Icon(Icons.logout, color: AppColors.primaryTeal),
                   SizedBox(width: 10),
                   Text(
                     'Keluar',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.grey900,
+                    ),
                   ),
                 ],
               ),
               content: const Text(
                 'Apakah kamu yakin ingin keluar dari akun?',
+                style: TextStyle(color: AppColors.grey700),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.pop(dialogContext, false);
                   },
-                  child: const Text('Batal'),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(
+                      color: AppColors.grey600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext, true);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.primaryTeal, // ← teal
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Keluar'),
+                  child: const Text(
+                    'Keluar',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             );
@@ -349,7 +343,6 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     }
 
     try {
-      // ✅ Clear sessionStorage — hapus semua key auth untuk tab ini
       AuthStorage.clear();
 
       if (!mounted) return;
@@ -387,7 +380,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
     return Container(
       width: 250,
       height: double.infinity,
-      color: const Color(0xff111827),
+      color: AppColors.darkTeal, // ← dari #111827 (hitam)
       child: SafeArea(
         child: Column(
           children: [
@@ -418,10 +411,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        const Text(
+                        Text(
                           "Mitra Aktif",
                           style: TextStyle(
-                            color: Colors.white60,
+                            color: Colors.white.withOpacity(0.65),
                             fontSize: 13,
                           ),
                         ),
@@ -443,10 +436,11 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
+                // ✅ dari orange gradient → teal gradient
                 gradient: const LinearGradient(
                   colors: [
-                    Color(0xffFF8A00),
-                    Color(0xffF97316),
+                    AppColors.primaryTeal,
+                    AppColors.darkTeal,
                   ],
                 ),
               ),
@@ -466,7 +460,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                     children: [
                       const Icon(
                         Icons.emoji_events,
-                        color: Colors.amber,
+                        color: AppColors.mint, // ← dari amber
                         size: 32,
                       ),
                       const SizedBox(width: 10),
@@ -505,7 +499,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                  color: const Color(0xffE8F7EE),
+                  color: const Color(0xFFDCFCE7), // tetap hijau
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
@@ -513,15 +507,16 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                   children: [
                     Icon(
                       Icons.check,
-                      color: Colors.green,
+                      color: Color(0xFF16A34A),
                       size: 18,
                     ),
                     SizedBox(width: 6),
                     Text(
                       "Akun Terverifikasi",
                       style: TextStyle(
-                        color: Colors.green,
+                        color: Color(0xFF16A34A),
                         fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -615,13 +610,16 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           vertical: 15,
         ),
         color: active
-            ? Colors.orange.withValues(alpha: 0.2)
+            ? AppColors.mint.withOpacity(0.15) // ← dari orange soft
             : Colors.transparent,
         child: Row(
           children: [
             Icon(
               icon,
-              color: active ? Colors.orange : Colors.white70,
+              color: active
+                  ? AppColors.mint // ← aktif → mint
+                  : Colors.white.withOpacity(0.70),
+              size: 22,
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -630,12 +628,25 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: active ? Colors.orange : Colors.white,
+                  color: active
+                      ? AppColors.mint // ← aktif → mint
+                      : Colors.white.withOpacity(0.85),
                   fontWeight:
-                      active ? FontWeight.bold : FontWeight.normal,
+                      active ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14.5,
                 ),
               ),
             ),
+            // Aksen bar kecil di kanan menu aktif
+            if (active)
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.mint,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
           ],
         ),
       ),
@@ -659,10 +670,11 @@ class PartnerSidebarState extends State<PartnerSidebar> {
             vertical: 13,
           ),
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.08),
+            // ✅ dari merah soft → putih soft (muted)
+            color: Colors.white.withOpacity(0.08),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.red.withValues(alpha: 0.25),
+              color: Colors.white.withOpacity(0.15),
             ),
           ),
           child: Row(
@@ -673,13 +685,13 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.red,
+                    color: AppColors.mint,
                   ),
                 )
               else
                 const Icon(
                   Icons.logout,
-                  color: Colors.red,
+                  color: AppColors.mint, // ← dari merah
                   size: 20,
                 ),
               const SizedBox(width: 12),
@@ -687,7 +699,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                 child: Text(
                   isLoggingOut ? 'Keluar...' : 'Keluar',
                   style: const TextStyle(
-                    color: Colors.red,
+                    color: Colors.white, // ← dari merah
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),

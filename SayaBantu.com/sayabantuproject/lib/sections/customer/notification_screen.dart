@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/notification_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/notification_card.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -18,9 +19,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // ============================================================
-  // SPACING — mengikuti pola DashboardHeader
-  // ============================================================
   static const double _gapAfterHeader = 16;
 
   @override
@@ -81,16 +79,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal: mobile 16 / tablet 24 / desktop 28
-  // ✅ Tanpa Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      color: theme.scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
@@ -103,7 +96,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           return RefreshIndicator(
             onRefresh: _loadNotifications,
-            color: const Color(0xFFF97316),
+            color: AppColors.primaryTeal, // ← dari orange
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
@@ -113,28 +106,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ============================================
-                  // HEADER — sama persis dgn "Pekerjaan Saya"
-                  // ============================================
-                  Text(
+                  // HEADER
+                  const Text(
                     'Notifikasi',
-                    style: theme.textTheme.headlineSmall?.copyWith(
+                    style: TextStyle(
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.grey900,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
+                  const Text(
                     'Semua aktivitas terbaru akan muncul di sini.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.grey500,
                     ),
                   ),
 
                   const SizedBox(height: _gapAfterHeader),
 
-                  // ============================================
-                  // CONTENT
-                  // ============================================
                   _buildContent(context, isMobile),
                 ],
               ),
@@ -171,7 +162,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: const Center(
-        child: CircularProgressIndicator(color: Color(0xFFF97316)),
+        child: CircularProgressIndicator(color: AppColors.primaryTeal),
       ),
     );
   }
@@ -184,9 +175,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         children: [
@@ -196,25 +189,35 @@ class _NotificationScreenState extends State<NotificationScreen> {
             color: Color(0xFFEF4444),
           ),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             'Gagal memuat notifikasi',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.grey900,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.grey600,
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: _loadNotifications,
             icon: const Icon(Icons.refresh),
             label: const Text('Coba Lagi'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal, // ← teal
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
         ],
       ),
@@ -225,15 +228,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
   // EMPTY
   // ==========================================================
   Widget _buildEmptyState(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 48),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         children: [
@@ -241,28 +244,31 @@ class _NotificationScreenState extends State<NotificationScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xffF1F5F9),
+              color: AppColors.mint.withOpacity(0.15), // ← dari grey soft
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.notifications_none_outlined,
               size: 24,
-              color: Colors.grey.shade500,
+              color: AppColors.primaryTeal, // ← dari grey
             ),
           ),
           const SizedBox(height: 14),
-          Text(
+          const Text(
             'Belum ada notifikasi',
-            style: theme.textTheme.titleSmall?.copyWith(
+            style: TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.w600,
+              color: AppColors.grey900,
             ),
           ),
           const SizedBox(height: 5),
-          Text(
+          const Text(
             'Semua aktivitas terbaru akan muncul di sini.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade600,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: AppColors.grey600,
             ),
           ),
         ],

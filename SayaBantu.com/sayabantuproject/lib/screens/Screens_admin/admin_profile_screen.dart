@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
+import '../../theme/app_colors.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   final VoidCallback? onProfileUpdated;
@@ -23,6 +24,14 @@ class AdminProfileScreen extends StatefulWidget {
 }
 
 class _AdminProfileScreenState extends State<AdminProfileScreen> {
+  // =========================================================
+  // LOKAL WARNA
+  // =========================================================
+  static const Color _danger = Color(0xFFEF4444);
+  static const Color _dangerSoft = Color(0xFFFEF2F2);
+  static const Color _success = Color(0xFF16A34A);
+  static const Color _successSoft = Color(0xFFDCFCE7);
+
   String adminName = 'Memuat...';
   String adminEmail = 'Memuat...';
   String adminRole = 'Memuat...';
@@ -417,7 +426,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF4F7FB),
+      color: AppColors.sectionAltLight,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
             isMobile ? 16 : 26, isMobile ? 18 : 28, isMobile ? 16 : 26, 30),
@@ -429,7 +438,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               style: TextStyle(
                 fontSize: isMobile ? 23 : 27,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0F172A),
+                color: AppColors.darkTeal,
               ),
             ),
             const SizedBox(height: 5),
@@ -437,7 +446,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               'Kelola informasi dan keamanan akun admin',
               style: TextStyle(
                 fontSize: isMobile ? 12 : 13,
-                color: const Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
             const SizedBox(height: 22),
@@ -445,7 +454,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(),
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryTeal,
+                  ),
                 ),
               )
             else ...[
@@ -456,7 +467,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               _buildSecurityCard(context, isMobile),
 
               // =========================================
-              // ✅ TOMBOL LOGOUT (MOBILE ONLY)
+              // TOMBOL LOGOUT (MOBILE ONLY)
               // =========================================
               if (isMobile && widget.onLogout != null) ...[
                 const SizedBox(height: 18),
@@ -470,7 +481,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   }
 
   // =========================================================
-  // ✅ LOGOUT CARD (MOBILE)
+  // LOGOUT CARD (MOBILE)
   // =========================================================
 
   Widget _buildLogoutCard() {
@@ -478,9 +489,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: const Color(0xFFDCE3EC)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,7 +501,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: AppColors.grey900,
             ),
           ),
           const SizedBox(height: 4),
@@ -498,7 +509,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             'Kamu akan keluar dari sesi admin saat ini',
             style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
           const SizedBox(height: 16),
@@ -512,20 +523,20 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               },
               icon: const Icon(
                 Icons.logout_outlined,
-                color: Color(0xFFEF4444),
+                color: _danger,
                 size: 18,
               ),
               label: const Text(
                 'Keluar Sekarang',
                 style: TextStyle(
-                  color: Color(0xFFEF4444),
+                  color: _danger,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(
-                  color: Color(0xFFEF4444),
+                  color: _danger,
                   width: 1.2,
                 ),
                 shape: RoundedRectangleBorder(
@@ -548,9 +559,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: const Color(0xFFDCE3EC)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: isMobile
           ? Column(
@@ -593,7 +604,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 32,
-                backgroundColor: const Color(0xFFF0E9FF),
+                backgroundColor: AppColors.lightMint,
                 backgroundImage: selectedPhotoBytes != null
                     ? MemoryImage(selectedPhotoBytes!)
                     : fullPhotoUrl != null
@@ -602,7 +613,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 child: selectedPhotoBytes == null && fullPhotoUrl == null
                     ? const Icon(
                         Icons.shield_outlined,
-                        color: Color(0xFF7C3AED),
+                        color: AppColors.darkTeal,
                         size: 32,
                       )
                     : null,
@@ -617,7 +628,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     width: 25,
                     height: 25,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF7C3AED),
+                      color: AppColors.primaryTeal,
                       shape: BoxShape.circle,
                     ),
                     child: isUploadingPhoto
@@ -625,12 +636,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                             padding: EdgeInsets.all(6),
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.white,
                             ),
                           )
                         : const Icon(
                             Icons.camera_alt_outlined,
-                            color: Colors.white,
+                            color: AppColors.white,
                             size: 13,
                           ),
                   ),
@@ -650,7 +661,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
+                  color: AppColors.grey900,
                 ),
               ),
               const SizedBox(height: 5),
@@ -659,7 +670,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF64748B),
+                  color: AppColors.grey600,
                 ),
               ),
               const SizedBox(height: 7),
@@ -667,7 +678,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
+                  color: AppColors.lightMint,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -675,7 +686,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF16A34A),
+                    color: AppColors.darkTeal,
                   ),
                 ),
               ),
@@ -702,8 +713,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF7C3AED),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primaryTeal,
+        foregroundColor: AppColors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
         shape: RoundedRectangleBorder(
@@ -728,7 +739,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         final fullPhotoUrl = _getFullPhotoUrl();
 
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.sectionLight,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -737,7 +748,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: AppColors.grey900,
             ),
           ),
           content: SizedBox(
@@ -767,7 +778,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                         children: [
                           CircleAvatar(
                             radius: 45,
-                            backgroundColor: const Color(0xFFF0E9FF),
+                            backgroundColor: AppColors.lightMint,
                             backgroundImage: selectedPhotoBytes != null
                                 ? MemoryImage(selectedPhotoBytes!)
                                 : fullPhotoUrl != null
@@ -777,7 +788,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                     fullPhotoUrl == null
                                 ? const Icon(
                                     Icons.shield_outlined,
-                                    color: Color(0xFF7C3AED),
+                                    color: AppColors.darkTeal,
                                     size: 42,
                                   )
                                 : null,
@@ -797,7 +808,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                 width: 30,
                                 height: 30,
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFF7C3AED),
+                                  color: AppColors.primaryTeal,
                                   shape: BoxShape.circle,
                                 ),
                                 child: isUploadingPhoto
@@ -805,12 +816,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                         padding: EdgeInsets.all(7),
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white,
+                                          color: AppColors.white,
                                         ),
                                       )
                                     : const Icon(
                                         Icons.camera_alt_outlined,
-                                        color: Colors.white,
+                                        color: AppColors.white,
                                         size: 15,
                                       ),
                               ),
@@ -824,7 +835,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       'Klik ikon kamera untuk mengganti foto',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF94A3B8),
+                        color: AppColors.grey500,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -894,7 +905,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: AppColors.grey600),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -906,8 +920,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 await _updateProfile(dialogContext, newName, newEmail);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primaryTeal,
+                foregroundColor: AppColors.white,
               ),
               child: const Text('Simpan'),
             ),
@@ -997,9 +1011,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: const Color(0xFFDCE3EC)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1009,7 +1023,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: AppColors.grey900,
             ),
           ),
           const SizedBox(height: 4),
@@ -1017,7 +1031,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             'Informasi dasar akun administrator',
             style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
           const SizedBox(height: 20),
@@ -1035,7 +1049,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   Icons.check_circle_outline,
                   'Status Akun',
                   'Aktif',
-                  valueColor: const Color(0xFF16A34A),
+                  valueColor: _success,
                 ),
               ],
             )
@@ -1063,7 +1077,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                         Icons.check_circle_outline,
                         'Status Akun',
                         'Aktif',
-                        valueColor: const Color(0xFF16A34A),
+                        valueColor: _success,
                       ),
                     ],
                   ),
@@ -1092,13 +1106,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: AppColors.sectionAltLight,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: const Color(0xFF64748B),
+            color: AppColors.primaryTeal,
           ),
         ),
         const SizedBox(width: 10),
@@ -1110,7 +1124,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 label,
                 style: const TextStyle(
                   fontSize: 10,
-                  color: Color(0xFF94A3B8),
+                  color: AppColors.grey500,
                 ),
               ),
               const SizedBox(height: 4),
@@ -1120,7 +1134,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: valueColor ?? const Color(0xFF334155),
+                  color: valueColor ?? AppColors.grey700,
                 ),
               ),
             ],
@@ -1139,9 +1153,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: const Color(0xFFDCE3EC)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1151,7 +1165,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: AppColors.grey900,
             ),
           ),
           const SizedBox(height: 4),
@@ -1159,7 +1173,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             'Pengaturan keamanan akun administrator',
             style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
           const SizedBox(height: 18),
@@ -1169,11 +1183,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             'Kata Sandi',
             'Kata sandi dapat diperbarui',
             'Ubah',
-            const Color(0xFF7C3AED),
+            AppColors.primaryTeal,
           ),
           const Divider(
             height: 1,
-            color: Color(0xFFE2E8F0),
+            color: AppColors.grey200,
           ),
           _securityItem(
             context,
@@ -1181,7 +1195,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             'Verifikasi Akun',
             'Akun administrator telah terverifikasi',
             'Terverifikasi',
-            const Color(0xFF16A34A),
+            AppColors.darkTeal,
           ),
         ],
       ),
@@ -1208,13 +1222,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AppColors.sectionAltLight,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
               size: 18,
-              color: const Color(0xFF64748B),
+              color: AppColors.primaryTeal,
             ),
           ),
           const SizedBox(width: 10),
@@ -1227,7 +1241,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF334155),
+                    color: AppColors.grey700,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1235,7 +1249,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   description,
                   style: const TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF94A3B8),
+                    color: AppColors.grey500,
                   ),
                 ),
               ],
@@ -1290,7 +1304,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.sectionLight,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1299,6 +1313,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
+                  color: AppColors.grey900,
                 ),
               ),
               content: SizedBox(
@@ -1416,7 +1431,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
                   },
-                  child: const Text('Batal'),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(color: AppColors.grey600),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -1431,8 +1449,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C3AED),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: AppColors.white,
                   ),
                   child: const Text('Simpan'),
                 ),
@@ -1499,8 +1517,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:
-            error ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+        backgroundColor: error ? _danger : AppColors.primaryTeal,
         behavior: SnackBarBehavior.floating,
       ),
     );

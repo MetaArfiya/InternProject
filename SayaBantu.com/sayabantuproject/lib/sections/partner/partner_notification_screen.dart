@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/notification_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/notification_card.dart';
 
 class PartnerNotificationScreen extends StatefulWidget {
@@ -20,12 +21,12 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
   String? _errorMessage;
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
 
@@ -36,8 +37,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
   }
 
   // ============================================================
-  // FETCH NOTIFIKASI DARI API (endpoint sama: /notifications)
-  // Backend filter otomatis berdasarkan role yang login
+  // FETCH NOTIFIKASI DARI API
   // ============================================================
 
   Future<void> _loadNotifications() async {
@@ -52,12 +52,10 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
       final response = await ApiService.get('/notifications');
 
       debugPrint('🔔 [MITRA] NOTIFICATIONS STATUS: ${response.statusCode}');
-      debugPrint('🔔 [MITRA] NOTIFICATIONS BODY: ${response.body}');
 
       final Map<String, dynamic> body = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // ✅ SESUAI CONTROLLER: pakai key 'notifications'
         final List<dynamic> rawData = body['notifications'] ?? [];
 
         final loaded = rawData
@@ -89,17 +87,13 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dgn CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 28 fixed)
-  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: AppColors.sectionAltLight, // ← mint muda
       child: RefreshIndicator(
         onRefresh: _loadNotifications,
         color: _accent,
@@ -137,26 +131,27 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
   }
 
   // ============================================================
-  // HEADER — sama persis dgn DashboardHeader
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Notifikasi',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Lihat informasi terbaru mengenai pekerjaan dan akun kamu.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -236,7 +231,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
+              backgroundColor: _accent, // ← teal
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -279,7 +274,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
           const SizedBox(height: 4),
@@ -288,7 +283,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF94A3B8),
+              color: AppColors.grey400,
             ),
           ),
         ],

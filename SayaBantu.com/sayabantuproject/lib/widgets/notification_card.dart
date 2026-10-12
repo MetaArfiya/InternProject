@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/notification_model.dart';
+import '../theme/app_colors.dart';
 
 /// Versi ringkas — untuk NotificationScreen (Pelanggan)
 class CompactNotificationCard extends StatelessWidget {
@@ -13,15 +14,15 @@ class CompactNotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,12 +31,14 @@ class CompactNotificationCard extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: notification.iconBackground,
+              // ✅ dari `notification.iconBackground` → mint soft
+              color: AppColors.mint.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               notification.icon,
-              color: notification.iconColor,
+              // ✅ dari `notification.iconColor` → teal
+              color: AppColors.primaryTeal,
               size: 22,
             ),
           ),
@@ -51,6 +54,7 @@ class CompactNotificationCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.grey900,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -58,7 +62,7 @@ class CompactNotificationCard extends StatelessWidget {
                   notification.message,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Colors.grey,
+                    color: AppColors.grey600,
                     height: 1.4,
                   ),
                 ),
@@ -67,7 +71,7 @@ class CompactNotificationCard extends StatelessWidget {
                   notification.relativeTime,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: AppColors.grey500,
                   ),
                 ),
               ],
@@ -90,29 +94,48 @@ class PartnerNotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = theme.colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // "Baru" kalau belum dibaca DAN umur < 1 jam
     final bool isNew = !notification.isRead &&
         (notification.createdAt == null ||
             DateTime.now().difference(notification.createdAt!).inHours < 1);
 
+    // ============================================================
+    // WARNA KONDISIONAL (dark/light)
+    // ============================================================
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : AppColors.white;
+    final cardBorder = isDark
+        ? AppColors.white.withOpacity(0.08)
+        : AppColors.primaryTeal.withOpacity(0.10);
+    final iconBg = isDark
+        ? AppColors.primaryTeal.withOpacity(0.15)
+        : AppColors.mint.withOpacity(0.15);
+    final iconColor = AppColors.primaryTeal; // teal di kedua mode
+    final titleColor = isDark ? AppColors.white : AppColors.grey900;
+    final messageColor = isDark
+        ? AppColors.white.withOpacity(0.70)
+        : AppColors.grey600;
+    final timeColor = isDark
+        ? AppColors.white.withOpacity(0.55)
+        : AppColors.grey500;
+    final badgeBg = isDark
+        ? AppColors.primaryTeal.withOpacity(0.20)
+        : AppColors.mint.withOpacity(0.20);
+    final badgeFg = AppColors.primaryTeal;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.12 : 0.025),
+            color: isDark
+                ? Colors.black.withOpacity(0.12)
+                : AppColors.darkTeal.withOpacity(0.025),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -121,22 +144,23 @@ class PartnerNotificationCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // ICON
           Container(
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: isDark
-                  ? primaryColor.withOpacity(0.12)
-                  : notification.iconBackground,
+              color: iconBg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               notification.icon,
               size: 28,
-              color: notification.iconColor,
+              color: iconColor,
             ),
           ),
           const SizedBox(width: 18),
+
+          // CONTENT
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,15 +170,14 @@ class PartnerNotificationCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         notification.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF172B4D),
+                          color: titleColor,
                         ),
                       ),
                     ),
+                    // BADGE "BARU"
                     if (isNew)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -162,9 +185,7 @@ class PartnerNotificationCard extends StatelessWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? primaryColor.withOpacity(0.15)
-                              : const Color(0xFFFFF0E8),
+                          color: badgeBg,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -172,7 +193,7 @@ class PartnerNotificationCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: primaryColor,
+                            color: badgeFg,
                           ),
                         ),
                       ),
@@ -181,12 +202,10 @@ class PartnerNotificationCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   notification.message,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.35,
-                    color: isDark
-                        ? Colors.white70
-                        : const Color(0xFF718096),
+                    color: messageColor,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -195,18 +214,14 @@ class PartnerNotificationCard extends StatelessWidget {
                     Icon(
                       Icons.access_time_rounded,
                       size: 15,
-                      color: isDark
-                          ? Colors.white54
-                          : const Color(0xFF9AA4B2),
+                      color: timeColor,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       notification.relativeTime,
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: isDark
-                            ? Colors.white54
-                            : const Color(0xFF9AA4B2),
+                        color: timeColor,
                       ),
                     ),
                   ],
@@ -215,11 +230,6 @@ class PartnerNotificationCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Icon(
-          //   Icons.chevron_right_rounded,
-          //   size: 26,
-          //   color: isDark ? Colors.white54 : const Color(0xFF718096),
-          // ),
         ],
       ),
     );

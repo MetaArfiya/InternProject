@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
+import '../../theme/app_colors.dart';
 
 import 'admin_verification_screen.dart';
 import 'admin_complaint_screen.dart';
@@ -53,7 +54,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // ✅ RESTORE ACTIVE MENU
+  // RESTORE ACTIVE MENU
   // =========================================================
 
   void _restoreActiveMenu() {
@@ -69,7 +70,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // ✅ SAVE ACTIVE MENU
+  // SAVE ACTIVE MENU
   // =========================================================
 
   void _saveActiveMenu(String menu) {
@@ -188,14 +189,14 @@ class _AdminLayoutState extends State<AdminLayout> {
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: Color(0xFF8B5CF6),
+          color: AppColors.mint, // ← dari #8B5CF6 (ungu) → mint
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
         child: Text(
           _getInitials(),
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.darkTeal, // ← text dark teal
             fontSize: size * 0.38,
             fontWeight: FontWeight.bold,
           ),
@@ -207,7 +208,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       width: size,
       height: size,
       decoration: const BoxDecoration(
-        color: Color(0xFF8B5CF6),
+        color: AppColors.mint,
         shape: BoxShape.circle,
       ),
       child: ClipOval(
@@ -221,14 +222,14 @@ class _AdminLayoutState extends State<AdminLayout> {
             return Container(
               width: size,
               height: size,
-              color: const Color(0xFF8B5CF6),
+              color: AppColors.mint,
               alignment: Alignment.center,
               child: const SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.darkTeal,
                 ),
               ),
             );
@@ -237,12 +238,12 @@ class _AdminLayoutState extends State<AdminLayout> {
             return Container(
               width: size,
               height: size,
-              color: const Color(0xFF8B5CF6),
+              color: AppColors.mint,
               alignment: Alignment.center,
               child: Text(
                 _getInitials(),
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.darkTeal,
                   fontSize: size * 0.38,
                   fontWeight: FontWeight.bold,
                 ),
@@ -288,18 +289,18 @@ class _AdminLayoutState extends State<AdminLayout> {
     final isTablet = screenWidth >= 700 && screenWidth < 1100;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: AppColors.sectionAltLight, // ← mint muda
 
       appBar: isMobile
           ? AppBar(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
+              backgroundColor: AppColors.white,
+              surfaceTintColor: AppColors.white,
               elevation: 0,
               automaticallyImplyLeading: false,
               title: Text(
                 adminName,
                 style: const TextStyle(
-                  color: Color(0xFF111827),
+                  color: AppColors.grey900,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -373,8 +374,9 @@ class _AdminLayoutState extends State<AdminLayout> {
         _changePage(context, menu);
       },
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: const Color(0xFF7C3AED),
-      unselectedItemColor: const Color(0xFF64748B),
+      backgroundColor: AppColors.white,
+      selectedItemColor: AppColors.primaryTeal, // ← dari #7C3AED (ungu)
+      unselectedItemColor: AppColors.grey500,
       selectedFontSize: 10,
       unselectedFontSize: 10,
       selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -415,7 +417,7 @@ class _AdminLayoutState extends State<AdminLayout> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      color: AppColors.white,
       child: Column(
         children: [
           const SizedBox(height: 20),
@@ -436,7 +438,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
+                          color: AppColors.grey900,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -445,7 +447,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 10,
-                          color: Color(0xFF64748B),
+                          color: AppColors.grey500,
                         ),
                       ),
                     ],
@@ -504,7 +506,7 @@ class _AdminLayoutState extends State<AdminLayout> {
 
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+            child: Divider(height: 1, color: AppColors.grey200),
           ),
 
           _logoutButton(context),
@@ -516,7 +518,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // =========================================================
-  // ✅ CHANGE PAGE — dengan save menu
+  // CHANGE PAGE
   // =========================================================
 
   void _changePage(BuildContext context, String menu) {
@@ -525,7 +527,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       if (menu == 'report') _reportRefreshKey++;
     });
 
-    _saveActiveMenu(menu); // ✅ Simpan
+    _saveActiveMenu(menu);
   }
 
   // =========================================================
@@ -547,11 +549,14 @@ class _AdminLayoutState extends State<AdminLayout> {
         height: 46,
         padding: const EdgeInsets.symmetric(horizontal: 17),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFFF3E8FF) : Colors.transparent,
+          // ✅ dari ungu soft → mint soft
+          color: active
+              ? AppColors.mint.withOpacity(0.20)
+              : Colors.transparent,
           border: active
               ? const Border(
                   right: BorderSide(
-                    color: Color(0xFF8B5CF6),
+                    color: AppColors.primaryTeal, // ← dari #8B5CF6
                     width: 3,
                   ),
                 )
@@ -563,8 +568,8 @@ class _AdminLayoutState extends State<AdminLayout> {
               icon,
               size: 18,
               color: active
-                  ? const Color(0xFF7C3AED)
-                  : const Color(0xFF475569),
+                  ? AppColors.primaryTeal // ← dari #7C3AED
+                  : AppColors.grey700,
             ),
             const SizedBox(width: 11),
             Expanded(
@@ -575,8 +580,8 @@ class _AdminLayoutState extends State<AdminLayout> {
                   fontSize: 12,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                   color: active
-                      ? const Color(0xFF7C3AED)
-                      : const Color(0xFF475569),
+                      ? AppColors.primaryTeal // ← dari #7C3AED
+                      : AppColors.grey700,
                 ),
               ),
             ),
@@ -586,7 +591,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                 height: 19,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEF4444),
+                  color: Color(0xFFEF4444), // tetap merah (notif)
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -622,7 +627,7 @@ class _AdminLayoutState extends State<AdminLayout> {
             Icon(
               Icons.logout_outlined,
               size: 19,
-              color: Color(0xFFEF4444),
+              color: Color(0xFFEF4444), // tetap merah (destructive)
             ),
             SizedBox(width: 11),
             Expanded(
@@ -660,20 +665,27 @@ class _AdminLayoutState extends State<AdminLayout> {
               SizedBox(width: 10),
               Text(
                 'Keluar',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.grey900,
+                ),
               ),
             ],
           ),
           content: const Text(
             'Apakah kamu yakin ingin keluar dari akun admin?',
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.grey600,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text(
                 'Batal',
-                style: TextStyle(color: Color(0xFF64748B)),
+                style: TextStyle(color: AppColors.grey600),
               ),
             ),
             ElevatedButton(
@@ -686,7 +698,10 @@ class _AdminLayoutState extends State<AdminLayout> {
                   borderRadius: BorderRadius.circular(7),
                 ),
               ),
-              child: const Text('Keluar'),
+              child: const Text(
+                'Keluar',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         );

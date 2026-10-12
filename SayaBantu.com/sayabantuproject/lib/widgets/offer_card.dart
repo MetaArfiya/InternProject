@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/job_model.dart';
 import '../models/offer_model.dart';
+import '../theme/app_colors.dart';
 
 class OfferCard extends StatelessWidget {
   final JobModel job;
@@ -25,7 +26,6 @@ class OfferCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Mobile: < 500px → layout Column
         final isCompact = constraints.maxWidth < 500;
 
         final isAccepted = offer.isAccepted;
@@ -44,8 +44,9 @@ class OfferCard extends StatelessWidget {
           bgColor = const Color(0xFFFEF2F2);
           borderWidth = 1;
         } else {
-          borderColor = const Color(0xFFE5E7EB);
-          bgColor = Colors.white;
+          // pending → border teal soft (dari gray)
+          borderColor = AppColors.primaryTeal.withOpacity(0.15);
+          bgColor = AppColors.white;
           borderWidth = 1;
         }
 
@@ -61,17 +62,10 @@ class OfferCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ==============================================
-                // BANNER STATUS (kalau bukan pending)
-                // ==============================================
                 if (!offer.isPending) ...[
                   _buildStateBanner(isAccepted: isAccepted),
                   SizedBox(height: isCompact ? 12 : 16),
                 ],
-
-                // ==============================================
-                // KONTEN
-                // ==============================================
                 if (isCompact)
                   _buildCompactContent(context)
                 else
@@ -86,7 +80,6 @@ class OfferCard extends StatelessWidget {
 
   // ============================================================
   // LAYOUT COMPACT (MOBILE)
-  // Avatar + info di atas, tombol di bawah
   // ============================================================
 
   Widget _buildCompactContent(BuildContext context) {
@@ -95,7 +88,7 @@ class OfferCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ---------------- Avatar + Nama + Verified ----------------
+        // Avatar + Nama + Verified
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -103,12 +96,12 @@ class OfferCard extends StatelessWidget {
               radius: 26,
               backgroundColor: isAccepted
                   ? const Color(0xFFDCFCE7)
-                  : const Color(0xFFFFF3E8),
+                  : AppColors.mint.withOpacity(0.20), // ← dari orange soft
               child: Icon(
                 Icons.person,
                 color: isAccepted
                     ? const Color(0xFF16A34A)
-                    : const Color(0xFFF97316),
+                    : AppColors.primaryTeal, // ← dari orange
                 size: 28,
               ),
             ),
@@ -125,6 +118,7 @@ class OfferCard extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
+                      color: AppColors.grey900,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -133,24 +127,25 @@ class OfferCard extends StatelessWidget {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
+                      // Verified badge — tetap hijau (konotasi)
                       if (offer.verified)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.green.shade100,
+                            color: const Color(0xFFDCFCE7),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.verified,
-                                  color: Colors.green, size: 13),
+                                  color: Color(0xFF16A34A), size: 13),
                               SizedBox(width: 4),
                               Text(
                                 "Terverifikasi",
                                 style: TextStyle(
-                                  color: Colors.green,
+                                  color: Color(0xFF16A34A),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -162,13 +157,13 @@ class OfferCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.work_outline,
-                              color: Colors.grey, size: 14),
+                              color: AppColors.grey500, size: 14),
                           const SizedBox(width: 3),
                           Text(
                             "${offer.jobsCompleted} Job",
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF6B7280),
+                              color: AppColors.grey600,
                             ),
                           ),
                         ],
@@ -183,7 +178,7 @@ class OfferCard extends StatelessWidget {
 
         const SizedBox(height: 14),
 
-        // ---------------- Harga ----------------
+        // Harga
         Text(
           offer.price,
           style: TextStyle(
@@ -191,13 +186,12 @@ class OfferCard extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: isAccepted
                 ? const Color(0xFF16A34A)
-                : const Color(0xFFF97316),
+                : AppColors.primaryTeal, // ← dari orange
           ),
         ),
 
         const SizedBox(height: 14),
 
-        // ---------------- Tombol ----------------
         _buildCompactActions(context),
       ],
     );
@@ -205,7 +199,6 @@ class OfferCard extends StatelessWidget {
 
   // ============================================================
   // LAYOUT WIDE (WEB)
-  // Avatar kiri, tombol kanan — seperti semula
   // ============================================================
 
   Widget _buildWideContent(BuildContext context) {
@@ -218,12 +211,12 @@ class OfferCard extends StatelessWidget {
           radius: 35,
           backgroundColor: isAccepted
               ? const Color(0xFFDCFCE7)
-              : const Color(0xFFFFF3E8),
+              : AppColors.mint.withOpacity(0.20), // ← dari orange soft
           child: Icon(
             Icons.person,
             color: isAccepted
                 ? const Color(0xFF16A34A)
-                : const Color(0xFFF97316),
+                : AppColors.primaryTeal, // ← dari orange
             size: 38,
           ),
         ),
@@ -241,6 +234,7 @@ class OfferCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.grey900,
                       ),
                     ),
                   ),
@@ -250,19 +244,19 @@ class OfferCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade100,
+                        color: const Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.verified,
-                              color: Colors.green, size: 16),
+                              color: Color(0xFF16A34A), size: 16),
                           SizedBox(width: 4),
                           Text(
                             "Terverifikasi",
                             style: TextStyle(
-                              color: Colors.green,
+                              color: Color(0xFF16A34A),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -273,17 +267,28 @@ class OfferCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.star, color: Colors.amber, size: 18),
-                  const SizedBox(width: 20),
-                  const Icon(Icons.work_outline,
-                      color: Colors.grey, size: 18),
-                  const SizedBox(width: 5),
-                  Text("${offer.jobsCompleted} Job"),
+                  Icon(Icons.star, color: Color(0xFFF59E0B), size: 18),
+                  SizedBox(width: 20),
+                  Icon(Icons.work_outline,
+                      color: AppColors.grey500, size: 18),
+                  SizedBox(width: 5),
+                  Text(
+                    "Job",
+                    style: TextStyle(color: AppColors.grey700),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              Text(
+                "${offer.jobsCompleted} Job",
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.grey600,
+                ),
+              ),
+              const SizedBox(height: 12),
               Text(
                 offer.price,
                 style: TextStyle(
@@ -291,7 +296,7 @@ class OfferCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: isAccepted
                       ? const Color(0xFF16A34A)
-                      : const Color(0xFFF97316),
+                      : AppColors.primaryTeal, // ← dari orange
                 ),
               ),
             ],
@@ -308,7 +313,7 @@ class OfferCard extends StatelessWidget {
   // ============================================================
 
   Widget _buildCompactActions(BuildContext context) {
-    // Sudah diterima → label + tombol profil
+    // Diterima
     if (offer.isAccepted) {
       return Column(
         children: [
@@ -317,7 +322,7 @@ class OfferCard extends StatelessWidget {
             height: 42,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFF16A34A),
+              color: const Color(0xFF16A34A), // tetap hijau (success)
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Row(
@@ -344,7 +349,7 @@ class OfferCard extends StatelessWidget {
               icon: const Icon(Icons.person_outline, size: 16),
               label: const Text("Lihat Profil"),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF7C3AED),
+                foregroundColor: AppColors.primaryTeal, // ← dari ungu
                 minimumSize: const Size(0, 42),
               ),
             ),
@@ -353,7 +358,7 @@ class OfferCard extends StatelessWidget {
       );
     }
 
-    // Sudah ditolak → label + tombol profil
+    // Ditolak
     if (offer.isRejected) {
       return Column(
         children: [
@@ -390,7 +395,7 @@ class OfferCard extends StatelessWidget {
               icon: const Icon(Icons.person_outline, size: 16),
               label: const Text("Lihat Profil"),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF7C3AED),
+                foregroundColor: AppColors.primaryTeal, // ← dari ungu
                 minimumSize: const Size(0, 42),
               ),
             ),
@@ -399,7 +404,7 @@ class OfferCard extends StatelessWidget {
       );
     }
 
-    // Pending → Terima + Tolak + Lihat Profil (full-width vertikal)
+    // Pending
     return Column(
       children: [
         SizedBox(
@@ -409,33 +414,22 @@ class OfferCard extends StatelessWidget {
                 ? () {
                     showDialog(
                       context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text("Konfirmasi"),
-                        content: Text(
-                          "Apakah Anda yakin ingin memilih ${offer.name} sebagai mitra?",
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Batal"),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              onAccept(offer);
-                            },
-                            child: const Text("Ya"),
-                          ),
-                        ],
+                      builder: (_) => _confirmDialog(
+                        context: context,
+                        title: "Konfirmasi",
+                        message:
+                            "Apakah Anda yakin ingin memilih ${offer.name} sebagai mitra?",
+                        confirmLabel: "Ya",
+                        onConfirm: () => onAccept(offer),
                       ),
                     );
                   }
                 : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.primaryTeal, // ← dari green
               foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFFE5E7EB),
-              disabledForegroundColor: const Color(0xFF9CA3AF),
+              disabledBackgroundColor: AppColors.grey200,
+              disabledForegroundColor: AppColors.grey400,
               minimumSize: const Size(0, 42),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -455,28 +449,14 @@ class OfferCard extends StatelessWidget {
                 ? () {
                     showDialog(
                       context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text("Tolak Penawaran"),
-                        content: Text(
-                          "Yakin ingin menolak penawaran dari ${offer.name}?",
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Batal"),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              onReject(offer);
-                            },
-                            child: const Text("Tolak"),
-                          ),
-                        ],
+                      builder: (_) => _confirmDialog(
+                        context: context,
+                        title: "Tolak Penawaran",
+                        message:
+                            "Yakin ingin menolak penawaran dari ${offer.name}?",
+                        confirmLabel: "Tolak",
+                        isDanger: true,
+                        onConfirm: () => onReject(offer),
                       ),
                     );
                   }
@@ -485,12 +465,12 @@ class OfferCard extends StatelessWidget {
               minimumSize: const Size(0, 42),
               foregroundColor: canRespond
                   ? const Color(0xFFDC2626)
-                  : const Color(0xFF9CA3AF),
-              disabledForegroundColor: const Color(0xFF9CA3AF),
+                  : AppColors.grey400,
+              disabledForegroundColor: AppColors.grey400,
               side: BorderSide(
                 color: canRespond
                     ? const Color(0xFFDC2626)
-                    : const Color(0xFFE5E7EB),
+                    : AppColors.grey200,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -510,7 +490,7 @@ class OfferCard extends StatelessWidget {
             icon: const Icon(Icons.person_outline, size: 16),
             label: const Text("Lihat Profil"),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF7C3AED),
+              foregroundColor: AppColors.primaryTeal, // ← dari ungu
               minimumSize: const Size(0, 42),
             ),
           ),
@@ -520,7 +500,7 @@ class OfferCard extends StatelessWidget {
   }
 
   // ============================================================
-  // AKSI WIDE — seperti semula (Row tombol di kanan)
+  // AKSI WIDE — Row tombol di kanan
   // ============================================================
 
   Widget _buildWideActions(BuildContext context) {
@@ -554,6 +534,9 @@ class OfferCard extends StatelessWidget {
           const SizedBox(height: 10),
           TextButton(
             onPressed: () => onOpenProfile(offer),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryTeal,
+            ),
             child: const Text("Lihat Profil"),
           ),
         ],
@@ -591,6 +574,9 @@ class OfferCard extends StatelessWidget {
           const SizedBox(height: 10),
           TextButton(
             onPressed: () => onOpenProfile(offer),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryTeal,
+            ),
             child: const Text("Lihat Profil"),
           ),
         ],
@@ -604,33 +590,22 @@ class OfferCard extends StatelessWidget {
               ? () {
                   showDialog(
                     context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text("Konfirmasi"),
-                      content: Text(
-                        "Apakah Anda yakin ingin memilih ${offer.name} sebagai mitra?",
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("Batal"),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            onAccept(offer);
-                          },
-                          child: const Text("Ya"),
-                        ),
-                      ],
+                    builder: (_) => _confirmDialog(
+                      context: context,
+                      title: "Konfirmasi",
+                      message:
+                          "Apakah Anda yakin ingin memilih ${offer.name} sebagai mitra?",
+                      confirmLabel: "Ya",
+                      onConfirm: () => onAccept(offer),
                     ),
                   );
                 }
               : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.primaryTeal, // ← dari green
             foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFE5E7EB),
-            disabledForegroundColor: const Color(0xFF9CA3AF),
+            disabledBackgroundColor: AppColors.grey200,
+            disabledForegroundColor: AppColors.grey400,
             minimumSize: const Size(120, 45),
           ),
           child: const Text("Terima"),
@@ -641,28 +616,14 @@ class OfferCard extends StatelessWidget {
               ? () {
                   showDialog(
                     context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text("Tolak Penawaran"),
-                      content: Text(
-                        "Yakin ingin menolak penawaran dari ${offer.name}?",
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("Batal"),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            onReject(offer);
-                          },
-                          child: const Text("Tolak"),
-                        ),
-                      ],
+                    builder: (_) => _confirmDialog(
+                      context: context,
+                      title: "Tolak Penawaran",
+                      message:
+                          "Yakin ingin menolak penawaran dari ${offer.name}?",
+                      confirmLabel: "Tolak",
+                      isDanger: true,
+                      onConfirm: () => onReject(offer),
                     ),
                   );
                 }
@@ -670,13 +631,13 @@ class OfferCard extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(120, 45),
             foregroundColor: canRespond
-                ? const Color(0xFF111827)
-                : const Color(0xFF9CA3AF),
-            disabledForegroundColor: const Color(0xFF9CA3AF),
+                ? AppColors.grey900
+                : AppColors.grey400,
+            disabledForegroundColor: AppColors.grey400,
             side: BorderSide(
               color: canRespond
-                  ? const Color(0xFFD1D5DB)
-                  : const Color(0xFFE5E7EB),
+                  ? AppColors.grey300
+                  : AppColors.grey200,
             ),
           ),
           child: const Text("Tolak"),
@@ -684,7 +645,65 @@ class OfferCard extends StatelessWidget {
         const SizedBox(height: 12),
         TextButton(
           onPressed: () => onOpenProfile(offer),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.primaryTeal,
+          ),
           child: const Text("Lihat Profil"),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // DIALOG KONFIRMASI (shared)
+  // ============================================================
+
+  Widget _confirmDialog({
+    required BuildContext context,
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required VoidCallback onConfirm,
+    bool isDanger = false,
+  }) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          color: AppColors.grey900,
+        ),
+      ),
+      content: Text(
+        message,
+        style: const TextStyle(
+          color: AppColors.grey700,
+          height: 1.4,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            "Batal",
+            style: TextStyle(color: AppColors.grey600),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isDanger
+                ? const Color(0xFFDC2626)
+                : AppColors.primaryTeal, // ← teal / red
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            onConfirm();
+          },
+          child: Text(confirmLabel),
         ),
       ],
     );

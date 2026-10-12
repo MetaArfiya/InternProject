@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/partner_job_model.dart';
+import '../theme/app_colors.dart';
 
 class PartnerJobCard extends StatelessWidget {
   final PartnerJobModel job;
@@ -13,10 +14,6 @@ class PartnerJobCard extends StatelessWidget {
 
   // ============================================================
   // FORMAT WAKTU
-  // Contoh:
-  // 2026-09-03T03:14:36.000000Z
-  // menjadi:
-  // 03-09-2026 10:14
   // ============================================================
   String _formatLocalTime(String timeString) {
     try {
@@ -35,10 +32,20 @@ class PartnerJobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.darkTeal.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -46,24 +53,18 @@ class PartnerJobCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // ============================================================
             // GAMBAR + INFORMASI JOB
             // ============================================================
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // =========================
                 // GAMBAR
-                // =========================
                 Container(
                   width: 90,
                   height: 90,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
+                    color: AppColors.grey100,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -72,14 +73,11 @@ class PartnerJobCard extends StatelessWidget {
 
                 const SizedBox(width: 14),
 
-                // =========================
                 // INFORMASI JOB
-                // =========================
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       // JUDUL
                       Text(
                         job.title,
@@ -88,19 +86,22 @@ class PartnerJobCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.grey900,
+                          height: 1.25,
                         ),
                       ),
 
                       const SizedBox(height: 6),
 
-                      // KATEGORI
+                      // KATEGORI — dari orange → teal
                       Text(
                         job.category,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.orange,
+                          color: AppColors.primaryTeal,
                           fontWeight: FontWeight.w600,
+                          fontSize: 13,
                         ),
                       ),
 
@@ -111,12 +112,16 @@ class PartnerJobCard extends StatelessWidget {
                         job.description,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.grey600,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
-
             ),
 
             const SizedBox(height: 14),
@@ -131,26 +136,24 @@ class PartnerJobCard extends StatelessWidget {
                   const Icon(
                     Icons.location_on_outlined,
                     size: 18,
-                    color: Colors.grey,
+                    color: AppColors.grey500,
                   ),
-
                   const SizedBox(width: 6),
-
                   Expanded(
                     child: Text(
                       job.location,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.grey,
+                        color: AppColors.grey600,
+                        fontSize: 13,
                       ),
                     ),
                   ),
                 ],
               ),
 
-            if (job.location.isNotEmpty)
-              const SizedBox(height: 8),
+            if (job.location.isNotEmpty) const SizedBox(height: 8),
 
             // ============================================================
             // WAKTU
@@ -161,15 +164,14 @@ class PartnerJobCard extends StatelessWidget {
                   const Icon(
                     Icons.access_time,
                     size: 18,
-                    color: Colors.grey,
+                    color: AppColors.grey500,
                   ),
-
                   const SizedBox(width: 6),
-
                   Text(
                     _formatLocalTime(job.time),
                     style: const TextStyle(
-                      color: Colors.grey,
+                      color: AppColors.grey600,
+                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -184,13 +186,13 @@ class PartnerJobCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-
-                // HARGA
+                // HARGA — tetap hijau? Atau teal?
+                // ✅ Pakai teal biar konsisten
                 Expanded(
                   child: Text(
                     job.price,
                     style: const TextStyle(
-                      color: Colors.green,
+                      color: AppColors.primaryTeal, // ← dari hijau
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -203,10 +205,24 @@ class PartnerJobCard extends StatelessWidget {
                 ElevatedButton(
                   onPressed: onTakeOffer,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xffF97316),
+                    backgroundColor: AppColors.primaryTeal, // ← dari orange
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  child: const Text("Ambil & Nego"),
+                  child: const Text(
+                    "Ambil & Nego",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -221,37 +237,15 @@ class PartnerJobCard extends StatelessWidget {
   // ============================================================
   Widget _buildJobImage(BuildContext context) {
     if (job.imageUrl != null && job.imageUrl!.isNotEmpty) {
-      debugPrint(
-        '🖼️ PARTNER JOB ${job.id} - MENAMPILKAN IMAGE NETWORK',
-      );
-
-      debugPrint(
-        '🌐 URL: ${job.imageUrl}',
-      );
-
       return Image.network(
         job.imageUrl!,
         fit: BoxFit.cover,
-
-        // =========================
-        // LOADING
-        // =========================
         loadingBuilder: (
           BuildContext context,
           Widget child,
           ImageChunkEvent? loadingProgress,
         ) {
-          if (loadingProgress == null) {
-            debugPrint(
-              '✅ PARTNER JOB ${job.id} - GAMBAR BERHASIL DIMUAT',
-            );
-
-            debugPrint(
-              '✅ URL: ${job.imageUrl}',
-            );
-
-            return child;
-          }
+          if (loadingProgress == null) return child;
 
           return const Center(
             child: SizedBox(
@@ -259,39 +253,23 @@ class PartnerJobCard extends StatelessWidget {
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
+                color: AppColors.primaryTeal, // ← teal
               ),
             ),
           );
         },
-
-        // =========================
-        // ERROR
-        // =========================
         errorBuilder: (
           BuildContext context,
           Object error,
           StackTrace? stackTrace,
         ) {
-          debugPrint(
-            '❌ PARTNER JOB ${job.id} - GAMBAR GAGAL DIMUAT',
-          );
-
-          debugPrint(
-            '❌ URL: ${job.imageUrl}',
-          );
-
-          debugPrint(
-            '❌ ERROR: $error',
-          );
-
+          debugPrint('❌ PARTNER JOB ${job.id} - GAMBAR GAGAL DIMUAT');
+          debugPrint('❌ URL: ${job.imageUrl}');
+          debugPrint('❌ ERROR: $error');
           return _defaultImage(context);
         },
       );
     }
-
-    debugPrint(
-      'ℹ️ PARTNER JOB ${job.id} - TIDAK ADA GAMBAR',
-    );
 
     return _defaultImage(context);
   }
@@ -300,11 +278,11 @@ class PartnerJobCard extends StatelessWidget {
   // GAMBAR DEFAULT
   // ============================================================
   Widget _defaultImage(BuildContext context) {
-    return Center(
+    return const Center(
       child: Icon(
         Icons.handyman,
         size: 38,
-        color: Theme.of(context).colorScheme.primary,
+        color: AppColors.primaryTeal, // ← teal
       ),
     );
   }

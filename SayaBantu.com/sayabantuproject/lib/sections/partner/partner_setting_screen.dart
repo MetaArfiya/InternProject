@@ -9,6 +9,7 @@ import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
+import '../../theme/app_colors.dart';
 
 class PartnerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
@@ -21,14 +22,15 @@ class PartnerSettingScreen extends StatefulWidget {
 
 class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -257,7 +259,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // LOAD PROFILE (tidak diubah)
+  // LOAD PROFILE
   // ============================================================
 
   Future<void> loadProfileFromApi() async {
@@ -550,7 +552,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SAVE BASIC PROFILE (tidak diubah)
+  // SAVE BASIC PROFILE
   // ============================================================
 
   Future<void> saveBasicProfile() async {
@@ -623,7 +625,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // PICK & UPLOAD PROFILE PHOTO (tidak diubah)
+  // PICK & UPLOAD PROFILE PHOTO
   // ============================================================
 
   Future<void> pickProfilePhoto() async {
@@ -731,7 +733,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SAVE IDENTITY (tidak diubah)
+  // SAVE IDENTITY
   // ============================================================
 
   Future<void> saveIdentity() async {
@@ -834,7 +836,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SAVE BANK ACCOUNT (tidak diubah)
+  // SAVE BANK ACCOUNT
   // ============================================================
 
   Future<void> saveBankAccount() async {
@@ -908,7 +910,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // DATE PICKER (tidak diubah)
+  // DATE PICKER
   // ============================================================
 
   Future<void> selectBirthDate() async {
@@ -1068,7 +1070,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SUBMIT VERIFICATION (tidak diubah)
+  // SUBMIT VERIFICATION
   // ============================================================
 
   Future<void> submitVerification() async {
@@ -1188,7 +1190,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SAVE SKILL & UPLOAD SKILL PHOTOS (tidak diubah)
+  // SAVE SKILL & UPLOAD SKILL PHOTOS
   // ============================================================
 
   Future<void> saveSkill() async {
@@ -1493,7 +1495,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // PICK IMAGE HELPER (tidak diubah)
+  // PICK IMAGE HELPER
   // ============================================================
 
   Future<_PickedImage?> _pickImageFile({
@@ -1578,7 +1580,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // NOTIFICATION & PASSWORD (tidak diubah)
+  // NOTIFICATION & PASSWORD
   // ============================================================
 
   Future<void> updateNotification(bool value) async {
@@ -1642,7 +1644,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: error ? Colors.red : Colors.green,
+          backgroundColor: error ? Colors.red : AppColors.primaryTeal,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1650,10 +1652,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
   // ============================================================
   // BUILD
-  // ============================================================
-  // ✅ Padding horizontal mobile 16 / tablet 24 / desktop 28
-  // ✅ Header pakai textTheme
-  // ✅ Tidak ada Center + ConstrainedBox — konten nempel kiri
   // ============================================================
 
   @override
@@ -1671,7 +1669,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: AppColors.sectionAltLight, // ← mint muda
           child: SafeArea(
             child: isLoading
                 ? const Center(
@@ -1686,33 +1684,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildPageHeader(context),
-
                         const SizedBox(height: _gapAfterHeader),
-
                         _buildProfileHeader(context),
-
                         const SizedBox(height: _gapBetweenSections),
-
                         _buildIdentitySection(),
-
                         const SizedBox(height: _gapBetweenSections),
-
                         _buildBankAccountSection(),
-
                         const SizedBox(height: _gapBetweenSections),
-
                         _buildVerificationSkillCertificateSection(),
-
                         const SizedBox(height: _gapBetweenSections),
-
                         _buildNotificationSection(),
-
                         const SizedBox(height: _gapBetweenSections),
-
                         _buildSecuritySection(),
-
                         const SizedBox(height: _gapBetweenSections),
-
                         _buildLogoutSection(),
                       ],
                     ),
@@ -1724,26 +1708,27 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // PAGE HEADER — sama persis dgn DashboardHeader
+  // PAGE HEADER
   // ============================================================
 
   Widget _buildPageHeader(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pengaturan',
-          style: textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           'Kelola profil, identitas, verifikasi, dan pengaturan akun kamu.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.grey500,
           ),
         ),
       ],
@@ -1780,7 +1765,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       height: 76,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _accent.withOpacity(0.10),
+                        color: AppColors.mint.withOpacity(0.20),
                         border: Border.all(
                           color: _accent.withOpacity(0.3),
                           width: 2,
@@ -1855,9 +1840,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     const SizedBox(height: 5),
                     Text(
                       email.isEmpty ? 'Email belum tersedia' : email,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: AppColors.grey600,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1886,7 +1871,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                               : 'Belum Terverifikasi',
                           color: isVerified
                               ? const Color(0xFF16A34A)
-                              : const Color(0xFF6B7280),
+                              : AppColors.grey500,
                         ),
                       ],
                     ),
@@ -2203,10 +2188,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFD97706).withOpacity(0.08),
+              color: const Color(0xFFF59E0B).withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: const Color(0xFFD97706).withOpacity(0.3),
+                color: const Color(0xFFF59E0B).withOpacity(0.3),
               ),
             ),
             child: const Row(
@@ -2214,14 +2199,18 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: Color(0xFFD97706),
+                  color: Color(0xFFF59E0B),
                   size: 20,
                 ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Pastikan data rekening sudah benar. Dana dari pelanggan akan ditransfer admin ke rekening ini setelah pekerjaan selesai dan diverifikasi.',
-                    style: TextStyle(fontSize: 12, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: AppColors.grey700,
+                    ),
                   ),
                 ),
               ],
@@ -2439,7 +2428,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(_smallRadius),
         border: Border.all(color: _tableBorder),
       ),
@@ -2473,7 +2462,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           const SizedBox(height: 7),
           Text(
             description,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.grey600,
+            ),
           ),
           const SizedBox(height: 10),
           GestureDetector(
@@ -2493,7 +2485,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   Container(
                     width: double.infinity,
                     height: 125,
-                    color: Colors.grey.shade100,
+                    color: AppColors.grey100,
                     child: hasFile
                         ? Image.memory(
                             bytes!,
@@ -2512,7 +2504,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                     child: Icon(
                                       Icons.broken_image_outlined,
                                       size: 34,
-                                      color: Colors.grey,
+                                      color: AppColors.grey500,
                                     ),
                                   );
                                 },
@@ -2529,7 +2521,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                 child: Icon(
                                   Icons.image_outlined,
                                   size: 34,
-                                  color: Colors.grey,
+                                  color: AppColors.grey500,
                                 ),
                               ),
                   ),
@@ -2581,7 +2573,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               fontSize: 10,
               color: hasUrl || hasFile
                   ? const Color(0xFF16A34A)
-                  : Colors.grey.shade500,
+                  : AppColors.grey500,
             ),
           ),
           const SizedBox(height: 6),
@@ -2625,7 +2617,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         ? const Color(0xFF16A34A)
         : waiting
             ? _accent
-            : const Color(0xFF6B7280);
+            : AppColors.grey500;
     final statusIcon = verified
         ? Icons.verified
         : waiting
@@ -2649,7 +2641,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               children: [
                 const Text(
                   'Status Verifikasi',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.grey500,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -2740,15 +2735,19 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       Text(
                         'Keahlian baru: "$pendingSkills"\n'
                         'Keahlian aktif saat ini tetap "$selectedCategory" sampai disetujui admin.',
-                        style: const TextStyle(fontSize: 12, height: 1.4),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: AppColors.grey700,
+                        ),
                       ),
                       if (skillsUpdatedAt != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           'Diajukan: ${skillsUpdatedAt!.day}/${skillsUpdatedAt!.month}/${skillsUpdatedAt!.year}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: AppColors.grey600,
                           ),
                         ),
                       ],
@@ -2765,9 +2764,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF3E8FF),
+              color: AppColors.mint.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFC4B5FD)),
+              border: Border.all(color: AppColors.mint.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2777,7 +2776,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     const Icon(
                       Icons.photo_library_outlined,
                       size: 16,
-                      color: Color(0xFF7C3AED),
+                      color: AppColors.primaryTeal,
                     ),
                     const SizedBox(width: 6),
                     const Text(
@@ -2785,7 +2784,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF7C3AED),
+                        color: AppColors.primaryTeal,
                       ),
                     ),
                   ],
@@ -2803,13 +2802,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         child: Container(
                           width: 100,
                           height: 100,
-                          color: Colors.grey.shade100,
+                          color: AppColors.grey100,
                           child: Image.network(
                             url,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(
                               Icons.broken_image_outlined,
-                              color: Colors.grey,
+                              color: AppColors.grey500,
                             ),
                           ),
                         ),
@@ -2833,9 +2832,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           ),
         ),
         const SizedBox(height: 5),
-        Text(
+        const Text(
           'Tambahkan foto hasil pekerjaan untuk meningkatkan kepercayaan pelanggan.',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.grey600,
+          ),
         ),
         const SizedBox(height: 15),
 
@@ -2887,11 +2889,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                   errorBuilder:
                                       (context, error, stackTrace) {
                                     return Container(
-                                      color: Colors.grey.shade100,
+                                      color: AppColors.grey100,
                                       child: const Icon(
                                         Icons.broken_image,
                                         size: 40,
-                                        color: Colors.grey,
+                                        color: AppColors.grey500,
                                       ),
                                     );
                                   },
@@ -2901,7 +2903,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                       return child;
                                     }
                                     return Container(
-                                      color: Colors.grey.shade100,
+                                      color: AppColors.grey100,
                                       child: const Center(
                                         child: CircularProgressIndicator(),
                                       ),
@@ -3016,15 +3018,15 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.hourglass_top,
                       size: 16,
                       color: Color(0xFFB45309),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
+                    SizedBox(width: 6),
+                    Text(
                       'Sertifikat Baru (Menunggu ACC Admin)',
                       style: TextStyle(
                         fontSize: 12,
@@ -3045,25 +3047,25 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     child: Container(
                       width: double.infinity,
                       height: 180,
-                      color: Colors.grey.shade100,
+                      color: AppColors.grey100,
                       child: Image.network(
                         pendingCertificateUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const Icon(
                           Icons.broken_image_outlined,
                           size: 40,
-                          color: Colors.grey,
+                          color: AppColors.grey500,
                         ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Sertifikat ini akan menggantikan sertifikat lama setelah disetujui admin.',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade700,
+                    color: AppColors.grey700,
                     height: 1.4,
                   ),
                 ),
@@ -3231,16 +3233,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Data Belum Lengkap',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: _cellText,
-                              ),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -3248,7 +3248,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         icon: const Icon(
                           Icons.close,
                           size: 20,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.grey500,
                         ),
                         splashRadius: 22,
                       ),
@@ -3261,7 +3261,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     'Silakan lengkapi data berikut sebelum mengirim data mitra:',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF374151),
+                      color: AppColors.grey700,
                       height: 1.5,
                     ),
                   ),
@@ -3368,16 +3368,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Simpan & Kirim Data Mitra?',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: _cellText,
-                              ),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -3386,7 +3384,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         icon: const Icon(
                           Icons.close,
                           size: 20,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.grey500,
                         ),
                         splashRadius: 22,
                       ),
@@ -3399,7 +3397,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     'Pastikan seluruh data dan berkas sudah benar. Data akan diproses oleh admin untuk verifikasi.',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF374151),
+                      color: AppColors.grey700,
                       height: 1.5,
                     ),
                   ),
@@ -3412,9 +3410,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                               Navigator.pop(dialogContext, false),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
+                            foregroundColor: AppColors.grey700,
                             side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
+                              color: AppColors.grey300,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -3601,11 +3599,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor:
-                  isComplete ? _accent : Colors.grey.shade300,
+                  isComplete ? _accent : AppColors.grey300,
               foregroundColor:
-                  isComplete ? Colors.white : Colors.grey.shade600,
-              disabledBackgroundColor: Colors.grey.shade300,
-              disabledForegroundColor: Colors.grey.shade500,
+                  isComplete ? Colors.white : AppColors.grey600,
+              disabledBackgroundColor: AppColors.grey300,
+              disabledForegroundColor: AppColors.grey500,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -3661,7 +3659,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(_smallRadius),
               border: Border.all(color: _tableBorder),
             ),
@@ -3692,7 +3690,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       SizedBox(height: 3),
                       Text(
                         'Terima pemberitahuan ketika ada pekerjaan baru yang sesuai.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.grey500,
+                        ),
                       ),
                     ],
                   ),
@@ -3827,7 +3828,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         'Keluar dari akun mitra SayaBantu.',
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: Color(0xFF64748B),
+                          color: AppColors.grey600,
                         ),
                       ),
                     ],
@@ -3836,7 +3837,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 const Icon(
                   Icons.chevron_right,
                   size: 22,
-                  color: Color(0xFF9CA3AF),
+                  color: AppColors.grey400,
                 ),
               ],
             ),
@@ -3882,16 +3883,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Keluar dari Akun',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: _cellText,
-                              ),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -3899,7 +3898,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         icon: const Icon(
                           Icons.close,
                           size: 20,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.grey500,
                         ),
                         splashRadius: 22,
                       ),
@@ -3912,7 +3911,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     'Apakah Anda yakin ingin keluar dari akun ini?',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF374151),
+                      color: AppColors.grey700,
                       height: 1.5,
                     ),
                   ),
@@ -3924,9 +3923,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                           onPressed: () => Navigator.pop(dialogContext),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
+                            foregroundColor: AppColors.grey700,
                             side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
+                              color: AppColors.grey300,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -4004,12 +4003,14 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.darkTeal.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -4024,8 +4025,6 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     required String title,
     required String subtitle,
   }) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -4045,7 +4044,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             children: [
               Text(
                 title,
-                style: textTheme.titleMedium?.copyWith(
+                style: const TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: _cellText,
                 ),
@@ -4053,8 +4053,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.grey600,
                 ),
               ),
             ],
@@ -4131,11 +4132,16 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       hintText: hintText,
       prefixIcon: Icon(icon, size: 18),
       filled: true,
-      fillColor: const Color(0xFFF9FAFB),
+      fillColor: AppColors.grey50,
       counterText: showCounter ? null : '',
-      labelStyle: const TextStyle(fontSize: 13, color: _headerText),
-      hintStyle:
-          const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+      labelStyle: const TextStyle(
+        fontSize: 13,
+        color: AppColors.grey500,
+      ),
+      hintStyle: const TextStyle(
+        fontSize: 13,
+        color: AppColors.grey400,
+      ),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       border: OutlineInputBorder(
@@ -4171,10 +4177,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           const SizedBox(width: 5),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: color,
+              fontSize: 11,
+            ),
           ),
         ],
       ),

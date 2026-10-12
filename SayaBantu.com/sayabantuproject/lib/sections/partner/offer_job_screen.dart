@@ -6,6 +6,7 @@ import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 
 import '../../models/partner_job_model.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class OfferJobScreen extends StatefulWidget {
   final PartnerJobModel job;
@@ -35,18 +36,18 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   bool _isSubmitting = false;
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // DESIGN TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  static const Color _headerText = AppColors.grey500;
+  static const Color _cellText = AppColors.grey900;
 
   static const double _commissionPercent = 15.0;
 
-  // Spacing — mengikuti pola DashboardHeader
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
 
@@ -202,9 +203,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }) {
     if (!mounted) return;
 
-    Color bg = Colors.grey;
-    if (success) bg = Colors.green;
-    if (warning) bg = Colors.amber;
+    // ✅ default → teal, warning → amber, error → merah
+    Color bg = AppColors.primaryTeal;
+    if (success) bg = AppColors.primaryTeal; // ← teal
+    if (warning) bg = const Color(0xFFF59E0B); // ← amber
     if (error) bg = Colors.red;
 
     ScaffoldMessenger.of(context)
@@ -221,15 +223,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // ============================================================
   // BUILD
   // ============================================================
-  // ✅ Padding horizontal disamakan dgn CustomerDashboard
-  //    mobile 16 / tablet 24 / desktop 28  (bukan 32)
-  // ✅ TIDAK ada Center + ConstrainedBox — konten nempel kiri
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.sectionAltLight, // ← mint muda
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -237,11 +235,15 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         ),
         title: const Text(
           "Ambil & Nego",
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: AppColors.grey900,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).cardColor,
-        foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.grey900,
         elevation: 0,
       ),
       body: LayoutBuilder(
@@ -276,15 +278,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 3 kotak sejajar (budget / harga / komisi)
         _buildSummaryBoxes(isMobile: true),
-
         const SizedBox(height: _gapBetweenSections),
-
         _buildJobInfoCard(isMobile: true),
-
         const SizedBox(height: _gapBetweenSections),
-
         _buildOfferForm(isMobile: true),
       ],
     );
@@ -298,11 +295,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 3 kotak sejajar (budget / harga / komisi)
         _buildSummaryBoxes(isMobile: false),
-
         const SizedBox(height: _gapBetweenSections),
-
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -322,7 +316,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   // ============================================================
-  // 3 KOTAK SEJAJAR — TANPA SCROLL
+  // 3 KOTAK SEJAJAR
   // ============================================================
 
   Widget _buildSummaryBoxes({required bool isMobile}) {
@@ -332,33 +326,33 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       height: isMobile ? 100 : 110,
       child: Row(
         children: [
-          // KOTAK 1 — Budget Pelanggan
+          // KOTAK 1 — Budget Pelanggan (hijau, konotasi uang)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.account_balance_wallet_outlined,
               label: isMobile ? 'Budget' : 'Budget Pelanggan',
               value: widget.job.price,
-              color: const Color(0xFF16A34A),
+              color: const Color(0xFF16A34A), // tetap hijau
               isCompact: isMobile,
             ),
           ),
 
           SizedBox(width: gap),
 
-          // KOTAK 2 — Harga Anda (live)
+          // KOTAK 2 — Harga Anda (teal)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.local_offer_outlined,
               label: isMobile ? 'Harga Anda' : 'Harga Penawaran',
               value: _formatRupiah(_parsedPrice),
-              color: _accent,
+              color: _accent, // ← teal
               isCompact: isMobile,
             ),
           ),
 
           SizedBox(width: gap),
 
-          // KOTAK 3 — Komisi (live)
+          // KOTAK 3 — Komisi (teal)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.percent,
@@ -366,7 +360,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                   ? 'Komisi 15%'
                   : 'Komisi Platform (15%)',
               value: _formatRupiah(_commissionAmount),
-              color: const Color(0xFF7C3AED),
+              color: AppColors.primaryTeal, // ← dari ungu
               isCompact: isMobile,
             ),
           ),
@@ -385,16 +379,17 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     return Container(
       padding: EdgeInsets.all(isCompact ? 10 : 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon
           Container(
             width: isCompact ? 28 : 34,
             height: isCompact ? 28 : 34,
@@ -409,8 +404,6 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             ),
           ),
           SizedBox(height: isCompact ? 6 : 8),
-
-          // Value
           Text(
             value,
             maxLines: 1,
@@ -418,20 +411,18 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             style: TextStyle(
               fontSize: isCompact ? 13 : 15,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
+              color: AppColors.grey900,
               height: 1.1,
             ),
           ),
           SizedBox(height: isCompact ? 2 : 3),
-
-          // Label
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: isCompact ? 9.5 : 11.5,
-              color: const Color(0xFF64748B),
+              color: AppColors.grey500,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -449,9 +440,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 18 : 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,6 +462,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           ),
           const SizedBox(height: 10),
 
+          // ✅ kategori badge — teal soft
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
@@ -478,7 +472,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             child: Text(
               widget.job.category,
               style: const TextStyle(
-                color: _accent,
+                color: _accent, // ← teal
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -491,7 +485,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             widget.job.description,
             style: const TextStyle(
               fontSize: 13.5,
-              color: Color(0xFF374151),
+              color: AppColors.grey700,
               height: 1.6,
             ),
           ),
@@ -530,9 +524,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 18 : 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -559,7 +555,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
+                    color: AppColors.grey900,
                   ),
                 ),
               ),
@@ -576,7 +572,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: Color(0xFF374151),
+              color: AppColors.grey700,
             ),
           ),
           const SizedBox(height: 8),
@@ -614,11 +610,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             decoration: InputDecoration(
               hintText: "Rp 0",
               hintStyle: const TextStyle(
-                color: Color(0xFF9CA3AF),
+                color: AppColors.grey400,
                 fontSize: 13,
               ),
               filled: true,
-              fillColor: const Color(0xFFF9FAFB),
+              fillColor: AppColors.grey50,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 14,
@@ -646,7 +642,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: Color(0xFF374151),
+              color: AppColors.grey700,
             ),
           ),
           const SizedBox(height: 8),
@@ -661,11 +657,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               hintText:
                   "Contoh: Saya siap mengerjakan hari ini dengan garansi servis.",
               hintStyle: const TextStyle(
-                color: Color(0xFF9CA3AF),
+                color: AppColors.grey400,
                 fontSize: 13,
               ),
               filled: true,
-              fillColor: const Color(0xFFF9FAFB),
+              fillColor: AppColors.grey50,
               counterText: '',
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -712,7 +708,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
+                backgroundColor: _accent, // ← teal
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -734,7 +730,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: const Color(0xFF94A3B8), size: 18),
+        const Icon(
+          Icons.location_on_outlined,
+          color: AppColors.grey400,
+          size: 18,
+        ),
         const SizedBox(width: 6),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 220),
@@ -744,7 +744,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
         ),

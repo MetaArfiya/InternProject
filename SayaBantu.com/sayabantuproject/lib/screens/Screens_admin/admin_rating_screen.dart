@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class AdminRatingScreen extends StatefulWidget {
   const AdminRatingScreen({super.key});
@@ -12,6 +13,16 @@ class AdminRatingScreen extends StatefulWidget {
 }
 
 class _AdminRatingScreenState extends State<AdminRatingScreen> {
+  // ============================================================
+  // LOKAL WARNA
+  // ============================================================
+  static const Color _danger = Color(0xFFDC2626);
+  static const Color _dangerSoft = Color(0xFFFEF2F2);
+  static const Color _dangerBorder = Color(0xFFFCA5A5);
+  static const Color _warning = Color(0xFFF59E0B);
+  static const Color _warningSoft = Color(0xFFFFF7ED);
+  static const Color _warningBorder = Color(0xFFFCD34D);
+
   // ============================================================
   // STATE
   // ============================================================
@@ -170,9 +181,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   Color _ratingColor(int rating) {
-    if (rating >= 4) return const Color(0xFF059669);
-    if (rating == 3) return const Color(0xFFF59E0B);
-    return const Color(0xFFDC2626);
+    if (rating >= 4) return AppColors.darkTeal;
+    if (rating == 3) return _warning;
+    return _danger;
   }
 
   Widget _buildStars(int rating, {double size = 16}) {
@@ -181,7 +192,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       children: List.generate(5, (i) {
         return Icon(
           i < rating ? Icons.star : Icons.star_border,
-          color: const Color(0xFFF59E0B),
+          color: AppColors.starYellow,
           size: size,
         );
       }),
@@ -241,7 +252,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
-        _snack('Rating berhasil dihapus.', color: const Color(0xFF16A34A));
+        _snack('Rating berhasil dihapus.', color: AppColors.primaryTeal);
         _loadRatings();
       } else {
         String message = 'Gagal menghapus rating.';
@@ -250,11 +261,11 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           message = decoded['message']?.toString() ?? message;
         } catch (_) {}
         if (!mounted) return;
-        _snack(message, color: const Color(0xFFDC2626));
+        _snack(message, color: _danger);
       }
     } catch (e) {
       if (!mounted) return;
-      _snack('Error: $e', color: const Color(0xFFDC2626));
+      _snack('Error: $e', color: _danger);
     }
   }
 
@@ -267,17 +278,15 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
-        _snack('Rating berhasil disembunyikan.',
-            color: const Color(0xFFF59E0B));
+        _snack('Rating berhasil disembunyikan.', color: _warning);
         _loadRatings();
       } else {
         if (!mounted) return;
-        _snack('Gagal menyembunyikan rating.',
-            color: const Color(0xFFDC2626));
+        _snack('Gagal menyembunyikan rating.', color: _danger);
       }
     } catch (e) {
       if (!mounted) return;
-      _snack('Error: $e', color: const Color(0xFFDC2626));
+      _snack('Error: $e', color: _danger);
     }
   }
 
@@ -298,67 +307,73 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 800;
-        final double hPad = isMobile ? 16 : 24;
+    return Container(
+      color: AppColors.sectionAltLight,
+      width: double.infinity,
+      height: double.infinity,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 800;
+          final double hPad = isMobile ? 16 : 24;
 
-        return RefreshIndicator(
-          onRefresh: _loadRatings,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(hPad, hPad, hPad, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile),
-                      const SizedBox(height: 20),
+          return RefreshIndicator(
+            color: AppColors.primaryTeal,
+            onRefresh: _loadRatings,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(hPad, hPad, hPad, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(isMobile),
+                        const SizedBox(height: 20),
 
-                      if (_isLoading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 80),
-                            child: CircularProgressIndicator(
-                              color: Color(0xFFF59E0B),
+                        if (_isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 80),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryTeal,
+                              ),
                             ),
-                          ),
-                        )
-                      else if (_errorMessage != null)
-                        _buildError()
-                      else ...[
-                        _buildSummarySection(isMobile),
-                        const SizedBox(height: 16),
-                        _buildFilterSection(isMobile),
-                        const SizedBox(height: 16),
-                        if (_ratings.isEmpty)
-                          _buildEmptyState()
-                        else if (isMobile)
-                          _buildMobileList()
-                        else
-                          _buildDesktopTable(),
+                          )
+                        else if (_errorMessage != null)
+                          _buildError()
+                        else ...[
+                          _buildSummarySection(isMobile),
+                          const SizedBox(height: 16),
+                          _buildFilterSection(isMobile),
+                          const SizedBox(height: 16),
+                          if (_ratings.isEmpty)
+                            _buildEmptyState()
+                          else if (isMobile)
+                            _buildMobileList()
+                          else
+                            _buildDesktopTable(),
+                        ],
+
+                        const SizedBox(height: 20),
                       ],
-
-                      const SizedBox(height: 20),
-                    ],
+                    ),
                   ),
-                ),
 
-                if (!_isLoading &&
-                    _errorMessage == null &&
-                    _ratings.isNotEmpty)
-                  _buildPaginationFullWidth(),
+                  if (!_isLoading &&
+                      _errorMessage == null &&
+                      _ratings.isNotEmpty)
+                    _buildPaginationFullWidth(),
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -374,7 +389,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           style: TextStyle(
             fontSize: isMobile ? 24 : 28,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF111827),
+            color: AppColors.darkTeal,
           ),
         ),
         const SizedBox(height: 6),
@@ -382,7 +397,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           'Pantau dan kelola penilaian pelanggan terhadap mitra.',
           style: TextStyle(
             fontSize: isMobile ? 12 : 13,
-            color: const Color(0xFF64748B),
+            color: AppColors.grey600,
           ),
         ),
       ],
@@ -390,7 +405,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   // ============================================================
-  // SUMMARY — Mobile: 2 atas 2 bawah (grid 2x2)
+  // SUMMARY
   // ============================================================
   Widget _buildSummarySection(bool isMobile) {
     final cards = [
@@ -398,33 +413,33 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         title: 'Total Rating',
         value: '$_total',
         icon: Icons.rate_review_outlined,
-        color: const Color(0xFF2563EB),
-        bg: const Color(0xFFEFF6FF),
+        color: AppColors.primaryTeal,
+        bg: AppColors.lightMint,
       ),
       _summaryCard(
         title: 'Rata-rata',
         value: _average.toStringAsFixed(1),
         icon: Icons.star_rate_outlined,
-        color: const Color(0xFFF59E0B),
-        bg: const Color(0xFFFFF7ED),
+        color: _warning,
+        bg: _warningSoft,
       ),
       _summaryCard(
         title: 'Rating Positif',
         value: '$_highCount',
         icon: Icons.thumb_up_alt_outlined,
-        color: const Color(0xFF059669),
-        bg: const Color(0xFFECFDF5),
+        color: AppColors.darkTeal,
+        bg: AppColors.lightMint,
       ),
       _summaryCard(
         title: 'Rating Rendah',
         value: '$_lowCount',
         icon: Icons.warning_amber_outlined,
-        color: const Color(0xFFDC2626),
-        bg: const Color(0xFFFEF2F2),
+        color: _danger,
+        bg: _dangerSoft,
       ),
     ];
 
-    // ---- MOBILE: 2 kolom x 2 baris ----
+    // MOBILE
     if (isMobile) {
       return Column(
         children: [
@@ -453,7 +468,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       );
     }
 
-    // ---- DESKTOP: 4 sejajar ----
+    // DESKTOP
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -471,7 +486,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   // ============================================================
-  // SUMMARY CARD — Compact (cocok untuk grid 2x2)
+  // SUMMARY CARD
   // ============================================================
   Widget _summaryCard({
     required String title,
@@ -483,15 +498,14 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon di atas
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
@@ -502,20 +516,18 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Title
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
 
-          // Value
           Text(
             value,
             maxLines: 1,
@@ -523,7 +535,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             style: const TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: AppColors.grey900,
             ),
           ),
         ],
@@ -539,9 +551,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -550,12 +562,12 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           borderRadius: BorderRadius.circular(10),
           icon: const Icon(
             Icons.keyboard_arrow_down,
-            color: Color(0xFF64748B),
+            color: AppColors.grey600,
             size: 21,
           ),
           style: const TextStyle(
             fontSize: 13,
-            color: Color(0xFF334155),
+            color: AppColors.grey700,
             fontWeight: FontWeight.w600,
           ),
           items: _filterOptions.map((f) {
@@ -579,13 +591,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: AppColors.lightMint,
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(
             Icons.filter_list,
             size: 18,
-            color: Color(0xFF2563EB),
+            color: AppColors.primaryTeal,
           ),
         ),
         const SizedBox(width: 12),
@@ -597,7 +609,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: AppColors.grey900,
               ),
             ),
             const SizedBox(height: 2),
@@ -605,7 +617,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               '${_ratings.length} ulasan ditampilkan',
               style: const TextStyle(
                 fontSize: 11,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
           ],
@@ -617,9 +629,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 14 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: isMobile
           ? Column(
@@ -647,9 +659,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.grey200),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -660,7 +672,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: DataTable(
                 headingRowColor:
-                    WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                    WidgetStateProperty.all(AppColors.sectionAltLight),
                 headingRowHeight: 48,
                 dataRowMinHeight: 56,
                 dataRowMaxHeight: 56,
@@ -686,7 +698,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
+                          color: AppColors.grey900,
                         ),
                       )),
                       DataCell(_tableCell(
@@ -705,7 +717,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E293B),
+                              color: AppColors.grey900,
                             ),
                           ),
                         ],
@@ -715,7 +727,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       DataCell(IconButton(
                         tooltip: 'Lihat Detail',
                         icon: const Icon(Icons.visibility_outlined, size: 18),
-                        color: const Color(0xFF2563EB),
+                        color: AppColors.primaryTeal,
                         onPressed: () => _showRatingDetail(r),
                       )),
                     ],
@@ -734,7 +746,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+      style: const TextStyle(fontSize: 12, color: AppColors.grey700),
     );
   }
 
@@ -750,9 +762,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.sectionLight,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppColors.grey200),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,7 +777,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
+                        color: AppColors.grey900,
                       ),
                     ),
                   ),
@@ -803,8 +815,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   icon: const Icon(Icons.visibility_outlined, size: 16),
                   label: const Text('Lihat Detail'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF2563EB),
-                    side: const BorderSide(color: Color(0xFF2563EB)),
+                    foregroundColor: AppColors.primaryTeal,
+                    side: const BorderSide(color: AppColors.primaryTeal),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(9),
                     ),
@@ -824,7 +836,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF64748B)),
+          Icon(icon, size: 16, color: AppColors.grey600),
           const SizedBox(width: 10),
           SizedBox(
             width: 80,
@@ -832,7 +844,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               label,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
           ),
@@ -842,7 +854,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF334155),
+                color: AppColors.grey700,
               ),
             ),
           ),
@@ -852,7 +864,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   // ============================================================
-  // PAGINATION — FULL WIDTH (Edge to Edge)
+  // PAGINATION
   // ============================================================
   Widget _buildPaginationFullWidth() {
     final total = _ratings.length;
@@ -864,10 +876,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         border: Border(
-          top: BorderSide(color: Color(0xFFE2E8F0)),
-          bottom: BorderSide(color: Color(0xFFE2E8F0)),
+          top: BorderSide(color: AppColors.grey200),
+          bottom: BorderSide(color: AppColors.grey200),
         ),
       ),
       child: Row(
@@ -879,7 +891,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               'Menampilkan $startItem–$endItem dari $total ulasan',
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -893,9 +905,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 height: 34,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppColors.grey50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: AppColors.grey200),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
@@ -904,7 +916,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                     borderRadius: BorderRadius.circular(8),
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF334155),
+                      color: AppColors.grey700,
                       fontWeight: FontWeight.w600,
                     ),
                     items: _itemsPerPageOptions
@@ -936,7 +948,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: AppColors.lightMint,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -944,7 +956,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF2563EB),
+                    color: AppColors.darkTeal,
                   ),
                 ),
               ),
@@ -974,18 +986,14 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         height: 34,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: onTap == null
-              ? const Color(0xFFF1F5F9)
-              : const Color(0xFFF8FAFC),
+          color: onTap == null ? AppColors.grey100 : AppColors.grey50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.grey200),
         ),
         child: Icon(
           icon,
           size: 18,
-          color: onTap == null
-              ? const Color(0xFFCBD5E1)
-              : const Color(0xFF334155),
+          color: onTap == null ? AppColors.grey300 : AppColors.grey700,
         ),
       ),
     );
@@ -1006,10 +1014,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           ),
           title: const Row(
             children: [
-              Icon(Icons.rate_review_outlined, color: Color(0xFF2563EB)),
+              Icon(Icons.rate_review_outlined, color: AppColors.primaryTeal),
               SizedBox(width: 10),
               Text('Detail Rating',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.grey900,
+                  )),
             ],
           ),
           content: SizedBox(
@@ -1029,7 +1040,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       'Tanggal', _formatTanggal(r['created_at']?.toString())),
                   const SizedBox(height: 12),
                   const Text('Rating',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.grey900,
+                      )),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -1037,22 +1051,31 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       const SizedBox(width: 10),
                       Text(
                         '$rating/5',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.grey900,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   const Text('Komentar',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.grey900,
+                      )),
                   const SizedBox(height: 6),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AppColors.grey50,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(r['comment']?.toString() ?? '-'),
+                    child: Text(
+                      r['comment']?.toString() ?? '-',
+                      style: const TextStyle(color: AppColors.grey700),
+                    ),
                   ),
                 ],
               ),
@@ -1061,7 +1084,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Tutup'),
+              child: const Text(
+                'Tutup',
+                style: TextStyle(color: AppColors.grey600),
+              ),
             ),
             OutlinedButton.icon(
               onPressed: () {
@@ -1071,8 +1097,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               icon: const Icon(Icons.visibility_off_outlined, size: 16),
               label: const Text('Sembunyikan'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFF59E0B),
-                side: const BorderSide(color: Color(0xFFF59E0B)),
+                foregroundColor: _warning,
+                side: const BorderSide(color: _warning),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(9),
                 ),
@@ -1086,8 +1112,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               icon: const Icon(Icons.delete_outline, size: 16),
               label: const Text('Hapus'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
+                backgroundColor: _danger,
+                foregroundColor: AppColors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(9),
                 ),
@@ -1111,7 +1137,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               label,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
           ),
@@ -1121,7 +1147,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+                color: AppColors.grey900,
               ),
             ),
           ),
@@ -1141,14 +1167,17 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           title: const Text('Sembunyikan Rating',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.grey900,
+              )),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Rating akan disembunyikan dari publik. Data tetap tersimpan.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 12, color: AppColors.grey600),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -1167,7 +1196,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: AppColors.grey600),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1175,8 +1207,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 _hideRating(r['id'], reasonController.text.trim());
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF59E0B),
-                foregroundColor: Colors.white,
+                backgroundColor: _warning,
+                foregroundColor: AppColors.white,
               ),
               child: const Text('Sembunyikan'),
             ),
@@ -1195,15 +1227,22 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           title: const Text('Hapus Rating',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.grey900,
+              )),
           content: const Text(
             'Apakah Anda yakin ingin menghapus rating ini? '
             'Tindakan ini tidak dapat dibatalkan.',
+            style: TextStyle(color: AppColors.grey600),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: AppColors.grey600),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1211,8 +1250,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 _deleteRating(r['id']);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
+                backgroundColor: _danger,
+                foregroundColor: AppColors.white,
               ),
               child: const Text('Hapus'),
             ),
@@ -1230,27 +1269,27 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: const Column(
         children: [
           Icon(Icons.rate_review_outlined,
-              size: 52, color: Color(0xFFCBD5E1)),
+              size: 52, color: AppColors.grey300),
           SizedBox(height: 12),
           Text(
             'Tidak ada rating',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: AppColors.grey700,
             ),
           ),
           SizedBox(height: 5),
           Text(
             'Belum ada rating yang sesuai dengan filter.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+            style: TextStyle(fontSize: 12, color: AppColors.grey500),
           ),
         ],
       ),
@@ -1262,19 +1301,19 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(35),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        border: Border.all(color: _dangerBorder),
       ),
       child: Column(
         children: [
           const Icon(Icons.error_outline,
-              size: 48, color: Color(0xFFDC2626)),
+              size: 48, color: _danger),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFDC2626)),
+            style: const TextStyle(color: _danger),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -1282,8 +1321,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF59E0B),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: AppColors.white,
             ),
           ),
         ],
@@ -1308,7 +1347,7 @@ class _TableHeader extends StatelessWidget {
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.4,
-        color: Color(0xFF64748B),
+        color: AppColors.darkTeal,
       ),
     );
   }

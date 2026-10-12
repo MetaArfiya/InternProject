@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 
 class RatingDialog extends StatefulWidget {
   final int jobId;
@@ -47,20 +48,22 @@ class _RatingDialogState extends State<RatingDialog> {
     }
   }
 
+  // ✅ Warna label bintang — tetap konotasi masing-masing
+  // (merah → buruk, hijau → bagus, abu → belum pilih)
   Color get _starColor {
     switch (_stars) {
       case 1:
-        return Colors.red;
+        return const Color(0xFFDC2626); // merah
       case 2:
-        return Colors.orange;
+        return const Color(0xFFF97316); // orange
       case 3:
-        return Colors.amber;
+        return const Color(0xFFF59E0B); // amber
       case 4:
-        return Colors.lightGreen;
+        return const Color(0xFF84CC16); // light green
       case 5:
-        return Colors.green;
+        return const Color(0xFF16A34A); // green
       default:
-        return Colors.grey;
+        return AppColors.grey500;
     }
   }
 
@@ -69,7 +72,7 @@ class _RatingDialogState extends State<RatingDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Silakan pilih bintang terlebih dahulu.'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Color(0xFFF59E0B), // amber
         ),
       );
       return;
@@ -130,12 +133,14 @@ class _RatingDialogState extends State<RatingDialog> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.amber.shade50,
+              // ✅ dari amber → mint soft
+              color: AppColors.mint.withOpacity(0.18),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.star_rate_rounded,
-              color: Colors.amber,
+              // tetap amber (bintang)
+              color: Color(0xFFF59E0B),
               size: 24,
             ),
           ),
@@ -149,6 +154,7 @@ class _RatingDialogState extends State<RatingDialog> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
+                    color: AppColors.grey900,
                   ),
                 ),
                 SizedBox(height: 2),
@@ -156,7 +162,7 @@ class _RatingDialogState extends State<RatingDialog> {
                   'Bagaimana hasil kerja mitra?',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: AppColors.grey500,
                     fontWeight: FontWeight.normal,
                   ),
                 ),
@@ -165,7 +171,6 @@ class _RatingDialogState extends State<RatingDialog> {
           ),
         ],
       ),
-      // FIX 1: Gunakan ConstrainedBox agar lebar dialog tidak dipaksa 440px pada layar HP
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: SingleChildScrollView(
@@ -177,9 +182,11 @@ class _RatingDialogState extends State<RatingDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppColors.grey50,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withOpacity(0.10),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +194,7 @@ class _RatingDialogState extends State<RatingDialog> {
                     Row(
                       children: [
                         const Icon(Icons.work_outline,
-                            size: 16, color: Colors.grey),
+                            size: 16, color: AppColors.grey500),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -197,6 +204,7 @@ class _RatingDialogState extends State<RatingDialog> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
+                              color: AppColors.grey900,
                             ),
                           ),
                         ),
@@ -206,7 +214,7 @@ class _RatingDialogState extends State<RatingDialog> {
                     Row(
                       children: [
                         const Icon(Icons.person_outline,
-                            size: 16, color: Colors.grey),
+                            size: 16, color: AppColors.grey500),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -215,7 +223,7 @@ class _RatingDialogState extends State<RatingDialog> {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: Colors.grey,
+                              color: AppColors.grey600,
                             ),
                           ),
                         ),
@@ -231,7 +239,6 @@ class _RatingDialogState extends State<RatingDialog> {
               Center(
                 child: Column(
                   children: [
-                    // FIX 2: Bungkus dengan FittedBox agar bintang otomatis mengecil di layar sempit
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Row(
@@ -253,9 +260,10 @@ class _RatingDialogState extends State<RatingDialog> {
                                     ? Icons.star_rounded
                                     : Icons.star_border_rounded,
                                 size: 46,
+                                // tetap amber untuk bintang
                                 color: filled
-                                    ? Colors.amber
-                                    : Colors.grey.shade300,
+                                    ? const Color(0xFFF59E0B)
+                                    : AppColors.grey300,
                               ),
                             ),
                           );
@@ -283,6 +291,7 @@ class _RatingDialogState extends State<RatingDialog> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
+                  color: AppColors.grey800,
                 ),
               ),
               const SizedBox(height: 8),
@@ -294,12 +303,30 @@ class _RatingDialogState extends State<RatingDialog> {
                 decoration: InputDecoration(
                   hintText:
                       'Ceritakan pengalaman Anda bekerja dengan mitra ini...',
-                  hintStyle: const TextStyle(fontSize: 13),
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.grey400,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.grey300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.grey300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryTeal,
+                      width: 1.5,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.all(12),
-                  counterStyle: const TextStyle(fontSize: 11),
+                  counterStyle: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.grey400,
+                  ),
                 ),
               ),
             ],
@@ -311,7 +338,10 @@ class _RatingDialogState extends State<RatingDialog> {
         TextButton(
           onPressed:
               _isSubmitting ? null : () => Navigator.pop(context, false),
-          child: const Text('Batal'),
+          child: const Text(
+            'Batal',
+            style: TextStyle(color: AppColors.grey600),
+          ),
         ),
         ElevatedButton.icon(
           onPressed: (_stars == 0 || _isSubmitting) ? null : _submit,
@@ -327,9 +357,9 @@ class _RatingDialogState extends State<RatingDialog> {
               : const Icon(Icons.send_rounded, size: 18),
           label: Text(_isSubmitting ? 'Mengirim...' : 'Kirim Rating'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.primaryTeal, // ← dari orange
             foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey.shade300,
+            disabledBackgroundColor: AppColors.grey300,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/active_offer_model.dart';
 import '../sections/partner/completion_proof_dialog.dart';
+import '../theme/app_colors.dart';
 
 // ================================================================
 // BASE URL API
 // ================================================================
-// Sesuaikan dengan platform:
-//   - Web / iOS Simulator : http://localhost:8000/api
-//   - Android Emulator    : http://10.0.2.2:8000/api
-//   - HP fisik            : http://192.168.x.x:8000/api
 const String _apiBaseUrl = 'http://localhost:8000/api';
 
 /// Membuat satu baris tabel untuk penawaran aktif.
@@ -27,19 +24,33 @@ TableRow buildActiveOfferRow(
     children: [
       _tableCell(
         Center(
-          child: Text('$number', style: const TextStyle(fontSize: 14)),
+          child: Text(
+            '$number',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.grey900,
+            ),
+          ),
         ),
       ),
       _tableCell(
         Text(
           offer.title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.grey900,
+          ),
         ),
       ),
       _tableCell(
         Text(
           offer.price,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryTeal, // ← teal
+          ),
         ),
       ),
       _tableCell(_buildRanking(offer)),
@@ -72,13 +83,18 @@ Widget _buildRanking(ActiveOfferModel offer) {
     children: [
       Text(
         '#${offer.queuePosition}',
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.grey900,
+        ),
       ),
       if (isTop) ...[
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
+            // ✅ tetap hijau (konotasi "top")
             color: const Color(0xffDCFCE7),
             borderRadius: BorderRadius.circular(20),
           ),
@@ -109,20 +125,24 @@ Widget _buildStatus(ActiveOfferModel offer) {
   String text;
 
   if (completed) {
+    // ✅ tetap biru (konotasi "selesai")
     backgroundColor = const Color(0xffDBEAFE);
     textColor = const Color(0xff2563EB);
     text = 'Selesai';
   } else if (waiting) {
+    // ✅ tetap amber (konotasi "menunggu")
     backgroundColor = const Color(0xffFEF3C7);
     textColor = const Color(0xffB45309);
     text = 'Menunggu Konfirmasi';
   } else if (isWorking) {
+    // ✅ tetap hijau (konotasi "aktif")
     backgroundColor = const Color(0xffDCFCE7);
     textColor = const Color(0xff15803D);
     text = 'Sedang Dikerjakan';
   } else {
-    backgroundColor = const Color(0xffF3F4F6);
-    textColor = const Color(0xff6B7280);
+    // ✅ default → teal soft (dari grey)
+    backgroundColor = AppColors.mint.withOpacity(0.20);
+    textColor = AppColors.primaryTeal;
     text = 'Menunggu';
   }
 
@@ -181,8 +201,10 @@ Widget _buildProofButton(
           height: 75,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xffE5E7EB)),
-            color: const Color(0xffF8FAFC),
+            border: Border.all(
+              color: AppColors.primaryTeal.withOpacity(0.15),
+            ),
+            color: AppColors.grey50,
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -195,7 +217,10 @@ Widget _buildProofButton(
                   child: SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primaryTeal,
+                    ),
                   ),
                 );
               },
@@ -204,7 +229,7 @@ Widget _buildProofButton(
                   child: Icon(
                     Icons.broken_image_outlined,
                     size: 24,
-                    color: Colors.grey,
+                    color: AppColors.grey500,
                   ),
                 );
               },
@@ -222,25 +247,27 @@ Widget _buildProofButton(
       width: 130,
       height: 75,
       decoration: BoxDecoration(
-        color: const Color(0xffF8FAFC),
+        color: AppColors.mint.withOpacity(0.10), // ← teal soft
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xffE5E7EB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.20),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.image_outlined,
             size: 26,
-            color: Colors.grey.shade500,
+            color: AppColors.primaryTeal, // ← teal
           ),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             'Upload Bukti',
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: AppColors.primaryTeal, // ← teal
               fontSize: 11,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -266,7 +293,7 @@ Future<void> _showFullProofImage(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 800, maxHeight: 800),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -276,7 +303,11 @@ Future<void> _showFullProofImage(
               padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.image_outlined, size: 20),
+                  const Icon(
+                    Icons.image_outlined,
+                    size: 20,
+                    color: AppColors.grey700,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -284,12 +315,16 @@ Future<void> _showFullProofImage(
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
+                        color: AppColors.grey900,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.grey700,
+                    ),
                     onPressed: () => Navigator.pop(dialogContext),
                   ),
                 ],
@@ -311,7 +346,11 @@ Future<void> _showFullProofImage(
                         if (progress == null) return child;
                         return const Padding(
                           padding: EdgeInsets.all(60),
-                          child: Center(child: CircularProgressIndicator()),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primaryTeal,
+                            ),
+                          ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
@@ -323,10 +362,15 @@ Future<void> _showFullProofImage(
                               Icon(
                                 Icons.broken_image_outlined,
                                 size: 60,
-                                color: Colors.grey,
+                                color: AppColors.grey500,
                               ),
                               SizedBox(height: 12),
-                              Text('Gagal memuat gambar'),
+                              Text(
+                                'Gagal memuat gambar',
+                                style: TextStyle(
+                                  color: AppColors.grey600,
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -352,17 +396,20 @@ Widget _buildApproval(ActiveOfferModel offer) {
   Color textColor;
 
   if (offer.status == 'Selesai') {
+    // ✅ tetap hijau (konotasi "sudah ACC")
     text = 'Sudah ACC';
     backgroundColor = const Color(0xffDCFCE7);
     textColor = const Color(0xff15803D);
   } else if (offer.status == 'Menunggu Konfirmasi Selesai') {
+    // ✅ tetap amber (konotasi "menunggu")
     text = 'Menunggu ACC';
     backgroundColor = const Color(0xffFEF3C7);
     textColor = const Color(0xffB45309);
   } else {
+    // ✅ default → teal soft (dari grey)
     text = 'Belum ACC';
-    backgroundColor = const Color(0xffF3F4F6);
-    textColor = const Color(0xff6B7280);
+    backgroundColor = AppColors.mint.withOpacity(0.15);
+    textColor = AppColors.primaryTeal;
   }
 
   return Align(
@@ -408,7 +455,7 @@ Widget _buildAction(
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff16A34A),
+          backgroundColor: AppColors.primaryTeal, // ← dari hijau
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -426,8 +473,15 @@ Widget _buildAction(
     child: OutlinedButton.icon(
       onPressed: () => _showDetailTimeline(context, offer),
       icon: const Icon(Icons.info_outline, size: 17),
-      label: const Text('Detail', style: TextStyle(fontSize: 12)),
+      label: const Text(
+        'Detail',
+        style: TextStyle(fontSize: 12),
+      ),
       style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primaryTeal, // ← teal
+        side: BorderSide(
+          color: AppColors.primaryTeal.withOpacity(0.4),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -466,7 +520,11 @@ Future<void> _showDetailTimeline(
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.timeline, size: 22),
+                  const Icon(
+                    Icons.timeline,
+                    size: 22,
+                    color: AppColors.primaryTeal, // ← teal
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -477,14 +535,15 @@ Future<void> _showDetailTimeline(
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           offer.title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: AppColors.grey600,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -492,7 +551,11 @@ Future<void> _showDetailTimeline(
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: AppColors.grey700,
+                    ),
                     onPressed: () => Navigator.pop(dialogContext),
                   ),
                 ],
@@ -517,6 +580,7 @@ Future<void> _showDetailTimeline(
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.grey900,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -554,7 +618,7 @@ Future<void> _showDetailTimeline(
 
                     _timelineItem(
                       icon: Icons.verified_outlined,
-                      iconColor: const Color(0xff9333EA),
+                      iconColor: AppColors.primaryTeal, // ← dari ungu
                       title: 'Diverifikasi Pelanggan',
                       subtitle: 'Pelanggan menyetujui bukti (ACC)',
                       time: _formatDateTime(offer.completionVerifiedAt),
@@ -572,6 +636,7 @@ Future<void> _showDetailTimeline(
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.grey900,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -579,17 +644,17 @@ Future<void> _showDetailTimeline(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xffF8FAFC),
+                          color: AppColors.grey50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xffE5E7EB),
+                            color: AppColors.primaryTeal.withOpacity(0.10),
                           ),
                         ),
                         child: Text(
                           offer.proofDescription!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: AppColors.grey700,
                             height: 1.5,
                           ),
                         ),
@@ -609,11 +674,18 @@ Future<void> _showDetailTimeline(
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryTeal, // ← teal
+                    side: BorderSide(
+                      color: AppColors.primaryTeal.withOpacity(0.4),
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Tutup'),
+                  child: const Text(
+                    'Tutup',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
@@ -637,9 +709,9 @@ Widget _infoRow(String label, String value) {
           width: 100,
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: AppColors.grey600,
             ),
           ),
         ),
@@ -649,6 +721,7 @@ Widget _infoRow(String label, String value) {
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
+              color: AppColors.grey900,
             ),
           ),
         ),
@@ -669,10 +742,10 @@ Widget _timelineItem({
   required bool isActive,
   bool isLast = false,
 }) {
-  final Color finalColor = isActive ? iconColor : Colors.grey.shade400;
+  final Color finalColor = isActive ? iconColor : AppColors.grey400;
   final Color bgColor = isActive
       ? iconColor.withOpacity(0.12)
-      : const Color(0xffF3F4F6);
+      : AppColors.grey100;
 
   return IntrinsicHeight(
     child: Row(
@@ -696,7 +769,7 @@ Widget _timelineItem({
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   color: isActive
                       ? iconColor.withOpacity(0.4)
-                      : const Color(0xffE5E7EB),
+                      : AppColors.grey200,
                 ),
               ),
           ],
@@ -713,15 +786,17 @@ Widget _timelineItem({
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: isActive ? Colors.black87 : Colors.grey.shade500,
+                    color: isActive
+                        ? AppColors.grey900
+                        : AppColors.grey500,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade600,
+                    color: AppColors.grey600,
                   ),
                 ),
                 if (time != null) ...[
@@ -731,7 +806,7 @@ Widget _timelineItem({
                       Icon(
                         Icons.access_time,
                         size: 12,
-                        color: isActive ? iconColor : Colors.grey.shade400,
+                        color: isActive ? iconColor : AppColors.grey400,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -739,7 +814,7 @@ Widget _timelineItem({
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: isActive ? iconColor : Colors.grey.shade500,
+                          color: isActive ? iconColor : AppColors.grey500,
                         ),
                       ),
                     ],
@@ -806,7 +881,7 @@ Future<void> _showCompletionProofDialog(
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
       content: Text('Bukti pekerjaan berhasil dikirim.'),
-      backgroundColor: Color(0xff16A34A),
+      backgroundColor: AppColors.primaryTeal, // ← dari hijau
       behavior: SnackBarBehavior.floating,
     ),
   );

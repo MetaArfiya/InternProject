@@ -4,6 +4,7 @@ import '../../models/partner_sidebar_menu.dart';
 import '../../models/partner_job_model.dart';
 import '../../widgets/partner_sidebar.dart';
 import '../../services/auth_storage.dart';
+import '../../theme/app_colors.dart';
 
 import '../../sections/partner/partner_dashboard.dart';
 import '../../sections/partner/active_offer_screen.dart';
@@ -33,7 +34,8 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   final GlobalKey<PartnerSidebarState> _sidebarKey =
       GlobalKey<PartnerSidebarState>();
 
-  static const Color _accent = Color(0xFFF97316);
+  // ✅ dari orange → teal
+  static const Color _accent = AppColors.primaryTeal;
 
   // ============================================================
   // INIT
@@ -42,11 +44,11 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   @override
   void initState() {
     super.initState();
-    _restoreSelectedMenu(); // ✅ BARU
+    _restoreSelectedMenu();
   }
 
   // ============================================================
-  // ✅ RESTORE SELECTED MENU
+  // RESTORE SELECTED MENU
   // ============================================================
 
   void _restoreSelectedMenu() {
@@ -56,7 +58,6 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
 
     for (final menu in PartnerSidebarMenu.values) {
       if (menu.name == savedName && mounted) {
-        // Jangan restore ke offerJob (butuh selectedJob)
         if (menu == PartnerSidebarMenu.offerJob) return;
 
         setState(() {
@@ -68,11 +69,10 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   }
 
   // ============================================================
-  // ✅ SAVE SELECTED MENU
+  // SAVE SELECTED MENU
   // ============================================================
 
   void _saveSelectedMenu(PartnerSidebarMenu menu) {
-    // Skip offerJob
     if (menu == PartnerSidebarMenu.offerJob) return;
 
     AuthStorage.setString('partner_selected_menu', menu.name);
@@ -100,6 +100,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
             child: Text(
               'Silakan pilih pekerjaan terlebih dahulu '
               'dari menu Cari Pekerjaan.',
+              style: TextStyle(color: AppColors.grey600),
             ),
           );
         }
@@ -153,7 +154,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
     setState(() {
       selectedMenu = menu;
     });
-    _saveSelectedMenu(menu); // ✅ SAVE
+    _saveSelectedMenu(menu);
   }
 
   // ============================================================
@@ -207,7 +208,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
       selectedJob = null;
     });
 
-    _saveSelectedMenu(menu); // ✅ SAVE
+    _saveSelectedMenu(menu);
   }
 
   // ============================================================
@@ -236,14 +237,14 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
         }
 
         return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          backgroundColor: AppColors.sectionAltLight, // ← mint muda
 
           appBar: AppBar(
             toolbarHeight: 52,
             elevation: 0,
             scrolledUnderElevation: 0,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            backgroundColor: AppColors.white,
+            foregroundColor: AppColors.grey800,
             automaticallyImplyLeading: false,
             title: null,
             titleSpacing: 0,
@@ -251,6 +252,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
               IconButton(
                 tooltip: 'Notifikasi',
                 icon: const Icon(Icons.notifications_outlined),
+                color: AppColors.grey700,
                 onPressed: () {
                   setState(() {
                     selectedMenu = PartnerSidebarMenu.notifikasi;
@@ -261,6 +263,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
               IconButton(
                 tooltip: 'Lapor Masalah',
                 icon: const Icon(Icons.report_problem_outlined),
+                color: AppColors.grey700,
                 onPressed: () {
                   setState(() {
                     selectedMenu = PartnerSidebarMenu.pengaduan;
@@ -276,7 +279,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
 
           bottomNavigationBar: Container(
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               border: Border(
                 top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
               ),
@@ -287,9 +290,9 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
                 currentIndex: _getBottomNavIndex(),
                 onTap: _onBottomNavTap,
                 type: BottomNavigationBarType.fixed,
-                backgroundColor: Colors.white,
-                selectedItemColor: _accent,
-                unselectedItemColor: const Color(0xFF94A3B8),
+                backgroundColor: AppColors.white,
+                selectedItemColor: _accent, // ← teal
+                unselectedItemColor: AppColors.grey400,
                 selectedFontSize: 11,
                 unselectedFontSize: 11,
                 selectedLabelStyle: const TextStyle(

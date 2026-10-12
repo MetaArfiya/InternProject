@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class AdminDailyReportScreen extends StatefulWidget {
   const AdminDailyReportScreen({super.key});
@@ -13,6 +14,15 @@ class AdminDailyReportScreen extends StatefulWidget {
 }
 
 class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
+  // ============================================================
+  // LOKAL WARNA
+  // ============================================================
+  static const Color _danger = Color(0xFFEF4444);
+  static const Color _dangerSoft = Color(0xFFFEF2F2);
+  static const Color _dangerBorder = Color(0xFFFCA5A5);
+  static const Color _warning = Color(0xFFF59E0B);
+  static const Color _warningSoft = Color(0xFFFFF7ED);
+
   // ============================================================
   // STATE
   // ============================================================
@@ -268,143 +278,149 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 800;
+    return Container(
+      color: AppColors.sectionAltLight,
+      width: double.infinity,
+      height: double.infinity,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 800;
 
-        final double hPad = isMobile ? 16 : 24;
+          final double hPad = isMobile ? 16 : 24;
 
-        return RefreshIndicator(
-          onRefresh: _loadReport,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    hPad,
-                    hPad,
-                    hPad,
-                    0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile),
+          return RefreshIndicator(
+            color: AppColors.primaryTeal,
+            onRefresh: _loadReport,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      hPad,
+                      hPad,
+                      hPad,
+                      0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(isMobile),
 
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                      if (_isLoading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 80,
+                        if (_isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                vertical: 80,
+                              ),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryTeal,
+                              ),
                             ),
-                            child: CircularProgressIndicator(
-                              color: Colors.orange,
-                            ),
-                          ),
-                        )
-                      else if (_errorMessage != null)
-                        _buildError()
-                      else ...[
-                        _buildSummarySection(isMobile),
-
-                        const SizedBox(height: 20),
-
-                        _buildPeriodFilter(isMobile),
-
-                        const SizedBox(height: 20),
-
-                        if (_dailyData.isEmpty)
-                          _buildEmptyState()
+                          )
+                        else if (_errorMessage != null)
+                          _buildError()
                         else ...[
-                          _buildBarChart(
-                            isMobile: isMobile,
-                            title: 'Grafik Transaksi',
-                            subtitle:
-                                'Jumlah transaksi berdasarkan hari',
-                            values: _dailyData.map<double>(
-                              (d) =>
-                                  (d['transactions'] as num?)
-                                      ?.toDouble() ??
-                                  0,
-                            ).toList(),
-                            labels: _dailyData.map<String>(
-                              (d) => d['day'].toString(),
-                            ).toList(),
-                            valueSuffix: 'transaksi',
-                            barColor: const Color(0xFF3B82F6),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _buildBarChart(
-                            isMobile: isMobile,
-                            title: 'Grafik Komisi Admin',
-                            subtitle:
-                                'Total komisi admin sebesar 15%',
-                            values: _dailyData.map<double>(
-                              (d) =>
-                                  (d['income'] as num?)
-                                      ?.toDouble() ??
-                                  0,
-                            ).toList(),
-                            labels: _dailyData.map<String>(
-                              (d) => d['day'].toString(),
-                            ).toList(),
-                            valueSuffix: 'Rp',
-                            barColor: const Color(0xFF10B981),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _buildBarChart(
-                            isMobile: isMobile,
-                            title: 'Grafik Pekerjaan',
-                            subtitle:
-                                'Jumlah pekerjaan yang diselesaikan',
-                            values: _dailyData.map<double>(
-                              (d) =>
-                                  (d['jobs'] as num?)
-                                      ?.toDouble() ??
-                                  0,
-                            ).toList(),
-                            labels: _dailyData.map<String>(
-                              (d) => d['day'].toString(),
-                            ).toList(),
-                            valueSuffix: 'pekerjaan',
-                            barColor: const Color(0xFFF59E0B),
-                          ),
+                          _buildSummarySection(isMobile),
 
                           const SizedBox(height: 20),
 
-                          _buildReportTable(isMobile),
+                          _buildPeriodFilter(isMobile),
+
+                          const SizedBox(height: 20),
+
+                          if (_dailyData.isEmpty)
+                            _buildEmptyState()
+                          else ...[
+                            _buildBarChart(
+                              isMobile: isMobile,
+                              title: 'Grafik Transaksi',
+                              subtitle:
+                                  'Jumlah transaksi berdasarkan hari',
+                              values: _dailyData.map<double>(
+                                (d) =>
+                                    (d['transactions'] as num?)
+                                        ?.toDouble() ??
+                                    0,
+                              ).toList(),
+                              labels: _dailyData.map<String>(
+                                (d) => d['day'].toString(),
+                              ).toList(),
+                              valueSuffix: 'transaksi',
+                              barColor: AppColors.primaryTeal,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            _buildBarChart(
+                              isMobile: isMobile,
+                              title: 'Grafik Komisi Admin',
+                              subtitle:
+                                  'Total komisi admin sebesar 15%',
+                              values: _dailyData.map<double>(
+                                (d) =>
+                                    (d['income'] as num?)
+                                        ?.toDouble() ??
+                                    0,
+                              ).toList(),
+                              labels: _dailyData.map<String>(
+                                (d) => d['day'].toString(),
+                              ).toList(),
+                              valueSuffix: 'Rp',
+                              barColor: AppColors.darkTeal,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            _buildBarChart(
+                              isMobile: isMobile,
+                              title: 'Grafik Pekerjaan',
+                              subtitle:
+                                  'Jumlah pekerjaan yang diselesaikan',
+                              values: _dailyData.map<double>(
+                                (d) =>
+                                    (d['jobs'] as num?)
+                                        ?.toDouble() ??
+                                    0,
+                              ).toList(),
+                              labels: _dailyData.map<String>(
+                                (d) => d['day'].toString(),
+                              ).toList(),
+                              valueSuffix: 'pekerjaan',
+                              barColor: AppColors.mint,
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            _buildReportTable(isMobile),
+                          ],
                         ],
+
+                        const SizedBox(height: 20),
                       ],
-
-                      const SizedBox(height: 20),
-                    ],
+                    ),
                   ),
-                ),
 
-                // ==================================================
-                // PAGINATION FULL WIDTH
-                // ==================================================
+                  // ==================================================
+                  // PAGINATION FULL WIDTH
+                  // ==================================================
 
-                if (!_isLoading &&
-                    _errorMessage == null &&
-                    _dailyData.isNotEmpty)
-                  _buildPaginationFullWidth(),
+                  if (!_isLoading &&
+                      _errorMessage == null &&
+                      _dailyData.isNotEmpty)
+                    _buildPaginationFullWidth(),
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -421,7 +437,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           style: TextStyle(
             fontSize: isMobile ? 24 : 28,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF111827),
+            color: AppColors.darkTeal,
           ),
         ),
 
@@ -431,7 +447,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           'Pantau aktivitas transaksi, pekerjaan, dan pendapatan komisi admin.',
           style: TextStyle(
             fontSize: isMobile ? 12 : 13,
-            color: const Color(0xFF64748B),
+            color: AppColors.grey600,
           ),
         ),
       ],
@@ -448,39 +464,36 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         title: 'Total Transaksi',
         value: '$_totalTransactions',
         icon: Icons.receipt_long_outlined,
-        color: const Color(0xFF3B82F6),
-        background: const Color(0xFFEFF6FF),
+        color: AppColors.primaryTeal,
+        background: AppColors.lightMint,
       ),
 
       _summaryCard(
         title: 'Total Pekerjaan',
         value: '$_totalJobs',
         icon: Icons.work_outline,
-        color: const Color(0xFFF59E0B),
-        background: const Color(0xFFFFF7ED),
+        color: _warning,
+        background: _warningSoft,
       ),
 
       _summaryCard(
         title: 'Total Komisi',
         value: _formatRupiah(_totalIncome),
         icon: Icons.account_balance_wallet_outlined,
-        color: const Color(0xFF10B981),
-        background: const Color(0xFFECFDF5),
+        color: AppColors.darkTeal,
+        background: AppColors.lightMint,
       ),
 
       _summaryCard(
         title: 'Rata-rata Harian',
         value: _formatRupiah(_averageIncome),
         icon: Icons.analytics_outlined,
-        color: const Color(0xFF7C3AED),
-        background: const Color(0xFFF3E8FF),
+        color: AppColors.primaryTeal,
+        background: AppColors.lightMint,
       ),
     ];
 
-    // ==========================================================
     // MOBILE
-    // ==========================================================
-
     if (isMobile) {
       return Column(
         children: [
@@ -511,10 +524,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       );
     }
 
-    // ==========================================================
     // DESKTOP
-    // ==========================================================
-
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -545,11 +555,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,7 +585,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: AppColors.grey900,
               height: 1.1,
             ),
           ),
@@ -591,7 +599,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: AppColors.grey700,
             ),
           ),
         ],
@@ -608,29 +616,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 14 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: isMobile
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPeriodLabel(),
-
                 const SizedBox(height: 12),
-
                 _buildPeriodDropdown(),
               ],
             )
           : Row(
               children: [
                 _buildPeriodLabel(),
-
                 const Spacer(),
-
                 SizedBox(
                   width: 200,
                   child: _buildPeriodDropdown(),
@@ -651,13 +653,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: AppColors.lightMint,
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(
             Icons.date_range_outlined,
             size: 18,
-            color: Color(0xFF2563EB),
+            color: AppColors.primaryTeal,
           ),
         ),
 
@@ -671,7 +673,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111827),
+                color: AppColors.grey900,
               ),
             ),
 
@@ -681,7 +683,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               'Menampilkan: $_currentPeriodLabel',
               style: const TextStyle(
                 fontSize: 11,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
               ),
             ),
           ],
@@ -697,15 +699,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   Widget _buildPeriodDropdown() {
     return Container(
       height: 46,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -714,20 +712,18 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           borderRadius: BorderRadius.circular(10),
           icon: const Icon(
             Icons.keyboard_arrow_down,
-            color: Color(0xFF64748B),
+            color: AppColors.grey600,
             size: 21,
           ),
           style: const TextStyle(
             fontSize: 13,
-            color: Color(0xFF334155),
+            color: AppColors.grey700,
             fontWeight: FontWeight.w600,
           ),
           items: _periodOptions.map((p) {
             return DropdownMenuItem<String>(
               value: p['value'],
-              child: Text(
-                p['label']!,
-              ),
+              child: Text(p['label']!),
             );
           }).toList(),
           onChanged: (value) {
@@ -773,11 +769,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -787,7 +781,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: AppColors.grey900,
             ),
           ),
 
@@ -797,7 +791,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             subtitle,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF64748B),
+              color: AppColors.grey600,
             ),
           ),
 
@@ -840,7 +834,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF334155),
+                                color: AppColors.grey700,
                               ),
                             ),
 
@@ -854,9 +848,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                                   end: Alignment.bottomCenter,
                                   colors: [
                                     barColor,
-                                    barColor.withValues(
-                                      alpha: 0.6,
-                                    ),
+                                    barColor.withValues(alpha: 0.6),
                                   ],
                                 ),
                                 borderRadius:
@@ -876,7 +868,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF64748B),
+                                color: AppColors.grey600,
                               ),
                             ),
                           ],
@@ -906,7 +898,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
+            color: AppColors.grey900,
           ),
         ),
 
@@ -916,7 +908,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           '${_dailyData.length} hari ditampilkan',
           style: const TextStyle(
             fontSize: 12,
-            color: Color(0xFF64748B),
+            color: AppColors.grey600,
           ),
         ),
 
@@ -925,11 +917,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.sectionLight,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFE2E8F0),
-            ),
+            border: Border.all(color: AppColors.grey200),
           ),
           clipBehavior: Clip.antiAlias,
           child: isMobile
@@ -967,20 +957,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             ),
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(
-                const Color(0xFFF8FAFC),
+                AppColors.sectionAltLight,
               ),
 
               headingRowHeight: 48,
 
-              // Tinggi minimum dibuat lebih besar karena
-              // sekarang transaksi dan pekerjaan bisa terdiri
-              // dari beberapa baris.
               dataRowMinHeight: 82,
-
               dataRowMaxHeight: 150,
 
               columnSpacing: 24,
-
               horizontalMargin: 20,
 
               dividerThickness: 1,
@@ -1003,33 +988,24 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               ],
 
               rows: _paginatedData.map((d) {
-                final transactionDetails =
-                    _getTransactionDetails(d);
-
-                final jobDetails =
-                    _getJobDetails(d);
+                final transactionDetails = _getTransactionDetails(d);
+                final jobDetails = _getJobDetails(d);
 
                 return DataRow(
                   cells: [
-                    // ==================================================
                     // HARI
-                    // ==================================================
-
                     DataCell(
                       Text(
                         d['day']?.toString() ?? '-',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
+                          color: AppColors.grey900,
                         ),
                       ),
                     ),
 
-                    // ==================================================
                     // TRANSAKSI
-                    // ==================================================
-
                     DataCell(
                       _buildTransactionCell(
                         transactionDetails,
@@ -1037,10 +1013,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       ),
                     ),
 
-                    // ==================================================
                     // PEKERJAAN
-                    // ==================================================
-
                     DataCell(
                       _buildJobCell(
                         jobDetails,
@@ -1048,19 +1021,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       ),
                     ),
 
-                    // ==================================================
                     // KOMISI
-                    // ==================================================
-
                     DataCell(
                       Text(
-                        _formatRupiah(
-                          d['income'] ?? 0,
-                        ),
+                        _formatRupiah(d['income'] ?? 0),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF059669),
+                          color: AppColors.darkTeal,
                         ),
                       ),
                     ),
@@ -1082,16 +1050,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     List<Map<String, dynamic>> details, {
     required dynamic fallbackCount,
   }) {
-    // Kalau backend belum mengirim detail,
-    // tetap tampilkan jumlah agar tidak kosong.
     if (details.isEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildSmallIconBox(
             icon: Icons.receipt_long_outlined,
-            background: const Color(0xFFEFF6FF),
-            iconColor: const Color(0xFF3B82F6),
+            background: AppColors.lightMint,
+            iconColor: AppColors.primaryTeal,
           ),
 
           const SizedBox(width: 8),
@@ -1101,7 +1067,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF334155),
+              color: AppColors.grey700,
             ),
           ),
         ],
@@ -1113,8 +1079,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       children: [
         _buildSmallIconBox(
           icon: Icons.receipt_long_outlined,
-          background: const Color(0xFFEFF6FF),
-          iconColor: const Color(0xFF3B82F6),
+          background: AppColors.lightMint,
+          iconColor: AppColors.primaryTeal,
         ),
 
         const SizedBox(width: 8),
@@ -1126,20 +1092,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             child: ListView.separated(
               padding: EdgeInsets.zero,
               itemCount: details.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 4),
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final item = details[index];
 
-                final reference =
-                    item['reference_code']?.toString();
-
-                final id =
-                    item['id']?.toString();
+                final reference = item['reference_code']?.toString();
+                final id = item['id']?.toString();
 
                 final displayReference =
-                    reference != null &&
-                            reference.isNotEmpty
+                    reference != null && reference.isNotEmpty
                         ? reference
                         : id != null
                             ? 'PAY-$id'
@@ -1152,7 +1113,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF334155),
+                    color: AppColors.grey700,
                   ),
                 );
               },
@@ -1171,16 +1132,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     List<Map<String, dynamic>> details, {
     required dynamic fallbackCount,
   }) {
-    // Kalau backend belum mengirim detail,
-    // tetap tampilkan jumlah pekerjaan.
     if (details.isEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildSmallIconBox(
             icon: Icons.work_outline,
-            background: const Color(0xFFFFF7ED),
-            iconColor: const Color(0xFFF59E0B),
+            background: _warningSoft,
+            iconColor: _warning,
           ),
 
           const SizedBox(width: 8),
@@ -1190,7 +1149,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF334155),
+              color: AppColors.grey700,
             ),
           ),
         ],
@@ -1202,8 +1161,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       children: [
         _buildSmallIconBox(
           icon: Icons.work_outline,
-          background: const Color(0xFFFFF7ED),
-          iconColor: const Color(0xFFF59E0B),
+          background: _warningSoft,
+          iconColor: _warning,
         ),
 
         const SizedBox(width: 8),
@@ -1215,16 +1174,12 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             child: ListView.separated(
               padding: EdgeInsets.zero,
               itemCount: details.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 4),
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final item = details[index];
 
-                final code =
-                    item['code']?.toString() ?? '';
-
-                final title =
-                    item['title']?.toString() ??
+                final code = item['code']?.toString() ?? '';
+                final title = item['title']?.toString() ??
                     item['tittle']?.toString() ??
                     'Pekerjaan tanpa judul';
 
@@ -1243,7 +1198,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF334155),
+                    color: AppColors.grey700,
                   ),
                 );
               },
@@ -1287,17 +1242,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     Map<String, dynamic> d,
     bool isLast,
   ) {
-    final transactionDetails =
-        _getTransactionDetails(d);
+    final transactionDetails = _getTransactionDetails(d);
+    final jobDetails = _getJobDetails(d);
 
-    final jobDetails =
-        _getJobDetails(d);
-
-    final transactions =
-        d['transactions'] ?? 0;
-
-    final jobs =
-        d['jobs'] ?? 0;
+    final transactions = d['transactions'] ?? 0;
+    final jobs = d['jobs'] ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1305,45 +1254,37 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(
-                  color: Color(0xFFE2E8F0),
-                ),
+                bottom: BorderSide(color: AppColors.grey200),
               ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ======================================================
           // HARI
-          // ======================================================
-
           Text(
             d['day']?.toString() ?? '-',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1E293B),
+              color: AppColors.grey900,
             ),
           ),
 
           const SizedBox(height: 12),
 
-          // ======================================================
           // TRANSAKSI
-          // ======================================================
-
           _buildMobileDetailRow(
             icon: Icons.receipt_long_outlined,
             label: 'Transaksi',
-            iconColor: const Color(0xFF2563EB),
-            background: const Color(0xFFEFF6FF),
+            iconColor: AppColors.primaryTeal,
+            background: AppColors.lightMint,
             child: transactionDetails.isEmpty
                 ? Text(
                     '$transactions transaksi',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2563EB),
+                      color: AppColors.primaryTeal,
                     ),
                   )
                 : _buildMobileTransactionDetails(
@@ -1353,48 +1294,38 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
           const SizedBox(height: 10),
 
-          // ======================================================
           // PEKERJAAN
-          // ======================================================
-
           _buildMobileDetailRow(
             icon: Icons.work_outline,
             label: 'Pekerjaan',
-            iconColor: const Color(0xFFD97706),
-            background: const Color(0xFFFFF7ED),
+            iconColor: _warning,
+            background: _warningSoft,
             child: jobDetails.isEmpty
                 ? Text(
                     '$jobs pekerjaan',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFD97706),
+                      color: _warning,
                     ),
                   )
-                : _buildMobileJobDetails(
-                    jobDetails,
-                  ),
+                : _buildMobileJobDetails(jobDetails),
           ),
 
           const SizedBox(height: 10),
 
-          // ======================================================
           // KOMISI
-          // ======================================================
-
           _buildMobileDetailRow(
             icon: Icons.account_balance_wallet_outlined,
             label: 'Komisi Admin',
-            iconColor: const Color(0xFF059669),
-            background: const Color(0xFFECFDF5),
+            iconColor: AppColors.darkTeal,
+            background: AppColors.lightMint,
             child: Text(
-              _formatRupiah(
-                d['income'] ?? 0,
-              ),
+              _formatRupiah(d['income'] ?? 0),
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF059669),
+                color: AppColors.darkTeal,
               ),
             ),
           ),
@@ -1442,7 +1373,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               label,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1451,9 +1382,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
         const SizedBox(width: 8),
 
-        Expanded(
-          child: child,
-        ),
+        Expanded(child: child),
       ],
     );
   }
@@ -1468,24 +1397,18 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: details.map((item) {
-        final reference =
-            item['reference_code']?.toString();
-
-        final id =
-            item['id']?.toString();
+        final reference = item['reference_code']?.toString();
+        final id = item['id']?.toString();
 
         final displayReference =
-            reference != null &&
-                    reference.isNotEmpty
+            reference != null && reference.isNotEmpty
                 ? reference
                 : id != null
                     ? 'PAY-$id'
                     : 'Transaksi';
 
         return Padding(
-          padding: const EdgeInsets.only(
-            bottom: 4,
-          ),
+          padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             displayReference,
             textAlign: TextAlign.right,
@@ -1494,7 +1417,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2563EB),
+              color: AppColors.primaryTeal,
             ),
           ),
         );
@@ -1512,23 +1435,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: details.map((item) {
-        final code =
-            item['code']?.toString() ?? '';
-
-        final title =
-            item['title']?.toString() ??
+        final code = item['code']?.toString() ?? '';
+        final title = item['title']?.toString() ??
             item['tittle']?.toString() ??
             'Pekerjaan tanpa judul';
 
         final displayText =
-            code.isNotEmpty
-                ? '$code • $title'
-                : title;
+            code.isNotEmpty ? '$code • $title' : title;
 
         return Padding(
-          padding: const EdgeInsets.only(
-            bottom: 4,
-          ),
+          padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             displayText,
             textAlign: TextAlign.right,
@@ -1537,7 +1453,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFD97706),
+              color: _warning,
             ),
           ),
         );
@@ -1551,16 +1467,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   Widget _buildPaginationFullWidth() {
     final total = _dailyData.length;
-
     final totalPages = _totalPages;
-
-    final startItem =
-        (_currentPage - 1) * _itemsPerPage + 1;
-
-    final endItem = (startItem + _itemsPerPage - 1).clamp(
-      0,
-      total,
-    );
+    final startItem = (_currentPage - 1) * _itemsPerPage + 1;
+    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
 
     return Container(
       width: double.infinity,
@@ -1569,32 +1478,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         vertical: 12,
       ),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         border: Border(
-          top: BorderSide(
-            color: Color(0xFFE2E8F0),
-          ),
-          bottom: BorderSide(
-            color: Color(0xFFE2E8F0),
-          ),
+          top: BorderSide(color: AppColors.grey200),
+          bottom: BorderSide(color: AppColors.grey200),
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ========================================================
           // KIRI
-          // ========================================================
-
           Flexible(
             child: Text(
-              'Menampilkan '
-              '$startItem–$endItem '
-              'dari $total hari',
+              'Menampilkan $startItem–$endItem dari $total hari',
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
+                color: AppColors.grey600,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1603,28 +1503,18 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
           const SizedBox(width: 16),
 
-          // ========================================================
           // KANAN
-          // ========================================================
-
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ====================================================
               // ITEMS PER PAGE
-              // ====================================================
-
               Container(
                 height: 34,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: AppColors.grey50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFFE2E8F0),
-                  ),
+                  border: Border.all(color: AppColors.grey200),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
@@ -1633,7 +1523,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     borderRadius: BorderRadius.circular(8),
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF334155),
+                      color: AppColors.grey700,
                       fontWeight: FontWeight.w600,
                     ),
                     items: _itemsPerPageOptions.map(
@@ -1656,33 +1546,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
               const SizedBox(width: 10),
 
-              // ====================================================
               // PREVIOUS
-              // ====================================================
-
               _paginationIconButton(
                 icon: Icons.chevron_left,
                 onTap: _currentPage > 1
-                    ? () => setState(
-                          () => _currentPage--,
-                        )
+                    ? () => setState(() => _currentPage--)
                     : null,
               ),
 
               const SizedBox(width: 6),
 
-              // ====================================================
               // CURRENT PAGE
-              // ====================================================
-
               Container(
                 height: 34,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: AppColors.lightMint,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1690,23 +1570,18 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF2563EB),
+                    color: AppColors.darkTeal,
                   ),
                 ),
               ),
 
               const SizedBox(width: 6),
 
-              // ====================================================
               // NEXT
-              // ====================================================
-
               _paginationIconButton(
                 icon: Icons.chevron_right,
                 onTap: _currentPage < totalPages
-                    ? () => setState(
-                          () => _currentPage++,
-                        )
+                    ? () => setState(() => _currentPage++)
                     : null,
               ),
             ],
@@ -1732,20 +1607,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         height: 34,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: onTap == null
-              ? const Color(0xFFF1F5F9)
-              : const Color(0xFFF8FAFC),
+          color: onTap == null ? AppColors.grey100 : AppColors.grey50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: const Color(0xFFE2E8F0),
-          ),
+          border: Border.all(color: AppColors.grey200),
         ),
         child: Icon(
           icon,
           size: 18,
-          color: onTap == null
-              ? const Color(0xFFCBD5E1)
-              : const Color(0xFF334155),
+          color: onTap == null ? AppColors.grey300 : AppColors.grey700,
         ),
       ),
     );
@@ -1760,18 +1629,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(35),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFFECACA),
-        ),
+        border: Border.all(color: _dangerBorder),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.error_outline,
             size: 48,
-            color: Color(0xFFDC2626),
+            color: _danger,
           ),
 
           const SizedBox(height: 12),
@@ -1780,7 +1647,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFFDC2626),
+              color: _danger,
             ),
           ),
 
@@ -1788,14 +1655,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
           ElevatedButton.icon(
             onPressed: _loadReport,
-            icon: const Icon(
-              Icons.refresh,
-              size: 18,
-            ),
+            icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF59E0B),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: AppColors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(9),
               ),
@@ -1818,18 +1682,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         horizontal: 20,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sectionLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: const Column(
         children: [
           Icon(
             Icons.bar_chart_outlined,
             size: 52,
-            color: Color(0xFFCBD5E1),
+            color: AppColors.grey300,
           ),
 
           SizedBox(height: 12),
@@ -1839,7 +1701,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: AppColors.grey700,
             ),
           ),
 
@@ -1850,7 +1712,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF94A3B8),
+              color: AppColors.grey500,
             ),
           ),
         ],
@@ -1876,7 +1738,7 @@ class _TableHeader extends StatelessWidget {
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.4,
-        color: Color(0xFF64748B),
+        color: AppColors.darkTeal,
       ),
     );
   }

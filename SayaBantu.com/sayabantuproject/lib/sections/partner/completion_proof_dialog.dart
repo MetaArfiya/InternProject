@@ -4,16 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 // ================================================================
 // DIALOG UNTUK MENGIRIM BUKTI PEKERJAAN SELESAI
 // ================================================================
-// Gunakan jobId (bukan bidId) karena endpoint backend:
-// POST /api/jobs/{jobId}/upload-proof
-// ================================================================
 
 class CompletionProofDialog extends StatefulWidget {
-  final int jobId; // ← ID pekerjaan (job), bukan ID penawaran (bid)
+  final int jobId;
 
   const CompletionProofDialog({
     super.key,
@@ -73,119 +71,136 @@ class _CompletionProofDialogState
   // PILIH SUMBER FOTO
   // ============================================================
 
-void _showImageSourceOptions() {
-  // Di Web desktop, kamera via image_picker tidak reliable
-  // → sembunyikan opsi kamera
-  final showCamera = !kIsWeb;
+  void _showImageSourceOptions() {
+    final showCamera = !kIsWeb;
 
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (bottomSheetContext) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 45,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xffD1D5DB),
-                  borderRadius: BorderRadius.circular(10),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 45,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 22),
-              Text(
-                showCamera ? 'Pilih Sumber Foto' : 'Pilih Foto',
-                style: const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 22),
+                Text(
+                  showCamera ? 'Pilih Sumber Foto' : 'Pilih Foto',
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.grey900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // ✅ Kamera — hanya di mobile native
-              if (showCamera) ...[
+                // Kamera — hanya di mobile native
+                if (showCamera) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        // ✅ dari hijau soft → mint soft
+                        color: AppColors.mint.withOpacity(0.20),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: AppColors.primaryTeal, // ← teal
+                      ),
+                    ),
+                    title: const Text(
+                      'Kamera',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Ambil foto pekerjaan sekarang',
+                      style: TextStyle(color: AppColors.grey600),
+                    ),
+                    onTap: () {
+                      Navigator.pop(bottomSheetContext);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // Galeri — selalu tampil
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xffDCFCE7),
+                      color: AppColors.mint.withOpacity(0.20), // ← mint soft
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
-                      Icons.camera_alt_outlined,
-                      color: Color(0xff16A34A),
+                      Icons.photo_library_outlined,
+                      color: AppColors.primaryTeal, // ← teal
                     ),
                   ),
                   title: const Text(
-                    'Kamera',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Ambil foto pekerjaan sekarang'),
-                  onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    _pickImage(ImageSource.camera);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
-
-              // ✅ Galeri — selalu tampil
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xffDBEAFE),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.photo_library_outlined,
-                    color: Color(0xff2563EB),
-                  ),
-                ),
-                title: const Text(
-                  'Galeri',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: const Text('Pilih foto dari galeri perangkat'),
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-
-              const SizedBox(height: 8),
-
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(bottomSheetContext),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    'Galeri',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grey900,
                     ),
                   ),
-                  child: const Text('Batal'),
+                  subtitle: const Text(
+                    'Pilih foto dari galeri perangkat',
+                    style: TextStyle(color: AppColors.grey600),
+                  ),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    _pickImage(ImageSource.gallery);
+                  },
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 8),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(bottomSheetContext),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.grey700,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.grey300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Batal',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   // ============================================================
   // HAPUS FOTO
@@ -230,25 +245,19 @@ void _showImageSourceOptions() {
       debugPrint('📤 Mengirim bukti pekerjaan...');
       debugPrint('📌 Job ID: ${widget.jobId}');
 
-      // ========================================================
-      // KIRIM MULTIPART KE ENDPOINT YANG BENAR
-      // ========================================================
       final response = await ApiService.postMultipart(
-        '/jobs/${widget.jobId}/upload-proof', // ← endpoint yang tersedia di routes
+        '/jobs/${widget.jobId}/upload-proof',
         {
-          'note': note, // ← field 'note' sesuai validasi di controller
+          'note': note,
         },
         files: {
-          'photo': _selectedImage!, // ← field 'photo' sesuai validasi
+          'photo': _selectedImage!,
         },
       );
 
       debugPrint('📥 STATUS: ${response.statusCode}');
       debugPrint('📦 RESPONSE: ${response.body}');
 
-      // ========================================================
-      // BERHASIL
-      // ========================================================
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (!mounted) return;
 
@@ -262,9 +271,6 @@ void _showImageSourceOptions() {
         return;
       }
 
-      // ========================================================
-      // GAGAL
-      // ========================================================
       String message = 'Gagal mengirim bukti pekerjaan.';
       try {
         final decoded = response.body.isNotEmpty
@@ -273,9 +279,7 @@ void _showImageSourceOptions() {
         if (decoded is Map<String, dynamic> && decoded['message'] != null) {
           message = decoded['message'].toString();
         }
-      } catch (_) {
-        // Response bukan JSON
-      }
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -312,7 +316,7 @@ void _showImageSourceOptions() {
     final mediaQuery = MediaQuery.of(context);
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
@@ -325,21 +329,20 @@ void _showImageSourceOptions() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ==================================================
               // HEADER
-              // ==================================================
               Row(
                 children: [
                   Container(
                     width: 45,
                     height: 45,
                     decoration: BoxDecoration(
-                      color: const Color(0xffDCFCE7),
+                      // ✅ dari hijau soft → mint soft
+                      color: AppColors.mint.withOpacity(0.20),
                       borderRadius: BorderRadius.circular(13),
                     ),
                     child: const Icon(
                       Icons.task_alt_rounded,
-                      color: Color(0xff16A34A),
+                      color: AppColors.primaryTeal, // ← teal
                       size: 25,
                     ),
                   ),
@@ -353,6 +356,7 @@ void _showImageSourceOptions() {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
                           ),
                         ),
                         SizedBox(height: 3),
@@ -360,7 +364,7 @@ void _showImageSourceOptions() {
                           'Kirim bukti bahwa pekerjaan telah selesai.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xff6B7280),
+                            color: AppColors.grey500,
                           ),
                         ),
                       ],
@@ -370,21 +374,23 @@ void _showImageSourceOptions() {
                     onPressed: _isSubmitting
                         ? null
                         : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.grey700,
+                    ),
                   ),
                 ],
               ),
 
               const SizedBox(height: 25),
 
-              // ==================================================
               // FOTO
-              // ==================================================
               const Text(
                 'Foto Pekerjaan',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.grey900,
                 ),
               ),
               const SizedBox(height: 8),
@@ -392,21 +398,20 @@ void _showImageSourceOptions() {
                 'Tambahkan foto sebagai bukti pekerjaan yang telah selesai.',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xff6B7280),
+                  color: AppColors.grey500,
                 ),
               ),
               const SizedBox(height: 14),
               _buildImageSection(),
               const SizedBox(height: 24),
 
-              // ==================================================
               // DESKRIPSI (CATATAN)
-              // ==================================================
               const Text(
                 'Catatan / Deskripsi Pekerjaan',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.grey900,
                 ),
               ),
               const SizedBox(height: 8),
@@ -417,28 +422,29 @@ void _showImageSourceOptions() {
                 maxLength: 500,
                 textInputAction: TextInputAction.newline,
                 onChanged: (_) => setState(() {}),
+                style: const TextStyle(color: AppColors.grey900),
                 decoration: InputDecoration(
                   hintText:
                       'Contoh: Pekerjaan pemasangan AC telah selesai dilakukan dan AC sudah dapat digunakan dengan baik.',
                   hintStyle: const TextStyle(
-                    color: Color(0xff9CA3AF),
+                    color: AppColors.grey400,
                     fontSize: 13,
                   ),
                   filled: true,
-                  fillColor: const Color(0xffF9FAFB),
+                  fillColor: AppColors.grey50,
                   contentPadding: const EdgeInsets.all(16),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                    borderSide: const BorderSide(color: AppColors.grey200),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xffE5E7EB)),
+                    borderSide: const BorderSide(color: AppColors.grey200),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: const BorderSide(
-                      color: Color(0xff16A34A),
+                      color: AppColors.primaryTeal, // ← teal
                       width: 2,
                     ),
                   ),
@@ -446,23 +452,24 @@ void _showImageSourceOptions() {
               ),
               const SizedBox(height: 10),
 
-              // ==================================================
               // INFO
-              // ==================================================
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                  color: const Color(0xffF0FDF4),
+                  // ✅ dari hijau soft → mint soft
+                  color: AppColors.mint.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xffBBF7D0)),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withOpacity(0.20),
+                  ),
                 ),
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Color(0xff16A34A),
+                      color: AppColors.primaryTeal, // ← teal
                       size: 19,
                     ),
                     SizedBox(width: 9),
@@ -470,7 +477,7 @@ void _showImageSourceOptions() {
                       child: Text(
                         'Pastikan foto dan deskripsi sesuai dengan pekerjaan yang telah kamu lakukan.',
                         style: TextStyle(
-                          color: Color(0xff166534),
+                          color: AppColors.darkTeal, // ← dark teal
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -482,9 +489,7 @@ void _showImageSourceOptions() {
 
               const SizedBox(height: 24),
 
-              // ==================================================
               // BUTTON
-              // ==================================================
               Row(
                 children: [
                   Expanded(
@@ -493,9 +498,9 @@ void _showImageSourceOptions() {
                           ? null
                           : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xff374151),
+                        foregroundColor: AppColors.grey700,
                         padding: const EdgeInsets.symmetric(vertical: 15),
-                        side: const BorderSide(color: Color(0xffD1D5DB)),
+                        side: const BorderSide(color: AppColors.grey300),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -530,8 +535,8 @@ void _showImageSourceOptions() {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff16A34A),
-                        disabledBackgroundColor: const Color(0xffD1D5DB),
+                        backgroundColor: AppColors.primaryTeal, // ← dari hijau
+                        disabledBackgroundColor: AppColors.grey300,
                         foregroundColor: Colors.white,
                         disabledForegroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
@@ -565,10 +570,10 @@ void _showImageSourceOptions() {
           width: double.infinity,
           height: 190,
           decoration: BoxDecoration(
-            color: const Color(0xffF9FAFB),
+            color: AppColors.grey50,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xffD1D5DB),
+              color: AppColors.primaryTeal.withOpacity(0.30), // ← teal border
               width: 1.5,
             ),
           ),
@@ -579,12 +584,13 @@ void _showImageSourceOptions() {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: const Color(0xffDCFCE7),
+                  // ✅ dari hijau soft → mint soft
+                  color: AppColors.mint.withOpacity(0.20),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Icon(
                   Icons.add_a_photo_outlined,
-                  color: Color(0xff16A34A),
+                  color: AppColors.primaryTeal, // ← teal
                   size: 30,
                 ),
               ),
@@ -594,13 +600,14 @@ void _showImageSourceOptions() {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
+                  color: AppColors.grey900,
                 ),
               ),
               const SizedBox(height: 5),
               const Text(
                 'Foto dari perangkat kamu',
                 style: TextStyle(
-                  color: Color(0xff6B7280),
+                  color: AppColors.grey500,
                   fontSize: 13,
                 ),
               ),
@@ -615,7 +622,9 @@ void _showImageSourceOptions() {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xffD1D5DB)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withOpacity(0.20),
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -654,10 +663,13 @@ void _showImageSourceOptions() {
               icon: const Icon(Icons.edit_outlined, size: 17),
               label: const Text('Ganti Foto'),
               style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xff374151),
+                backgroundColor: AppColors.white,
+                foregroundColor: AppColors.grey700,
                 side: BorderSide.none,
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 9,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -672,8 +684,8 @@ void _showImageSourceOptions() {
               onPressed: _isSubmitting ? null : _removeImage,
               tooltip: 'Hapus foto',
               style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.red,
+                backgroundColor: AppColors.white,
+                foregroundColor: Colors.red, // tetap merah (destructive)
               ),
               icon: const Icon(Icons.delete_outline),
             ),
