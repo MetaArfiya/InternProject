@@ -1,9 +1,10 @@
-// lib/sections/admin/admin_payment_detail_dialog.dart
-
 import 'package:flutter/material.dart';
 
 import '../../models/payment_model.dart';
 import '../../services/payment_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 import 'upload_mitra_proof_dialog.dart';
 
 class AdminPaymentDetailDialog extends StatefulWidget {
@@ -16,25 +17,22 @@ class AdminPaymentDetailDialog extends StatefulWidget {
       _AdminPaymentDetailDialogState();
 }
 
-class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
+class _AdminPaymentDetailDialogState
+    extends State<AdminPaymentDetailDialog> {
   bool _isProcessing = false;
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _purpleColor = Color(0xFF7C3AED);
-
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-
   static const double _radius = 10;
+
+  // ============================================================
+  // THEME — ambil dari context yang disediakan AdminThemeProvider
+  // ============================================================
+
+  AdminTheme _themeOf(BuildContext context) =>
+      AdminThemeProvider.of(context);
 
   // ============================================================
   // VERIFIKASI BUKTI PELANGGAN
@@ -43,184 +41,197 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   Future<void> _verifyProof(String action) async {
     final noteCtrl = TextEditingController();
     final isApprove = action == 'approve';
+    final t = _themeOf(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // HEADER
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: (isApprove ? _infoColor : _dangerColor)
-                              .withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(_radius),
+        return AdminThemeProvider(
+          theme: t,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // HEADER
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: (isApprove
+                                    ? AppColors.infoBlue
+                                    : t.danger)
+                                .withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(_radius),
+                          ),
+                          child: Icon(
+                            isApprove
+                                ? Icons.verified_outlined
+                                : Icons.cancel_outlined,
+                            color: isApprove
+                                ? AppColors.infoBlue
+                                : t.danger,
+                            size: 20,
+                          ),
                         ),
-                        child: Icon(
-                          isApprove
-                              ? Icons.verified_outlined
-                              : Icons.cancel_outlined,
-                          color: isApprove ? _infoColor : _dangerColor,
-                          size: 20,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isApprove
+                                ? 'Verifikasi Bukti'
+                                : 'Tolak Bukti',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: t.cellText,
+                                ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          isApprove ? 'Verifikasi Bukti' : 'Tolak Bukti',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: _cellText,
-                              ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            Navigator.pop(dialogContext, false),
-                        icon: const Icon(
-                          Icons.close,
-                          size: 20,
-                          color: _headerText,
-                        ),
-                        splashRadius: 22,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-
-                  Text(
-                    isApprove
-                        ? 'Konfirmasi bahwa bukti transfer pelanggan valid?'
-                        : 'Berikan alasan penolakan bukti transfer pelanggan.',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF374151),
-                      height: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: noteCtrl,
-                    maxLines: 3,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: isApprove
-                          ? 'Catatan (opsional)'
-                          : 'Alasan penolakan *',
-                      hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _accent,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
+                        IconButton(
                           onPressed: () =>
                               Navigator.pop(dialogContext, false),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
-                            ),
+                          icon: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: t.headerText,
                           ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          splashRadius: 22,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: t.divider),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      isApprove
+                          ? 'Konfirmasi bahwa bukti transfer pelanggan valid?'
+                          : 'Berikan alasan penolakan bukti transfer pelanggan.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.grey700,
+                        height: 1.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: noteCtrl,
+                      maxLines: 3,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: isApprove
+                            ? 'Catatan (opsional)'
+                            : 'Alasan penolakan *',
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.grey400,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.grey50,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(
+                            color: t.accent,
+                            width: 1.5,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              Navigator.pop(dialogContext, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isApprove ? _infoColor : _dangerColor,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 46),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              foregroundColor: AppColors.grey700,
+                              side: const BorderSide(
+                                color: AppColors.grey300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            isApprove ? 'Verifikasi' : 'Tolak',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isApprove
+                                  ? AppColors.infoBlue
+                                  : t.danger,
+                              foregroundColor: AppColors.white,
+                              minimumSize: const Size(0, 46),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
+                            ),
+                            child: Text(
+                              isApprove ? 'Verifikasi' : 'Tolak',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -232,10 +243,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
     if (action == 'reject' && noteCtrl.text.trim().isEmpty) {
       if (!mounted) return;
-      _showSnack(
-        'Alasan penolakan wajib diisi.',
-        error: true,
-      );
+      _showSnack('Alasan penolakan wajib diisi.', error: true);
       return;
     }
 
@@ -266,7 +274,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   }
 
   // ============================================================
-  // SETTLE — Transfer ke mitra
+  // SETTLE
   // ============================================================
 
   Future<void> _settleToMitra() async {
@@ -287,175 +295,181 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
   Future<void> _refund() async {
     final reasonCtrl = TextEditingController();
+    final t = _themeOf(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: _dangerColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(_radius),
+        return AdminThemeProvider(
+          theme: t,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: t.danger.withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(_radius),
+                          ),
+                          child: Icon(
+                            Icons.assignment_return_outlined,
+                            color: t.danger,
+                            size: 20,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.assignment_return_outlined,
-                          color: _dangerColor,
-                          size: 20,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Refund ke Pelanggan',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: t.cellText,
+                                ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Refund ke Pelanggan',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: _cellText,
-                              ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            Navigator.pop(dialogContext, false),
-                        icon: const Icon(
-                          Icons.close,
-                          size: 20,
-                          color: _headerText,
-                        ),
-                        splashRadius: 22,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-
-                  Text(
-                    'Kembalikan dana ${PaymentModel.formatRupiah(widget.payment.totalPaid)} ke pelanggan?',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF374151),
-                      height: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: reasonCtrl,
-                    maxLines: 3,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Alasan refund *',
-                      hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _accent,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
+                        IconButton(
                           onPressed: () =>
                               Navigator.pop(dialogContext, false),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
-                            ),
+                          icon: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: t.headerText,
                           ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          splashRadius: 22,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: t.divider),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'Kembalikan dana ${PaymentModel.formatRupiah(widget.payment.totalPaid)} ke pelanggan?',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.grey700,
+                        height: 1.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: reasonCtrl,
+                      maxLines: 3,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Alasan refund *',
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.grey400,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.grey50,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(
+                            color: t.accent,
+                            width: 1.5,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              Navigator.pop(dialogContext, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _dangerColor,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 46),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              foregroundColor: AppColors.grey700,
+                              side: const BorderSide(
+                                color: AppColors.grey300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Refund',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: t.danger,
+                              foregroundColor: AppColors.white,
+                              minimumSize: const Size(0, 46),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
+                            ),
+                            child: const Text(
+                              'Refund',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -467,10 +481,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
     if (reasonCtrl.text.trim().isEmpty) {
       if (!mounted) return;
-      _showSnack(
-        'Alasan refund wajib diisi.',
-        error: true,
-      );
+      _showSnack('Alasan refund wajib diisi.', error: true);
       return;
     }
 
@@ -501,12 +512,13 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
   void _showSnack(String message, {bool error = false}) {
     if (!mounted) return;
+    final t = _themeOf(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: error ? _dangerColor : _successColor,
+          backgroundColor: error ? t.danger : t.success,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -531,8 +543,10 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     return '${_baseImageUrl()}$path';
   }
 
+  String _baseImageUrl() => 'http://127.0.0.1:8000';
+
   // ============================================================
-  // BUKA FULLSCREEN IMAGE VIEWER
+  // FULLSCREEN VIEWER
   // ============================================================
 
   void _openFullScreenImage(String? path, String title) {
@@ -560,6 +574,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     double height = 200,
     String title = 'Bukti Transfer',
   }) {
+    final t = _themeOf(context);
     final url = _buildProofImageUrl(path);
 
     if (url.isEmpty) {
@@ -567,15 +582,15 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
         height: height,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
+          color: AppColors.grey50,
           borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: _tableBorder),
+          border: Border.all(color: t.border),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'Bukti belum diunggah',
             style: TextStyle(
-              color: _headerText,
+              color: t.headerText,
               fontSize: 12.5,
             ),
           ),
@@ -598,9 +613,9 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                 if (progress == null) return child;
                 return Container(
                   height: height,
-                  color: const Color(0xFFF9FAFB),
-                  child: const Center(
-                    child: CircularProgressIndicator(color: _accent),
+                  color: AppColors.grey50,
+                  child: Center(
+                    child: CircularProgressIndicator(color: t.accent),
                   ),
                 );
               },
@@ -608,35 +623,36 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                 height: height,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
+                  color: AppColors.grey50,
                   borderRadius: BorderRadius.circular(_radius),
-                  border: Border.all(color: _tableBorder),
+                  border: Border.all(color: t.border),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(
                       Icons.broken_image,
-                      color: Color(0xFF9CA3AF),
+                      color: AppColors.grey400,
                       size: 48,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Gagal memuat gambar',
                       style: TextStyle(
-                        color: _headerText,
+                        color: t.headerText,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                       child: Text(
                         url,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFF9CA3AF),
+                          color: AppColors.grey400,
                           fontSize: 10,
                         ),
                         maxLines: 2,
@@ -658,18 +674,22 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
               vertical: 6,
             ),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
+              color: AppColors.black.withOpacity(0.6),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                Icon(
+                  Icons.zoom_in,
+                  color: AppColors.white,
+                  size: 16,
+                ),
                 SizedBox(width: 4),
                 Text(
                   'Perbesar',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -688,6 +708,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = _themeOf(context);
     final p = widget.payment;
     final bank = p.mitraBank ?? {};
 
@@ -716,12 +737,12 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: _accent.withOpacity(0.12),
+                      color: t.accent.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(_radius),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.receipt_long,
-                      color: _accent,
+                      color: t.accent,
                       size: 20,
                     ),
                   ),
@@ -734,20 +755,20 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                           .titleMedium
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                     ),
                   ),
-                  _statusBadge(p),
+                  _statusBadge(p, t),
                   const SizedBox(width: 4),
                   IconButton(
                     onPressed: _isProcessing
                         ? null
                         : () => Navigator.pop(context),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
                       size: 20,
-                      color: _headerText,
+                      color: t.headerText,
                     ),
                     splashRadius: 22,
                   ),
@@ -755,7 +776,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
               ),
 
               const SizedBox(height: 12),
-              const Divider(height: 1),
+              Divider(height: 1, color: t.divider),
               const SizedBox(height: 16),
 
               // ============================================
@@ -767,39 +788,39 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _infoRow('Pekerjaan', p.jobTitle ?? '-'),
-                      _infoRow('Pelanggan', p.pelangganName ?? '-'),
-                      _infoRow('Mitra', p.mitraName ?? '-'),
-                      _infoRow('Tanggal', p.formattedDate),
+                      _infoRow('Pekerjaan', p.jobTitle ?? '-', t),
+                      _infoRow('Pelanggan', p.pelangganName ?? '-', t),
+                      _infoRow('Mitra', p.mitraName ?? '-', t),
+                      _infoRow('Tanggal', p.formattedDate, t),
 
-                      const Divider(height: 25, color: _tableDivider),
+                      Divider(height: 25, color: t.divider),
 
                       _infoRow(
                         'Nilai Pekerjaan',
                         PaymentModel.formatRupiah(p.jobAmount),
+                        t,
                       ),
                       _infoRow(
                         'Komisi (${p.commissionPercent.toStringAsFixed(0)}%)',
                         PaymentModel.formatRupiah(p.commissionAmount),
+                        t,
                       ),
                       _infoRow(
                         'Mitra Terima',
                         PaymentModel.formatRupiah(p.mitraEarning),
+                        t,
                         isBold: true,
                       ),
 
                       // Bukti dari pelanggan
                       if (p.customerProofUrl != null) ...[
-                        const Divider(
-                          height: 25,
-                          color: _tableDivider,
-                        ),
-                        const Text(
+                        Divider(height: 25, color: t.divider),
+                        Text(
                           'Bukti Transfer dari Pelanggan',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -812,78 +833,78 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                           _infoRow(
                             'Bank Pengirim',
                             p.customerBankName!,
+                            t,
                           ),
                         if (p.customerAccountName != null)
                           _infoRow(
                             'Nama Pengirim',
                             p.customerAccountName!,
+                            t,
                           ),
                       ],
 
-                      // Rekening mitra (untuk transfer)
+                      // Rekening mitra
                       if (p.canSettleToMitra) ...[
-                        const Divider(
-                          height: 25,
-                          color: _tableDivider,
-                        ),
+                        Divider(height: 25, color: t.divider),
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: _successColor.withOpacity(0.06),
+                            color: t.success.withOpacity(0.06),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                             border: Border.all(
-                              color: _successColor.withOpacity(0.2),
+                              color: t.success.withOpacity(0.2),
                             ),
                           ),
                           child: Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Transfer ke Rekening Mitra',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
-                                  color: _cellText,
+                                  color: t.cellText,
                                 ),
                               ),
                               const SizedBox(height: 10),
                               _bankRow(
                                 'Bank',
                                 bank['bank_name']?.toString() ?? '-',
+                                t,
                               ),
                               _bankRow(
                                 'No. Rekening',
-                                bank['account_number']?.toString() ?? '-',
+                                bank['account_number']?.toString() ??
+                                    '-',
+                                t,
                               ),
                               _bankRow(
                                 'Atas Nama',
                                 bank['account_name']?.toString() ?? '-',
+                                t,
                               ),
-                              const Divider(
-                                height: 18,
-                                color: _tableDivider,
-                              ),
+                              Divider(height: 18, color: t.divider),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Jumlah:',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13,
-                                      color: _cellText,
+                                      color: t.cellText,
                                     ),
                                   ),
                                   Text(
                                     PaymentModel.formatRupiah(
                                       p.mitraEarning,
                                     ),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      color: _successColor,
+                                      color: t.success,
                                       fontSize: 16,
                                     ),
                                   ),
@@ -896,16 +917,13 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
                       // Bukti transfer ke mitra
                       if (p.mitraProofUrl != null) ...[
-                        const Divider(
-                          height: 25,
-                          color: _tableDivider,
-                        ),
-                        const Text(
+                        Divider(height: 25, color: t.divider),
+                        Text(
                           'Bukti Transfer ke Mitra',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -924,7 +942,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
               // ============================================
               // ACTIONS
               // ============================================
-              _buildActions(),
+              _buildActions(t),
             ],
           ),
         ),
@@ -936,10 +954,10 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // ACTIONS
   // ============================================================
 
-  Widget _buildActions() {
+  Widget _buildActions(AdminTheme t) {
     final p = widget.payment;
 
-    // Kalau pending (belum ada aksi)
+    // Pending — belum ada aksi
     if (p.isPending) {
       return Row(
         children: [
@@ -950,23 +968,25 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: _accent.withOpacity(0.08),
+                color: t.accent.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(_radius),
-                border: Border.all(color: _accent.withOpacity(0.25)),
+                border: Border.all(
+                  color: t.accent.withOpacity(0.25),
+                ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.hourglass_top,
-                    color: _accent,
+                    color: t.accent,
                     size: 18,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Menunggu pelanggan transfer...',
                       style: TextStyle(
-                        color: _accent,
+                        color: t.accent,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -981,8 +1001,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(0, 46),
-              foregroundColor: const Color(0xFF374151),
-              side: const BorderSide(color: Color(0xFFD1D5DB)),
+              foregroundColor: AppColors.grey700,
+              side: const BorderSide(color: AppColors.grey300),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius),
               ),
@@ -1001,7 +1021,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
 
     return Row(
       children: [
-        // Kiri: tombol sekunder (Tolak / Refund)
+        // Kiri: tombol sekunder
         if (p.canVerifyCustomerProof)
           TextButton.icon(
             onPressed: _isProcessing
@@ -1013,21 +1033,23 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
               style: TextStyle(fontSize: 13),
             ),
             style: TextButton.styleFrom(
-              foregroundColor: _dangerColor,
+              foregroundColor: t.danger,
             ),
           ),
 
         if (p.canSettleToMitra)
           TextButton.icon(
             onPressed: _isProcessing ? null : _refund,
-            icon: const Icon(Icons.assignment_return_outlined,
-                size: 16),
+            icon: const Icon(
+              Icons.assignment_return_outlined,
+              size: 16,
+            ),
             label: const Text(
               'Refund',
               style: TextStyle(fontSize: 13),
             ),
             style: TextButton.styleFrom(
-              foregroundColor: _dangerColor,
+              foregroundColor: t.danger,
             ),
           ),
 
@@ -1039,8 +1061,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(0, 46),
-              foregroundColor: const Color(0xFF374151),
-              side: const BorderSide(color: Color(0xFFD1D5DB)),
+              foregroundColor: AppColors.grey700,
+              side: const BorderSide(color: AppColors.grey300),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius),
               ),
@@ -1067,7 +1089,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   )
                 : const Icon(Icons.check_circle, size: 18),
@@ -1079,8 +1101,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _infoColor,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.infoBlue,
+              foregroundColor: AppColors.white,
               minimumSize: const Size(0, 46),
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1103,8 +1125,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _successColor,
-              foregroundColor: Colors.white,
+              backgroundColor: t.success,
+              foregroundColor: AppColors.white,
               minimumSize: const Size(0, 46),
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1121,7 +1143,12 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
   // HELPERS
   // ============================================================
 
-  Widget _infoRow(String label, String value, {bool isBold = false}) {
+  Widget _infoRow(
+    String label,
+    String value,
+    AdminTheme t, {
+    bool isBold = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -1131,8 +1158,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
             width: 140,
             child: Text(
               label,
-              style: const TextStyle(
-                color: _headerText,
+              style: TextStyle(
+                color: t.headerText,
                 fontSize: 12.5,
               ),
             ),
@@ -1144,7 +1171,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
                 fontSize: isBold ? 13.5 : 13,
                 fontWeight:
                     isBold ? FontWeight.w700 : FontWeight.w500,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -1153,7 +1180,7 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     );
   }
 
-  Widget _bankRow(String label, String value) {
+  Widget _bankRow(String label, String value, AdminTheme t) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -1162,26 +1189,26 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                color: _headerText,
+              style: TextStyle(
+                color: t.headerText,
                 fontSize: 12.5,
               ),
             ),
           ),
-          const Text(
+          Text(
             ': ',
             style: TextStyle(
-              color: _headerText,
+              color: t.headerText,
               fontSize: 12.5,
             ),
           ),
           Expanded(
             child: SelectableText(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -1190,8 +1217,8 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     );
   }
 
-  Widget _statusBadge(PaymentModel p) {
-    final color = _getStatusColor(p.status);
+  Widget _statusBadge(PaymentModel p, AdminTheme t) {
+    final color = _getStatusColor(p.status, t);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -1209,26 +1236,22 @@ class _AdminPaymentDetailDialogState extends State<AdminPaymentDetailDialog> {
     );
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(String status, AdminTheme t) {
     switch (status) {
       case 'settled':
-        return _successColor;
+        return t.success;
       case 'paid':
-        return _infoColor;
+        return AppColors.infoBlue;
       case 'waiting_verification':
-        return _purpleColor;
+        return AppColors.purple;
       case 'pending':
-        return _accent;
+        return t.accent;
       case 'refunded':
       case 'failed':
-        return _dangerColor;
+        return t.danger;
       default:
-        return _headerText;
+        return t.headerText;
     }
-  }
-
-  String _baseImageUrl() {
-    return 'http://127.0.0.1:8000';
   }
 }
 
@@ -1250,8 +1273,10 @@ class _FullScreenImageViewer extends StatefulWidget {
       _FullScreenImageViewerState();
 }
 
-class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
-  final TransformationController _transformCtrl = TransformationController();
+class _FullScreenImageViewerState
+    extends State<_FullScreenImageViewer> {
+  final TransformationController _transformCtrl =
+      TransformationController();
   bool _isZoomed = false;
 
   @override
@@ -1283,10 +1308,10 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.black,
+        foregroundColor: AppColors.white,
         elevation: 0,
         title: Text(
           widget.title,
@@ -1315,7 +1340,7 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
               if (progress == null) return child;
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFFF97316),
+                  color: AppColors.white,
                 ),
               );
             },
@@ -1323,11 +1348,15 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.broken_image, color: Colors.grey, size: 64),
+                  Icon(
+                    Icons.broken_image,
+                    color: AppColors.grey400,
+                    size: 64,
+                  ),
                   SizedBox(height: 12),
                   Text(
                     'Gagal memuat gambar',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.white),
                   ),
                 ],
               ),
@@ -1336,12 +1365,15 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
         ),
       ),
       bottomNavigationBar: Container(
-        color: Colors.black,
+        color: AppColors.black,
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: const Text(
           'Pinch untuk zoom • Drag untuk geser',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(
+            color: AppColors.white,
+            fontSize: 12,
+          ),
         ),
       ),
     );

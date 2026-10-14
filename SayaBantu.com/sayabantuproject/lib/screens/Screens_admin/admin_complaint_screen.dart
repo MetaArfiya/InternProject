@@ -1,31 +1,30 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class AdminComplaintScreen extends StatefulWidget {
   const AdminComplaintScreen({super.key});
 
   @override
-  State<AdminComplaintScreen> createState() => _AdminComplaintScreenState();
+  State<AdminComplaintScreen> createState() =>
+      _AdminComplaintScreenState();
 }
 
 class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
-  // DESIGN TOKENS — disamakan dgn DashboardHeader / PaymentScreen
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _warningColor = Color(0xFFD97706);
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
+  // ============================================================
+  // TOKENS
+  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -217,12 +216,13 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
 
   void _showSnack(String message, {bool error = false}) {
     if (!mounted) return;
+    final t = theme;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: error ? _dangerColor : _successColor,
+          backgroundColor: error ? t.danger : t.success,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -296,13 +296,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: t.bg,
       child: RefreshIndicator(
         onRefresh: _loadComplaints,
-        color: _accent,
+        color: t.accent,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
@@ -327,10 +328,11 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   const SizedBox(height: _gapAfterHeader),
 
                   if (_isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 60),
-                        child: CircularProgressIndicator(color: _accent),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child: CircularProgressIndicator(color: t.accent),
                       ),
                     )
                   else if (_errorMessage != null)
@@ -354,6 +356,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -363,14 +366,13 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           'Pengaduan',
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
+            color: t.cellText,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Kelola pengaduan dari mitra dan pelanggan.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -381,34 +383,35 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildStatistics(bool isMobile, bool isTablet) {
+    final t = theme;
     final cards = [
       _StatData(
         title: 'Menunggu',
         value: '${_summary['menunggu'] ?? 0}',
         subtitle: 'Pengaduan baru',
         icon: Icons.hourglass_empty_rounded,
-        color: _warningColor,
+        color: t.warning,
       ),
       _StatData(
         title: 'Diproses',
         value: '${_summary['diproses'] ?? 0}',
         subtitle: 'Sedang ditangani',
         icon: Icons.sync_rounded,
-        color: _infoColor,
+        color: AppColors.infoBlue,
       ),
       _StatData(
         title: 'Selesai',
         value: '${_summary['selesai'] ?? 0}',
         subtitle: 'Telah diselesaikan',
         icon: Icons.check_circle_outline_rounded,
-        color: _successColor,
+        color: t.success,
       ),
       _StatData(
         title: 'Ditolak',
         value: '${_summary['ditolak'] ?? 0}',
         subtitle: 'Pengaduan ditolak',
         icon: Icons.cancel_outlined,
-        color: _dangerColor,
+        color: t.danger,
       ),
     ];
 
@@ -470,15 +473,16 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   }
 
   Widget _buildStatCard(_StatData data) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -505,8 +509,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   data.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _mutedText,
+                  style: TextStyle(
+                    color: t.mutedText,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -516,10 +520,10 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   data.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: t.cellText,
                     height: 1.1,
                   ),
                 ),
@@ -530,7 +534,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 10.5,
-                    color: Color(0xFF94A3B8),
+                    color: AppColors.grey400,
                   ),
                 ),
               ],
@@ -546,13 +550,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildComplaintSection(bool isMobile, bool isTablet) {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 14 : 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,14 +566,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           _buildFilterBar(context),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: _tableDivider),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 14),
 
           // SECTION TITLE
           _buildSectionTitle(context),
 
           const SizedBox(height: 16),
-          const Divider(height: 1, color: _tableDivider),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 14),
 
           // LIST / TABLE
@@ -597,21 +602,22 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildFilterBar(BuildContext context) {
+    final t = theme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(
+        Icon(
           Icons.filter_list_rounded,
           size: 18,
-          color: _headerText,
+          color: t.headerText,
         ),
         const SizedBox(width: 8),
-        const Text(
+        Text(
           'Filter Status:',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: _mutedText,
+            color: t.mutedText,
           ),
         ),
         const SizedBox(width: 10),
@@ -626,15 +632,15 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             vertical: 6,
           ),
           decoration: BoxDecoration(
-            color: _accent.withOpacity(0.10),
+            color: t.accent.withOpacity(0.10),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             '${_filteredComplaints.length}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: _accent,
+              color: t.accent,
             ),
           ),
         ),
@@ -647,6 +653,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildSectionTitle(BuildContext context) {
+    final t = theme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -654,14 +661,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           'Daftar Pengaduan',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: _cellText,
+                color: t.cellText,
               ),
         ),
         const SizedBox(height: 4),
         Text(
           '${_filteredComplaints.length} pengaduan ditampilkan',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: _mutedText,
+                color: t.mutedText,
               ),
         ),
       ],
@@ -673,26 +680,27 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildFilterDropdown(BuildContext context) {
+    final t = theme;
     return Container(
       height: 40,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        border: Border.all(color: _tableBorder),
+        color: AppColors.grey50,
+        border: Border.all(color: t.border),
         borderRadius: BorderRadius.circular(_radius),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedFilter,
           isExpanded: true,
-          icon: const Icon(
+          icon: Icon(
             Icons.keyboard_arrow_down_rounded,
             size: 18,
-            color: _headerText,
+            color: t.headerText,
           ),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: _cellText,
+                color: t.cellText,
                 fontWeight: FontWeight.w500,
               ),
           items: _filters
@@ -720,6 +728,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildDesktopTable(BuildContext context, bool isTablet) {
+    final t = theme;
     final complaints = _filteredComplaints;
 
     debugPrint('🖥️ DESKTOP TABLE: ${complaints.length} DATA');
@@ -729,7 +738,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
         borderRadius: BorderRadius.circular(_radius),
       ),
       child: ClipRRect(
@@ -740,7 +749,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             width: isTablet ? 900 : 1100,
             child: DataTable(
               headingRowColor:
-                  WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+                  WidgetStateProperty.all(AppColors.grey50),
               headingRowHeight: 48,
               dataRowMinHeight: 74,
               dataRowMaxHeight: 100,
@@ -749,7 +758,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
               dividerThickness: 0.6,
               headingTextStyle: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: _headerText,
+                color: t.headerText,
               ),
               columns: const [
                 DataColumn(label: Text('Pengaduan')),
@@ -774,7 +783,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               _code(c),
                               style: textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
-                                color: _cellText,
+                                color: t.cellText,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -783,7 +792,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                                 c['created_at']?.toString(),
                               ),
                               style: textTheme.labelSmall?.copyWith(
-                                color: const Color(0xFF9CA3AF),
+                                color: AppColors.grey400,
                               ),
                             ),
                           ],
@@ -805,7 +814,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: _cellText,
+                                color: t.cellText,
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -814,7 +823,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.labelSmall?.copyWith(
-                                color: const Color(0xFF9CA3AF),
+                                color: AppColors.grey400,
                               ),
                             ),
                           ],
@@ -835,7 +844,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodyMedium?.copyWith(
-                            color: _cellText,
+                            color: t.cellText,
                             height: 1.3,
                           ),
                         ),
@@ -851,7 +860,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodyMedium?.copyWith(
-                            color: _cellText,
+                            color: t.cellText,
                             height: 1.3,
                           ),
                         ),
@@ -886,6 +895,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     BuildContext context,
     Map<String, dynamic> c,
   ) {
+    final t = theme;
     final status = c['status']?.toString() ?? '-';
     final textTheme = Theme.of(context).textTheme;
 
@@ -893,9 +903,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -911,14 +921,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                       _code(c),
                       style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: _cellText,
+                        color: t.cellText,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       _formatTanggal(c['created_at']?.toString()),
                       style: textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF9CA3AF),
+                        color: AppColors.grey400,
                       ),
                     ),
                   ],
@@ -930,25 +940,28 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           ),
 
           const SizedBox(height: 13),
-          const Divider(height: 1, color: _tableDivider),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 13),
 
           _mobileInfoRow(
             Icons.person_outline_rounded,
             'Pengadu',
             '${_getNestedValue(c, 'user', ['name'])} (${c['user_role'] ?? '-'})',
+            t,
           ),
 
           _mobileInfoRow(
             Icons.work_outline_rounded,
             'Pekerjaan',
             _getNestedValue(c, 'job', ['tittle', 'title']),
+            t,
           ),
 
           _mobileInfoRow(
             Icons.category_outlined,
             'Kategori',
             c['category']?.toString() ?? '-',
+            t,
           ),
 
           const SizedBox(height: 5),
@@ -957,7 +970,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             'Pengaduan',
             style: textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: _cellText,
+              color: t.cellText,
             ),
           ),
 
@@ -967,9 +980,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _tableBorder),
+              border: Border.all(color: t.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -978,7 +991,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   c['title']?.toString() ?? '-',
                   style: textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -988,7 +1001,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodySmall?.copyWith(
                     height: 1.45,
-                    color: _mutedText,
+                    color: t.mutedText,
                   ),
                 ),
               ],
@@ -1010,6 +1023,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     IconData icon,
     String label,
     String value,
+    AdminTheme t,
   ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
@@ -1021,10 +1035,10 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             height: 26,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(7),
             ),
-            child: Icon(icon, size: 14, color: _mutedText),
+            child: Icon(icon, size: 14, color: t.mutedText),
           ),
           const SizedBox(width: 9),
           SizedBox(
@@ -1033,20 +1047,20 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
               padding: const EdgeInsets.only(top: 5),
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: _mutedText,
+                  color: t.mutedText,
                 ),
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.only(top: 5),
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
             child: Text(
               ':',
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF94A3B8),
+                color: AppColors.grey400,
               ),
             ),
           ),
@@ -1056,10 +1070,10 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
               padding: const EdgeInsets.only(top: 5),
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF334155),
+                  color: t.cellText,
                 ),
               ),
             ),
@@ -1074,23 +1088,24 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildStatusBadge(BuildContext context, String status) {
+    final t = theme;
     Color color;
 
     switch (status) {
       case 'Menunggu':
-        color = _warningColor;
+        color = t.warning;
         break;
       case 'Diproses':
-        color = _infoColor;
+        color = AppColors.infoBlue;
         break;
       case 'Selesai':
-        color = _successColor;
+        color = t.success;
         break;
       case 'Ditolak':
-        color = _dangerColor;
+        color = t.danger;
         break;
       default:
-        color = _mutedText;
+        color = t.mutedText;
     }
 
     return Container(
@@ -1119,6 +1134,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     BuildContext context,
     Map<String, dynamic> c,
   ) {
+    final t = theme;
     final status = c['status']?.toString() ?? '';
 
     return Wrap(
@@ -1129,8 +1145,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           context: context,
           icon: Icons.visibility_outlined,
           label: 'Detail',
-          bgColor: const Color(0xFFF1F5F9),
-          fgColor: const Color(0xFF334155),
+          bgColor: AppColors.grey100,
+          fgColor: AppColors.grey700,
           onTap: () => _showComplaintDetail(c),
         ),
 
@@ -1139,8 +1155,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             context: context,
             icon: Icons.play_arrow_outlined,
             label: 'Proses',
-            bgColor: _accent,
-            fgColor: Colors.white,
+            bgColor: t.accent,
+            fgColor: AppColors.white,
             onTap: () => _updateComplaintStatus(c['id'], 'Diproses'),
           ),
 
@@ -1149,8 +1165,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             context: context,
             icon: Icons.check_circle_outline,
             label: 'Selesai',
-            bgColor: _successColor,
-            fgColor: Colors.white,
+            bgColor: t.success,
+            fgColor: AppColors.white,
             onTap: () => _updateComplaintStatus(c['id'], 'Selesai'),
           ),
 
@@ -1159,8 +1175,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             context: context,
             icon: Icons.cancel_outlined,
             label: 'Tolak',
-            bgColor: _dangerColor.withOpacity(0.10),
-            fgColor: _dangerColor,
+            bgColor: t.danger.withOpacity(0.10),
+            fgColor: t.danger,
             onTap: () => _confirmReject(c),
           ),
       ],
@@ -1207,6 +1223,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   void _showComplaintDetail(Map<String, dynamic> c) {
+    final t = theme;
     final responseController = TextEditingController(
       text: c['admin_response']?.toString() ?? '',
     );
@@ -1241,12 +1258,12 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
+                          color: t.accent.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.report_problem_outlined,
-                          color: _accent,
+                          color: t.accent,
                           size: 20,
                         ),
                       ),
@@ -1256,17 +1273,17 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                           'Detail Pengaduan',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: () =>
                             Navigator.of(dialogContext).pop(),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
                           size: 20,
-                          color: _headerText,
+                          color: t.headerText,
                         ),
                         splashRadius: 22,
                       ),
@@ -1274,7 +1291,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   ),
 
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
 
                   Flexible(
@@ -1282,22 +1299,26 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _detailRow('ID Pengaduan', _code(c)),
+                          _detailRow('ID Pengaduan', _code(c), t),
                           _detailRow(
                             'Tanggal',
                             _formatTanggal(c['created_at']?.toString()),
+                            t,
                           ),
                           _detailRow(
                             'Pengadu',
                             _getNestedValue(c, 'user', ['name']),
+                            t,
                           ),
                           _detailRow(
                             'Role',
                             c['user_role']?.toString() ?? '-',
+                            t,
                           ),
                           _detailRow(
                             'Kategori',
                             c['category']?.toString() ?? '-',
+                            t,
                           ),
                           _detailRow(
                             'Pekerjaan',
@@ -1306,12 +1327,14 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               'job',
                               ['tittle', 'title'],
                             ),
+                            t,
                           ),
                           _detailRow(
                             'Judul',
                             c['title']?.toString() ?? '-',
+                            t,
                           ),
-                          _detailRow('Status', status),
+                          _detailRow('Status', status, t),
 
                           const SizedBox(height: 12),
 
@@ -1319,12 +1342,13 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                             title: 'Keterangan Pengaduan',
                             child: Text(
                               c['description']?.toString() ?? '-',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 height: 1.5,
-                                color: Color(0xFF475569),
+                                color: t.cellText,
                               ),
                             ),
+                            t: t,
                           ),
 
                           if ((c['admin_response']?.toString() ?? '')
@@ -1333,30 +1357,31 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                             _detailSectionBox(
                               title: 'Tanggapan Admin',
                               backgroundColor:
-                                  _successColor.withOpacity(0.08),
+                                  t.success.withOpacity(0.08),
                               borderColor:
-                                  _successColor.withOpacity(0.25),
-                              titleColor: const Color(0xFF065F46),
+                                  t.success.withOpacity(0.25),
+                              titleColor: t.success,
                               child: Text(
                                 c['admin_response'].toString(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   height: 1.5,
-                                  color: Color(0xFF065F46),
+                                  color: t.success,
                                 ),
                               ),
+                              t: t,
                             ),
                           ],
 
                           if (status == 'Menunggu' ||
                               status == 'Diproses') ...[
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Tanggapan / Catatan Admin',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: _cellText,
+                                color: t.cellText,
                               ),
                             ),
                             const SizedBox(height: 7),
@@ -1369,29 +1394,29 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                                     'Tulis tanggapan untuk pengadu...',
                                 hintStyle: const TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF9CA3AF),
+                                  color: AppColors.grey400,
                                 ),
                                 filled: true,
-                                fillColor: const Color(0xFFF9FAFB),
+                                fillColor: AppColors.grey50,
                                 border: OutlineInputBorder(
                                   borderRadius:
                                       BorderRadius.circular(_radius),
-                                  borderSide: const BorderSide(
-                                    color: _tableBorder,
+                                  borderSide: BorderSide(
+                                    color: t.border,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius:
                                       BorderRadius.circular(_radius),
-                                  borderSide: const BorderSide(
-                                    color: _tableBorder,
+                                  borderSide: BorderSide(
+                                    color: t.border,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius:
                                       BorderRadius.circular(_radius),
-                                  borderSide: const BorderSide(
-                                    color: _accent,
+                                  borderSide: BorderSide(
+                                    color: t.accent,
                                     width: 1.5,
                                   ),
                                 ),
@@ -1416,10 +1441,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               Navigator.of(dialogContext).pop(),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor:
-                                const Color(0xFF374151),
+                            foregroundColor: AppColors.grey700,
                             side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
+                              color: AppColors.grey300,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius:
@@ -1450,8 +1474,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _accent,
-                              foregroundColor: Colors.white,
+                              backgroundColor: t.accent,
+                              foregroundColor: AppColors.white,
                               minimumSize: const Size(0, 46),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -1484,8 +1508,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _successColor,
-                              foregroundColor: Colors.white,
+                              backgroundColor: t.success,
+                              foregroundColor: AppColors.white,
                               minimumSize: const Size(0, 46),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -1521,9 +1545,10 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   Widget _detailSectionBox({
     required String title,
     required Widget child,
-    Color backgroundColor = const Color(0xFFF9FAFB),
-    Color borderColor = _tableBorder,
-    Color titleColor = _cellText,
+    required AdminTheme t,
+    Color? backgroundColor,
+    Color? borderColor,
+    Color? titleColor,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1533,7 +1558,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: titleColor,
+            color: titleColor ?? t.cellText,
           ),
         ),
         const SizedBox(height: 7),
@@ -1541,9 +1566,11 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
-            color: backgroundColor,
+            color: backgroundColor ?? AppColors.grey50,
             borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: borderColor),
+            border: Border.all(
+              color: borderColor ?? t.border,
+            ),
           ),
           child: child,
         ),
@@ -1555,7 +1582,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // DETAIL ROW
   // ============================================================
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(String label, String value, AdminTheme t) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -1565,19 +1592,19 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             width: 115,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: _mutedText,
+                color: t.mutedText,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -1591,6 +1618,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   void _confirmReject(Map<String, dynamic> c) {
+    final t = theme;
     final reasonController = TextEditingController();
 
     showDialog(
@@ -1621,12 +1649,12 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _dangerColor.withOpacity(0.12),
+                          color: t.danger.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.cancel_outlined,
-                          color: _dangerColor,
+                          color: t.danger,
                           size: 20,
                         ),
                       ),
@@ -1636,17 +1664,17 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                           'Tolak Pengaduan?',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: () =>
                             Navigator.of(dialogContext).pop(),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
                           size: 20,
-                          color: _headerText,
+                          color: t.headerText,
                         ),
                         splashRadius: 22,
                       ),
@@ -1654,15 +1682,15 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   ),
 
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
 
-                  const Text(
+                  Text(
                     'Apakah kamu yakin ingin menolak pengaduan ini?',
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.5,
-                      color: Color(0xFF374151),
+                      color: AppColors.grey700,
                     ),
                   ),
 
@@ -1676,29 +1704,29 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                       hintText: 'Alasan penolakan...',
                       hintStyle: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF9CA3AF),
+                        color: AppColors.grey400,
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
+                      fillColor: AppColors.grey50,
                       border: OutlineInputBorder(
                         borderRadius:
                             BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _tableBorder,
+                        borderSide: BorderSide(
+                          color: t.border,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius:
                             BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _tableBorder,
+                        borderSide: BorderSide(
+                          color: t.border,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius:
                             BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _accent,
+                        borderSide: BorderSide(
+                          color: t.accent,
                           width: 1.5,
                         ),
                       ),
@@ -1716,10 +1744,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               Navigator.of(dialogContext).pop(),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor:
-                                const Color(0xFF374151),
+                            foregroundColor: AppColors.grey700,
                             side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
+                              color: AppColors.grey300,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius:
@@ -1748,8 +1775,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _dangerColor,
-                            foregroundColor: Colors.white,
+                            backgroundColor: t.danger,
+                            foregroundColor: AppColors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -1782,6 +1809,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildEmptyState(BuildContext context) {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -1791,23 +1819,23 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: t.accent.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.inbox_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: t.accent.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Tidak ada pengaduan',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _mutedText,
+              color: t.mutedText,
             ),
           ),
           const SizedBox(height: 4),
@@ -1816,7 +1844,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF94A3B8),
+              color: AppColors.grey400,
             ),
           ),
         ],
@@ -1829,27 +1857,28 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   // ============================================================
 
   Widget _buildError() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: t.danger.withOpacity(0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(color: t.danger.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
-            color: _dangerColor,
+            color: t.danger,
             size: 48,
           ),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _dangerColor,
+            style: TextStyle(
+              color: t.danger,
               fontSize: 13,
               height: 1.4,
             ),
@@ -1860,8 +1889,8 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../models/payment_model.dart';
@@ -6,6 +7,9 @@ import '../../models/payment_summary_model.dart';
 import '../../services/api_service.dart';
 import '../../services/payment_service.dart';
 import '../../sections/admin/admin_payment_detail_dialog.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class AdminPaymentScreen extends StatefulWidget {
   const AdminPaymentScreen({super.key});
@@ -16,20 +20,14 @@ class AdminPaymentScreen extends StatefulWidget {
 
 class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
-  // DESIGN TOKENS
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _purpleColor = Color(0xFF7C3AED);
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
+  // ============================================================
+  // TOKENS
+  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -57,10 +55,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     'Refund',
   ];
 
-  // ============================================================
-  // PAGINATION STATE
-  // ============================================================
-
+  // Pagination
   int _currentPage = 1;
   int _itemsPerPage = 10;
   final List<int> _itemsPerPageOptions = [5, 10, 25, 50];
@@ -204,12 +199,14 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Future<void> _openPaymentDetail(PaymentModel payment) async {
+    final t = theme;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) {
-        return const Center(
-          child: CircularProgressIndicator(color: _accent),
+        return Center(
+          child: CircularProgressIndicator(color: t.accent),
         );
       },
     );
@@ -281,20 +278,21 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Color _getStatusColor(String status) {
+    final t = theme;
     switch (status) {
       case 'settled':
-        return _successColor;
+        return t.success;
       case 'paid':
-        return _infoColor;
+        return AppColors.infoBlue;
       case 'waiting_verification':
-        return _purpleColor;
+        return AppColors.purple;
       case 'pending':
-        return _accent;
+        return t.accent;
       case 'refunded':
       case 'failed':
-        return _dangerColor;
+        return t.danger;
       default:
-        return _headerText;
+        return t.headerText;
     }
   }
 
@@ -342,13 +340,14 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: t.bg,
       child: RefreshIndicator(
         onRefresh: _loadData,
-        color: _accent,
+        color: t.accent,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
@@ -373,10 +372,12 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   const SizedBox(height: _gapAfterHeader),
 
                   if (_isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 60),
-                        child: CircularProgressIndicator(color: _accent),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: t.accent),
                       ),
                     )
                   else if (_error != null)
@@ -390,7 +391,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                     if (_filteredPayments.isEmpty)
                       _buildEmptyState()
                     else ...[
-                      isMobile ? _buildMobileList() : _buildDesktopTable(),
+                      isMobile
+                          ? _buildMobileList()
+                          : _buildDesktopTable(),
                       _buildPagination(isMobile),
                     ],
                   ],
@@ -408,6 +411,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -417,14 +421,13 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           'Pembayaran',
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
+            color: t.cellText,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Kelola dan pantau seluruh transaksi pembayaran pelanggan dan mitra.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -435,6 +438,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildSummarySection(bool isMobile) {
+    final t = theme;
     final summary = _summary;
 
     final cards = [
@@ -442,19 +446,20 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         title: 'Total Transaksi',
         value: PaymentModel.formatRupiah(summary?.totalPembayaran ?? 0),
         icon: Icons.account_balance_wallet_outlined,
-        color: _infoColor,
+        color: AppColors.infoBlue,
       ),
       _summaryCard(
         title: 'Komisi Platform',
         value: PaymentModel.formatRupiah(summary?.totalKomisi ?? 0),
         icon: Icons.account_balance_outlined,
-        color: _successColor,
+        color: t.success,
       ),
       _summaryCard(
         title: 'Total ke Mitra',
-        value: PaymentModel.formatRupiah(summary?.totalMitraEarning ?? 0),
+        value:
+            PaymentModel.formatRupiah(summary?.totalMitraEarning ?? 0),
         icon: Icons.handshake_outlined,
-        color: _accent,
+        color: t.accent,
       ),
     ];
 
@@ -476,15 +481,16 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -511,8 +517,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _mutedText,
+                  style: TextStyle(
+                    color: t.mutedText,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -522,10 +528,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: t.cellText,
                     height: 1.1,
                   ),
                 ),
@@ -542,26 +548,27 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildFilterSection(bool isMobile) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_list, size: 18, color: _headerText),
+          Icon(Icons.filter_list, size: 18, color: t.headerText),
           const SizedBox(width: 8),
           if (!isMobile) ...[
             Text(
               'Filter Status:',
               style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF374151),
+                color: AppColors.grey700,
               ),
             ),
             const SizedBox(width: 12),
@@ -570,25 +577,25 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _tableBorder),
+              border: Border.all(color: t.border),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedStatus,
                 isDense: true,
-                icon: const Padding(
-                  padding: EdgeInsets.only(left: 4),
+                icon: Padding(
+                  padding: const EdgeInsets.only(left: 4),
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 18,
-                    color: _headerText,
+                    color: t.headerText,
                   ),
                 ),
                 style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
                 items: _statusOptions.map((status) {
                   return DropdownMenuItem<String>(
@@ -611,15 +618,16 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           ),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.10),
+              color: t.accent.withOpacity(0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${_filteredPayments.length}',
               style: textTheme.labelMedium?.copyWith(
-                color: _accent,
+                color: t.accent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -634,14 +642,15 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildDesktopTable() {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_radius),
@@ -655,10 +664,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             dataRowMaxHeight: 82,
             headingTextStyle: textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
-              color: _headerText,
+              color: t.headerText,
             ),
             headingRowColor:
-                WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+                WidgetStateProperty.all(AppColors.grey50),
             dividerThickness: 0.6,
             columns: const [
               DataColumn(label: Text('ID TRANSAKSI')),
@@ -681,10 +690,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.jobTitle ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: _cellText,
+                          color: t.cellText,
                         ),
                       ),
                     ),
@@ -696,9 +705,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.pelangganName ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: _cellText,
+                          color: t.cellText,
                         ),
                       ),
                     ),
@@ -710,9 +719,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.mitraName ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: _cellText,
+                          color: t.cellText,
                         ),
                       ),
                     ),
@@ -720,20 +729,22 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   DataCell(
                     Text(
                       PaymentModel.formatRupiah(payment.jobAmount),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: _cellText,
+                        color: t.cellText,
                       ),
                     ),
                   ),
                   DataCell(
                     Text(
-                      PaymentModel.formatRupiah(payment.commissionAmount),
-                      style: const TextStyle(
+                      PaymentModel.formatRupiah(
+                        payment.commissionAmount,
+                      ),
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: _successColor,
+                        color: t.success,
                       ),
                     ),
                   ),
@@ -749,6 +760,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   Widget _desktopTransactionId(PaymentModel payment) {
+    final t = theme;
     final reference = payment.referenceCode?.trim();
 
     final idText = reference != null && reference.isNotEmpty
@@ -761,10 +773,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         idText,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 13,
-          color: _cellText,
+          color: t.cellText,
         ),
       ),
     );
@@ -777,15 +789,15 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         _pillButton(
           icon: Icons.visibility_outlined,
           label: 'Detail',
-          bgColor: const Color(0xFFF1F5F9),
-          fgColor: const Color(0xFF334155),
+          bgColor: AppColors.grey100,
+          fgColor: AppColors.grey700,
           onTap: () => _openPaymentDetail(payment),
         ),
         if (payment.canVerifyCustomerProof) ...[
           const SizedBox(width: 6),
           const Icon(
             Icons.fiber_new,
-            color: _purpleColor,
+            color: AppColors.purple,
             size: 18,
           ),
         ],
@@ -793,7 +805,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           const SizedBox(width: 6),
           const Icon(
             Icons.priority_high,
-            color: _infoColor,
+            color: AppColors.infoBlue,
             size: 18,
           ),
         ],
@@ -815,7 +827,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -851,6 +864,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   Widget _mobilePaymentCard(PaymentModel payment) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
     final reference = payment.referenceCode?.trim();
 
@@ -862,9 +876,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,12 +891,12 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.12),
+                  color: t.accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.receipt_long_outlined,
-                  color: _accent,
+                  color: t.accent,
                   size: 20,
                 ),
               ),
@@ -897,14 +911,14 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: _cellText,
+                        color: t.cellText,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       payment.formattedDate,
                       style: textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF9CA3AF),
+                        color: AppColors.grey400,
                       ),
                     ),
                   ],
@@ -916,7 +930,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: _tableDivider),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 12),
 
           // INFO
@@ -938,7 +952,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           ),
 
           const SizedBox(height: 12),
-          const Divider(height: 1, color: _tableDivider),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 12),
 
           // MONEY
@@ -954,7 +968,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             'Mitra Terima',
             PaymentModel.formatRupiah(payment.mitraEarning),
             isBold: true,
-            valueColor: _successColor,
+            valueColor: t.success,
             isLast: true,
           ),
 
@@ -963,7 +977,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             const SizedBox(height: 12),
             _quickActionBanner(
               icon: Icons.fact_check_outlined,
-              color: _purpleColor,
+              color: AppColors.purple,
               text: 'Perlu verifikasi bukti transfer pelanggan',
             ),
           ],
@@ -971,7 +985,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             const SizedBox(height: 10),
             _quickActionBanner(
               icon: Icons.priority_high,
-              color: _infoColor,
+              color: AppColors.infoBlue,
               text: 'Siap ditransfer ke mitra',
             ),
           ],
@@ -991,8 +1005,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF7C3AED),
-                side: const BorderSide(color: Color(0xFFD1D5DB)),
+                foregroundColor: AppColors.purple,
+                side: BorderSide(color: t.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1010,20 +1024,21 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     String value, {
     bool isLast = false,
   }) {
+    final t = theme;
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+          Icon(icon, size: 16, color: AppColors.grey400),
           const SizedBox(width: 8),
           SizedBox(
             width: 85,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: _mutedText,
+                color: t.mutedText,
               ),
             ),
           ),
@@ -1033,10 +1048,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
               value,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -1052,6 +1067,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     Color? valueColor,
     bool isLast = false,
   }) {
+    final t = theme;
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 9),
       child: Row(
@@ -1059,9 +1075,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: _mutedText,
+              color: t.mutedText,
             ),
           ),
           const SizedBox(width: 10),
@@ -1073,7 +1089,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 fontSize: isBold ? 14 : 12.5,
                 fontWeight:
                     isBold ? FontWeight.w700 : FontWeight.w600,
-                color: valueColor ?? _cellText,
+                color: valueColor ?? t.cellText,
               ),
             ),
           ),
@@ -1153,6 +1169,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildPagination(bool isMobile) {
+    final t = theme;
     final total = _filteredPayments.length;
     if (total == 0) return const SizedBox.shrink();
 
@@ -1164,18 +1181,18 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: isMobile
           ? Column(
               children: [
                 Text(
                   'Menampilkan $startItem–$endItem dari $total pembayaran',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
-                    color: _headerText,
+                    color: t.headerText,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1195,9 +1212,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 Flexible(
                   child: Text(
                     'Menampilkan $startItem–$endItem dari $total pembayaran',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
-                      color: _headerText,
+                      color: t.headerText,
                       fontWeight: FontWeight.w500,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -1218,6 +1235,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   Widget _buildNavButtons(int totalPages) {
+    final t = theme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1232,15 +1250,15 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: _accent.withOpacity(0.10),
+            color: t.accent.withOpacity(0.10),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             'Hal $_currentPage / $totalPages',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: _accent,
+              color: t.accent,
             ),
           ),
         ),
@@ -1255,30 +1273,31 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   Widget _buildRowsPerPageDropdown() {
+    final t = theme;
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: _itemsPerPage,
           isDense: true,
-          icon: const Padding(
-            padding: EdgeInsets.only(left: 4),
+          icon: Padding(
+            padding: const EdgeInsets.only(left: 4),
             child: Icon(
               Icons.keyboard_arrow_down,
               size: 16,
-              color: _headerText,
+              color: t.headerText,
             ),
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
-            color: _cellText,
+            color: t.cellText,
           ),
           items: _itemsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
@@ -1303,8 +1322,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     required bool enabled,
     required VoidCallback onTap,
   }) {
+    final t = theme;
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1316,17 +1336,13 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: enabled
-                  ? const Color(0xFFD1D5DB)
-                  : const Color(0xFFE5E7EB),
+              color: enabled ? AppColors.grey300 : t.border,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: enabled
-                ? const Color(0xFF374151)
-                : const Color(0xFFD1D5DB),
+            color: enabled ? AppColors.grey700 : AppColors.grey300,
           ),
         ),
       ),
@@ -1338,27 +1354,28 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   Widget _buildError() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: t.danger.withOpacity(0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(color: t.danger.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
-            color: _dangerColor,
+            color: t.danger,
             size: 48,
           ),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _dangerColor,
+            style: TextStyle(
+              color: t.danger,
               fontSize: 13,
               height: 1.4,
             ),
@@ -1369,8 +1386,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius),
@@ -1383,6 +1400,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   Widget _buildEmptyState() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -1392,21 +1410,21 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: t.accent.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.receipt_long_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: t.accent.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Tidak ada data pembayaran.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: t.mutedText,
               fontSize: 13,
             ),
           ),
