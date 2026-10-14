@@ -20,10 +20,6 @@ class AdminVerificationScreen extends StatefulWidget {
 }
 
 class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
-  // ============================================================
-  // THEME
-  // ============================================================
-
   AdminTheme get theme => AdminThemeProvider.of(context);
 
   // ============================================================
@@ -31,9 +27,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 16;
+  static const double _gapBetweenSections = 14;
   static const double _cardRadius = 14;
   static const double _radius = 10;
+  static const double _mobileBreakpoint = 700;
 
   // ============================================================
   // DATA STATE
@@ -287,12 +284,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           return {
             'id': mitra['id'],
             'user_id': mitra['user_id'],
-            'name':
-                mitra['name']?.toString() ??
+            'name': mitra['name']?.toString() ??
                 user['name']?.toString() ??
                 'Tanpa Nama',
-            'email':
-                mitra['email']?.toString() ??
+            'email': mitra['email']?.toString() ??
                 user['email']?.toString() ??
                 'Tanpa Email',
             'phone': mitra['phone']?.toString() ?? '-',
@@ -303,8 +298,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             'city': mitra['city']?.toString() ?? '-',
             'bio': mitra['bio'],
             'skills': mitra['skills'],
-            'category':
-                mitra['category']?.toString() ??
+            'category': mitra['category']?.toString() ??
                 mitra['skills']?.toString() ??
                 'Umum',
             'certificate': mitra['certificate'],
@@ -524,15 +518,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       if (body is Map) {
         if (body['message'] != null) return body['message'].toString();
         if (body['error'] != null) return body['error'].toString();
-        if (body['errors'] is Map) {
-          final errors = body['errors'] as Map;
-          if (errors.isNotEmpty) {
-            final firstError = errors.values.first;
-            if (firstError is List && firstError.isNotEmpty) {
-              return firstError.first.toString();
-            }
-          }
-        }
       }
     } catch (_) {}
 
@@ -623,97 +608,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           barrierDismissible: false,
           builder: (dialogContext) {
             final t = theme;
-            final textTheme = Theme.of(dialogContext).textTheme;
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 24,
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _dialogHeader(
-                        dialogContext,
-                        icon: Icons.check_circle_outline,
-                        color: t.success,
-                        title: 'Approve Mitra',
-                      ),
-                      const SizedBox(height: 12),
-                      Divider(height: 1, color: t.divider),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Yakin ingin memverifikasi $name?\n\n'
-                        'Pastikan identitas dan bukti keahlian sudah sesuai.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.grey700,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, false),
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, 46),
-                                foregroundColor: AppColors.grey700,
-                                side: const BorderSide(
-                                  color: AppColors.grey300,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
-                                ),
-                              ),
-                              child: const Text(
-                                'Batal',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, true),
-                              icon: const Icon(Icons.check, size: 18),
-                              label: const Text(
-                                'Approve',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: t.success,
-                                foregroundColor: AppColors.white,
-                                minimumSize: const Size(0, 46),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return _buildConfirmDialog(
+              dialogContext,
+              icon: Icons.check_circle_outline,
+              color: t.success,
+              title: 'Approve Mitra',
+              message:
+                  'Yakin ingin memverifikasi $name?\n\n'
+                  'Pastikan identitas dan bukti keahlian sudah sesuai.',
+              confirmLabel: 'Approve',
+              confirmIcon: Icons.check,
+              confirmColor: t.success,
             );
           },
         ) ??
@@ -774,7 +679,275 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       return;
     }
 
-    final String? reason = await showDialog<String>(
+    final String? reason = await _showRejectDialog(
+      title: 'Tolak Pendaftaran',
+      targetName: name,
+      hint: 'Contoh: KTP tidak jelas atau bukti keahlian tidak sesuai.',
+    );
+
+    if (reason == null || !mounted) return;
+    setState(() => isProcessing = true);
+
+    try {
+      final response = await ApiService.post('/admin/verify-mitra/$id', {
+        'admin_id': adminId,
+        'action': 'reject',
+        'reason': reason,
+      });
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          partners.removeAt(index);
+          isProcessing = false;
+          waitingCount = partners.length;
+          rejected++;
+          if (_pendingPage > _totalPagesFor(partners.length)) {
+            _pendingPage = _totalPagesFor(partners.length);
+          }
+        });
+        _syncPending();
+        _message('$name ditolak.', error: true);
+      } else {
+        setState(() => isProcessing = false);
+        _message(_getErrorMessage(response), error: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isProcessing = false);
+      _message('Terjadi kesalahan saat menolak mitra.', error: true);
+      debugPrint('REJECT MITRA ERROR: $e');
+    }
+  }
+
+  Future<void> _approveSkill(int index) async {
+    if (index < 0 || index >= pendingSkillsList.length) return;
+    if (isProcessing) return;
+
+    final item = pendingSkillsList[index];
+    final dynamic userId = item['user_id'];
+    final String name = item['name']?.toString() ?? 'Mitra';
+    final String newSkill = item['pending_skills']?.toString() ?? '-';
+
+    if (userId == null) {
+      _message('ID mitra tidak ditemukan.', error: true);
+      return;
+    }
+
+    final bool ok =
+        await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            final t = theme;
+            return _buildConfirmDialog(
+              dialogContext,
+              icon: Icons.check_circle_outline,
+              color: t.success,
+              title: 'Setujui Perubahan Keahlian',
+              message:
+                  'Setujui perubahan keahlian $name?\n\n'
+                  'Keahlian baru: "$newSkill"\n\n'
+                  'Setelah disetujui, mitra hanya akan menerima '
+                  'pekerjaan yang sesuai dengan keahlian baru ini.',
+              confirmLabel: 'Setujui',
+              confirmIcon: Icons.check,
+              confirmColor: t.success,
+              maxWidth: 480,
+            );
+          },
+        ) ??
+        false;
+
+    if (!ok || !mounted) return;
+    setState(() => isProcessing = true);
+
+    try {
+      final response = await ApiService.post(
+        '/admin/approve-skill/$userId',
+        {},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          pendingSkillsList.removeAt(index);
+          isProcessing = false;
+          if (_skillsPage > _totalPagesFor(pendingSkillsList.length)) {
+            _skillsPage = _totalPagesFor(pendingSkillsList.length);
+          }
+        });
+        _message('Keahlian $name berhasil disetujui.');
+      } else {
+        setState(() => isProcessing = false);
+        _message(_getErrorMessage(response), error: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isProcessing = false);
+      _message('Terjadi kesalahan saat menyetujui keahlian.', error: true);
+      debugPrint('APPROVE SKILL ERROR: $e');
+    }
+  }
+
+  Future<void> _rejectSkill(int index) async {
+    if (index < 0 || index >= pendingSkillsList.length) return;
+    if (isProcessing) return;
+
+    final item = pendingSkillsList[index];
+    final dynamic userId = item['user_id'];
+    final String name = item['name']?.toString() ?? 'Mitra';
+
+    if (userId == null) {
+      _message('ID mitra tidak ditemukan.', error: true);
+      return;
+    }
+
+    final String? reason = await _showRejectDialog(
+      title: 'Tolak Perubahan Keahlian',
+      targetName: name,
+      hint: 'Contoh: Keahlian baru belum didukung sertifikat/bukti.',
+    );
+
+    if (reason == null || !mounted) return;
+    setState(() => isProcessing = true);
+
+    try {
+      final response = await ApiService.post('/admin/reject-skill/$userId', {
+        'note': reason,
+      });
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        setState(() {
+          pendingSkillsList.removeAt(index);
+          isProcessing = false;
+          if (_skillsPage > _totalPagesFor(pendingSkillsList.length)) {
+            _skillsPage = _totalPagesFor(pendingSkillsList.length);
+          }
+        });
+        _message('Perubahan keahlian $name ditolak.', error: true);
+      } else {
+        setState(() => isProcessing = false);
+        _message(_getErrorMessage(response), error: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isProcessing = false);
+      _message('Terjadi kesalahan saat menolak keahlian.', error: true);
+      debugPrint('REJECT SKILL ERROR: $e');
+    }
+  }
+
+  // ============================================================
+  // DIALOGS (ekstrak reusable)
+  // ============================================================
+
+  Widget _buildConfirmDialog(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required IconData confirmIcon,
+    required Color confirmColor,
+    double maxWidth = 440,
+  }) {
+    final t = theme;
+    final textTheme = Theme.of(context).textTheme;
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _dialogHeader(
+                context,
+                icon: icon,
+                color: color,
+                title: title,
+              ),
+              const SizedBox(height: 12),
+              Divider(height: 1, color: t.divider),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.grey700,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 46),
+                        foregroundColor: AppColors.grey700,
+                        side: const BorderSide(color: AppColors.grey300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(_radius),
+                        ),
+                      ),
+                      child: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: Icon(confirmIcon, size: 18),
+                      label: Text(
+                        confirmLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: confirmColor,
+                        foregroundColor: AppColors.white,
+                        minimumSize: const Size(0, 46),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(_radius),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _showRejectDialog({
+    required String title,
+    required String targetName,
+    required String hint,
+  }) async {
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -783,9 +956,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         final textTheme = Theme.of(dialogContext).textTheme;
 
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -802,13 +973,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     dialogContext,
                     icon: Icons.cancel_outlined,
                     color: t.danger,
-                    title: 'Tolak Pendaftaran',
+                    title: title,
                   ),
                   const SizedBox(height: 12),
                   Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
                   Text(
-                    'Berikan alasan penolakan untuk $name.',
+                    'Berikan alasan penolakan untuk $targetName.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: AppColors.grey700,
                     ),
@@ -819,8 +990,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     maxLines: 4,
                     style: const TextStyle(fontSize: 13),
                     decoration: InputDecoration(
-                      hintText:
-                          'Contoh: KTP tidak jelas atau bukti keahlian tidak sesuai.',
+                      hintText: hint,
                       hintStyle: const TextStyle(
                         fontSize: 13,
                         color: AppColors.grey400,
@@ -880,343 +1050,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           },
                           icon: const Icon(Icons.close, size: 18),
                           label: const Text(
-                            'Reject',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: t.danger,
-                            foregroundColor: AppColors.white,
-                            minimumSize: const Size(0, 46),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(_radius),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (reason == null || !mounted) return;
-    setState(() => isProcessing = true);
-
-    try {
-      final response = await ApiService.post('/admin/verify-mitra/$id', {
-        'admin_id': adminId,
-        'action': 'reject',
-        'reason': reason,
-      });
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        setState(() {
-          partners.removeAt(index);
-          isProcessing = false;
-          waitingCount = partners.length;
-          rejected++;
-          if (_pendingPage > _totalPagesFor(partners.length)) {
-            _pendingPage = _totalPagesFor(partners.length);
-          }
-        });
-        _syncPending();
-        _message('$name ditolak.', error: true);
-      } else {
-        setState(() => isProcessing = false);
-        _message(_getErrorMessage(response), error: true);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isProcessing = false);
-      _message('Terjadi kesalahan saat menolak mitra.', error: true);
-      debugPrint('REJECT MITRA ERROR: $e');
-    }
-  }
-
-  // ============================================================
-  // AKSI: APPROVE / REJECT SKILL
-  // ============================================================
-
-  Future<void> _approveSkill(int index) async {
-    if (index < 0 || index >= pendingSkillsList.length) return;
-    if (isProcessing) return;
-
-    final item = pendingSkillsList[index];
-    final dynamic userId = item['user_id'];
-    final String name = item['name']?.toString() ?? 'Mitra';
-    final String newSkill = item['pending_skills']?.toString() ?? '-';
-
-    if (userId == null) {
-      _message('ID mitra tidak ditemukan.', error: true);
-      return;
-    }
-
-    final bool ok =
-        await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) {
-            final t = theme;
-            final textTheme = Theme.of(dialogContext).textTheme;
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 24,
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _dialogHeader(
-                        dialogContext,
-                        icon: Icons.check_circle_outline,
-                        color: t.success,
-                        title: 'Setujui Perubahan Keahlian',
-                      ),
-                      const SizedBox(height: 12),
-                      Divider(height: 1, color: t.divider),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Setujui perubahan keahlian $name?\n\n'
-                        'Keahlian baru: "$newSkill"\n\n'
-                        'Setelah disetujui, mitra hanya akan menerima '
-                        'pekerjaan yang sesuai dengan keahlian baru ini.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.grey700,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, false),
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(0, 46),
-                                foregroundColor: AppColors.grey700,
-                                side: const BorderSide(
-                                  color: AppColors.grey300,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
-                                ),
-                              ),
-                              child: const Text(
-                                'Batal',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, true),
-                              icon: const Icon(Icons.check, size: 18),
-                              label: const Text(
-                                'Setujui',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: t.success,
-                                foregroundColor: AppColors.white,
-                                minimumSize: const Size(0, 46),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ) ??
-        false;
-
-    if (!ok || !mounted) return;
-    setState(() => isProcessing = true);
-
-    try {
-      final response = await ApiService.post(
-        '/admin/approve-skill/$userId',
-        {},
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        setState(() {
-          pendingSkillsList.removeAt(index);
-          isProcessing = false;
-          if (_skillsPage > _totalPagesFor(pendingSkillsList.length)) {
-            _skillsPage = _totalPagesFor(pendingSkillsList.length);
-          }
-        });
-        _message('Keahlian $name berhasil disetujui.');
-      } else {
-        setState(() => isProcessing = false);
-        _message(_getErrorMessage(response), error: true);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isProcessing = false);
-      _message('Terjadi kesalahan saat menyetujui keahlian.', error: true);
-      debugPrint('APPROVE SKILL ERROR: $e');
-    }
-  }
-
-  Future<void> _rejectSkill(int index) async {
-    if (index < 0 || index >= pendingSkillsList.length) return;
-    if (isProcessing) return;
-
-    final item = pendingSkillsList[index];
-    final dynamic userId = item['user_id'];
-    final String name = item['name']?.toString() ?? 'Mitra';
-
-    if (userId == null) {
-      _message('ID mitra tidak ditemukan.', error: true);
-      return;
-    }
-
-    final String? reason = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        final t = theme;
-        final controller = TextEditingController();
-        final textTheme = Theme.of(dialogContext).textTheme;
-
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _dialogHeader(
-                    dialogContext,
-                    icon: Icons.cancel_outlined,
-                    color: t.danger,
-                    title: 'Tolak Perubahan Keahlian',
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(height: 1, color: t.divider),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Berikan alasan penolakan untuk $name.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: AppColors.grey700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: controller,
-                    maxLines: 4,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText:
-                          'Contoh: Keahlian baru belum didukung sertifikat/bukti.',
-                      hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.grey400,
-                      ),
-                      filled: true,
-                      fillColor: AppColors.grey50,
-                      contentPadding: const EdgeInsets.all(12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide: BorderSide(color: t.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide: BorderSide(color: t.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_radius),
-                        borderSide: BorderSide(color: t.accent, width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            controller.dispose();
-                            Navigator.of(dialogContext).pop();
-                          },
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: AppColors.grey700,
-                            side: const BorderSide(color: AppColors.grey300),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(_radius),
-                            ),
-                          ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            final text = controller.text.trim();
-                            controller.dispose();
-                            Navigator.of(
-                              dialogContext,
-                            ).pop(text.isEmpty ? 'Ditolak oleh admin.' : text);
-                          },
-                          icon: const Icon(Icons.close, size: 18),
-                          label: const Text(
                             'Tolak',
                             style: TextStyle(
                               fontSize: 13,
@@ -1243,41 +1076,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         );
       },
     );
-
-    if (reason == null || !mounted) return;
-    setState(() => isProcessing = true);
-
-    try {
-      final response = await ApiService.post('/admin/reject-skill/$userId', {
-        'note': reason,
-      });
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        setState(() {
-          pendingSkillsList.removeAt(index);
-          isProcessing = false;
-          if (_skillsPage > _totalPagesFor(pendingSkillsList.length)) {
-            _skillsPage = _totalPagesFor(pendingSkillsList.length);
-          }
-        });
-        _message('Perubahan keahlian $name ditolak.', error: true);
-      } else {
-        setState(() => isProcessing = false);
-        _message(_getErrorMessage(response), error: true);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isProcessing = false);
-      _message('Terjadi kesalahan saat menolak keahlian.', error: true);
-      debugPrint('REJECT SKILL ERROR: $e');
-    }
   }
-
-  // ============================================================
-  // DIALOG HEADER
-  // ============================================================
 
   Widget _dialogHeader(
     BuildContext context, {
@@ -1318,7 +1117,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // VIEW SKILL PHOTOS
+  // VIEW: SKILL PHOTOS
   // ============================================================
 
   void _viewSkillPhotos(Map<String, dynamic> item) {
@@ -1355,9 +1154,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -1434,7 +1231,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               runSpacing: 8,
                               children: newPhotos
                                   .map(
-                                    (url) => _skillPhotoThumb(url, 'Foto Baru'),
+                                    (url) =>
+                                        _skillPhotoThumb(url, 'Foto Baru'),
                                   )
                                   .toList(),
                             ),
@@ -1485,7 +1283,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               runSpacing: 8,
                               children: oldPhotos
                                   .map(
-                                    (url) => _skillPhotoThumb(url, 'Foto Lama'),
+                                    (url) =>
+                                        _skillPhotoThumb(url, 'Foto Lama'),
                                   )
                                   .toList(),
                             ),
@@ -1494,7 +1293,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             _sectionBanner(
                               icon: Icons.assignment,
                               color: AppColors.grey500,
-                              text: 'Sertifikat SAAT INI (${oldCerts.length})',
+                              text:
+                                  'Sertifikat SAAT INI (${oldCerts.length})',
                             ),
                             const SizedBox(height: 10),
                             Wrap(
@@ -1580,7 +1380,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // VIEW DOCUMENTS
+  // VIEW: DOCUMENTS
   // ============================================================
 
   void _viewDocuments(Map<String, dynamic> partner) {
@@ -1672,9 +1472,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -2004,7 +1802,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // VIEW FULL DATA
+  // VIEW: FULL DATA
   // ============================================================
 
   void _viewFullData(Map<String, dynamic> partner) {
@@ -2018,9 +1816,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -2113,7 +1909,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   const SizedBox(height: 12),
                   Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
-
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(
@@ -2132,7 +1927,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           _dataRow('Kota', partner['city'], t),
                           _dataRow('Alamat', partner['address'], t),
                           _dataRow('Deskripsi', partner['bio'], t),
-
                           const SizedBox(height: 20),
                           _dialogSectionTitle(
                             'Keahlian & Statistik',
@@ -2151,7 +1945,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             '${partner['jobs_completed'] ?? 0}',
                             t,
                           ),
-
                           const SizedBox(height: 20),
                           _dialogSectionTitle(
                             'Rekening Bank',
@@ -2169,14 +1962,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             partner['bank_account_name'],
                             t,
                           ),
-
                           const SizedBox(height: 20),
                           _dialogSectionTitle(
                             'Berkas',
                             Icons.folder_open_outlined,
                           ),
                           const SizedBox(height: 12),
-
                           if (ktpPath != null &&
                               ktpPath.isNotEmpty &&
                               ktpPath != 'null')
@@ -2195,7 +1986,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               Icons.camera_front_outlined,
                               t,
                             ),
-
                           const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
@@ -2225,7 +2015,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 20),
                           _dialogSectionTitle('Status', Icons.info_outline),
                           const SizedBox(height: 10),
@@ -2246,7 +2035,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -2413,8 +2201,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
-              final isMobile = width < 700;
-              final isTablet = width >= 700 && width < 1100;
+              final isMobile = width < _mobileBreakpoint;
+              final isTablet = width >= _mobileBreakpoint && width < 1100;
 
               final horizontalPadding = isMobile
                   ? 16.0
@@ -2495,7 +2283,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // HEADER — sederhana seperti AdminComplaintScreen
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
@@ -2566,11 +2354,49 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // TAB SELECTOR
+  // TAB SELECTOR (MOBILE-FRIENDLY)
   // ============================================================
 
   Widget _buildTabSelector(bool mobile) {
     final t = theme;
+
+    // 🔹 Mobile: pakai scroll horizontal + label pendek
+    if (mobile) {
+      return SizedBox(
+        height: 48,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          children: [
+            _tabChip(
+              label: 'Menunggu',
+              count: partners.length,
+              isActive: _selectedTab == 'pending',
+              activeColor: t.warning,
+              onTap: () => setState(() => _selectedTab = 'pending'),
+            ),
+            const SizedBox(width: 8),
+            _tabChip(
+              label: 'Terverifikasi',
+              count: verifiedPartners.length,
+              isActive: _selectedTab == 'verified',
+              activeColor: t.success,
+              onTap: () => setState(() => _selectedTab = 'verified'),
+            ),
+            const SizedBox(width: 8),
+            _tabChip(
+              label: 'Keahlian',
+              count: pendingSkillsList.length,
+              isActive: _selectedTab == 'pendingSkills',
+              activeColor: AppColors.purple,
+              onTap: () => setState(() => _selectedTab = 'pendingSkills'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Tablet & desktop: 3 kolom
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -2592,7 +2418,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(width: 4),
           Expanded(
             child: _tabButton(
-              label: mobile ? 'Verified' : 'Terverifikasi',
+              label: 'Terverifikasi',
               count: verifiedPartners.length,
               isActive: _selectedTab == 'verified',
               activeColor: t.success,
@@ -2602,7 +2428,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(width: 4),
           Expanded(
             child: _tabButton(
-              label: mobile ? 'Keahlian' : 'Perubahan Keahlian',
+              label: 'Perubahan Keahlian',
               count: pendingSkillsList.length,
               isActive: _selectedTab == 'pendingSkills',
               activeColor: AppColors.purple,
@@ -2610,6 +2436,71 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Chip-style tab untuk mobile
+  Widget _tabChip({
+    required String label,
+    required int count,
+    required bool isActive,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    final t = theme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : AppColors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isActive ? activeColor : t.border,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppColors.white : t.mutedText,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.white.withValues(alpha: 0.25)
+                    : AppColors.grey200,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? AppColors.white : t.mutedText,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2696,30 +2587,27 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(color: t.border),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
-            child: Text(
-              'Menampilkan $startItem–$endItem dari $total $label',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: t.headerText,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
+          Text(
+            'Menampilkan $startItem–$endItem dari $total $label',
+            style: TextStyle(
+              fontSize: 12,
+              color: t.headerText,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(height: 10),
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
+              // Rows per page
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -2763,7 +2651,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const Spacer(),
               _paginationIconButton(
                 icon: Icons.chevron_left,
                 onTap: currentPage > 1
@@ -2781,7 +2669,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Hal $currentPage / $totalPages',
+                  '$currentPage / $totalPages',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -2836,11 +2724,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // SUMMARY
+  // SUMMARY (MOBILE: 1 baris horizontal scroll)
   // ============================================================
 
   Widget _summary(bool mobile) {
     final t = theme;
+
     final cards = [
       _summaryCard(
         title: 'Menunggu',
@@ -2849,6 +2738,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         icon: Icons.hourglass_empty,
         color: t.warning,
         t: t,
+        mobile: mobile,
       ),
       _summaryCard(
         title: 'Disetujui',
@@ -2857,6 +2747,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         icon: Icons.check_circle_outline,
         color: t.success,
         t: t,
+        mobile: mobile,
       ),
       _summaryCard(
         title: 'Ditolak',
@@ -2865,8 +2756,23 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         icon: Icons.cancel_outlined,
         color: t.danger,
         t: t,
+        mobile: mobile,
       ),
     ];
+
+    // Mobile: pakai horizontal scroll agar card lebar
+    if (mobile) {
+      return SizedBox(
+        height: 92,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: cards.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (_, i) => SizedBox(width: 200, child: cards[i]),
+        ),
+      );
+    }
 
     return Row(
       children: [
@@ -2885,9 +2791,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     required IconData icon,
     required Color color,
     required AdminTheme t,
+    required bool mobile,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(mobile ? 12 : 16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
@@ -2903,15 +2810,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: mobile ? 36 : 42,
+            height: mobile ? 36 : 42,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 21),
+            child: Icon(icon, color: color, size: mobile ? 18 : 21),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2923,29 +2830,29 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: t.mutedText,
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: mobile ? 18 : 20,
                     fontWeight: FontWeight.w700,
                     color: t.cellText,
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     color: AppColors.grey400,
                   ),
                 ),
@@ -3168,34 +3075,241 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // MOBILE CARD - PENDING MITRA (DIRAPIKAN)
+  // ============================================================
+
   Widget _mobileCard(Map<String, dynamic> p, int index) {
     final t = theme;
+    final photo = p['profile_photo']?.toString();
+    final photoUrl = _buildImageUrl(photo);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: t.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _name(p, t),
-          const SizedBox(height: 10),
-          Text(
-            '${p['category'] ?? 'Umum'} • ${p['city'] ?? 'Indonesia'}',
-            style: TextStyle(fontSize: 12, color: t.mutedText),
+          // Header: Avatar + Nama + Waktu
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.grey100,
+                    border: Border.all(color: t.border),
+                  ),
+                  child: ClipOval(
+                    child: photoUrl.isNotEmpty
+                        ? Image.network(
+                            photoUrl,
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person,
+                              size: 22,
+                              color: t.mutedText,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            size: 22,
+                            color: t.mutedText,
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Nama + email + kota
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p['name']?.toString() ?? 'Tanpa Nama',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: t.cellText,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        p['email']?.toString() ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.grey500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined,
+                              size: 12, color: t.mutedText),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              p['city']?.toString() ?? 'Indonesia',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: t.mutedText,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Icons.access_time,
+                              size: 12, color: t.mutedText),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              p['time']?.toString() ?? 'Baru saja',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: t.mutedText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          Text(
-            p['time']?.toString() ?? 'Baru saja',
-            style: const TextStyle(fontSize: 11, color: AppColors.grey400),
+
+          // Chip kategori
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.infoBlue.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    p['category']?.toString() ?? 'Umum',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.infoBlue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          _documentButton(p, t),
-          const SizedBox(height: 8),
-          _actions(index, t),
+
+          const SizedBox(height: 12),
+          Divider(height: 1, color: t.divider),
+
+          // Aksi
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Row(
+              children: [
+                // Lihat Berkas
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () => _viewDocuments(p),
+                    icon: const Icon(Icons.attach_file, size: 16),
+                    label: const Text(
+                      'Berkas',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.purple,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Reject
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: isProcessing ? null : () => _reject(index),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text(
+                      'Tolak',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: t.danger,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Approve
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: isProcessing ? null : () => _approve(index),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text(
+                      'Setuju',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: t.success,
+                      foregroundColor: AppColors.white,
+                      minimumSize: const Size(0, 40),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -3393,85 +3507,161 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // MOBILE CARD - VERIFIED (DIRAPIKAN)
+  // ============================================================
+
   Widget _verifiedMobileCard(Map<String, dynamic> p) {
     final t = theme;
+    final photo = p['profile_photo']?.toString();
+    final photoUrl = _buildImageUrl(photo);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: t.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _verifiedName(p, t)),
+              // Avatar
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: t.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
+                  shape: BoxShape.circle,
+                  color: AppColors.grey100,
+                  border: Border.all(color: t.border),
                 ),
-                child: Text(
-                  'Terverifikasi',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: t.success,
-                  ),
+                child: ClipOval(
+                  child: photoUrl.isNotEmpty
+                      ? Image.network(
+                          photoUrl,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.person,
+                            size: 22,
+                            color: t.mutedText,
+                          ),
+                        )
+                      : Icon(
+                          Icons.person,
+                          size: 22,
+                          color: t.mutedText,
+                        ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${p['category'] ?? 'Umum'} • ${p['city'] ?? 'Indonesia'}',
-            style: TextStyle(fontSize: 12, color: t.mutedText),
-          ),
-          Text(
-            'Terverifikasi ${p['time'] ?? ''}',
-            style: const TextStyle(fontSize: 11, color: AppColors.grey400),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.stars, size: 13, color: t.warning),
-              const SizedBox(width: 4),
-              Text(
-                '${p['point'] ?? 0} poin',
-                style: TextStyle(fontSize: 11, color: t.cellText),
               ),
               const SizedBox(width: 12),
-              Icon(Icons.star, size: 13, color: t.warning),
-              const SizedBox(width: 4),
-              Text(
-                (p['rating'] ?? 0).toStringAsFixed(1),
-                style: TextStyle(fontSize: 11, color: t.cellText),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            p['name']?.toString() ?? 'Tanpa Nama',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: t.cellText,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.verified, size: 14, color: t.success),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      p['email']?.toString() ?? '-',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.grey500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+
+          const SizedBox(height: 10),
+
+          // Info row: kategori, kota, poin, rating
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _miniChip(
+                icon: Icons.work_outline,
+                label: p['category']?.toString() ?? 'Umum',
+                color: AppColors.infoBlue,
+              ),
+              _miniChip(
+                icon: Icons.location_on_outlined,
+                label: p['city']?.toString() ?? '-',
+                color: t.mutedText,
+              ),
+              _miniChip(
+                icon: Icons.stars,
+                label: '${p['point'] ?? 0} poin',
+                color: t.warning,
+              ),
+              _miniChip(
+                icon: Icons.star,
+                label: (p['rating'] ?? 0).toStringAsFixed(1),
+                color: t.warning,
+              ),
+            ],
+          ),
+
           const SizedBox(height: 12),
+          Divider(height: 1, color: t.divider),
+          const SizedBox(height: 8),
+
+          // Aksi
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _viewFullData(p),
-                  icon: const Icon(Icons.person_search, size: 15),
+                child: OutlinedButton.icon(
+                  onPressed: () => _viewDocuments(p),
+                  icon: const Icon(Icons.folder_open, size: 15),
                   label: const Text(
-                    'Data Lengkap',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    'Berkas',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.infoBlue,
-                    foregroundColor: AppColors.white,
-                    minimumSize: const Size(0, 44),
-                    elevation: 0,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.purple,
+                    side: BorderSide(
+                      color: AppColors.purple.withValues(alpha: 0.4),
+                    ),
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(_radius),
                     ),
@@ -3480,19 +3670,23 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _viewDocuments(p),
-                  icon: const Icon(Icons.folder_open, size: 15),
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: () => _viewFullData(p),
+                  icon: const Icon(Icons.person_search, size: 15),
                   label: const Text(
-                    'Berkas',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 44),
-                    foregroundColor: AppColors.purple,
-                    side: BorderSide(
-                      color: AppColors.purple.withValues(alpha: 0.4),
+                    'Data Lengkap',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.infoBlue,
+                    foregroundColor: AppColors.white,
+                    minimumSize: const Size(0, 40),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(_radius),
                     ),
@@ -3500,6 +3694,35 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -3728,69 +3951,283 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
+  // ============================================================
+  // MOBILE CARD - PENDING SKILLS (DIRAPIKAN)
+  // ============================================================
+
   Widget _pendingSkillMobileCard(Map<String, dynamic> p, int index) {
     final t = theme;
+    final photo = p['profile_photo']?.toString();
+    final photoUrl = _buildImageUrl(photo);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: t.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _pendingSkillName(p, t),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.grey100,
+                    border: Border.all(color: t.border),
+                  ),
+                  child: ClipOval(
+                    child: photoUrl.isNotEmpty
+                        ? Image.network(
+                            photoUrl,
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person,
+                              size: 22,
+                              color: t.mutedText,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            size: 22,
+                            color: t.mutedText,
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p['name']?.toString() ?? 'Tanpa Nama',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: t.cellText,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        p['email']?.toString() ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.grey500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.access_time,
+                              size: 11, color: t.mutedText),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              p['time']?.toString() ?? 'Baru saja',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: t.mutedText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Keahlian chip
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Perubahan Keahlian',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grey500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
                   children: [
-                    const Text(
-                      'Keahlian Saat Ini',
-                      style: TextStyle(fontSize: 11, color: AppColors.grey400),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.arrow_forward,
+                                size: 12, color: AppColors.grey500),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                p['current_skills']?.toString() ?? '-',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.grey700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    _chip(
-                      text: p['current_skills']?.toString() ?? '-',
-                      bgColor: AppColors.grey100,
-                      fgColor: AppColors.grey700,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.purple.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.purple.withValues(alpha: 0.30),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.star,
+                                size: 12, color: AppColors.purple),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                p['pending_skills']?.toString() ?? '-',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.purple,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Keahlian Baru',
-                      style: TextStyle(fontSize: 11, color: AppColors.grey400),
-                    ),
-                    const SizedBox(height: 4),
-                    _chip(
-                      text: p['pending_skills']?.toString() ?? '-',
-                      bgColor: AppColors.purple.withValues(alpha: 0.10),
-                      fgColor: AppColors.purple,
-                      bold: true,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            'Diajukan: ${p['time'] ?? 'Baru saja'}',
-            style: const TextStyle(fontSize: 11, color: AppColors.grey400),
-          ),
+
           const SizedBox(height: 12),
-          _pendingSkillActions(index, t),
+          Divider(height: 1, color: t.divider),
+
+          // Aksi
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        _viewSkillPhotos(pendingSkillsList[index]),
+                    icon: const Icon(Icons.photo_library_outlined, size: 16),
+                    label: const Text(
+                      'Foto',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.purple,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: isProcessing ? null : () => _rejectSkill(index),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text(
+                      'Tolak',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: t.danger,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: isProcessing ? null : () => _approveSkill(index),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text(
+                      'Setuju',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: t.success,
+                      foregroundColor: AppColors.white,
+                      minimumSize: const Size(0, 40),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radius),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

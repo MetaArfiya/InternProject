@@ -19,10 +19,6 @@ class AdminPaymentScreen extends StatefulWidget {
 }
 
 class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
-  // ============================================================
-  // THEME
-  // ============================================================
-
   AdminTheme get theme => AdminThemeProvider.of(context);
 
   // ============================================================
@@ -30,9 +26,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   // ============================================================
 
   static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 16;
+  static const double _gapBetweenSections = 14;
   static const double _cardRadius = 14;
   static const double _radius = 10;
+  static const double _mobileBreakpoint = 700;
 
   // ============================================================
   // STATE
@@ -55,7 +52,6 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     'Refund',
   ];
 
-  // Pagination
   int _currentPage = 1;
   int _itemsPerPage = 10;
   final List<int> _itemsPerPageOptions = [5, 10, 25, 50];
@@ -86,7 +82,6 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       final response = await ApiService.get('/admin/payments');
 
       debugPrint('💰 ADMIN PAYMENTS: ${response.statusCode}');
-      debugPrint('💰 BODY: ${response.body}');
 
       if (response.statusCode != 200) {
         if (!mounted) return;
@@ -133,9 +128,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       });
     } catch (e) {
       debugPrint('❌ ERROR ADMIN PAYMENT: $e');
-
       if (!mounted) return;
-
       setState(() {
         _isLoading = false;
         _error = 'Terjadi kesalahan: $e';
@@ -144,7 +137,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // FILTER & PAGINATION HELPERS
+  // FILTER & PAGINATION
   // ============================================================
 
   List<PaymentModel> get _filteredPayments {
@@ -274,7 +267,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // STATUS COLOR, ICON, LABEL
+  // STATUS HELPERS
   // ============================================================
 
   Color _getStatusColor(String status) {
@@ -351,8 +344,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final isMobile = width < 700;
-            final isTablet = width >= 700 && width < 1100;
+            final isMobile = width < _mobileBreakpoint;
+            final isTablet = width >= _mobileBreakpoint && width < 1100;
 
             final horizontalPadding =
                 isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
@@ -368,16 +361,13 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(context),
-
                   const SizedBox(height: _gapAfterHeader),
 
                   if (_isLoading)
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 60),
+                      padding: const EdgeInsets.symmetric(vertical: 60),
                       child: Center(
-                        child:
-                            CircularProgressIndicator(color: t.accent),
+                        child: CircularProgressIndicator(color: t.accent),
                       ),
                     )
                   else if (_error != null)
@@ -434,7 +424,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // SUMMARY SECTION
+  // SUMMARY (Mobile: horizontal scroll)
   // ============================================================
 
   Widget _buildSummarySection(bool isMobile) {
@@ -463,13 +453,25 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       ),
     ];
 
-    final gap = isMobile ? 8.0 : 16.0;
+    // Mobile: horizontal scroll
+    if (isMobile) {
+      return SizedBox(
+        height: 92,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: cards.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (_, i) => SizedBox(width: 220, child: cards[i]),
+        ),
+      );
+    }
 
     return Row(
       children: [
         for (int i = 0; i < cards.length; i++) ...[
           Expanded(child: cards[i]),
-          if (i != cards.length - 1) SizedBox(width: gap),
+          if (i != cards.length - 1) const SizedBox(width: 16),
         ],
       ],
     );
@@ -483,14 +485,14 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }) {
     final t = theme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha:0.03),
+            color: AppColors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -499,15 +501,15 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: color.withValues(alpha:0.12),
-              borderRadius: BorderRadius.circular(11),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 21),
+            child: Icon(icon, color: color, size: 19),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,17 +521,17 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: t.mutedText,
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: t.cellText,
                     height: 1.1,
@@ -544,12 +546,63 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // FILTER
+  // FILTER (Mobile: vertikal)
   // ============================================================
 
   Widget _buildFilterSection(bool isMobile) {
     final t = theme;
-    final textTheme = Theme.of(context).textTheme;
+
+    if (isMobile) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: t.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.filter_list, size: 16, color: t.headerText),
+                const SizedBox(width: 6),
+                Text(
+                  'Filter Status',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.mutedText,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_filteredPayments.length}',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: t.accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _buildStatusDropdown(fullWidth: true),
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,
@@ -563,70 +616,30 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         children: [
           Icon(Icons.filter_list, size: 18, color: t.headerText),
           const SizedBox(width: 8),
-          if (!isMobile) ...[
-            Text(
-              'Filter Status:',
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: AppColors.grey700,
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
-          Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: AppColors.grey50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: t.border),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedStatus,
-                isDense: true,
-                icon: Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 18,
-                    color: t.headerText,
-                  ),
-                ),
-                style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: t.cellText,
-                ),
-                items: _statusOptions.map((status) {
-                  return DropdownMenuItem<String>(
-                    value: status,
-                    child: Text(
-                      status,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() {
-                    _selectedStatus = value;
-                    _currentPage = 1;
-                  });
-                },
-              ),
+          Text(
+            'Filter Status:',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.grey700,
             ),
           ),
+          const SizedBox(width: 12),
+          _buildStatusDropdown(),
           const Spacer(),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 5,
+            ),
             decoration: BoxDecoration(
-              color: t.accent.withValues(alpha:0.10),
+              color: t.accent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${_filteredPayments.length}',
-              style: textTheme.labelMedium?.copyWith(
+              style: TextStyle(
+                fontSize: 12,
                 color: t.accent,
                 fontWeight: FontWeight.w700,
               ),
@@ -634,6 +647,61 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusDropdown({bool fullWidth = false}) {
+    final t = theme;
+
+    final dropdown = DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: _selectedStatus,
+        isDense: true,
+        isExpanded: fullWidth,
+        borderRadius: BorderRadius.circular(_radius),
+        icon: Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: t.headerText,
+          ),
+        ),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: t.cellText,
+        ),
+        items: _statusOptions.map((status) {
+          return DropdownMenuItem<String>(
+            value: status,
+            child: Text(
+              status,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13),
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          if (value == null) return;
+          setState(() {
+            _selectedStatus = value;
+            _currentPage = 1;
+          });
+        },
+      ),
+    );
+
+    return Container(
+      height: 40,
+      width: fullWidth ? double.infinity : null,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: t.border),
+      ),
+      child: dropdown,
     );
   }
 
@@ -865,7 +933,6 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
   Widget _mobilePaymentCard(PaymentModel payment) {
     final t = theme;
-    final textTheme = Theme.of(context).textTheme;
     final reference = payment.referenceCode?.trim();
 
     final transactionId = reference != null && reference.isNotEmpty
@@ -874,143 +941,179 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: t.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // HEADER
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: t.accent.withValues(alpha:0.12),
-                  borderRadius: BorderRadius.circular(10),
+          // ── HEADER
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: t.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.receipt_long_outlined,
+                    color: t.accent,
+                    size: 19,
+                  ),
                 ),
-                child: Icon(
-                  Icons.receipt_long_outlined,
-                  color: t.accent,
-                  size: 20,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transactionId,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: t.cellText,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        payment.formattedDate,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.grey400,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      transactionId,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: t.cellText,
+                const SizedBox(width: 6),
+                _statusBadge(payment.status),
+              ],
+            ),
+          ),
+
+          Divider(height: 1, color: t.divider),
+
+          // ── INFO
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              children: [
+                _mobileInfoRow(
+                  icon: Icons.work_outline,
+                  label: 'Pekerjaan',
+                  value: payment.jobTitle ?? '-',
+                ),
+                const SizedBox(height: 8),
+                _mobileInfoRow(
+                  icon: Icons.person_outline,
+                  label: 'Pelanggan',
+                  value: payment.pelangganName ?? '-',
+                ),
+                const SizedBox(height: 8),
+                _mobileInfoRow(
+                  icon: Icons.handshake_outlined,
+                  label: 'Mitra',
+                  value: payment.mitraName ?? '-',
+                ),
+              ],
+            ),
+          ),
+
+          Divider(height: 1, color: t.divider),
+
+          // ── MONEY
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: AppColors.grey50.withValues(alpha: 0.5),
+            ),
+            child: Column(
+              children: [
+                _mobileMoneyRow(
+                  'Nilai Pekerjaan',
+                  PaymentModel.formatRupiah(payment.jobAmount),
+                ),
+                const SizedBox(height: 6),
+                _mobileMoneyRow(
+                  'Komisi Platform',
+                  PaymentModel.formatRupiah(payment.commissionAmount),
+                ),
+                const SizedBox(height: 8),
+                Divider(height: 1, color: t.divider),
+                const SizedBox(height: 8),
+                _mobileMoneyRow(
+                  'Mitra Terima',
+                  PaymentModel.formatRupiah(payment.mitraEarning),
+                  isBold: true,
+                  valueColor: t.success,
+                ),
+              ],
+            ),
+          ),
+
+          // ── QUICK BANNER + AKSI
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (payment.canVerifyCustomerProof) ...[
+                  _quickActionBanner(
+                    icon: Icons.fact_check_outlined,
+                    color: AppColors.purple,
+                    text: 'Perlu verifikasi bukti transfer pelanggan',
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (payment.canSettleToMitra) ...[
+                  _quickActionBanner(
+                    icon: Icons.priority_high,
+                    color: AppColors.infoBlue,
+                    text: 'Siap ditransfer ke mitra',
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openPaymentDetail(payment),
+                    icon: const Icon(
+                      Icons.visibility_outlined,
+                      size: 16,
+                    ),
+                    label: const Text(
+                      'Lihat Detail',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      payment.formattedDate,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: AppColors.grey400,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.purple,
+                      side: BorderSide(color: t.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              _statusBadge(payment.status),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-          Divider(height: 1, color: t.divider),
-          const SizedBox(height: 12),
-
-          // INFO
-          _mobileInfoRow(
-            Icons.work_outline,
-            'Pekerjaan',
-            payment.jobTitle ?? '-',
-          ),
-          _mobileInfoRow(
-            Icons.person_outline,
-            'Pelanggan',
-            payment.pelangganName ?? '-',
-          ),
-          _mobileInfoRow(
-            Icons.handshake_outlined,
-            'Mitra',
-            payment.mitraName ?? '-',
-            isLast: true,
-          ),
-
-          const SizedBox(height: 12),
-          Divider(height: 1, color: t.divider),
-          const SizedBox(height: 12),
-
-          // MONEY
-          _mobileMoneyRow(
-            'Nilai Pekerjaan',
-            PaymentModel.formatRupiah(payment.jobAmount),
-          ),
-          _mobileMoneyRow(
-            'Komisi',
-            PaymentModel.formatRupiah(payment.commissionAmount),
-          ),
-          _mobileMoneyRow(
-            'Mitra Terima',
-            PaymentModel.formatRupiah(payment.mitraEarning),
-            isBold: true,
-            valueColor: t.success,
-            isLast: true,
-          ),
-
-          // QUICK ACTION
-          if (payment.canVerifyCustomerProof) ...[
-            const SizedBox(height: 12),
-            _quickActionBanner(
-              icon: Icons.fact_check_outlined,
-              color: AppColors.purple,
-              text: 'Perlu verifikasi bukti transfer pelanggan',
-            ),
-          ],
-          if (payment.canSettleToMitra) ...[
-            const SizedBox(height: 10),
-            _quickActionBanner(
-              icon: Icons.priority_high,
-              color: AppColors.infoBlue,
-              text: 'Siap ditransfer ke mitra',
-            ),
-          ],
-
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 42,
-            child: OutlinedButton.icon(
-              onPressed: () => _openPaymentDetail(payment),
-              icon: const Icon(Icons.visibility_outlined, size: 16),
-              label: const Text(
-                'Lihat Detail',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.purple,
-                side: BorderSide(color: t.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              ],
             ),
           ),
         ],
@@ -1018,45 +1121,41 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     );
   }
 
-  Widget _mobileInfoRow(
-    IconData icon,
-    String label,
-    String value, {
-    bool isLast = false,
+  Widget _mobileInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
   }) {
     final t = theme;
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: AppColors.grey400),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 85,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: t.mutedText,
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 15, color: AppColors.grey400),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: t.mutedText,
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: t.cellText,
-              ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: t.cellText,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1065,36 +1164,31 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     String value, {
     bool isBold = false,
     Color? valueColor,
-    bool isLast = false,
   }) {
     final t = theme;
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 9),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: t.mutedText,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
             style: TextStyle(
-              fontSize: 12,
-              color: t.mutedText,
+              fontSize: isBold ? 14 : 12.5,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+              color: valueColor ?? t.cellText,
             ),
           ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: isBold ? 14 : 12.5,
-                fontWeight:
-                    isBold ? FontWeight.w700 : FontWeight.w600,
-                color: valueColor ?? t.cellText,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1107,9 +1201,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.09),
+        color: color.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: color.withValues(alpha:0.18)),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(
         children: [
@@ -1119,7 +1213,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11.5,
                 color: color,
                 fontWeight: FontWeight.w600,
               ),
@@ -1140,23 +1234,22 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_getStatusIcon(status), size: 13, color: color),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              _getStatusLabel(status),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
+          Icon(_getStatusIcon(status), size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            _getStatusLabel(status),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 10.5,
             ),
           ),
         ],
@@ -1165,7 +1258,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // PAGINATION
+  // PAGINATION (Mobile: 2 baris)
   // ============================================================
 
   Widget _buildPagination(bool isMobile) {
@@ -1179,7 +1272,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 20,
+        vertical: 12,
+      ),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
@@ -1187,20 +1283,21 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       ),
       child: isMobile
           ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Menampilkan $startItem–$endItem dari $total pembayaran',
+                  'Menampilkan $startItem–$endItem dari $total',
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     color: t.headerText,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildRowsPerPageDropdown(),
+                    const Spacer(),
                     _buildNavButtons(totalPages),
                   ],
                 ),
@@ -1250,13 +1347,13 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: t.accent.withValues(alpha:0.10),
+            color: t.accent.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            'Hal $_currentPage / $totalPages',
+            '$_currentPage / $totalPages',
             style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: t.accent,
             ),
@@ -1275,7 +1372,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   Widget _buildRowsPerPageDropdown() {
     final t = theme;
     return Container(
-      height: 32,
+      height: 34,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -1286,6 +1383,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         child: DropdownButton<int>(
           value: _itemsPerPage,
           isDense: true,
+          borderRadius: BorderRadius.circular(8),
           icon: Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Icon(
@@ -1295,14 +1393,14 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             ),
           ),
           style: TextStyle(
-            fontSize: 12.5,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
             color: t.cellText,
           ),
           items: _itemsPerPageOptions.map((value) {
             return DropdownMenuItem<int>(
               value: value,
-              child: Text('$value / hal'),
+              child: Text('$value'),
             );
           }).toList(),
           onChanged: (value) {
@@ -1359,17 +1457,13 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: t.danger.withValues(alpha:0.05),
+        color: t.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: t.danger.withValues(alpha:0.3)),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.error_outline,
-            color: t.danger,
-            size: 48,
-          ),
+          Icon(Icons.error_outline, color: t.danger, size: 48),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Terjadi kesalahan.',
@@ -1410,13 +1504,13 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: t.accent.withValues(alpha:0.1),
+              color: t.accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.receipt_long_outlined,
               size: 34,
-              color: t.accent.withValues(alpha:0.7),
+              color: t.accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
