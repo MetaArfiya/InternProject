@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class AdminDailyReportScreen extends StatefulWidget {
   const AdminDailyReportScreen({super.key});
@@ -14,21 +17,14 @@ class AdminDailyReportScreen extends StatefulWidget {
 
 class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
-  // DESIGN TOKENS
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _warningColor = Color(0xFFD97706);
-  static const Color _purpleColor = Color(0xFF7C3AED);
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
+  // ============================================================
+  // TOKENS
+  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -57,10 +53,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     {'label': 'Bulan Ini', 'value': 'month'},
   ];
 
-  // ============================================================
-  // PAGINATION STATE
-  // ============================================================
-
+  // Pagination
   int _currentPage = 1;
   int _itemsPerPage = 10;
 
@@ -188,15 +181,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   // ============================================================
-  // PERIOD LABEL
-  // ============================================================
-
-  String get _currentPeriodLabel {
-    return _periodOptions
-        .firstWhere((e) => e['value'] == _periodKey)['label']!;
-  }
-
-  // ============================================================
   // PAGINATION HELPERS
   // ============================================================
 
@@ -215,7 +199,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   // ============================================================
-  // TRANSACTION DETAILS
+  // TRANSACTION / JOB DETAILS
   // ============================================================
 
   List<Map<String, dynamic>> _getTransactionDetails(
@@ -231,10 +215,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         )
         .toList();
   }
-
-  // ============================================================
-  // JOB DETAILS
-  // ============================================================
 
   List<Map<String, dynamic>> _getJobDetails(
     Map<String, dynamic> d,
@@ -256,13 +236,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: t.bg,
       child: RefreshIndicator(
         onRefresh: _loadReport,
-        color: _accent,
+        color: t.accent,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
@@ -287,10 +268,12 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   const SizedBox(height: _gapAfterHeader),
 
                   if (_isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 60),
-                        child: CircularProgressIndicator(color: _accent),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: t.accent),
                       ),
                     )
                   else if (_errorMessage != null)
@@ -310,7 +293,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       _buildBarChart(
                         isMobile: isMobile,
                         title: 'Grafik Transaksi',
-                        subtitle: 'Jumlah transaksi berdasarkan hari',
+                        subtitle:
+                            'Jumlah transaksi berdasarkan hari',
                         values: _dailyData
                             .map<double>((d) =>
                                 (d['transactions'] as num?)
@@ -321,7 +305,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                             .map<String>((d) => d['day'].toString())
                             .toList(),
                         valueSuffix: 'transaksi',
-                        barColor: _infoColor,
+                        barColor: AppColors.infoBlue,
                       ),
 
                       const SizedBox(height: _gapBetweenSections),
@@ -338,7 +322,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                             .map<String>((d) => d['day'].toString())
                             .toList(),
                         valueSuffix: 'Rp',
-                        barColor: _successColor,
+                        barColor: t.success,
                       ),
 
                       const SizedBox(height: _gapBetweenSections),
@@ -346,7 +330,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       _buildBarChart(
                         isMobile: isMobile,
                         title: 'Grafik Pekerjaan',
-                        subtitle: 'Jumlah pekerjaan yang diselesaikan',
+                        subtitle:
+                            'Jumlah pekerjaan yang diselesaikan',
                         values: _dailyData
                             .map<double>((d) =>
                                 (d['jobs'] as num?)?.toDouble() ?? 0)
@@ -355,7 +340,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                             .map<String>((d) => d['day'].toString())
                             .toList(),
                         valueSuffix: 'pekerjaan',
-                        barColor: _warningColor,
+                        barColor: t.warning,
                       ),
 
                       const SizedBox(height: _gapBetweenSections),
@@ -381,6 +366,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -390,14 +376,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           'Laporan Harian',
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
+            color: t.cellText,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Pantau aktivitas transaksi, pekerjaan, dan pendapatan komisi admin.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -408,34 +393,34 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildSummarySection(bool isMobile) {
+    final t = theme;
     final cards = [
       _summaryCard(
         title: 'Total Transaksi',
         value: '$_totalTransactions',
         icon: Icons.receipt_long_outlined,
-        color: _infoColor,
+        color: AppColors.infoBlue,
       ),
       _summaryCard(
         title: 'Total Pekerjaan',
         value: '$_totalJobs',
         icon: Icons.work_outline,
-        color: _warningColor,
+        color: t.warning,
       ),
       _summaryCard(
         title: 'Total Komisi',
         value: _formatRupiah(_totalIncome),
         icon: Icons.account_balance_wallet_outlined,
-        color: _successColor,
+        color: t.success,
       ),
       _summaryCard(
         title: 'Rata-rata Harian',
         value: _formatRupiah(_averageIncome),
         icon: Icons.analytics_outlined,
-        color: _purpleColor,
+        color: AppColors.purple,
       ),
     ];
 
-    // MOBILE — 2x2
     if (isMobile) {
       return Column(
         children: [
@@ -458,7 +443,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       );
     }
 
-    // TABLET & DESKTOP — 4 kolom
     return Row(
       children: [
         for (int i = 0; i < cards.length; i++) ...[
@@ -475,15 +459,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -510,8 +495,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _mutedText,
+                  style: TextStyle(
+                    color: t.mutedText,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -521,10 +506,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: t.cellText,
                     height: 1.1,
                   ),
                 ),
@@ -541,13 +526,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildPeriodFilter(bool isMobile) {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 14 : 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: isMobile
           ? Column(
@@ -561,21 +547,22 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   Widget _buildFilterBar(BuildContext context) {
+    final t = theme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(
+        Icon(
           Icons.filter_list_rounded,
           size: 18,
-          color: _headerText,
+          color: t.headerText,
         ),
         const SizedBox(width: 8),
-        const Text(
+        Text(
           'Filter Periode:',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: _mutedText,
+            color: t.mutedText,
           ),
         ),
         const SizedBox(width: 10),
@@ -584,14 +571,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           child: _buildPeriodDropdownCompact(),
         ),
         const Spacer(),
-        // Badge jumlah hari
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 6,
           ),
           decoration: BoxDecoration(
-            color: _infoColor.withOpacity(0.10),
+            color: AppColors.infoBlue.withOpacity(0.10),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -599,7 +585,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: _infoColor,
+              color: AppColors.infoBlue,
             ),
           ),
         ),
@@ -607,29 +593,29 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     );
   }
 
-  // Dropdown versi compact (tinggi 40, sama seperti di Pengaduan)
   Widget _buildPeriodDropdownCompact() {
+    final t = theme;
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _periodKey,
           isExpanded: true,
           borderRadius: BorderRadius.circular(_radius),
-          icon: const Icon(
+          icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: _headerText,
+            color: t.headerText,
             size: 18,
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: _cellText,
+            color: t.cellText,
             fontWeight: FontWeight.w500,
           ),
           items: _periodOptions.map((p) {
@@ -664,6 +650,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required String valueSuffix,
     required Color barColor,
   }) {
+    final t = theme;
     if (values.isEmpty) return const SizedBox.shrink();
 
     final maxValue = values.reduce((a, b) => a > b ? a : b);
@@ -673,9 +660,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,14 +671,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: _mutedText,
+                  color: t.mutedText,
                 ),
           ),
           const SizedBox(height: 20),
@@ -731,10 +718,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF334155),
+                                  color: t.cellText,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -761,10 +748,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: _mutedText,
+                                  color: t.mutedText,
                                 ),
                               ),
                             ],
@@ -787,6 +774,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildReportTable(bool isMobile) {
+    final t = theme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -794,23 +782,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           'Rincian Laporan',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: _cellText,
+                color: t.cellText,
               ),
         ),
         const SizedBox(height: 4),
         Text(
           '${_dailyData.length} hari ditampilkan',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: _mutedText,
+                color: t.mutedText,
               ),
         ),
         const SizedBox(height: 12),
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: _tableBorder),
+            border: Border.all(color: t.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: isMobile
@@ -833,6 +821,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildDesktopReportTable() {
+    final t = theme;
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -841,7 +830,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             constraints: BoxConstraints(minWidth: constraints.maxWidth),
             child: DataTable(
               headingRowColor:
-                  WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+                  WidgetStateProperty.all(AppColors.grey50),
               headingRowHeight: 48,
               dataRowMinHeight: 82,
               dataRowMaxHeight: 150,
@@ -852,7 +841,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               headingTextStyle:
                   Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: _headerText,
+                        color: t.headerText,
                       ),
               columns: const [
                 DataColumn(label: _TableHeader('HARI')),
@@ -869,10 +858,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     DataCell(
                       Text(
                         d['day']?.toString() ?? '-',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: _cellText,
+                          color: t.cellText,
                         ),
                       ),
                     ),
@@ -891,10 +880,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     DataCell(
                       Text(
                         _formatRupiah(d['income'] ?? 0),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF16A34A),
+                          color: t.success,
                         ),
                       ),
                     ),
@@ -916,22 +905,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     List<Map<String, dynamic>> details, {
     required dynamic fallbackCount,
   }) {
+    final t = theme;
     if (details.isEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildSmallIconBox(
             icon: Icons.receipt_long_outlined,
-            background: _infoColor.withOpacity(0.12),
-            iconColor: _infoColor,
+            background: AppColors.infoBlue.withOpacity(0.12),
+            iconColor: AppColors.infoBlue,
           ),
           const SizedBox(width: 8),
           Text(
             '$fallbackCount transaksi',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _cellText,
+              color: t.cellText,
             ),
           ),
         ],
@@ -943,8 +933,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       children: [
         _buildSmallIconBox(
           icon: Icons.receipt_long_outlined,
-          background: _infoColor.withOpacity(0.12),
-          iconColor: _infoColor,
+          background: AppColors.infoBlue.withOpacity(0.12),
+          iconColor: AppColors.infoBlue,
         ),
         const SizedBox(width: 8),
         SizedBox(
@@ -972,10 +962,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   displayReference,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 );
               },
@@ -994,22 +984,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     List<Map<String, dynamic>> details, {
     required dynamic fallbackCount,
   }) {
+    final t = theme;
     if (details.isEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildSmallIconBox(
             icon: Icons.work_outline,
-            background: _warningColor.withOpacity(0.12),
-            iconColor: _warningColor,
+            background: t.warning.withOpacity(0.12),
+            iconColor: t.warning,
           ),
           const SizedBox(width: 8),
           Text(
             '$fallbackCount pekerjaan',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _cellText,
+              color: t.cellText,
             ),
           ),
         ],
@@ -1021,8 +1012,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       children: [
         _buildSmallIconBox(
           icon: Icons.work_outline,
-          background: _warningColor.withOpacity(0.12),
-          iconColor: _warningColor,
+          background: t.warning.withOpacity(0.12),
+          iconColor: t.warning,
         ),
         const SizedBox(width: 8),
         SizedBox(
@@ -1048,10 +1039,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   displayText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 );
               },
@@ -1091,6 +1082,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     Map<String, dynamic> d,
     bool isLast,
   ) {
+    final t = theme;
     final transactionDetails = _getTransactionDetails(d);
     final jobDetails = _getJobDetails(d);
 
@@ -1102,8 +1094,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(
-                bottom: BorderSide(color: _tableDivider),
+            : Border(
+                bottom: BorderSide(color: t.divider),
               ),
       ),
       child: Column(
@@ -1111,25 +1103,25 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         children: [
           Text(
             d['day']?.toString() ?? '-',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: _cellText,
+              color: t.cellText,
             ),
           ),
           const SizedBox(height: 12),
           _buildMobileDetailRow(
             icon: Icons.receipt_long_outlined,
             label: 'Transaksi',
-            iconColor: _infoColor,
-            background: _infoColor.withOpacity(0.12),
+            iconColor: AppColors.infoBlue,
+            background: AppColors.infoBlue.withOpacity(0.12),
             child: transactionDetails.isEmpty
                 ? Text(
                     '$transactions transaksi',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: _infoColor,
+                      color: AppColors.infoBlue,
                     ),
                   )
                 : _buildMobileTransactionDetails(transactionDetails),
@@ -1138,15 +1130,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           _buildMobileDetailRow(
             icon: Icons.work_outline,
             label: 'Pekerjaan',
-            iconColor: _warningColor,
-            background: _warningColor.withOpacity(0.12),
+            iconColor: t.warning,
+            background: t.warning.withOpacity(0.12),
             child: jobDetails.isEmpty
                 ? Text(
                     '$jobs pekerjaan',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: _warningColor,
+                      color: t.warning,
                     ),
                   )
                 : _buildMobileJobDetails(jobDetails),
@@ -1155,14 +1147,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           _buildMobileDetailRow(
             icon: Icons.account_balance_wallet_outlined,
             label: 'Komisi Admin',
-            iconColor: _successColor,
-            background: _successColor.withOpacity(0.12),
+            iconColor: t.success,
+            background: t.success.withOpacity(0.12),
             child: Text(
               _formatRupiah(d['income'] ?? 0),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: _successColor,
+                color: t.success,
               ),
             ),
           ),
@@ -1182,6 +1174,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required Color background,
     required Widget child,
   }) {
+    final t = theme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1202,9 +1195,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             padding: const EdgeInsets.only(top: 7),
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: _mutedText,
+                color: t.mutedText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1246,7 +1239,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: _infoColor,
+              color: AppColors.infoBlue,
             ),
           ),
         );
@@ -1261,6 +1254,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   Widget _buildMobileJobDetails(
     List<Map<String, dynamic>> details,
   ) {
+    final t = theme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: details.map((item) {
@@ -1279,10 +1273,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             textAlign: TextAlign.right,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: _warningColor,
+              color: t.warning,
             ),
           ),
         );
@@ -1295,6 +1289,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildPaginationFullWidth(bool isMobile) {
+    final t = theme;
     final total = _dailyData.length;
     final totalPages = _totalPages;
 
@@ -1304,7 +1299,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     final endItem =
         (startItem + _itemsPerPage - 1).clamp(0, total);
 
-    // Mobile: wrap jadi 2 baris (info di atas, control di bawah)
     if (isMobile) {
       return Container(
         width: double.infinity,
@@ -1313,18 +1307,18 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           vertical: 12,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: _tableBorder),
+          border: Border.all(color: t.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Menampilkan $startItem–$endItem dari $total hari',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: _headerText,
+                color: t.headerText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1340,9 +1334,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _tableBorder),
+                      border: Border.all(color: t.border),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
@@ -1350,14 +1344,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                         isDense: true,
                         isExpanded: true,
                         borderRadius: BorderRadius.circular(8),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.keyboard_arrow_down,
                           size: 18,
-                          color: _headerText,
+                          color: t.headerText,
                         ),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: _cellText,
+                          color: t.cellText,
                           fontWeight: FontWeight.w600,
                         ),
                         items: _itemsPerPageOptions.map(
@@ -1389,15 +1383,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       const EdgeInsets.symmetric(horizontal: 12),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.10),
+                    color: t.accent.withOpacity(0.10),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'Hal $_currentPage / $totalPages',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: _accent,
+                      color: t.accent,
                     ),
                   ),
                 ),
@@ -1414,7 +1408,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       );
     }
 
-    // Desktop / tablet
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
@@ -1422,9 +1415,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         vertical: 12,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1433,9 +1426,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           Flexible(
             child: Text(
               'Menampilkan $startItem–$endItem dari $total hari',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: _headerText,
+                color: t.headerText,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1451,9 +1444,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _tableBorder),
+                    border: Border.all(color: t.border),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<int>(
@@ -1461,14 +1454,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       isDense: true,
                       isExpanded: true,
                       borderRadius: BorderRadius.circular(8),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.keyboard_arrow_down,
                         size: 18,
-                        color: _headerText,
+                        color: t.headerText,
                       ),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: _cellText,
+                        color: t.cellText,
                         fontWeight: FontWeight.w600,
                       ),
                       items: _itemsPerPageOptions.map(
@@ -1502,15 +1495,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     const EdgeInsets.symmetric(horizontal: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.10),
+                  color: t.accent.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Hal $_currentPage / $totalPages',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _accent,
+                    color: t.accent,
                   ),
                 ),
               ),
@@ -1536,8 +1529,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required IconData icon,
     required VoidCallback? onTap,
   }) {
+    final t = theme;
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -1550,16 +1544,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: onTap == null
-                  ? const Color(0xFFE5E7EB)
-                  : const Color(0xFFD1D5DB),
+                  ? t.border
+                  : AppColors.grey300,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
             color: onTap == null
-                ? const Color(0xFFD1D5DB)
-                : const Color(0xFF374151),
+                ? AppColors.grey300
+                : AppColors.grey700,
           ),
         ),
       ),
@@ -1571,27 +1565,28 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildError() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: t.danger.withOpacity(0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(color: t.danger.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
-            color: _dangerColor,
+            color: t.danger,
             size: 48,
           ),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _dangerColor,
+            style: TextStyle(
+              color: t.danger,
               fontSize: 13,
               height: 1.4,
             ),
@@ -1602,8 +1597,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius),
@@ -1620,6 +1615,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // ============================================================
 
   Widget _buildEmptyState() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -1629,23 +1625,23 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: t.accent.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.bar_chart_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: t.accent.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Belum ada transaksi',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _mutedText,
+              color: t.mutedText,
             ),
           ),
           const SizedBox(height: 4),
@@ -1654,7 +1650,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF94A3B8),
+              color: AppColors.grey400,
             ),
           ),
         ],
@@ -1664,7 +1660,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 }
 
 // ============================================================
-// HELPER WIDGET — HEADER TABEL
+// HELPER WIDGET — TABLE HEADER
 // ============================================================
 
 class _TableHeader extends StatelessWidget {
@@ -1674,11 +1670,13 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Theme diambil dari provider agar warnanya sesuai role
+    final t = AdminThemeProvider.of(context);
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF6B7280),
+            color: t.headerText,
           ),
     );
   }

@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../../data/admin_activity_data.dart';
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class AdminVerificationScreen extends StatefulWidget {
   final ValueChanged<int>? onPendingCountChanged;
@@ -18,21 +21,14 @@ class AdminVerificationScreen extends StatefulWidget {
 
 class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
-  // DESIGN TOKENS
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _warningColor = Color(0xFFD97706);
-  static const Color _purpleColor = Color(0xFF7C3AED);
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
+  // ============================================================
+  // TOKENS
+  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -141,8 +137,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        if (decoded is! Map)
+        if (decoded is! Map) {
           throw Exception('Format response API tidak valid.');
+        }
 
         final dynamic statistics = decoded['statistics'];
         if (statistics is Map) {
@@ -165,7 +162,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               ? item
               : Map<String, dynamic>.from(item);
           final rawUser = mitra['user'];
-          final user = rawUser is Map ? Map<String, dynamic>.from(rawUser) : {};
+          final user =
+              rawUser is Map ? Map<String, dynamic>.from(rawUser) : {};
 
           final String name =
               user['name']?.toString() ??
@@ -273,7 +271,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               ? item
               : Map<String, dynamic>.from(item);
           final rawUser = mitra['user'];
-          final user = rawUser is Map ? Map<String, dynamic>.from(rawUser) : {};
+          final user =
+              rawUser is Map ? Map<String, dynamic>.from(rawUser) : {};
 
           List<dynamic> skillPhotos = [];
           if (mitra['skill_photos'] is List) {
@@ -431,7 +430,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return ((total - 1) ~/ _itemsPerPage) + 1;
   }
 
-  List<Map<String, dynamic>> _slice(List<Map<String, dynamic>> list, int page) {
+  List<Map<String, dynamic>> _slice(
+    List<Map<String, dynamic>> list,
+    int page,
+  ) {
     final start = (page - 1) * _itemsPerPage;
     if (start >= list.length) return [];
     final end = (start + _itemsPerPage).clamp(0, list.length);
@@ -565,10 +567,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
       if (difference.isNegative) return 'Baru saja';
       if (difference.inMinutes < 1) return 'Baru saja';
-      if (difference.inMinutes < 60)
+      if (difference.inMinutes < 60) {
         return '${difference.inMinutes} menit lalu';
-      if (difference.inHours < 24) return '${difference.inHours} jam lalu';
-      if (difference.inDays < 7) return '${difference.inDays} hari lalu';
+      }
+      if (difference.inHours < 24) {
+        return '${difference.inHours} jam lalu';
+      }
+      if (difference.inDays < 7) {
+        return '${difference.inDays} hari lalu';
+      }
       return '${date.day}/${date.month}/${date.year}';
     } catch (_) {
       return 'Baru saja';
@@ -577,13 +584,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
   void _message(String text, {bool error = false}) {
     if (!mounted) return;
+    final t = theme;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(text),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: error ? _dangerColor : _successColor,
+          backgroundColor: error ? t.danger : t.success,
         ),
       );
   }
@@ -619,6 +627,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) {
+            final t = theme;
             final textTheme = Theme.of(dialogContext).textTheme;
             return Dialog(
               shape: RoundedRectangleBorder(
@@ -639,17 +648,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       _dialogHeader(
                         dialogContext,
                         icon: Icons.check_circle_outline,
-                        color: _successColor,
+                        color: t.success,
                         title: 'Approve Mitra',
                       ),
                       const SizedBox(height: 12),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: t.divider),
                       const SizedBox(height: 16),
                       Text(
                         'Yakin ingin memverifikasi $name?\n\n'
                         'Pastikan identitas dan bukti keahlian sudah sesuai.',
                         style: textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF374151),
+                          color: AppColors.grey700,
                           height: 1.5,
                         ),
                       ),
@@ -662,12 +671,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                   Navigator.pop(dialogContext, false),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 46),
-                                foregroundColor: const Color(0xFF374151),
+                                foregroundColor: AppColors.grey700,
                                 side: const BorderSide(
-                                  color: Color(0xFFD1D5DB),
+                                  color: AppColors.grey300,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: const Text(
@@ -694,12 +704,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _successColor,
-                                foregroundColor: Colors.white,
+                                backgroundColor: t.success,
+                                foregroundColor: AppColors.white,
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                             ),
@@ -774,6 +785,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
+        final t = theme;
         final controller = TextEditingController();
         final textTheme = Theme.of(dialogContext).textTheme;
 
@@ -796,16 +808,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   _dialogHeader(
                     dialogContext,
                     icon: Icons.cancel_outlined,
-                    color: _dangerColor,
+                    color: t.danger,
                     title: 'Tolak Pendaftaran',
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
                   Text(
                     'Berikan alasan penolakan untuk $name.',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF374151),
+                      color: AppColors.grey700,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -818,25 +830,23 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           'Contoh: KTP tidak jelas atau bukti keahlian tidak sesuai.',
                       hintStyle: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF9CA3AF),
+                        color: AppColors.grey400,
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
+                      fillColor: AppColors.grey50,
                       contentPadding: const EdgeInsets.all(12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(color: _tableBorder),
+                        borderSide: BorderSide(color: t.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(color: _tableBorder),
+                        borderSide: BorderSide(color: t.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _accent,
-                          width: 1.5,
-                        ),
+                        borderSide:
+                            BorderSide(color: t.accent, width: 1.5),
                       ),
                     ),
                   ),
@@ -851,8 +861,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           },
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            foregroundColor: AppColors.grey700,
+                            side: const BorderSide(
+                              color: AppColors.grey300,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(_radius),
                             ),
@@ -885,8 +897,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _dangerColor,
-                            foregroundColor: Colors.white,
+                            backgroundColor: t.danger,
+                            foregroundColor: AppColors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -964,6 +976,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) {
+            final t = theme;
             final textTheme = Theme.of(dialogContext).textTheme;
             return Dialog(
               shape: RoundedRectangleBorder(
@@ -984,19 +997,19 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       _dialogHeader(
                         dialogContext,
                         icon: Icons.check_circle_outline,
-                        color: _successColor,
+                        color: t.success,
                         title: 'Setujui Perubahan Keahlian',
                       ),
                       const SizedBox(height: 12),
-                      const Divider(height: 1),
+                      Divider(height: 1, color: t.divider),
                       const SizedBox(height: 16),
                       Text(
                         'Setujui perubahan keahlian $name?\n\n'
                         'Keahlian baru: "$newSkill"\n\n'
-                        'Setelah disetujui, mitra hanya akan menerima pekerjaan '
-                        'yang sesuai dengan keahlian baru ini.',
+                        'Setelah disetujui, mitra hanya akan menerima '
+                        'pekerjaan yang sesuai dengan keahlian baru ini.',
                         style: textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF374151),
+                          color: AppColors.grey700,
                           height: 1.5,
                         ),
                       ),
@@ -1009,12 +1022,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                   Navigator.pop(dialogContext, false),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 46),
-                                foregroundColor: const Color(0xFF374151),
+                                foregroundColor: AppColors.grey700,
                                 side: const BorderSide(
-                                  color: Color(0xFFD1D5DB),
+                                  color: AppColors.grey300,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                               child: const Text(
@@ -1041,12 +1055,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _successColor,
-                                foregroundColor: Colors.white,
+                                backgroundColor: t.success,
+                                foregroundColor: AppColors.white,
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                             ),
@@ -1111,6 +1126,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
+        final t = theme;
         final controller = TextEditingController();
         final textTheme = Theme.of(dialogContext).textTheme;
 
@@ -1133,16 +1149,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   _dialogHeader(
                     dialogContext,
                     icon: Icons.cancel_outlined,
-                    color: _dangerColor,
+                    color: t.danger,
                     title: 'Tolak Perubahan Keahlian',
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
                   Text(
                     'Berikan alasan penolakan untuk $name.',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF374151),
+                      color: AppColors.grey700,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1155,25 +1171,23 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           'Contoh: Keahlian baru belum didukung sertifikat/bukti.',
                       hintStyle: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF9CA3AF),
+                        color: AppColors.grey400,
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
+                      fillColor: AppColors.grey50,
                       contentPadding: const EdgeInsets.all(12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(color: _tableBorder),
+                        borderSide: BorderSide(color: t.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(color: _tableBorder),
+                        borderSide: BorderSide(color: t.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _accent,
-                          width: 1.5,
-                        ),
+                        borderSide:
+                            BorderSide(color: t.accent, width: 1.5),
                       ),
                     ),
                   ),
@@ -1188,8 +1202,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           },
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            foregroundColor: AppColors.grey700,
+                            side: const BorderSide(
+                              color: AppColors.grey300,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(_radius),
                             ),
@@ -1223,8 +1239,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _dangerColor,
-                            foregroundColor: Colors.white,
+                            backgroundColor: t.danger,
+                            foregroundColor: AppColors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -1275,7 +1291,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // DIALOG HEADER HELPER
+  // DIALOG HEADER
   // ============================================================
 
   Widget _dialogHeader(
@@ -1284,6 +1300,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     required Color color,
     required String title,
   }) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
@@ -1302,13 +1319,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             title,
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: _cellText,
+              color: t.cellText,
             ),
           ),
         ),
         IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close, size: 20, color: _headerText),
+          icon: Icon(Icons.close, size: 20, color: t.headerText),
           splashRadius: 22,
         ),
       ],
@@ -1320,6 +1337,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   void _viewSkillPhotos(Map<String, dynamic> item) {
+    final t = theme;
     final String name = item['name']?.toString() ?? 'Mitra';
     final String currentSkills = item['current_skills']?.toString() ?? '-';
     final String pendingSkills = item['pending_skills']?.toString() ?? '-';
@@ -1373,12 +1391,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _purpleColor.withOpacity(0.12),
+                          color: AppColors.purple.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
                         child: const Icon(
                           Icons.photo_library_outlined,
-                          color: _purpleColor,
+                          color: AppColors.purple,
                           size: 20,
                         ),
                       ),
@@ -1388,23 +1406,23 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           'Foto Bukti: $name',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
                           size: 20,
-                          color: _headerText,
+                          color: t.headerText,
                         ),
                         splashRadius: 22,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
                   Flexible(
                     child: SingleChildScrollView(
@@ -1413,7 +1431,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         children: [
                           _sectionBanner(
                             icon: Icons.fiber_new,
-                            color: _purpleColor,
+                            color: AppColors.purple,
                             text: 'Foto Keahlian BARU — "$pendingSkills"',
                           ),
                           const SizedBox(height: 10),
@@ -1425,7 +1443,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 'Akan pakai foto lama setelah di-ACC.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF94A3B8),
+                                  color: AppColors.grey400,
                                 ),
                               ),
                             )
@@ -1435,7 +1453,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               runSpacing: 8,
                               children: newPhotos
                                   .map(
-                                    (url) => _skillPhotoThumb(url, 'Foto Baru'),
+                                    (url) =>
+                                        _skillPhotoThumb(url, 'Foto Baru'),
                                   )
                                   .toList(),
                             ),
@@ -1443,7 +1462,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             const SizedBox(height: 20),
                             _sectionBanner(
                               icon: Icons.assignment,
-                              color: _warningColor,
+                              color: AppColors.amber,
                               text: 'Sertifikat BARU (${newCerts.length})',
                             ),
                             const SizedBox(height: 10),
@@ -1465,8 +1484,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           const SizedBox(height: 24),
                           _sectionBanner(
                             icon: Icons.history,
-                            color: _mutedText,
-                            text: 'Foto Keahlian SAAT INI — "$currentSkills"',
+                            color: AppColors.grey500,
+                            text:
+                                'Foto Keahlian SAAT INI — "$currentSkills"',
                           ),
                           const SizedBox(height: 10),
                           if (oldPhotos.isEmpty)
@@ -1476,7 +1496,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 'Belum ada foto keahlian tersimpan.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF94A3B8),
+                                  color: AppColors.grey400,
                                 ),
                               ),
                             )
@@ -1486,7 +1506,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               runSpacing: 8,
                               children: oldPhotos
                                   .map(
-                                    (url) => _skillPhotoThumb(url, 'Foto Lama'),
+                                    (url) =>
+                                        _skillPhotoThumb(url, 'Foto Lama'),
                                   )
                                   .toList(),
                             ),
@@ -1494,8 +1515,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             const SizedBox(height: 20),
                             _sectionBanner(
                               icon: Icons.assignment,
-                              color: _mutedText,
-                              text: 'Sertifikat SAAT INI (${oldCerts.length})',
+                              color: AppColors.grey500,
+                              text:
+                                  'Sertifikat SAAT INI (${oldCerts.length})',
                             ),
                             const SizedBox(height: 10),
                             Wrap(
@@ -1565,14 +1587,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         child: Container(
           width: 140,
           height: 140,
-          color: const Color(0xFFF9FAFB),
+          color: AppColors.grey50,
           child: Image.network(
             url,
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => const Icon(
               Icons.broken_image_outlined,
               size: 40,
-              color: Color(0xFF9CA3AF),
+              color: AppColors.grey400,
             ),
           ),
         ),
@@ -1585,8 +1607,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   void _viewDocuments(Map<String, dynamic> partner) {
+    final t = theme;
     final String? profilePhoto = partner['profile_photo']?.toString();
-    final String? verificationImage = partner['verification_image']?.toString();
+    final String? verificationImage =
+        partner['verification_image']?.toString();
     final String? selfieImage = partner['selfie_image']?.toString();
     final dynamic certificateRaw = partner['certificate'];
     final dynamic skillPhotosRaw = partner['skill_photos'];
@@ -1693,12 +1717,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _purpleColor.withOpacity(0.12),
+                          color: AppColors.purple.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
                         child: const Icon(
                           Icons.folder_open,
-                          color: _purpleColor,
+                          color: AppColors.purple,
                           size: 20,
                         ),
                       ),
@@ -1711,14 +1735,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               'Berkas ${partner['name'] ?? 'Mitra'}',
                               style: textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: _cellText,
+                                color: t.cellText,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${docs.length} berkas',
                               style: textTheme.labelSmall?.copyWith(
-                                color: _mutedText,
+                                color: t.mutedText,
                               ),
                             ),
                           ],
@@ -1726,17 +1750,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
                           size: 20,
-                          color: _headerText,
+                          color: t.headerText,
                         ),
                         splashRadius: 22,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
                   Flexible(
                     child: docs.isEmpty
@@ -1748,7 +1772,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 Icon(
                                   Icons.folder_off_outlined,
                                   size: 48,
-                                  color: Color(0xFFCBD5E1),
+                                  color: AppColors.grey300,
                                 ),
                                 SizedBox(height: 12),
                                 Text(
@@ -1756,7 +1780,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Color(0xFF94A3B8),
+                                    color: AppColors.grey400,
                                   ),
                                 ),
                               ],
@@ -1773,7 +1797,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                     doc['title']?.toString() ?? 'Dokumen';
                                 final iconData =
                                     doc['icon'] as IconData? ??
-                                    Icons.image_outlined;
+                                        Icons.image_outlined;
 
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 20),
@@ -1787,9 +1811,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                             width: 28,
                                             height: 28,
                                             decoration: BoxDecoration(
-                                              color: _purpleColor.withOpacity(
-                                                0.12,
-                                              ),
+                                              color: AppColors.purple
+                                                  .withOpacity(0.12),
                                               borderRadius:
                                                   BorderRadius.circular(7),
                                             ),
@@ -1797,7 +1820,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                             child: Icon(
                                               iconData,
                                               size: 15,
-                                              color: _purpleColor,
+                                              color: AppColors.purple,
                                             ),
                                           ),
                                           const SizedBox(width: 8),
@@ -1806,9 +1829,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                               title,
                                               style: textTheme.bodyMedium
                                                   ?.copyWith(
-                                                    fontWeight: FontWeight.w700,
-                                                    color: _cellText,
-                                                  ),
+                                                fontWeight: FontWeight.w700,
+                                                color: t.cellText,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -1833,52 +1856,46 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                   width: double.infinity,
                                                   height: 200,
                                                   fit: BoxFit.cover,
-                                                  loadingBuilder:
-                                                      (
-                                                        context,
-                                                        child,
-                                                        progress,
-                                                      ) {
-                                                        if (progress == null) {
-                                                          return child;
-                                                        }
-                                                        return Container(
-                                                          width:
-                                                              double.infinity,
-                                                          height: 200,
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(
-                                                              0xFFF9FAFB,
-                                                            ),
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  _radius,
-                                                                ),
-                                                          ),
-                                                          child: const Center(
-                                                            child:
-                                                                CircularProgressIndicator(
-                                                                  strokeWidth:
-                                                                      2,
-                                                                ),
-                                                          ),
-                                                        );
-                                                      },
-                                                  errorBuilder: (_, __, ___) => Container(
+                                                  loadingBuilder: (context,
+                                                      child, progress) {
+                                                    if (progress == null) {
+                                                      return child;
+                                                    }
+                                                    return Container(
+                                                      width: double.infinity,
+                                                      height: 200,
+                                                      decoration:
+                                                          BoxDecoration(
+                                                        color:
+                                                            AppColors.grey50,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(
+                                                                    _radius),
+                                                      ),
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  errorBuilder:
+                                                      (_, __, ___) =>
+                                                          Container(
                                                     width: double.infinity,
                                                     height: 200,
                                                     decoration: BoxDecoration(
-                                                      color: const Color(
-                                                        0xFFFEF2F2,
-                                                      ),
+                                                      color:
+                                                          AppColors.grey50,
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                            _radius,
-                                                          ),
+                                                        _radius,
+                                                      ),
                                                       border: Border.all(
-                                                        color: const Color(
-                                                          0xFFFCA5A5,
-                                                        ),
+                                                        color:
+                                                            AppColors.grey300,
                                                       ),
                                                     ),
                                                     child: const Column(
@@ -1890,18 +1907,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                           Icons
                                                               .broken_image_outlined,
                                                           size: 42,
-                                                          color: Color(
-                                                            0xFFDC2626,
-                                                          ),
+                                                          color: AppColors
+                                                              .danger,
                                                         ),
                                                         SizedBox(height: 8),
                                                         Text(
                                                           'Gagal memuat gambar',
                                                           style: TextStyle(
                                                             fontSize: 12,
-                                                            color: Color(
-                                                              0xFFDC2626,
-                                                            ),
+                                                            color: AppColors
+                                                                .danger,
                                                           ),
                                                         ),
                                                       ],
@@ -1919,7 +1934,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                         vertical: 6,
                                                       ),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.black
+                                                    color: AppColors.black
                                                         .withOpacity(0.6),
                                                     borderRadius:
                                                         BorderRadius.circular(
@@ -1932,14 +1947,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                     children: [
                                                       Icon(
                                                         Icons.zoom_in,
-                                                        color: Colors.white,
+                                                        color:
+                                                            AppColors.white,
                                                         size: 14,
                                                       ),
                                                       SizedBox(width: 4),
                                                       Text(
                                                         'Perbesar',
                                                         style: TextStyle(
-                                                          color: Colors.white,
+                                                          color:
+                                                              AppColors.white,
                                                           fontSize: 10,
                                                           fontWeight:
                                                               FontWeight.w600,
@@ -1957,17 +1974,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                           width: double.infinity,
                                           height: 100,
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFF9FAFB),
-                                            borderRadius: BorderRadius.circular(
-                                              _radius,
-                                            ),
+                                            color: AppColors.grey50,
+                                            borderRadius:
+                                                BorderRadius.circular(_radius),
                                           ),
                                           child: const Center(
                                             child: Text(
                                               'Path gambar tidak valid',
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Color(0xFF94A3B8),
+                                                color: AppColors.grey400,
                                               ),
                                             ),
                                           ),
@@ -1987,8 +2003,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           onPressed: () => Navigator.pop(dialogContext),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 44),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            foregroundColor: AppColors.grey700,
+                            side: const BorderSide(
+                              color: AppColors.grey300,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(_radius),
                             ),
@@ -2018,6 +2036,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   void _viewFullData(Map<String, dynamic> partner) {
+    final t = theme;
     final String? profilePhoto = partner['profile_photo']?.toString();
     final String? ktpPath = partner['verification_image']?.toString();
     final String? selfiePath = partner['selfie_image']?.toString();
@@ -2046,9 +2065,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     children: [
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor: _infoColor.withOpacity(0.12),
-                        backgroundImage:
-                            (profilePhoto != null &&
+                        backgroundColor:
+                            AppColors.infoBlue.withOpacity(0.12),
+                        backgroundImage: (profilePhoto != null &&
                                 profilePhoto.isNotEmpty &&
                                 profilePhoto != 'null')
                             ? NetworkImage(_buildImageUrl(profilePhoto))
@@ -2060,7 +2079,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             ? const Icon(
                                 Icons.person,
                                 size: 26,
-                                color: _infoColor,
+                                color: AppColors.infoBlue,
                               )
                             : null,
                       ),
@@ -2073,14 +2092,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               partner['name']?.toString() ?? 'Mitra',
                               style: textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: _cellText,
+                                color: t.cellText,
                               ),
                             ),
                             const SizedBox(height: 3),
                             Text(
                               partner['email']?.toString() ?? '-',
                               style: textTheme.bodySmall?.copyWith(
-                                color: _mutedText,
+                                color: t.mutedText,
                               ),
                             ),
                           ],
@@ -2092,7 +2111,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: _successColor.withOpacity(0.12),
+                          color: t.success.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -2101,14 +2120,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             Icon(
                               Icons.verified,
                               size: 12,
-                              color: _successColor,
+                              color: t.success,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Terverifikasi',
                               style: textTheme.labelSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
-                                color: _successColor,
+                                color: t.success,
                               ),
                             ),
                           ],
@@ -2116,17 +2135,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
                           size: 20,
-                          color: _headerText,
+                          color: t.headerText,
                         ),
                         splashRadius: 22,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
 
                   Flexible(
@@ -2139,14 +2158,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             Icons.badge_outlined,
                           ),
                           const SizedBox(height: 10),
-                          _dataRow('Nama Lengkap', partner['name']),
-                          _dataRow('Email', partner['email']),
-                          _dataRow('Nomor HP', partner['phone']),
-                          _dataRow('Jenis Kelamin', partner['gender']),
-                          _dataRow('Tanggal Lahir', partner['birth_date']),
-                          _dataRow('Kota', partner['city']),
-                          _dataRow('Alamat', partner['address']),
-                          _dataRow('Deskripsi', partner['bio']),
+                          _dataRow('Nama Lengkap', partner['name'], t),
+                          _dataRow('Email', partner['email'], t),
+                          _dataRow('Nomor HP', partner['phone'], t),
+                          _dataRow('Jenis Kelamin', partner['gender'], t),
+                          _dataRow(
+                            'Tanggal Lahir',
+                            partner['birth_date'],
+                            t,
+                          ),
+                          _dataRow('Kota', partner['city'], t),
+                          _dataRow('Alamat', partner['address'], t),
+                          _dataRow('Deskripsi', partner['bio'], t),
 
                           const SizedBox(height: 20),
                           _dialogSectionTitle(
@@ -2154,15 +2177,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             Icons.handyman_outlined,
                           ),
                           const SizedBox(height: 10),
-                          _dataRow('Kategori', partner['category']),
-                          _dataRow('Poin', '${partner['point'] ?? 0}'),
+                          _dataRow('Kategori', partner['category'], t),
+                          _dataRow('Poin', '${partner['point'] ?? 0}', t),
                           _dataRow(
                             'Rating',
                             (partner['rating'] ?? 0).toStringAsFixed(1),
+                            t,
                           ),
                           _dataRow(
                             'Pekerjaan Selesai',
                             '${partner['jobs_completed'] ?? 0}',
+                            t,
                           ),
 
                           const SizedBox(height: 20),
@@ -2171,12 +2196,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             Icons.account_balance_outlined,
                           ),
                           const SizedBox(height: 10),
-                          _dataRow('Nama Bank', partner['bank_name']),
+                          _dataRow('Nama Bank', partner['bank_name'], t),
                           _dataRow(
                             'No. Rekening',
                             partner['bank_account_number'],
+                            t,
                           ),
-                          _dataRow('Atas Nama', partner['bank_account_name']),
+                          _dataRow(
+                            'Atas Nama',
+                            partner['bank_account_name'],
+                            t,
+                          ),
 
                           const SizedBox(height: 20),
                           _dialogSectionTitle(
@@ -2192,6 +2222,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               'KTP / Identitas',
                               ktpPath,
                               Icons.credit_card_outlined,
+                              t,
                             ),
                           if (selfiePath != null &&
                               selfiePath.isNotEmpty &&
@@ -2200,6 +2231,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               'Selfie Verifikasi',
                               selfiePath,
                               Icons.camera_front_outlined,
+                              t,
                             ),
 
                           const SizedBox(height: 8),
@@ -2210,40 +2242,53 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 Navigator.pop(dialogContext);
                                 _viewDocuments(partner);
                               },
-                              icon: const Icon(Icons.folder_open, size: 16),
+                              icon: const Icon(
+                                Icons.folder_open,
+                                size: 16,
+                              ),
                               label: const Text(
                                 'Lihat Semua Berkas',
                                 style: TextStyle(fontSize: 13),
                               ),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: _purpleColor,
+                                foregroundColor: AppColors.purple,
                                 side: BorderSide(
-                                  color: _purpleColor.withOpacity(0.4),
+                                  color: AppColors.purple.withOpacity(0.4),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(_radius),
+                                  borderRadius:
+                                      BorderRadius.circular(_radius),
                                 ),
                               ),
                             ),
                           ),
 
                           const SizedBox(height: 20),
-                          _dialogSectionTitle('Status', Icons.info_outline),
+                          _dialogSectionTitle(
+                            'Status',
+                            Icons.info_outline,
+                          ),
                           const SizedBox(height: 10),
                           _dataRow(
                             'Status Verifikasi',
                             partner['is_verified'] == true
                                 ? 'Terverifikasi'
                                 : 'Belum Diverifikasi',
+                            t,
                           ),
                           _dataRow(
                             'Tanggal Verifikasi',
                             partner['verified_at'],
+                            t,
                           ),
-                          _dataRow('Terdaftar Sejak', partner['created_at']),
+                          _dataRow(
+                            'Terdaftar Sejak',
+                            partner['created_at'],
+                            t,
+                          ),
                         ],
                       ),
                     ),
@@ -2257,8 +2302,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           onPressed: () => Navigator.pop(dialogContext),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 44),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            foregroundColor: AppColors.grey700,
+                            side: const BorderSide(
+                              color: AppColors.grey300,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(_radius),
                             ),
@@ -2284,26 +2331,28 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   Widget _dialogSectionTitle(String title, IconData icon) {
+    final t = theme;
     return Row(
       children: [
-        Icon(icon, size: 16, color: _accent),
+        Icon(icon, size: 16, color: t.accent),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: _cellText,
+            color: t.cellText,
           ),
         ),
       ],
     );
   }
 
-  Widget _dataRow(String label, dynamic value) {
-    final text = (value == null || value.toString().isEmpty || value == 'null')
-        ? '-'
-        : value.toString();
+  Widget _dataRow(String label, dynamic value, AdminTheme t) {
+    final text =
+        (value == null || value.toString().isEmpty || value == 'null')
+            ? '-'
+            : value.toString();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -2314,17 +2363,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             width: 130,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 12.5, color: _mutedText),
+              style: TextStyle(fontSize: 12.5, color: t.mutedText),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -2333,7 +2382,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  Widget _imageThumb(String label, String path, IconData icon) {
+  Widget _imageThumb(
+    String label,
+    String path,
+    IconData icon,
+    AdminTheme t,
+  ) {
     final url = _buildImageUrl(path);
     if (url.isEmpty) return const SizedBox();
 
@@ -2344,14 +2398,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: _purpleColor),
+              Icon(icon, size: 14, color: AppColors.purple),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
               ),
             ],
@@ -2369,13 +2423,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 errorBuilder: (_, __, ___) => Container(
                   height: 140,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
+                    color: AppColors.grey50,
                     borderRadius: BorderRadius.circular(_radius),
                   ),
                   child: const Center(
                     child: Text(
                       'Gagal memuat',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey500,
+                      ),
                     ),
                   ),
                 ),
@@ -2389,17 +2446,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
   // ============================================================
   // BUILD — header selalu tampil, loading spinner di bawah header
-  //         (sama persis dengan AdminComplaintScreen)
   // ============================================================
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return AnimatedBuilder(
       animation: AdminActivityData.instance,
       builder: (context, _) => Container(
         width: double.infinity,
         height: double.infinity,
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: t.bg,
         child: RefreshIndicator(
           onRefresh: () async {
             if (_selectedTab == 'pending') {
@@ -2410,7 +2467,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               await _fetchPendingSkills();
             }
           },
-          color: _accent,
+          color: t.accent,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
@@ -2436,10 +2493,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     const SizedBox(height: _gapAfterHeader),
 
                     if (isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 60),
-                          child: CircularProgressIndicator(color: _accent),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: t.accent,
+                          ),
                         ),
                       )
                     else ...[
@@ -2456,7 +2515,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         _buildPendingSkillsList(isMobile),
                       ],
 
-                      if (_selectedTab == 'pending' && partners.isNotEmpty) ...[
+                      if (_selectedTab == 'pending' &&
+                          partners.isNotEmpty) ...[
                         const SizedBox(height: _gapBetweenSections),
                         _buildPaginationFullWidth(
                           total: partners.length,
@@ -2481,7 +2541,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         _buildPaginationFullWidth(
                           total: pendingSkillsList.length,
                           currentPage: _skillsPage,
-                          onPageChanged: (p) => setState(() => _skillsPage = p),
+                          onPageChanged: (p) =>
+                              setState(() => _skillsPage = p),
                           label: 'pengajuan',
                         ),
                       ],
@@ -2499,6 +2560,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -2512,41 +2574,32 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 'Verifikasi Mitra',
                 style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: t.cellText,
                 ),
               ),
             ),
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                onPressed: () async {
-                  if (_selectedTab == 'pending') {
-                    await _fetchUnverifiedMitra();
-                  } else if (_selectedTab == 'verified') {
-                    await _fetchVerifiedMitra();
-                  } else {
-                    await _fetchPendingSkills();
-                  }
-                  if (!mounted) return;
-                  _message('Data diperbarui.');
-                },
-                icon: const Icon(Icons.refresh, size: 20, color: _mutedText),
-                tooltip: 'Refresh',
-                padding: EdgeInsets.zero,
-                splashRadius: 16,
-                constraints: const BoxConstraints.tightFor(
-                  width: 32,
-                  height: 32,
-                ),
-                visualDensity: VisualDensity.compact,
-              ),
+            IconButton(
+              onPressed: () async {
+                if (_selectedTab == 'pending') {
+                  await _fetchUnverifiedMitra();
+                } else if (_selectedTab == 'verified') {
+                  await _fetchVerifiedMitra();
+                } else {
+                  await _fetchPendingSkills();
+                }
+                if (!mounted) return;
+                _message('Data diperbarui.');
+              },
+              icon: Icon(Icons.refresh, size: 20, color: t.mutedText),
+              tooltip: 'Refresh',
+              splashRadius: 22,
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           _subtitleForTab(),
-          style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -2568,12 +2621,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   Widget _buildTabSelector(bool mobile) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: AppColors.grey100,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         children: [
@@ -2582,7 +2636,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               label: 'Menunggu',
               count: partners.length,
               isActive: _selectedTab == 'pending',
-              activeColor: _warningColor,
+              activeColor: t.warning,
               onTap: () => setState(() => _selectedTab = 'pending'),
             ),
           ),
@@ -2592,7 +2646,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               label: mobile ? 'Verified' : 'Terverifikasi',
               count: verifiedPartners.length,
               isActive: _selectedTab == 'verified',
-              activeColor: _successColor,
+              activeColor: t.success,
               onTap: () => setState(() => _selectedTab = 'verified'),
             ),
           ),
@@ -2602,8 +2656,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               label: mobile ? 'Keahlian' : 'Perubahan Keahlian',
               count: pendingSkillsList.length,
               isActive: _selectedTab == 'pendingSkills',
-              activeColor: _purpleColor,
-              onTap: () => setState(() => _selectedTab = 'pendingSkills'),
+              activeColor: AppColors.purple,
+              onTap: () =>
+                  setState(() => _selectedTab = 'pendingSkills'),
             ),
           ),
         ],
@@ -2618,17 +2673,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     required Color activeColor,
     required VoidCallback onTap,
   }) {
+    final t = theme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
+          color: isActive ? AppColors.white : AppColors.transparent,
           borderRadius: BorderRadius.circular(8),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: AppColors.black.withOpacity(0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -2644,18 +2700,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  color: isActive ? activeColor : _mutedText,
+                  fontWeight:
+                      isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? activeColor : t.mutedText,
                 ),
               ),
             ),
             const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isActive
                     ? activeColor.withOpacity(0.12)
-                    : const Color(0xFFCBD5E1).withOpacity(0.4),
+                    : AppColors.grey300.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -2663,7 +2721,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? activeColor : _mutedText,
+                  color: isActive ? activeColor : t.mutedText,
                 ),
               ),
             ),
@@ -2685,6 +2743,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }) {
     if (total == 0) return const SizedBox.shrink();
 
+    final t = theme;
     final totalPages = _totalPagesFor(total);
     final startItem = (currentPage - 1) * _itemsPerPage + 1;
     final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
@@ -2693,9 +2752,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2703,9 +2762,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           Flexible(
             child: Text(
               'Menampilkan $startItem–$endItem dari $total $label',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: _headerText,
+                color: t.headerText,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -2719,25 +2778,25 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _tableBorder),
+                  border: Border.all(color: t.border),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: _itemsPerPage,
                     isDense: true,
-                    icon: const Padding(
-                      padding: EdgeInsets.only(left: 4),
+                    icon: Padding(
+                      padding: const EdgeInsets.only(left: 4),
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         size: 16,
-                        color: _headerText,
+                        color: t.headerText,
                       ),
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
-                      color: _cellText,
+                      color: t.cellText,
                       fontWeight: FontWeight.w600,
                     ),
                     items: _itemsPerPageOptions
@@ -2764,6 +2823,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 onTap: currentPage > 1
                     ? () => onPageChanged(currentPage - 1)
                     : null,
+                t: t,
               ),
               const SizedBox(width: 8),
               Container(
@@ -2771,15 +2831,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.10),
+                  color: t.accent.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Hal $currentPage / $totalPages',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: _accent,
+                    color: t.accent,
                   ),
                 ),
               ),
@@ -2789,6 +2849,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 onTap: currentPage < totalPages
                     ? () => onPageChanged(currentPage + 1)
                     : null,
+                t: t,
               ),
             ],
           ),
@@ -2800,9 +2861,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   Widget _paginationIconButton({
     required IconData icon,
     required VoidCallback? onTap,
+    required AdminTheme t,
   }) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -2814,17 +2876,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: onTap == null
-                  ? const Color(0xFFE5E7EB)
-                  : const Color(0xFFD1D5DB),
+              color: onTap == null ? t.border : AppColors.grey300,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
             color: onTap == null
-                ? const Color(0xFFD1D5DB)
-                : const Color(0xFF374151),
+                ? AppColors.grey300
+                : AppColors.grey700,
           ),
         ),
       ),
@@ -2836,27 +2896,31 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   Widget _summary(bool mobile) {
+    final t = theme;
     final cards = [
       _summaryCard(
         title: 'Menunggu',
         value: waitingCount.toString(),
         subtitle: 'Perlu Ditinjau',
         icon: Icons.hourglass_empty,
-        color: _warningColor,
+        color: t.warning,
+        t: t,
       ),
       _summaryCard(
         title: 'Disetujui',
         value: approvedToday.toString(),
         subtitle: 'Hari Ini',
         icon: Icons.check_circle_outline,
-        color: _successColor,
+        color: t.success,
+        t: t,
       ),
       _summaryCard(
         title: 'Ditolak',
         value: rejected.toString(),
         subtitle: 'Total',
         icon: Icons.cancel_outlined,
-        color: _dangerColor,
+        color: t.danger,
+        t: t,
       ),
     ];
 
@@ -2876,16 +2940,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    required AdminTheme t,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2912,8 +2977,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _mutedText,
+                  style: TextStyle(
+                    color: t.mutedText,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -2923,10 +2988,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: t.cellText,
                     height: 1.1,
                   ),
                 ),
@@ -2937,7 +3002,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 10.5,
-                    color: Color(0xFF94A3B8),
+                    color: AppColors.grey400,
                   ),
                 ),
               ],
@@ -2953,6 +3018,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   Widget _table(bool mobile) {
+    final t = theme;
     final pageItems = _paginatedPartners;
     final baseIndex = (_pendingPage - 1) * _itemsPerPage;
 
@@ -2967,13 +3033,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
-          _tableHeader(),
+          _tableHeader(t),
           ...List.generate(
             pageItems.length,
             (i) => _tableRow(pageItems[i], baseIndex + i),
@@ -2983,133 +3049,90 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  Widget _tableHeader() {
+  Widget _tableHeader(AdminTheme t) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(_radius)),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(_radius),
+        ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(
-            flex: 25,
-            child: Text(
-              'Nama Mitra',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 22,
-            child: Text(
-              'Kategori',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 18,
-            child: Text(
-              'Kota',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 15,
-            child: Text(
-              'Waktu Daftar',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 18,
-            child: Text(
-              'Berkas',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 24,
-            child: Text(
-              'Aksi',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          _headerCell('Nama Mitra', 25, t),
+          _headerCell('Kategori', 22, t),
+          _headerCell('Kota', 18, t),
+          _headerCell('Waktu Daftar', 15, t),
+          _headerCell('Berkas', 18, t),
+          _headerCell('Aksi', 24, t),
         ],
       ),
     );
   }
 
+  Widget _headerCell(String text, int flex, AdminTheme t) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          color: t.headerText,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
   Widget _tableRow(Map<String, dynamic> p, int index) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: _tableDivider)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: t.divider)),
       ),
       child: Row(
         children: [
-          Expanded(flex: 25, child: _name(p)),
+          Expanded(flex: 25, child: _name(p, t)),
           Expanded(
             flex: 22,
             child: Text(
               p['category']?.toString() ?? '-',
-              style: const TextStyle(fontSize: 12.5, color: _cellText),
+              style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
           Expanded(
             flex: 18,
             child: Text(
               p['city']?.toString() ?? '-',
-              style: const TextStyle(fontSize: 12.5, color: _cellText),
+              style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
           Expanded(
             flex: 15,
             child: Text(
               p['time']?.toString() ?? 'Baru saja',
-              style: const TextStyle(fontSize: 12.5, color: _mutedText),
+              style: TextStyle(fontSize: 12.5, color: t.mutedText),
             ),
           ),
-          Expanded(flex: 18, child: _documentButton(p)),
-          Expanded(flex: 24, child: _actions(index)),
+          Expanded(flex: 18, child: _documentButton(p, t)),
+          Expanded(flex: 24, child: _actions(index, t)),
         ],
       ),
     );
   }
 
-  Widget _name(Map<String, dynamic> p) {
+  Widget _name(Map<String, dynamic> p, AdminTheme t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           p['name']?.toString() ?? 'Tanpa Nama',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: _cellText,
+            color: t.cellText,
           ),
         ),
         const SizedBox(height: 3),
@@ -3117,26 +3140,27 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           p['email']?.toString() ?? 'Tanpa Email',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: const TextStyle(fontSize: 11, color: AppColors.grey400),
         ),
       ],
     );
   }
 
-  Widget _documentButton(Map<String, dynamic> p) {
+  Widget _documentButton(Map<String, dynamic> p, AdminTheme t) {
     return Align(
       alignment: Alignment.centerLeft,
       child: _pillButton(
         icon: Icons.attach_file,
         label: 'Lihat Berkas',
-        bgColor: _purpleColor.withOpacity(0.10),
-        fgColor: _purpleColor,
+        bgColor: AppColors.purple.withOpacity(0.10),
+        fgColor: AppColors.purple,
         onTap: () => _viewDocuments(p),
+        t: t,
       ),
     );
   }
 
-  Widget _actions(int index) {
+  Widget _actions(int index, AdminTheme t) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -3144,16 +3168,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.check,
           label: 'Approve',
-          bgColor: _successColor,
-          fgColor: Colors.white,
+          bgColor: t.success,
+          fgColor: AppColors.white,
           onTap: isProcessing ? null : () => _approve(index),
+          t: t,
         ),
         _pillButton(
           icon: Icons.close,
           label: 'Reject',
-          bgColor: _dangerColor.withOpacity(0.10),
-          fgColor: _dangerColor,
+          bgColor: t.danger.withOpacity(0.10),
+          fgColor: t.danger,
           onTap: isProcessing ? null : () => _reject(index),
+          t: t,
         ),
       ],
     );
@@ -3165,9 +3191,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     required Color bgColor,
     required Color fgColor,
     required VoidCallback? onTap,
+    required AdminTheme t,
   }) {
     return Material(
-      color: onTap == null ? const Color(0xFFE5E7EB) : bgColor,
+      color: onTap == null ? AppColors.grey200 : bgColor,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -3180,15 +3207,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               Icon(
                 icon,
                 size: 13,
-                color: onTap == null ? const Color(0xFF9CA3AF) : fgColor,
+                color: onTap == null ? AppColors.grey400 : fgColor,
               ),
               const SizedBox(width: 5),
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: onTap == null ? const Color(0xFF9CA3AF) : fgColor,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color:
+                          onTap == null ? AppColors.grey400 : fgColor,
+                    ),
               ),
             ],
           ),
@@ -3198,32 +3226,33 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   Widget _mobileCard(Map<String, dynamic> p, int index) {
+    final t = theme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _name(p),
+          _name(p, t),
           const SizedBox(height: 10),
           Text(
             '${p['category'] ?? 'Umum'} • ${p['city'] ?? 'Indonesia'}',
-            style: const TextStyle(fontSize: 12, color: _mutedText),
+            style: TextStyle(fontSize: 12, color: t.mutedText),
           ),
           Text(
             p['time']?.toString() ?? 'Baru saja',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(fontSize: 11, color: AppColors.grey400),
           ),
           const SizedBox(height: 10),
-          _documentButton(p),
+          _documentButton(p, t),
           const SizedBox(height: 8),
-          _actions(index),
+          _actions(index, t),
         ],
       ),
     );
@@ -3234,10 +3263,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   Widget _buildVerifiedList(bool mobile) {
+    final t = theme;
     if (isLoadingVerified && verifiedPartners.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: CircularProgressIndicator(color: _accent)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: CircularProgressIndicator(color: t.accent),
+        ),
       );
     }
 
@@ -3261,13 +3293,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
-          _verifiedTableHeader(),
+          _verifiedTableHeader(t),
           ...List.generate(
             pageItems.length,
             (i) => _verifiedTableRow(pageItems[i]),
@@ -3277,121 +3309,64 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  Widget _verifiedTableHeader() {
+  Widget _verifiedTableHeader(AdminTheme t) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(_radius)),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(_radius),
+        ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(
-            flex: 28,
-            child: Text(
-              'Nama Mitra',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 22,
-            child: Text(
-              'Kategori',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 15,
-            child: Text(
-              'Kota',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 12,
-            child: Text(
-              'Poin',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 12,
-            child: Text(
-              'Rating',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 26,
-            child: Text(
-              'Aksi',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          _headerCell('Nama Mitra', 28, t),
+          _headerCell('Kategori', 22, t),
+          _headerCell('Kota', 15, t),
+          _headerCell('Poin', 12, t),
+          _headerCell('Rating', 12, t),
+          _headerCell('Aksi', 26, t),
         ],
       ),
     );
   }
 
   Widget _verifiedTableRow(Map<String, dynamic> p) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: _tableDivider)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: t.divider)),
       ),
       child: Row(
         children: [
-          Expanded(flex: 28, child: _verifiedName(p)),
+          Expanded(flex: 28, child: _verifiedName(p, t)),
           Expanded(
             flex: 22,
             child: Text(
               p['category']?.toString() ?? '-',
-              style: const TextStyle(fontSize: 12.5, color: _cellText),
+              style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
           Expanded(
             flex: 15,
             child: Text(
               p['city']?.toString() ?? '-',
-              style: const TextStyle(fontSize: 12.5, color: _cellText),
+              style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
           Expanded(
             flex: 12,
             child: Row(
               children: [
-                const Icon(Icons.stars, size: 13, color: _warningColor),
+                Icon(Icons.stars, size: 13, color: t.warning),
                 const SizedBox(width: 4),
                 Text(
                   '${p['point'] ?? 0}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 ),
               ],
@@ -3401,26 +3376,26 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 12,
             child: Row(
               children: [
-                const Icon(Icons.star, size: 13, color: _warningColor),
+                Icon(Icons.star, size: 13, color: t.warning),
                 const SizedBox(width: 4),
                 Text(
                   (p['rating'] ?? 0).toStringAsFixed(1),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 ),
               ],
             ),
           ),
-          Expanded(flex: 26, child: _verifiedActions(p)),
+          Expanded(flex: 26, child: _verifiedActions(p, t)),
         ],
       ),
     );
   }
 
-  Widget _verifiedName(Map<String, dynamic> p) {
+  Widget _verifiedName(Map<String, dynamic> p, AdminTheme t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3430,15 +3405,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               child: Text(
                 p['name']?.toString() ?? 'Tanpa Nama',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
               ),
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.verified, size: 14, color: _successColor),
+            Icon(Icons.verified, size: 14, color: t.success),
           ],
         ),
         const SizedBox(height: 3),
@@ -3446,13 +3421,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           p['email']?.toString() ?? 'Tanpa Email',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: const TextStyle(fontSize: 11, color: AppColors.grey400),
         ),
       ],
     );
   }
 
-  Widget _verifiedActions(Map<String, dynamic> p) {
+  Widget _verifiedActions(Map<String, dynamic> p, AdminTheme t) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -3460,52 +3435,55 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.person_search,
           label: 'Data Lengkap',
-          bgColor: _infoColor,
-          fgColor: Colors.white,
+          bgColor: AppColors.infoBlue,
+          fgColor: AppColors.white,
           onTap: () => _viewFullData(p),
+          t: t,
         ),
         _pillButton(
           icon: Icons.folder_open,
           label: 'Berkas',
-          bgColor: _purpleColor.withOpacity(0.10),
-          fgColor: _purpleColor,
+          bgColor: AppColors.purple.withOpacity(0.10),
+          fgColor: AppColors.purple,
           onTap: () => _viewDocuments(p),
+          t: t,
         ),
       ],
     );
   }
 
   Widget _verifiedMobileCard(Map<String, dynamic> p) {
+    final t = theme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(child: _verifiedName(p)),
+              Expanded(child: _verifiedName(p, t)),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: _successColor.withOpacity(0.12),
+                  color: t.success.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   'Terverifikasi',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: _successColor,
-                  ),
+                        fontWeight: FontWeight.w700,
+                        color: t.success,
+                      ),
                 ),
               ),
             ],
@@ -3513,27 +3491,27 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(height: 10),
           Text(
             '${p['category'] ?? 'Umum'} • ${p['city'] ?? 'Indonesia'}',
-            style: const TextStyle(fontSize: 12, color: _mutedText),
+            style: TextStyle(fontSize: 12, color: t.mutedText),
           ),
           Text(
             'Terverifikasi ${p['time'] ?? ''}',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(fontSize: 11, color: AppColors.grey400),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.stars, size: 13, color: _warningColor),
+              Icon(Icons.stars, size: 13, color: t.warning),
               const SizedBox(width: 4),
               Text(
                 '${p['point'] ?? 0} poin',
-                style: const TextStyle(fontSize: 11),
+                style: TextStyle(fontSize: 11, color: t.cellText),
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.star, size: 13, color: _warningColor),
+              Icon(Icons.star, size: 13, color: t.warning),
               const SizedBox(width: 4),
               Text(
                 (p['rating'] ?? 0).toStringAsFixed(1),
-                style: const TextStyle(fontSize: 11),
+                style: TextStyle(fontSize: 11, color: t.cellText),
               ),
             ],
           ),
@@ -3546,11 +3524,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   icon: const Icon(Icons.person_search, size: 15),
                   label: const Text(
                     'Data Lengkap',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _infoColor,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.infoBlue,
+                    foregroundColor: AppColors.white,
                     minimumSize: const Size(0, 44),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -3566,12 +3547,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   icon: const Icon(Icons.folder_open, size: 15),
                   label: const Text(
                     'Berkas',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 44),
-                    foregroundColor: _purpleColor,
-                    side: BorderSide(color: _purpleColor.withOpacity(0.4)),
+                    foregroundColor: AppColors.purple,
+                    side: BorderSide(
+                      color: AppColors.purple.withOpacity(0.4),
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(_radius),
                     ),
@@ -3590,17 +3576,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // ============================================================
 
   Widget _buildPendingSkillsList(bool mobile) {
+    final t = theme;
     if (isLoadingPendingSkills && pendingSkillsList.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: CircularProgressIndicator(color: _accent)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Center(
+          child: CircularProgressIndicator(color: t.accent),
+        ),
       );
     }
 
     if (pendingSkillsList.isEmpty) {
       return _buildEmptyCard(
         icon: Icons.check_circle_outline,
-        iconColor: _successColor,
+        iconColor: t.success,
         message: 'Tidak ada pengajuan perubahan keahlian.',
       );
     }
@@ -3619,13 +3608,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
-          _pendingSkillTableHeader(),
+          _pendingSkillTableHeader(t),
           ...List.generate(
             pageItems.length,
             (i) => _pendingSkillTableRow(pageItems[i], baseIndex + i),
@@ -3635,98 +3624,51 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  Widget _pendingSkillTableHeader() {
+  Widget _pendingSkillTableHeader(AdminTheme t) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(_radius)),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(_radius),
+        ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(
-            flex: 24,
-            child: Text(
-              'Nama Mitra',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 20,
-            child: Text(
-              'Keahlian Saat Ini',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 20,
-            child: Text(
-              'Keahlian Baru',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 14,
-            child: Text(
-              'Diajukan',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 30,
-            child: Text(
-              'Aksi',
-              style: TextStyle(
-                fontSize: 12,
-                color: _headerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          _headerCell('Nama Mitra', 24, t),
+          _headerCell('Keahlian Saat Ini', 20, t),
+          _headerCell('Keahlian Baru', 20, t),
+          _headerCell('Diajukan', 14, t),
+          _headerCell('Aksi', 30, t),
         ],
       ),
     );
   }
 
   Widget _pendingSkillTableRow(Map<String, dynamic> p, int index) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: _tableDivider)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: t.divider)),
       ),
       child: Row(
         children: [
-          Expanded(flex: 24, child: _pendingSkillName(p)),
+          Expanded(flex: 24, child: _pendingSkillName(p, t)),
           Expanded(
             flex: 20,
             child: _chip(
               text: p['current_skills']?.toString() ?? '-',
-              bgColor: const Color(0xFFF1F5F9),
-              fgColor: const Color(0xFF475569),
+              bgColor: AppColors.grey100,
+              fgColor: AppColors.grey700,
             ),
           ),
           Expanded(
             flex: 20,
             child: _chip(
               text: p['pending_skills']?.toString() ?? '-',
-              bgColor: _purpleColor.withOpacity(0.10),
-              fgColor: _purpleColor,
+              bgColor: AppColors.purple.withOpacity(0.10),
+              fgColor: AppColors.purple,
               bold: true,
             ),
           ),
@@ -3734,10 +3676,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 14,
             child: Text(
               p['time']?.toString() ?? 'Baru saja',
-              style: const TextStyle(fontSize: 12, color: _mutedText),
+              style: TextStyle(fontSize: 12, color: t.mutedText),
             ),
           ),
-          Expanded(flex: 30, child: _pendingSkillActions(index)),
+          Expanded(flex: 30, child: _pendingSkillActions(index, t)),
         ],
       ),
     );
@@ -3767,7 +3709,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  Widget _pendingSkillName(Map<String, dynamic> p) {
+  Widget _pendingSkillName(Map<String, dynamic> p, AdminTheme t) {
     final photo = p['profile_photo']?.toString();
     final url = _buildImageUrl(photo);
 
@@ -3778,8 +3720,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           height: 34,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFFF9FAFB),
-            border: Border.all(color: _tableBorder),
+            color: AppColors.grey50,
+            border: Border.all(color: t.border),
           ),
           child: ClipOval(
             child: url.isNotEmpty
@@ -3788,10 +3730,17 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     width: 34,
                     height: 34,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.person, size: 18, color: _mutedText),
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.person,
+                      size: 18,
+                      color: t.mutedText,
+                    ),
                   )
-                : const Icon(Icons.person, size: 18, color: _mutedText),
+                : Icon(
+                    Icons.person,
+                    size: 18,
+                    color: t.mutedText,
+                  ),
           ),
         ),
         const SizedBox(width: 8),
@@ -3802,16 +3751,19 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               Text(
                 p['name']?.toString() ?? 'Tanpa Nama',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
               ),
               Text(
                 p['email']?.toString() ?? '-',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.grey400,
+                ),
               ),
             ],
           ),
@@ -3820,7 +3772,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  Widget _pendingSkillActions(int index) {
+  Widget _pendingSkillActions(int index, AdminTheme t) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -3828,42 +3780,46 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.photo_library_outlined,
           label: 'Foto Bukti',
-          bgColor: _purpleColor.withOpacity(0.10),
-          fgColor: _purpleColor,
+          bgColor: AppColors.purple.withOpacity(0.10),
+          fgColor: AppColors.purple,
           onTap: () => _viewSkillPhotos(pendingSkillsList[index]),
+          t: t,
         ),
         _pillButton(
           icon: Icons.check,
           label: 'Setujui',
-          bgColor: _successColor,
-          fgColor: Colors.white,
+          bgColor: t.success,
+          fgColor: AppColors.white,
           onTap: isProcessing ? null : () => _approveSkill(index),
+          t: t,
         ),
         _pillButton(
           icon: Icons.close,
           label: 'Tolak',
-          bgColor: _dangerColor.withOpacity(0.10),
-          fgColor: _dangerColor,
+          bgColor: t.danger.withOpacity(0.10),
+          fgColor: t.danger,
           onTap: isProcessing ? null : () => _rejectSkill(index),
+          t: t,
         ),
       ],
     );
   }
 
   Widget _pendingSkillMobileCard(Map<String, dynamic> p, int index) {
+    final t = theme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _pendingSkillName(p),
+          _pendingSkillName(p, t),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -3873,13 +3829,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   children: [
                     const Text(
                       'Keahlian Saat Ini',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey400,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     _chip(
                       text: p['current_skills']?.toString() ?? '-',
-                      bgColor: const Color(0xFFF1F5F9),
-                      fgColor: const Color(0xFF475569),
+                      bgColor: AppColors.grey100,
+                      fgColor: AppColors.grey700,
                     ),
                   ],
                 ),
@@ -3891,13 +3850,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   children: [
                     const Text(
                       'Keahlian Baru',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey400,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     _chip(
                       text: p['pending_skills']?.toString() ?? '-',
-                      bgColor: _purpleColor.withOpacity(0.10),
-                      fgColor: _purpleColor,
+                      bgColor: AppColors.purple.withOpacity(0.10),
+                      fgColor: AppColors.purple,
                       bold: true,
                     ),
                   ],
@@ -3908,10 +3870,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(height: 10),
           Text(
             'Diajukan: ${p['time'] ?? 'Baru saja'}',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.grey400,
+            ),
           ),
           const SizedBox(height: 12),
-          _pendingSkillActions(index),
+          _pendingSkillActions(index, t),
         ],
       ),
     );
@@ -3933,13 +3898,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     required String message,
     Color? iconColor,
   }) {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
@@ -3947,20 +3913,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: t.accent.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 34,
-              color: iconColor ?? _accent.withOpacity(0.7),
+              color: iconColor ?? t.accent.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 14),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: _mutedText),
+            style: TextStyle(fontSize: 13, color: t.mutedText),
           ),
         ],
       ),
@@ -3976,14 +3942,19 @@ class _FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
   final String title;
 
-  const _FullScreenImageViewer({required this.imageUrl, required this.title});
+  const _FullScreenImageViewer({
+    required this.imageUrl,
+    required this.title,
+  });
 
   @override
-  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+  State<_FullScreenImageViewer> createState() =>
+      _FullScreenImageViewerState();
 }
 
 class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
-  final TransformationController _transformCtrl = TransformationController();
+  final TransformationController _transformCtrl =
+      TransformationController();
   bool _isZoomed = false;
 
   @override
@@ -4014,10 +3985,10 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF111827),
+      backgroundColor: AppColors.grey900,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111827),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.grey900,
+        foregroundColor: AppColors.white,
         elevation: 0,
         title: Text(widget.title, style: const TextStyle(fontSize: 16)),
         actions: [
@@ -4042,18 +4013,24 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
             loadingBuilder: (context, child, progress) {
               if (progress == null) return child;
               return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFF97316)),
+                child: CircularProgressIndicator(
+                  color: AppColors.white,
+                ),
               );
             },
             errorBuilder: (_, __, ___) => const Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.broken_image, color: Color(0xFF9CA3AF), size: 64),
+                  Icon(
+                    Icons.broken_image,
+                    color: AppColors.grey400,
+                    size: 64,
+                  ),
                   SizedBox(height: 12),
                   Text(
                     'Gagal memuat gambar',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.white),
                   ),
                 ],
               ),
@@ -4062,12 +4039,12 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
         ),
       ),
       bottomNavigationBar: Container(
-        color: const Color(0xFF111827),
+        color: AppColors.grey900,
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: const Text(
           'Pinch untuk zoom • Drag untuk geser',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(color: AppColors.white, fontSize: 12),
         ),
       ),
     );

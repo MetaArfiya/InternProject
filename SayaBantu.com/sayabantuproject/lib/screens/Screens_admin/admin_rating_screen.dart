@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class AdminRatingScreen extends StatefulWidget {
   const AdminRatingScreen({super.key});
@@ -13,21 +16,14 @@ class AdminRatingScreen extends StatefulWidget {
 
 class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
-  // DESIGN TOKENS
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _warningColor = Color(0xFFD97706);
-  static const Color _purpleColor = Color(0xFF7C3AED);
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
+  // ============================================================
+  // TOKENS
+  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -59,10 +55,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     {'label': '1 Bintang', 'value': 1},
   ];
 
-  // ============================================================
-  // PAGINATION STATE
-  // ============================================================
-
+  // Pagination
   int _currentPage = 1;
   int _itemsPerPage = 10;
   static const List<int> _itemsPerPageOptions = [5, 10, 25, 50];
@@ -125,7 +118,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       if (!mounted) return;
 
       final s = decoded['summary'] ?? {};
-      final list = (decoded['data'] is List) ? decoded['data'] as List : [];
+      final list =
+          (decoded['data'] is List) ? decoded['data'] as List : [];
 
       setState(() {
         _total = int.tryParse(s['total']?.toString() ?? '0') ?? 0;
@@ -203,10 +197,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     return int.tryParse(r['stars']?.toString() ?? '0') ?? 0;
   }
 
-  Color _ratingColor(int rating) {
-    if (rating >= 4) return _successColor;
-    if (rating == 3) return _warningColor;
-    return _dangerColor;
+  Color _ratingColor(int rating, AdminTheme t) {
+    if (rating >= 4) return t.success;
+    if (rating == 3) return t.warning;
+    return t.danger;
   }
 
   Widget _buildStars(int rating, {double size = 16}) {
@@ -215,15 +209,19 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       children: List.generate(5, (i) {
         return Icon(
           i < rating ? Icons.star : Icons.star_border,
-          color: _warningColor,
+          color: AppColors.starYellow,
           size: size,
         );
       }),
     );
   }
 
-  Widget _buildRatingBadge(BuildContext context, int rating) {
-    final color = _ratingColor(rating);
+  Widget _buildRatingBadge(
+    BuildContext context,
+    int rating,
+    AdminTheme t,
+  ) {
+    final color = _ratingColor(rating, t);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -316,12 +314,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
   void _snack(String msg, {required bool error}) {
     if (!mounted) return;
+    final t = theme;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(msg),
-          backgroundColor: error ? _dangerColor : _successColor,
+          backgroundColor: error ? t.danger : t.success,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -333,13 +332,14 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: t.bg,
       child: RefreshIndicator(
         onRefresh: _loadRatings,
-        color: _accent,
+        color: t.accent,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
@@ -364,10 +364,12 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   const SizedBox(height: _gapAfterHeader),
 
                   if (_isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 60),
-                        child: CircularProgressIndicator(color: _accent),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: t.accent),
                       ),
                     )
                   else if (_errorMessage != null)
@@ -404,6 +406,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   Widget _buildHeader(BuildContext context) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -413,14 +416,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           'Kelola Rating Mitra',
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
+            color: t.cellText,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Pantau dan kelola penilaian pelanggan terhadap mitra.',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -431,30 +433,31 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   Widget _buildSummarySection(bool isMobile) {
+    final t = theme;
     final cards = [
       _summaryCard(
         title: 'Total Rating',
         value: '$_total',
         icon: Icons.rate_review_outlined,
-        color: _infoColor,
+        color: AppColors.infoBlue,
       ),
       _summaryCard(
         title: 'Rata-rata',
         value: _average.toStringAsFixed(1),
         icon: Icons.star_rate_outlined,
-        color: _warningColor,
+        color: t.warning,
       ),
       _summaryCard(
         title: 'Rating Positif',
         value: '$_highCount',
         icon: Icons.thumb_up_alt_outlined,
-        color: _successColor,
+        color: t.success,
       ),
       _summaryCard(
         title: 'Rating Rendah',
         value: '$_lowCount',
         icon: Icons.warning_amber_outlined,
-        color: _dangerColor,
+        color: t.danger,
       ),
     ];
 
@@ -496,15 +499,16 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final t = theme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -531,8 +535,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _mutedText,
+                  style: TextStyle(
+                    color: t.mutedText,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -542,10 +546,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: t.cellText,
                     height: 1.1,
                   ),
                 ),
@@ -562,31 +566,32 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   Widget _buildFilterSection(bool isMobile) {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     final dropdown = Container(
       height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedFilter,
           isExpanded: true,
-          icon: const Padding(
-            padding: EdgeInsets.only(left: 4),
+          icon: Padding(
+            padding: const EdgeInsets.only(left: 4),
             child: Icon(
               Icons.keyboard_arrow_down,
               size: 18,
-              color: _headerText,
+              color: t.headerText,
             ),
           ),
           style: textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w500,
-            color: _cellText,
+            color: t.cellText,
           ),
           items: _filterOptions.map((f) {
             return DropdownMenuItem<String>(
@@ -605,22 +610,23 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_list, size: 18, color: _headerText),
+          Icon(Icons.filter_list, size: 18, color: t.headerText),
           const SizedBox(width: 8),
           if (!isMobile) ...[
             Text(
               'Filter Rating:',
               style: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF374151),
+                color: AppColors.grey700,
               ),
             ),
             const SizedBox(width: 12),
@@ -631,15 +637,16 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             SizedBox(width: 190, child: dropdown),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.10),
+              color: t.accent.withOpacity(0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${_ratings.length}',
               style: textTheme.labelMedium?.copyWith(
-                color: _accent,
+                color: t.accent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -654,14 +661,15 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   Widget _buildDesktopTable() {
+    final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -669,10 +677,11 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              constraints:
+                  BoxConstraints(minWidth: constraints.maxWidth),
               child: DataTable(
                 headingRowColor:
-                    WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+                    WidgetStateProperty.all(AppColors.grey50),
                 headingRowHeight: 48,
                 dataRowMinHeight: 56,
                 dataRowMaxHeight: 56,
@@ -682,7 +691,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 showBottomBorder: true,
                 headingTextStyle: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: _headerText,
+                  color: t.headerText,
                 ),
                 columns: const [
                   DataColumn(label: _TableHeader('ID')),
@@ -700,23 +709,34 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       DataCell(
                         Text(
                           _code(r),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                         ),
                       ),
                       DataCell(
-                        _tableCell(_getNestedValue(r, 'mitra', ['name'])),
+                        _tableCell(
+                          _getNestedValue(r, 'mitra', ['name']),
+                          t,
+                        ),
                       ),
                       DataCell(
                         _tableCell(
-                            _getNestedValue(r, 'pelanggan', ['name'])),
+                          _getNestedValue(r, 'pelanggan', ['name']),
+                          t,
+                        ),
                       ),
                       DataCell(
                         _tableCell(
-                            _getNestedValue(r, 'job', ['tittle', 'title'])),
+                          _getNestedValue(
+                            r,
+                            'job',
+                            ['tittle', 'title'],
+                          ),
+                          t,
+                        ),
                       ),
                       DataCell(
                         Row(
@@ -726,10 +746,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                             const SizedBox(width: 6),
                             Text(
                               '$rating',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: _cellText,
+                                color: t.cellText,
                               ),
                             ),
                           ],
@@ -737,15 +757,20 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       ),
                       DataCell(
                         _tableCell(
-                            _formatTanggal(r['created_at']?.toString())),
+                          _formatTanggal(
+                            r['created_at']?.toString(),
+                          ),
+                          t,
+                        ),
                       ),
                       DataCell(
                         _pillButton(
                           icon: Icons.visibility_outlined,
                           label: 'Detail',
-                          bgColor: const Color(0xFFF1F5F9),
-                          fgColor: const Color(0xFF334155),
+                          bgColor: AppColors.grey100,
+                          fgColor: AppColors.grey700,
                           onTap: () => _showRatingDetail(r),
+                          t: t,
                         ),
                       ),
                     ],
@@ -759,12 +784,12 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     );
   }
 
-  Widget _tableCell(String text) {
+  Widget _tableCell(String text, AdminTheme t) {
     return Text(
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(fontSize: 13, color: _cellText),
+      style: TextStyle(fontSize: 13, color: t.cellText),
     );
   }
 
@@ -774,6 +799,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     required Color bgColor,
     required Color fgColor,
     required VoidCallback onTap,
+    required AdminTheme t,
   }) {
     return Material(
       color: bgColor,
@@ -782,7 +808,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -818,6 +845,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   Widget _mobileRatingCard(Map<String, dynamic> r) {
+    final t = theme;
     final rating = _getStars(r);
     final textTheme = Theme.of(context).textTheme;
 
@@ -825,9 +853,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,35 +867,39 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   _code(r),
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 ),
               ),
-              _buildRatingBadge(context, rating),
+              _buildRatingBadge(context, rating, t),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: _tableDivider),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 12),
           _mobileInfoRow(
             Icons.handshake_outlined,
             'Mitra',
             _getNestedValue(r, 'mitra', ['name']),
+            t,
           ),
           _mobileInfoRow(
             Icons.person_outline,
             'Pelanggan',
             _getNestedValue(r, 'pelanggan', ['name']),
+            t,
           ),
           _mobileInfoRow(
             Icons.work_outline,
             'Layanan',
             _getNestedValue(r, 'job', ['tittle', 'title']),
+            t,
           ),
           _mobileInfoRow(
             Icons.calendar_today_outlined,
             'Tanggal',
             _formatTanggal(r['created_at']?.toString()),
+            t,
             isLast: true,
           ),
           const SizedBox(height: 12),
@@ -884,8 +916,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 11),
-                foregroundColor: _purpleColor,
-                side: const BorderSide(color: Color(0xFFD1D5DB)),
+                foregroundColor: AppColors.purple,
+                side: BorderSide(color: t.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(_radius),
                 ),
@@ -900,7 +932,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   Widget _mobileInfoRow(
     IconData icon,
     String label,
-    String value, {
+    String value,
+    AdminTheme t, {
     bool isLast = false,
   }) {
     return Padding(
@@ -908,23 +941,23 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF9CA3AF)),
+          Icon(icon, size: 16, color: AppColors.grey400),
           const SizedBox(width: 8),
           SizedBox(
             width: 85,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 12, color: _mutedText),
+              style: TextStyle(fontSize: 12, color: t.mutedText),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -938,6 +971,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   Widget _buildPagination() {
+    final t = theme;
     final total = _ratings.length;
     final totalPages = _totalPages;
     final startItem = (_currentPage - 1) * _itemsPerPage + 1;
@@ -945,11 +979,12 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -958,9 +993,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           Flexible(
             child: Text(
               'Menampilkan $startItem–$endItem dari $total ulasan',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: _headerText,
+                color: t.headerText,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -974,26 +1009,26 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _tableBorder),
+                  border: Border.all(color: t.border),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: _itemsPerPage,
                     isDense: true,
                     borderRadius: BorderRadius.circular(8),
-                    icon: const Padding(
-                      padding: EdgeInsets.only(left: 4),
+                    icon: Padding(
+                      padding: const EdgeInsets.only(left: 4),
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         size: 16,
-                        color: _headerText,
+                        color: t.headerText,
                       ),
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
-                      color: _cellText,
+                      color: t.cellText,
                       fontWeight: FontWeight.w600,
                     ),
                     items: _itemsPerPageOptions
@@ -1019,6 +1054,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 icon: Icons.chevron_left,
                 enabled: _currentPage > 1,
                 onTap: () => setState(() => _currentPage--),
+                t: t,
               ),
               const SizedBox(width: 8),
               Container(
@@ -1026,15 +1062,15 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.10),
+                  color: t.accent.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Hal $_currentPage / $totalPages',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: _accent,
+                    color: t.accent,
                   ),
                 ),
               ),
@@ -1043,6 +1079,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                 icon: Icons.chevron_right,
                 enabled: _currentPage < totalPages,
                 onTap: () => setState(() => _currentPage++),
+                t: t,
               ),
             ],
           ),
@@ -1055,9 +1092,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     required IconData icon,
     required bool enabled,
     required VoidCallback onTap,
+    required AdminTheme t,
   }) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1069,17 +1107,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: enabled
-                  ? const Color(0xFFD1D5DB)
-                  : const Color(0xFFE5E7EB),
+              color: enabled ? AppColors.grey300 : t.border,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: enabled
-                ? const Color(0xFF374151)
-                : const Color(0xFFD1D5DB),
+            color: enabled ? AppColors.grey700 : AppColors.grey300,
           ),
         ),
       ),
@@ -1091,244 +1125,268 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   void _showRatingDetail(Map<String, dynamic> r) {
+    final t = theme;
     final rating = _getStars(r);
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // HEADER
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(_radius),
-                        ),
-                        child: const Icon(
-                          Icons.rate_review_outlined,
-                          color: _accent,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Detail Rating',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: _cellText,
+        return AdminThemeProvider(
+          theme: t,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // HEADER
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: t.accent.withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(_radius),
+                          ),
+                          child: Icon(
+                            Icons.rate_review_outlined,
+                            color: t.accent,
+                            size: 20,
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(),
-                        icon: const Icon(
-                          Icons.close,
-                          size: 20,
-                          color: _headerText,
-                        ),
-                        splashRadius: 22,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-
-                  // CONTENT
-                  Flexible(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _detailRow('ID Rating', _code(r)),
-                          _detailRow(
-                            'Nama Mitra',
-                            _getNestedValue(r, 'mitra', ['name']),
-                          ),
-                          _detailRow(
-                            'Nama Pelanggan',
-                            _getNestedValue(r, 'pelanggan', ['name']),
-                          ),
-                          _detailRow(
-                            'Layanan',
-                            _getNestedValue(r, 'job', ['tittle', 'title']),
-                          ),
-                          _detailRow(
-                            'Tanggal',
-                            _formatTanggal(r['created_at']?.toString()),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          const Text(
-                            'Rating',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: _cellText,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              _buildStars(rating, size: 22),
-                              const SizedBox(width: 10),
-                              Text(
-                                '$rating/5',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _cellText,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Detail Rating',
+                            style: Theme.of(dialogContext)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: t.cellText,
                                 ),
-                              ),
-                            ],
                           ),
-
-                          const SizedBox(height: 16),
-
-                          const Text(
-                            'Komentar',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: _cellText,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF9FAFB),
-                              borderRadius: BorderRadius.circular(_radius),
-                              border: Border.all(color: _tableBorder),
-                            ),
-                            child: Text(
-                              r['comment']?.toString() ?? '-',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF374151),
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ACTIONS
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
+                        ),
+                        IconButton(
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
-                            ),
+                          icon: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: t.headerText,
                           ),
-                          child: const Text(
-                            'Tutup',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                          splashRadius: 22,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: t.divider),
+                    const SizedBox(height: 16),
+
+                    // CONTENT
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _detailRow('ID Rating', _code(r), t),
+                            _detailRow(
+                              'Nama Mitra',
+                              _getNestedValue(r, 'mitra', ['name']),
+                              t,
+                            ),
+                            _detailRow(
+                              'Nama Pelanggan',
+                              _getNestedValue(
+                                r,
+                                'pelanggan',
+                                ['name'],
+                              ),
+                              t,
+                            ),
+                            _detailRow(
+                              'Layanan',
+                              _getNestedValue(
+                                r,
+                                'job',
+                                ['tittle', 'title'],
+                              ),
+                              t,
+                            ),
+                            _detailRow(
+                              'Tanggal',
+                              _formatTanggal(
+                                r['created_at']?.toString(),
+                              ),
+                              t,
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            Text(
+                              'Rating',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: t.cellText,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                _buildStars(rating, size: 22),
+                                const SizedBox(width: 10),
+                                Text(
+                                  '$rating/5',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.cellText,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Text(
+                              'Komentar',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: t.cellText,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50,
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                                border: Border.all(color: t.border),
+                              ),
+                              child: Text(
+                                r['comment']?.toString() ?? '-',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.grey700,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // ACTIONS
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              foregroundColor: AppColors.grey700,
+                              side: const BorderSide(
+                                color: AppColors.grey300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
+                            ),
+                            child: const Text(
+                              'Tutup',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            _confirmHideRating(r);
-                          },
-                          icon: const Icon(
-                            Icons.visibility_off_outlined,
-                            size: 16,
-                          ),
-                          label: const Text(
-                            'Sembunyikan',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              _confirmHideRating(r);
+                            },
+                            icon: const Icon(
+                              Icons.visibility_off_outlined,
+                              size: 16,
                             ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: _warningColor,
-                            side: const BorderSide(color: _warningColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                            label: const Text(
+                              'Sembunyikan',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            _confirmDeleteRating(r);
-                          },
-                          icon: const Icon(Icons.delete_outline, size: 16),
-                          label: const Text(
-                            'Hapus',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            backgroundColor: _dangerColor,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              foregroundColor: t.warning,
+                              side: BorderSide(color: t.warning),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              _confirmDeleteRating(r);
+                            },
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 16,
+                            ),
+                            label: const Text(
+                              'Hapus',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              backgroundColor: t.danger,
+                              foregroundColor: AppColors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1337,7 +1395,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(String label, String value, AdminTheme t) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -1347,16 +1405,16 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             width: 115,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: _mutedText),
+              style: TextStyle(fontSize: 13, color: t.mutedText),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
@@ -1371,173 +1429,177 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
   void _confirmHideRating(Map<String, dynamic> r) {
     final reasonController = TextEditingController();
+    final t = theme;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: _warningColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(_radius),
-                        ),
-                        child: const Icon(
-                          Icons.visibility_off_outlined,
-                          color: _warningColor,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Sembunyikan Rating',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: _cellText,
+        return AdminThemeProvider(
+          theme: t,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: t.warning.withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(_radius),
+                          ),
+                          child: Icon(
+                            Icons.visibility_off_outlined,
+                            color: t.warning,
+                            size: 20,
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(),
-                        icon: const Icon(
-                          Icons.close,
-                          size: 20,
-                          color: _headerText,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Sembunyikan Rating',
+                            style: Theme.of(dialogContext)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: t.cellText,
+                                ),
+                          ),
                         ),
-                        splashRadius: 22,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Rating akan disembunyikan dari publik. Data tetap tersimpan.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF374151),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: reasonController,
-                    maxLines: 2,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Alasan (opsional)',
-                      hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(_radius),
-                        borderSide:
-                            const BorderSide(color: _tableBorder),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(_radius),
-                        borderSide: const BorderSide(
-                          color: _accent,
-                          width: 1.5,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
+                        IconButton(
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
-                            ),
+                          icon: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: t.headerText,
                           ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                          splashRadius: 22,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: t.divider),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Rating akan disembunyikan dari publik. Data tetap tersimpan.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.grey700,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: reasonController,
+                      maxLines: 2,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Alasan (opsional)',
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.grey400,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.grey50,
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(color: t.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(_radius),
+                          borderSide: BorderSide(
+                            color: t.accent,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              foregroundColor: AppColors.grey700,
+                              side: const BorderSide(
+                                color: AppColors.grey300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
+                            ),
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            _hideRating(
-                              r['id'],
-                              reasonController.text.trim(),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _warningColor,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 46),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              _hideRating(
+                                r['id'],
+                                reasonController.text.trim(),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: t.warning,
+                              foregroundColor: AppColors.white,
+                              minimumSize: const Size(0, 46),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Sembunyikan',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                            child: const Text(
+                              'Sembunyikan',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1551,133 +1613,140 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   void _confirmDeleteRating(Map<String, dynamic> r) {
+    final t = theme;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: _dangerColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(_radius),
-                        ),
-                        child: const Icon(
-                          Icons.delete_outline,
-                          color: _dangerColor,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Hapus Rating',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: _cellText,
+        return AdminThemeProvider(
+          theme: t,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: t.danger.withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(_radius),
+                          ),
+                          child: Icon(
+                            Icons.delete_outline,
+                            color: t.danger,
+                            size: 20,
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(),
-                        icon: const Icon(
-                          Icons.close,
-                          size: 20,
-                          color: _headerText,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Hapus Rating',
+                            style: Theme.of(dialogContext)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: t.cellText,
+                                ),
+                          ),
                         ),
-                        splashRadius: 22,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Apakah Anda yakin ingin menghapus rating ini? Tindakan ini tidak dapat dibatalkan.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF374151),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
+                        IconButton(
                           onPressed: () =>
                               Navigator.of(dialogContext).pop(),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(
-                              color: Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
-                            ),
+                          icon: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: t.headerText,
                           ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                          splashRadius: 22,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: t.divider),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Apakah Anda yakin ingin menghapus rating ini? Tindakan ini tidak dapat dibatalkan.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.grey700,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 46),
+                              foregroundColor: AppColors.grey700,
+                              side: const BorderSide(
+                                color: AppColors.grey300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
+                            ),
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            _deleteRating(r['id']);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _dangerColor,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(0, 46),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_radius),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              _deleteRating(r['id']);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: t.danger,
+                              foregroundColor: AppColors.white,
+                              minimumSize: const Size(0, 46),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(_radius),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Hapus',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                            child: const Text(
+                              'Hapus',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1691,6 +1760,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   // ============================================================
 
   Widget _buildEmptyState() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -1700,23 +1770,23 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: t.accent.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.rate_review_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: t.accent.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Tidak ada rating',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _mutedText,
+              color: t.mutedText,
             ),
           ),
           const SizedBox(height: 4),
@@ -1725,7 +1795,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF94A3B8),
+              color: AppColors.grey400,
             ),
           ),
         ],
@@ -1734,27 +1804,28 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   Widget _buildError() {
+    final t = theme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: t.danger.withOpacity(0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(color: t.danger.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
-            color: _dangerColor,
+            color: t.danger,
             size: 48,
           ),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _dangerColor,
+            style: TextStyle(
+              color: t.danger,
               fontSize: 13,
               height: 1.4,
             ),
@@ -1765,8 +1836,8 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(_radius),
@@ -1790,11 +1861,12 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AdminThemeProvider.of(context);
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF6B7280),
+            color: t.headerText,
           ),
     );
   }

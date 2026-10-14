@@ -1,10 +1,14 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/payment_model.dart';
 import '../../services/payment_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class UploadMitraProofDialog extends StatefulWidget {
   final PaymentModel payment;
@@ -16,20 +20,17 @@ class UploadMitraProofDialog extends StatefulWidget {
       _UploadMitraProofDialogState();
 }
 
-class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
+class _UploadMitraProofDialogState
+    extends State<UploadMitraProofDialog> {
   final TextEditingController _noteCtrl = TextEditingController();
   Uint8List? _imageBytes;
   String? _imageName;
   bool _isUploading = false;
 
   // ============================================================
-  // DESIGN TOKENS — disamakan dengan DashboardHeader / PaymentScreen
+  // TOKENS
   // ============================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _cellText = Color(0xFF111827);
   static const double _radius = 12;
 
   static const int _maxImageSizeInBytes = 5 * 1024 * 1024; // 5 MB
@@ -41,6 +42,12 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
     '.webp',
   ];
 
+  // ============================================================
+  // THEME
+  // ============================================================
+
+  AdminTheme get theme => AdminThemeProvider.of(context);
+
   @override
   void dispose() {
     _noteCtrl.dispose();
@@ -48,7 +55,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
   }
 
   // ============================================================
-  // PILIH FOTO — DENGAN VALIDASI FORMAT & UKURAN
+  // PILIH FOTO
   // ============================================================
 
   Future<void> _pickImage(ImageSource source) async {
@@ -70,7 +77,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
         if (!mounted) return;
         _showSnack(
           'Format foto harus JPG, JPEG, PNG, atau WEBP.',
-          Colors.red,
+          error: true,
         );
         return;
       }
@@ -84,7 +91,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
             (_maxImageSizeInBytes / 1024 / 1024).toStringAsFixed(0);
         _showSnack(
           'Ukuran foto terlalu besar ($sizeMb MB). Maksimal $maxMb MB.',
-          Colors.red,
+          error: true,
         );
         return;
       }
@@ -100,139 +107,149 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
       );
     } catch (e) {
       if (!mounted) return;
-      _showSnack('Gagal memilih foto: $e', Colors.red);
+      _showSnack('Gagal memilih foto: $e', error: true);
     }
   }
 
   // ============================================================
-  // BOTTOM SHEET SUMBER FOTO — disamakan dgn style dialog
+  // BOTTOM SHEET SUMBER FOTO
   // ============================================================
 
   void _showSourceSheet() {
     final showCamera = !kIsWeb;
+    final t = theme;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 45,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD1D5DB),
-                    borderRadius: BorderRadius.circular(10),
+        return AdminThemeProvider(
+          theme: t,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 45,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppColors.grey300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 22),
+                  const SizedBox(height: 22),
 
-                Text(
-                  showCamera ? 'Pilih Sumber Foto' : 'Pilih Foto',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: _cellText,
+                  Text(
+                    showCamera ? 'Pilih Sumber Foto' : 'Pilih Foto',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: t.cellText,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  Text(
+                    'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: t.mutedText,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  if (showCamera) ...[
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: t.success.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          color: t.success,
+                        ),
                       ),
-                ),
-                const SizedBox(height: 6),
+                      title: const Text(
+                        'Kamera',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text(
+                        'Ambil foto bukti transfer sekarang',
+                      ),
+                      onTap: () {
+                        Navigator.pop(bottomSheetContext);
+                        _pickImage(ImageSource.camera);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
 
-                Text(
-                  'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                if (showCamera) ...[
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: _successColor.withOpacity(0.12),
+                        color: AppColors.infoBlue.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Icon(
-                        Icons.camera_alt_outlined,
-                        color: _successColor,
+                        Icons.photo_library_outlined,
+                        color: AppColors.infoBlue,
                       ),
                     ),
                     title: const Text(
-                      'Kamera',
+                      'Galeri',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle:
-                        const Text('Ambil foto bukti transfer sekarang'),
+                        const Text('Pilih foto dari galeri perangkat'),
                     onTap: () {
                       Navigator.pop(bottomSheetContext);
-                      _pickImage(ImageSource.camera);
+                      _pickImage(ImageSource.gallery);
                     },
                   ),
+
                   const SizedBox(height: 8),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () =>
+                          Navigator.pop(bottomSheetContext),
+                      style: OutlinedButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: AppColors.grey700,
+                        side: const BorderSide(
+                          color: AppColors.grey300,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
-
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.photo_library_outlined,
-                      color: Color(0xFF2563EB),
-                    ),
-                  ),
-                  title: const Text(
-                    'Galeri',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: const Text('Pilih foto dari galeri perangkat'),
-                  onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-
-                const SizedBox(height: 8),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(bottomSheetContext),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: const Color(0xFF374151),
-                      side: const BorderSide(color: Color(0xFFD1D5DB)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      'Batal',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -248,7 +265,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
     if (_imageBytes == null) {
       _showSnack(
         'Pilih foto bukti transfer ke mitra terlebih dahulu.',
-        Colors.red,
+        error: true,
       );
       return;
     }
@@ -268,21 +285,22 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
 
     if (result.success) {
       Navigator.pop(context, true);
-      _showSnack('Bukti transfer ke mitra berhasil dikirim!', Colors.green);
+      _showSnack('Bukti transfer ke mitra berhasil dikirim!');
     } else {
       _showSnack(
         result.message ?? 'Gagal mengirim bukti. Coba lagi.',
-        Colors.red,
+        error: true,
       );
     }
   }
 
-  void _showSnack(String msg, Color color) {
+  void _showSnack(String msg, {bool error = false}) {
     if (!mounted) return;
+    final t = theme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: color,
+        backgroundColor: error ? t.danger : t.success,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
@@ -295,6 +313,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     final bank = widget.payment.mitraBank ?? {};
     final p = widget.payment;
 
@@ -323,12 +342,12 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: _successColor.withOpacity(0.12),
+                      color: t.success.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.send,
-                      color: _successColor,
+                      color: t.success,
                       size: 20,
                     ),
                   ),
@@ -341,7 +360,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                           .titleMedium
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _cellText,
+                            color: t.cellText,
                           ),
                     ),
                   ),
@@ -349,10 +368,10 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                     onPressed: _isUploading
                         ? null
                         : () => Navigator.pop(context),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
                       size: 20,
-                      color: Color(0xFF6B7280),
+                      color: t.headerText,
                     ),
                     splashRadius: 22,
                   ),
@@ -360,11 +379,11 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
               ),
 
               const SizedBox(height: 12),
-              const Divider(height: 1),
+              Divider(height: 1, color: t.divider),
               const SizedBox(height: 16),
 
               // ============================================
-              // CONTENT (scrollable)
+              // CONTENT
               // ============================================
               Flexible(
                 child: SingleChildScrollView(
@@ -377,28 +396,30 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: _successColor.withOpacity(0.08),
+                          color: t.success.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _successColor.withOpacity(0.25),
+                            color: t.success.withOpacity(0.25),
                           ),
                         ),
                         child: Column(
                           children: [
-                            const Text(
+                            Text(
                               'Jumlah yang harus ditransfer',
                               style: TextStyle(
-                                color: Color(0xFF64748B),
+                                color: t.mutedText,
                                 fontSize: 12,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              PaymentModel.formatRupiah(p.mitraEarning),
-                              style: const TextStyle(
+                              PaymentModel.formatRupiah(
+                                p.mitraEarning,
+                              ),
+                              style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: _successColor,
+                                color: t.success,
                               ),
                             ),
                           ],
@@ -408,12 +429,12 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                       const SizedBox(height: 18),
 
                       // Info rekening mitra
-                      const Text(
+                      Text(
                         'Rekening Mitra',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
-                          color: _cellText,
+                          color: t.cellText,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -421,12 +442,10 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF2563EB).withOpacity(0.06),
+                          color: AppColors.infoBlue.withOpacity(0.06),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: const Color(0xFF2563EB)
-                                .withOpacity(0.2),
+                            color: AppColors.infoBlue.withOpacity(0.2),
                           ),
                         ),
                         child: Column(
@@ -434,14 +453,17 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                             _bankRow(
                               'Bank',
                               bank['bank_name']?.toString() ?? '-',
+                              t,
                             ),
                             _bankRow(
                               'No. Rekening',
                               bank['account_number']?.toString() ?? '-',
+                              t,
                             ),
                             _bankRow(
                               'Atas Nama',
                               bank['account_name']?.toString() ?? '-',
+                              t,
                             ),
                           ],
                         ),
@@ -450,12 +472,12 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                       const SizedBox(height: 18),
 
                       // Label + info limit
-                      const Text(
+                      Text(
                         'Bukti Transfer',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
-                          color: _cellText,
+                          color: t.cellText,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -463,7 +485,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                         'Format: JPG, JPEG, PNG, WEBP · Maks 5 MB',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: t.mutedText,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -475,30 +497,32 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                           width: double.infinity,
                           height: 180,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF9FAFB),
-                            borderRadius: BorderRadius.circular(_radius),
+                            color: AppColors.grey50,
+                            borderRadius:
+                                BorderRadius.circular(_radius),
                             border: Border.all(
                               color: _imageBytes != null
-                                  ? _successColor
-                                  : _tableBorder,
+                                  ? t.success
+                                  : t.border,
                               width: _imageBytes != null ? 2 : 1,
                             ),
                           ),
                           child: _imageBytes == null
-                              ? const Column(
+                              ? Column(
                                   mainAxisAlignment:
                                       MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      Icons.add_photo_alternate_outlined,
+                                    const Icon(
+                                      Icons
+                                          .add_photo_alternate_outlined,
                                       size: 50,
-                                      color: Color(0xFF9CA3AF),
+                                      color: AppColors.grey400,
                                     ),
-                                    SizedBox(height: 8),
+                                    const SizedBox(height: 8),
                                     Text(
                                       'Tap untuk upload bukti transfer',
                                       style: TextStyle(
-                                        color: Color(0xFF6B7280),
+                                        color: t.mutedText,
                                         fontSize: 12.5,
                                       ),
                                     ),
@@ -506,7 +530,9 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                                 )
                               : ClipRRect(
                                   borderRadius:
-                                      BorderRadius.circular(_radius - 1),
+                                      BorderRadius.circular(
+                                    _radius - 1,
+                                  ),
                                   child: Image.memory(
                                     _imageBytes!,
                                     fit: BoxFit.cover,
@@ -528,7 +554,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                               style: TextStyle(fontSize: 12.5),
                             ),
                             style: TextButton.styleFrom(
-                              foregroundColor: _accent,
+                              foregroundColor: t.accent,
                             ),
                           ),
                         ),
@@ -544,36 +570,34 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                           labelText: 'Catatan (opsional)',
                           hintText:
                               'Contoh: Transfer via BCA mobile banking',
-                          labelStyle: const TextStyle(
+                          labelStyle: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF6B7280),
+                            color: t.headerText,
                           ),
                           hintStyle: const TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF9CA3AF),
+                            color: AppColors.grey400,
                           ),
                           prefixIcon:
                               const Icon(Icons.notes, size: 18),
                           filled: true,
-                          fillColor: const Color(0xFFF9FAFB),
+                          fillColor: AppColors.grey50,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 12,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide:
-                                const BorderSide(color: _tableBorder),
+                            borderSide: BorderSide(color: t.border),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide:
-                                const BorderSide(color: _tableBorder),
+                            borderSide: BorderSide(color: t.border),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: _accent,
+                            borderSide: BorderSide(
+                              color: t.accent,
                               width: 1.5,
                             ),
                           ),
@@ -598,9 +622,9 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                           : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 46),
-                        foregroundColor: const Color(0xFF374151),
+                        foregroundColor: AppColors.grey700,
                         side: const BorderSide(
-                          color: Color(0xFFD1D5DB),
+                          color: AppColors.grey300,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -626,7 +650,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColors.white,
                               ),
                             )
                           : const Icon(Icons.send, size: 18),
@@ -640,8 +664,8 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _successColor,
-                        foregroundColor: Colors.white,
+                        backgroundColor: t.success,
+                        foregroundColor: AppColors.white,
                         minimumSize: const Size(0, 46),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -659,7 +683,7 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
     );
   }
 
-  Widget _bankRow(String label, String value) {
+  Widget _bankRow(String label, String value, AdminTheme t) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -668,26 +692,26 @@ class _UploadMitraProofDialogState extends State<UploadMitraProofDialog> {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
+              style: TextStyle(
+                color: t.mutedText,
                 fontSize: 12.5,
               ),
             ),
           ),
-          const Text(
+          Text(
             ': ',
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: t.mutedText,
               fontSize: 12.5,
             ),
           ),
           Expanded(
             child: SelectableText(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13.5,
-                color: _cellText,
+                color: t.cellText,
               ),
             ),
           ),
