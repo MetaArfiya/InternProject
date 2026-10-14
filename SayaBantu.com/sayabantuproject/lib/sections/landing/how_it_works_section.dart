@@ -233,7 +233,7 @@ class HowItWorksSection extends StatelessWidget {
 }
 
 // ============================================================
-// STEP DATA — class terpisah
+// STEP DATA
 // ============================================================
 class _StepData {
   final String number;
@@ -250,7 +250,7 @@ class _StepData {
 }
 
 // ============================================================
-// HOW IT WORKS CARD — StatefulWidget terpisah
+// HOW IT WORKS CARD
 // ============================================================
 class _HowItWorksCard extends StatefulWidget {
   final String number;
@@ -296,7 +296,6 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            // FIX: pakai minHeight, bukan fixed height
             constraints: widget.fixedHeight != null
                 ? BoxConstraints(minHeight: widget.fixedHeight!)
                 : null,
@@ -307,14 +306,14 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: _isHovered
-                    ? AppColors.mint.withOpacity(0.55)
-                    : AppColors.primaryTeal.withOpacity(0.10),
+                    ? AppColors.mint.withValues(alpha: 0.55)
+                    : AppColors.primaryTeal.withValues(alpha: 0.10),
                 width: _isHovered ? 1.5 : 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.darkTeal.withOpacity(
-                    _isHovered ? 0.10 : 0.055,
+                  color: AppColors.darkTeal.withValues(
+                    alpha: _isHovered ? 0.10 : 0.055,
                   ),
                   blurRadius: _isHovered ? 24 : 16,
                   offset: const Offset(0, 8),
@@ -325,9 +324,7 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ==========================================
                 // TOP ROW
-                // ==========================================
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +336,8 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
                       decoration: BoxDecoration(
                         color: _isHovered
                             ? AppColors.primaryTeal
-                            : AppColors.primaryTeal.withOpacity(0.09),
+                            : AppColors.primaryTeal
+                                .withValues(alpha: 0.09),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Icon(
@@ -356,7 +354,7 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.mint.withOpacity(0.15),
+                        color: AppColors.mint.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Text(
@@ -373,9 +371,7 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
 
                 const SizedBox(height: 22),
 
-                // ==========================================
                 // TITLE
-                // ==========================================
                 Text(
                   widget.title,
                   style: AppTextStyles.headingSmall.copyWith(
@@ -386,9 +382,7 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
 
                 const SizedBox(height: 10),
 
-                // ==========================================
-                // DESCRIPTION — tanpa Expanded
-                // ==========================================
+                // DESCRIPTION
                 Text(
                   widget.description,
                   style: AppTextStyles.bodyOnLight.copyWith(
@@ -398,9 +392,7 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
 
                 const SizedBox(height: 20),
 
-                // ==========================================
                 // BOTTOM INDICATOR
-                // ==========================================
                 Row(
                   children: [
                     AnimatedContainer(
@@ -416,7 +408,8 @@ class _HowItWorksCardState extends State<_HowItWorksCard> {
                     Expanded(
                       child: Container(
                         height: 1,
-                        color: AppColors.primaryTeal.withOpacity(0.12),
+                        color: AppColors.primaryTeal
+                            .withValues(alpha: 0.12),
                       ),
                     ),
                   ],

@@ -355,12 +355,12 @@ class _CategoryCardState extends State<_CategoryCard> {
               border: Border.all(
                 color: active
                     ? AppColors.mint
-                    : AppColors.primaryTeal.withOpacity(0.12),
+                    : AppColors.primaryTeal.withValues(alpha:0.12),
                 width: active ? 1.5 : 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.darkTeal.withOpacity(
+                  color: AppColors.darkTeal.withValues(alpha:
                     active ? 0.14 : 0.06,
                   ),
                   blurRadius: active ? 22 : 12,
@@ -377,7 +377,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                   decoration: BoxDecoration(
                     color: active
                         ? AppColors.primaryTeal
-                        : AppColors.primaryTeal.withOpacity(0.09),
+                        : AppColors.primaryTeal.withValues(alpha:0.09),
                     borderRadius: BorderRadius.circular(iconRadius),
                   ),
                   child: Icon(

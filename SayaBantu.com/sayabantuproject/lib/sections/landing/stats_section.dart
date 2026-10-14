@@ -100,7 +100,7 @@ class _StatsSectionState extends State<StatsSection> {
                     width: 200,
                     height: 200,
                     decoration: BoxDecoration(
-                      color: AppColors.mint.withOpacity(0.06),
+                      color: AppColors.mint.withValues(alpha: 0.06),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -114,7 +114,7 @@ class _StatsSectionState extends State<StatsSection> {
                     width: 240,
                     height: 240,
                     decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.05),
+                      color: AppColors.white.withValues(alpha: 0.05),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -246,10 +246,10 @@ class _StatsSectionState extends State<StatsSection> {
           vertical: isSmallMobile ? 6 : 8,
         ),
         decoration: BoxDecoration(
-          color: AppColors.darkTeal.withOpacity(0.5),
+          color: AppColors.darkTeal.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: AppColors.mint.withOpacity(0.5),
+            color: AppColors.mint.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -382,7 +382,6 @@ class _StatsSectionState extends State<StatsSection> {
       ));
     }
 
-    // Biaya Pasang Iklan — HANYA 1 card (hapus duplikat)
     items.add(StatCounter(
       icon: Icons.card_giftcard_rounded,
       value: 'Rp 0',
@@ -393,9 +392,6 @@ class _StatsSectionState extends State<StatsSection> {
 
     if (items.isEmpty) return const SizedBox.shrink();
 
-    // ============================================================
-    // Tentukan maxPerRow
-    // ============================================================
     final int itemCount = items.length;
     final int maxPerRow;
     if (isMobile) {
@@ -406,9 +402,6 @@ class _StatsSectionState extends State<StatsSection> {
       maxPerRow = 4;
     }
 
-    // ============================================================
-    // Split items jadi rows
-    // ============================================================
     final List<List<Widget>> rows = [];
 
     if (itemCount <= maxPerRow) {
@@ -520,7 +513,7 @@ class _StatsSectionState extends State<StatsSection> {
             child: Container(
               height: isSmallMobile ? 100 : 170,
               decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.06),
+                color: AppColors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(
                   isSmallMobile ? 14 : 20,
                 ),

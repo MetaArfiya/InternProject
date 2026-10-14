@@ -371,7 +371,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
               // DROPDOWN BANK PENGIRIM
               // ============================================
               DropdownButtonFormField<String>(
-                value: _selectedBank,
+                initialValue: _selectedBank,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Bank Pengirim',
@@ -452,7 +452,7 @@ class _UploadCustomerProofDialogState extends State<UploadCustomerProofDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.08),
+                  color: Colors.orange.withValues(alpha:0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -539,7 +538,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     _buildField(
                       label: 'Kategori',
                       child: DropdownButtonFormField<String>(
-                        value: _kategori,
+                        initialValue: _kategori,
                         isExpanded: true,
                         decoration: _inputDecoration(
                           hint: 'Pilih kategori jasa',
@@ -730,7 +729,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           width: isMobile ? 42 : 48,
           height: isMobile ? 42 : 48,
           decoration: BoxDecoration(
-            color: _accent.withOpacity(0.12),
+            color: _accent.withValues(alpha:0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -936,7 +935,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     return _buildField(
       label: 'Waktu Pengerjaan',
       child: DropdownButtonFormField<String>(
-        value: _waktuPengerjaan,
+        initialValue: _waktuPengerjaan,
         isExpanded: true,
         decoration: _inputDecoration(
           hint: 'Pilih perkiraan waktu',
@@ -978,7 +977,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         ),
         decoration: BoxDecoration(
           color: hasLocation
-              ? AppColors.mint.withOpacity(0.10) // ← teal soft
+              ? AppColors.mint.withValues(alpha:0.10) // ← teal soft
               : Colors.transparent,
           border: Border.all(
             color: hasLocation ? AppColors.primaryTeal : AppColors.grey300,

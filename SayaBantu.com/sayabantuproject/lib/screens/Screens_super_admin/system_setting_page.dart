@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 // ============================================================
 // INPUT FORMATTER: BILANGAN BULAT DENGAN RENTANG
@@ -90,26 +93,14 @@ class SystemSettingsPage extends StatefulWidget {
 
 class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
-  // DESIGN TOKENS (disamakan dengan AdminVerificationScreen)
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFFF04444);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _warningColor = Color(0xFFD97706);
-  static const Color _purpleColor = Color(0xFF7C3AED);
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
-
-  static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 16;
-  static const double _cardRadius = 14;
-  static const double _radius = 10;
+  // ============================================================
+  // BREAKPOINTS
+  // ============================================================
 
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
@@ -117,20 +108,26 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // LIMITS
   // ============================================================
+
   static const int _maxPointValue = 999;
   static const double _maxCommissionValue = 100.0;
 
   // ============================================================
   // CONTROLLERS
   // ============================================================
+
   final TextEditingController _jobPointController = TextEditingController();
-  final TextEditingController _cancelPointController = TextEditingController();
-  final TextEditingController _ratingBonusController = TextEditingController();
-  final TextEditingController _commissionController = TextEditingController();
+  final TextEditingController _cancelPointController =
+      TextEditingController();
+  final TextEditingController _ratingBonusController =
+      TextEditingController();
+  final TextEditingController _commissionController =
+      TextEditingController();
 
   // ============================================================
   // DEFAULT VALUES
   // ============================================================
+
   static const int _defaultJobPoint = 10;
   static const int _defaultCancelPoint = 5;
   static const int _defaultRatingBonus = 3;
@@ -139,6 +136,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // STATE
   // ============================================================
+
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isResetting = false;
@@ -147,6 +145,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // INIT / DISPOSE
   // ============================================================
+
   @override
   void initState() {
     super.initState();
@@ -165,6 +164,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // LOAD SETTINGS
   // ============================================================
+
   Future<void> _loadSettings() async {
     if (!mounted) return;
 
@@ -212,7 +212,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
               _jobPointController.text = jobPoint.toString();
               _cancelPointController.text = cancelPoint.toString();
               _ratingBonusController.text = ratingBonus.toString();
-              _commissionController.text = _formatCommissionInput(commission);
+              _commissionController.text =
+                  _formatCommissionInput(commission);
               _isLoading = false;
             });
           } else {
@@ -251,16 +252,19 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // DEFAULT VALUES
   // ============================================================
+
   void _setDefaultValues() {
     _jobPointController.text = _defaultJobPoint.toString();
     _cancelPointController.text = _defaultCancelPoint.toString();
     _ratingBonusController.text = _defaultRatingBonus.toString();
-    _commissionController.text = _formatCommissionInput(_defaultCommission);
+    _commissionController.text =
+        _formatCommissionInput(_defaultCommission);
   }
 
   // ============================================================
   // PARSE HELPERS
   // ============================================================
+
   int _parseIntValue(TextEditingController controller) {
     return int.tryParse(controller.text.trim()) ?? 0;
   }
@@ -292,8 +296,10 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // BUILD
   // ============================================================
+
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -308,34 +314,40 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: t.bg,
           child: RefreshIndicator(
             onRefresh: _loadSettings,
-            color: _accent,
+            color: t.accent,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPageHeader(context, isMobile),
-                  const SizedBox(height: _gapAfterHeader),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPageHeader(isMobile, t),
+                      const SizedBox(height: 16),
 
-                  if (_isLoading)
-                    _buildLoading()
-                  else if (_errorMessage != null)
-                    _buildError()
-                  else ...[
-                    _buildMainContent(isMobile: isMobile),
-                    const SizedBox(height: _gapBetweenSections),
-                    _buildActionButtons(isMobile),
-                  ],
-
-                  const SizedBox(height: 24),
-                ],
+                      if (_isLoading)
+                        _buildLoading(t)
+                      else if (_errorMessage != null)
+                        _buildError(t)
+                      else ...[
+                        _buildMainContent(
+                          isMobile: isMobile,
+                          t: t,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildActionButtons(isMobile, t),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -345,45 +357,20 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   }
 
   // ============================================================
-  // HEADER — disamakan dgn AdminVerificationScreen:
-  //   • Judul: headlineSmall + bold
-  //   • Subtitle: bodyMedium + grey.shade600
-  //   • Jarak judul → subtitle = 6 px
+  // MAIN CONTENT
   // ============================================================
-  Widget _buildPageHeader(BuildContext context, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Pengaturan Sistem',
-          style: textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Konfigurasi aturan poin dan komisi platform',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // MAIN CONTENT — 2 kolom di web, stack di mobile
-  // ============================================================
-  Widget _buildMainContent({required bool isMobile}) {
+  Widget _buildMainContent({
+    required bool isMobile,
+    required AdminTheme t,
+  }) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildPointSettingsCard(),
-          const SizedBox(height: _gapBetweenSections),
-          _buildCommissionCard(),
+          _buildPointSettingsCard(t),
+          const SizedBox(height: 16),
+          _buildCommissionCard(t),
         ],
       );
     }
@@ -391,21 +378,65 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildPointSettingsCard()),
+        Expanded(child: _buildPointSettingsCard(t)),
         const SizedBox(width: 16),
-        Expanded(child: _buildCommissionCard()),
+        Expanded(child: _buildCommissionCard(t)),
       ],
     );
   }
 
   // ============================================================
-  // LOADING — disamakan dgn AdminVerificationScreen
+  // HEADER  ← tanpa ikon
   // ============================================================
-  Widget _buildLoading() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 60),
-      child: Center(
-        child: CircularProgressIndicator(color: _accent),
+
+  Widget _buildPageHeader(bool isMobile, AdminTheme t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pengaturan Sistem',
+          style: TextStyle(
+            fontSize: isMobile ? 22 : 26,
+            fontWeight: FontWeight.w700,
+            color: t.cellText,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Konfigurasi aturan poin dan komisi platform',
+          style: TextStyle(
+            fontSize: isMobile ? 12.5 : 13,
+            color: t.mutedText,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // LOADING
+  // ============================================================
+
+  Widget _buildLoading(AdminTheme t) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.border),
+      ),
+      child: Column(
+        children: [
+          CircularProgressIndicator(color: t.accent),
+          const SizedBox(height: 16),
+          Text(
+            'Mengambil konfigurasi sistem...',
+            style: TextStyle(color: t.mutedText, fontSize: 13),
+          ),
+        ],
       ),
     );
   }
@@ -413,38 +444,39 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // ERROR
   // ============================================================
-  Widget _buildError() {
+
+  Widget _buildError(AdminTheme t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        color: t.danger.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
-            size: 42,
-            color: _dangerColor,
+            size: 48,
+            color: t.danger,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Gagal mengambil pengaturan sistem',
             style: TextStyle(
               fontWeight: FontWeight.w700,
-              color: Color(0xFF7F1D1D),
-              fontSize: 13.5,
+              color: t.danger,
+              fontSize: 14,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             _errorMessage ?? '',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF991B1B),
+              color: t.danger,
               height: 1.4,
             ),
           ),
@@ -454,11 +486,11 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(_radius),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),
@@ -470,50 +502,56 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // POINT SETTINGS CARD
   // ============================================================
-  Widget _buildPointSettingsCard() {
+
+  Widget _buildPointSettingsCard(AdminTheme t) {
     return _buildCard(
+      t: t,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildCardTitle(
             icon: Icons.emoji_events_outlined,
-            iconColor: const Color(0xFFF59E0B),
+            iconColor: t.accent,
             title: 'Aturan Poin Mitra',
             subtitle: 'Konfigurasi poin reward & penalti',
+            t: t,
           ),
           const SizedBox(height: 18),
           _buildPointSetting(
             icon: Icons.check_circle_outline,
-            iconColor: _successColor,
+            iconColor: t.accent,
             title: 'Poin per pekerjaan selesai',
             controller: _jobPointController,
             suffix: 'poin',
-            borderColor: const Color(0xFF9DE7D1),
-            textColor: _successColor,
+            borderColor: t.accent.withValues(alpha: 0.35),
+            textColor: t.accent,
+            t: t,
           ),
           const SizedBox(height: 14),
           _buildPointSetting(
             icon: Icons.cancel_outlined,
-            iconColor: _dangerColor,
+            iconColor: t.danger,
             title: 'Poin dipotong jika dibatalkan',
             controller: _cancelPointController,
             suffix: 'poin',
-            borderColor: const Color(0xFFFFB5B5),
-            textColor: _dangerColor,
+            borderColor: t.danger.withValues(alpha: 0.35),
+            textColor: t.danger,
+            t: t,
           ),
           const SizedBox(height: 14),
           _buildPointSetting(
             icon: Icons.star_outline,
-            iconColor: _warningColor,
+            iconColor: t.accent,
             title: 'Bonus poin rating ≥ 4.8',
             controller: _ratingBonusController,
             suffix: 'poin',
-            borderColor: const Color(0xFFFFD89A),
-            textColor: _warningColor,
+            borderColor: t.accent.withValues(alpha: 0.35),
+            textColor: t.accent,
+            t: t,
           ),
           const SizedBox(height: 18),
-          _buildPointSummary(),
+          _buildPointSummary(t),
         ],
       ),
     );
@@ -522,6 +560,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // POINT SETTING ITEM
   // ============================================================
+
   Widget _buildPointSetting({
     required IconData icon,
     required Color iconColor,
@@ -530,13 +569,14 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     required String suffix,
     required Color borderColor,
     required Color textColor,
+    required AdminTheme t,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         children: [
@@ -544,7 +584,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
+              color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 17, color: iconColor),
@@ -553,10 +593,10 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF334155),
+                color: t.cellText,
                 height: 1.35,
               ),
             ),
@@ -585,7 +625,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                   vertical: 8,
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: borderColor),
@@ -604,9 +644,9 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           const SizedBox(width: 6),
           Text(
             suffix,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
-              color: _mutedText,
+              color: t.mutedText,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -618,7 +658,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // POINT SUMMARY
   // ============================================================
-  Widget _buildPointSummary() {
+
+  Widget _buildPointSummary(AdminTheme t) {
     final int jobPoint = _parseIntValue(_jobPointController);
     final int cancelPoint = _parseIntValue(_cancelPointController);
     final int ratingBonus = _parseIntValue(_ratingBonusController);
@@ -627,44 +668,47 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ringkasan Sistem Poin',
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
-              color: _cellText,
+              color: t.cellText,
             ),
           ),
           const SizedBox(height: 10),
           _buildSummaryRow(
             icon: Icons.check_circle,
-            iconColor: _successColor,
+            iconColor: t.accent,
             label: 'Selesai kerja',
             value: '+$jobPoint poin',
-            valueColor: _successColor,
+            valueColor: t.accent,
+            t: t,
           ),
           const SizedBox(height: 6),
           _buildSummaryRow(
             icon: Icons.cancel,
-            iconColor: _dangerColor,
+            iconColor: t.danger,
             label: 'Batalkan',
             value: '-$cancelPoint poin',
-            valueColor: _dangerColor,
+            valueColor: t.danger,
+            t: t,
           ),
           const SizedBox(height: 6),
           _buildSummaryRow(
             icon: Icons.star,
-            iconColor: _warningColor,
+            iconColor: t.accent,
             label: 'Bonus rating',
             value: '+$ratingBonus poin',
-            valueColor: _warningColor,
+            valueColor: t.accent,
+            t: t,
           ),
         ],
       ),
@@ -677,6 +721,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     required String label,
     required String value,
     required Color valueColor,
+    required AdminTheme t,
   }) {
     return Row(
       children: [
@@ -685,7 +730,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: _mutedText),
+            style: TextStyle(fontSize: 12, color: t.mutedText),
           ),
         ),
         Text(
@@ -703,26 +748,29 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // COMMISSION CARD
   // ============================================================
-  Widget _buildCommissionCard() {
+
+  Widget _buildCommissionCard(AdminTheme t) {
     return _buildCard(
+      t: t,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildCardTitle(
             icon: Icons.payments_outlined,
-            iconColor: const Color(0xFF0EA5E9),
+            iconColor: t.accent,
             title: 'Aturan Komisi Platform',
             subtitle: 'Persentase komisi per transaksi',
+            t: t,
           ),
           const SizedBox(height: 18),
 
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(_radius),
-              border: Border.all(color: _tableBorder),
+              color: AppColors.grey50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.border),
             ),
             child: Row(
               children: [
@@ -730,23 +778,23 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0EA5E9).withOpacity(0.12),
+                    color: t.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.percent,
                     size: 17,
-                    color: Color(0xFF0EA5E9),
+                    color: t.accent,
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Komisi SiapBantu per transaksi',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF334155),
+                      color: t.cellText,
                       height: 1.35,
                     ),
                   ),
@@ -757,7 +805,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                   height: 40,
                   child: TextField(
                     controller: _commissionController,
-                    keyboardType: const TextInputType.numberWithOptions(
+                    keyboardType:
+                        const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     textAlign: TextAlign.center,
@@ -770,10 +819,10 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                       ),
                     ],
                     onChanged: (_) => setState(() {}),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0EA5E9),
+                      color: t.accent,
                     ),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
@@ -781,25 +830,25 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                         vertical: 8,
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: AppColors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF9DDDF8),
+                        borderSide: BorderSide(
+                          color: t.accent.withValues(alpha: 0.35),
                           width: 1.2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF9DDDF8),
+                        borderSide: BorderSide(
+                          color: t.accent.withValues(alpha: 0.35),
                           width: 1.2,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF0EA5E9),
+                        borderSide: BorderSide(
+                          color: t.accent,
                           width: 1.5,
                         ),
                       ),
@@ -807,11 +856,11 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   '%',
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: _mutedText,
+                    color: t.mutedText,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -821,7 +870,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
 
           const SizedBox(height: 14),
 
-          _buildSimulationPreview(),
+          _buildSimulationPreview(t),
         ],
       ),
     );
@@ -830,7 +879,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // SIMULATION
   // ============================================================
-  Widget _buildSimulationPreview() {
+
+  Widget _buildSimulationPreview(AdminTheme t) {
     final double commissionPercent = _parseCommission();
     const int transaction = 200000;
     final int commission = (transaction * commissionPercent / 100).round();
@@ -840,27 +890,27 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: _tableBorder),
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(
                 Icons.calculate_outlined,
                 size: 15,
-                color: _mutedText,
+                color: t.mutedText,
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
                 'Preview Simulasi',
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
               ),
             ],
@@ -869,19 +919,22 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           _buildSimulationRow(
             'Transaksi',
             'Rp 200.000',
-            _mutedText,
+            t.mutedText,
+            t,
           ),
           const SizedBox(height: 6),
           _buildSimulationRow(
             'Komisi platform',
             'Rp ${_formatCurrency(commission)}',
-            const Color(0xFF0EA5E9),
+            t.accent,
+            t,
           ),
           const SizedBox(height: 6),
           _buildSimulationRow(
             'Mitra terima',
             'Rp ${_formatCurrency(partnerReceive)}',
-            _successColor,
+            t.accent,
+            t,
           ),
         ],
       ),
@@ -892,13 +945,14 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     String label,
     String value,
     Color valueColor,
+    AdminTheme t,
   ) {
     return Row(
       children: [
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: _mutedText),
+            style: TextStyle(fontSize: 12, color: t.mutedText),
           ),
         ),
         Text(
@@ -916,21 +970,15 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // CARD
   // ============================================================
-  Widget _buildCard({required Widget child}) {
+
+  Widget _buildCard({required Widget child, required AdminTheme t}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.border),
       ),
       child: child,
     );
@@ -939,11 +987,13 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // CARD TITLE
   // ============================================================
+
   Widget _buildCardTitle({
     required IconData icon,
     required Color iconColor,
     required String title,
     required String subtitle,
+    required AdminTheme t,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -952,8 +1002,8 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(_radius),
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, size: 20, color: iconColor),
         ),
@@ -964,18 +1014,18 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: _cellText,
+                  color: t.cellText,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
-                  color: _mutedText,
+                  color: t.mutedText,
                 ),
               ),
             ],
@@ -988,14 +1038,15 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // ACTION BUTTONS
   // ============================================================
-  Widget _buildActionButtons(bool isMobile) {
+
+  Widget _buildActionButtons(bool isMobile, AdminTheme t) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSaveButton(),
+          _buildSaveButton(t),
           const SizedBox(height: 10),
-          _buildResetButton(),
+          _buildResetButton(t),
         ],
       );
     }
@@ -1003,9 +1054,9 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _buildResetButton(),
+        _buildResetButton(t),
         const SizedBox(width: 10),
-        _buildSaveButton(),
+        _buildSaveButton(t),
       ],
     );
   }
@@ -1013,18 +1064,20 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // SAVE BUTTON
   // ============================================================
-  Widget _buildSaveButton() {
+
+  Widget _buildSaveButton(AdminTheme t) {
     return SizedBox(
       height: 46,
       child: ElevatedButton.icon(
-        onPressed: (_isSaving || _isResetting) ? null : _saveConfiguration,
+        onPressed:
+            (_isSaving || _isResetting) ? null : _saveConfiguration,
         icon: _isSaving
             ? const SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.white,
                 ),
               )
             : const Icon(Icons.save_outlined, size: 18),
@@ -1036,13 +1089,13 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _accent,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFFCA5A5),
-          disabledForegroundColor: Colors.white,
+          backgroundColor: t.accent,
+          foregroundColor: AppColors.white,
+          disabledBackgroundColor: t.accent.withValues(alpha: 0.4),
+          disabledForegroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(_radius),
+            borderRadius: BorderRadius.circular(10),
           ),
           elevation: 0,
         ),
@@ -1053,11 +1106,13 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // RESET BUTTON
   // ============================================================
-  Widget _buildResetButton() {
+
+  Widget _buildResetButton(AdminTheme t) {
     return SizedBox(
       height: 46,
       child: OutlinedButton.icon(
-        onPressed: (_isSaving || _isResetting) ? null : _resetConfiguration,
+        onPressed:
+            (_isSaving || _isResetting) ? null : _resetConfiguration,
         icon: _isResetting
             ? const SizedBox(
                 width: 14,
@@ -1073,12 +1128,12 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           ),
         ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: _mutedText,
-          backgroundColor: Colors.white,
+          foregroundColor: t.mutedText,
+          backgroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          side: const BorderSide(color: _tableBorder),
+          side: BorderSide(color: t.border),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(_radius),
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
@@ -1088,21 +1143,27 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // SAVE CONFIGURATION
   // ============================================================
+
   Future<void> _saveConfiguration() async {
+    final t = theme;
     final int jobPoint = _parseIntValue(_jobPointController);
     final int cancelPoint = _parseIntValue(_cancelPointController);
     final int ratingBonus = _parseIntValue(_ratingBonusController);
     final double commission = _parseCommission();
 
     if (jobPoint < 0 || cancelPoint < 0 || ratingBonus < 0) {
-      _showMessage('Nilai poin tidak boleh negatif.', isError: true);
+      _showMessage('Nilai poin tidak boleh negatif.', isError: true, t: t);
       return;
     }
 
     if (jobPoint > _maxPointValue ||
         cancelPoint > _maxPointValue ||
         ratingBonus > _maxPointValue) {
-      _showMessage('Nilai poin maksimal $_maxPointValue.', isError: true);
+      _showMessage(
+        'Nilai poin maksimal $_maxPointValue.',
+        isError: true,
+        t: t,
+      );
       return;
     }
 
@@ -1110,6 +1171,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       _showMessage(
         'Komisi platform harus berada antara 0 sampai 100%.',
         isError: true,
+        t: t,
       );
       return;
     }
@@ -1140,7 +1202,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
         } catch (_) {}
 
         setState(() => _isSaving = false);
-        _showMessage(message);
+        _showMessage(message, t: t);
         await _loadSettings();
         return;
       }
@@ -1154,26 +1216,29 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       } catch (_) {}
 
       setState(() => _isSaving = false);
-      _showMessage(message, isError: true);
+      _showMessage(message, isError: true, t: t);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      _showMessage('Terjadi kesalahan: $e', isError: true);
+      _showMessage('Terjadi kesalahan: $e', isError: true, t: t);
     }
   }
 
   // ============================================================
   // RESET CONFIGURATION
   // ============================================================
+
   Future<void> _resetConfiguration() async {
     if (!mounted) return;
+    final t = theme;
 
     setState(() {
       _isResetting = true;
       _jobPointController.text = _defaultJobPoint.toString();
       _cancelPointController.text = _defaultCancelPoint.toString();
       _ratingBonusController.text = _defaultRatingBonus.toString();
-      _commissionController.text = _formatCommissionInput(_defaultCommission);
+      _commissionController.text =
+          _formatCommissionInput(_defaultCommission);
     });
 
     try {
@@ -1191,7 +1256,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
 
       if (response.statusCode == 200) {
         setState(() => _isResetting = false);
-        _showMessage('Konfigurasi dikembalikan ke default.');
+        _showMessage('Konfigurasi dikembalikan ke default.', t: t);
         await _loadSettings();
       } else {
         String message = 'Gagal mereset konfigurasi.';
@@ -1203,12 +1268,12 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
         } catch (_) {}
 
         setState(() => _isResetting = false);
-        _showMessage(message, isError: true);
+        _showMessage(message, isError: true, t: t);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isResetting = false);
-      _showMessage('Terjadi kesalahan: $e', isError: true);
+      _showMessage('Terjadi kesalahan: $e', isError: true, t: t);
       await _loadSettings();
     }
   }
@@ -1216,16 +1281,19 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // MESSAGE
   // ============================================================
-  void _showMessage(String message, {bool isError = false}) {
+
+  void _showMessage(
+    String message, {
+    bool isError = false,
+    required AdminTheme t,
+  }) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: isError ? _dangerColor : _successColor,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? t.danger : t.accent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }

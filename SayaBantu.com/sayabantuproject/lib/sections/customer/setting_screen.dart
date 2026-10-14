@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
+// ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
@@ -737,7 +737,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: LayoutBuilder(
@@ -882,7 +882,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
               child: CircleAvatar(
                 radius: radius,
                 // ✅ dari peach → mint soft
-                backgroundColor: AppColors.mint.withOpacity(0.25),
+                backgroundColor: AppColors.mint.withValues(alpha:0.25),
                 backgroundImage: selectedPhotoBytes != null
                     ? MemoryImage(selectedPhotoBytes!)
                     : fullPhotoUrl != null
@@ -984,7 +984,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Row(
@@ -993,7 +993,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _primaryColor.withOpacity(0.12),
+              color: _primaryColor.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: _primaryColor, size: 20),
@@ -1043,7 +1043,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Row(
@@ -1053,7 +1053,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _primaryColor.withOpacity(0.12),
+              color: _primaryColor.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: const Icon(
@@ -1092,7 +1092,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
           const SizedBox(width: 10),
           Switch(
             value: jobNotification,
-            activeColor: _primaryColor, // ← teal
+            activeThumbColor: _primaryColor, // ← teal
             onChanged: (value) async {
               setState(() => jobNotification = value);
               await updateNotificationStatus(value);
@@ -1120,7 +1120,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Material(
@@ -1137,7 +1137,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.10),
+                    color: Colors.red.withValues(alpha:0.10),
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: const Icon(
@@ -1222,7 +1222,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: _primaryColor.withOpacity(0.12),
+                            color: _primaryColor.withValues(alpha:0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -1289,7 +1289,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                                     CircleAvatar(
                                       radius: 45,
                                       backgroundColor: AppColors.mint
-                                          .withOpacity(0.25),
+                                          .withValues(alpha:0.25),
                                       backgroundImage:
                                           selectedPhotoBytes != null
                                               ? MemoryImage(

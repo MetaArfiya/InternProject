@@ -225,12 +225,12 @@ class AboutSection extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(cardRadius),
           border: Border.all(
-            color: AppColors.primaryTeal.withOpacity(0.10),
+            color: AppColors.primaryTeal.withValues(alpha:0.10),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.darkTeal.withOpacity(0.05),
+              color: AppColors.darkTeal.withValues(alpha:0.05),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -244,7 +244,7 @@ class AboutSection extends StatelessWidget {
               width: iconBox,
               height: iconBox,
               decoration: BoxDecoration(
-                color: AppColors.mint.withOpacity(0.15),
+                color: AppColors.mint.withValues(alpha:0.15),
                 borderRadius: BorderRadius.circular(iconRadius),
               ),
               child: Icon(

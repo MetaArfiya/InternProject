@@ -95,9 +95,7 @@ class _HeroRightState extends State<HeroRight> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // ====================================================
                   // KARTU UTAMA
-                  // ====================================================
                   Container(
                     width: double.infinity,
                     margin: EdgeInsets.only(
@@ -112,17 +110,17 @@ class _HeroRightState extends State<HeroRight> {
                       isSmallMobile ? 18 : 28,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBg.withOpacity(0.96),
+                      color: AppColors.cardBg.withValues(alpha: 0.96),
                       borderRadius: BorderRadius.circular(
                         isSmallMobile ? 18 : 24,
                       ),
                       border: Border.all(
-                        color: AppColors.mint.withOpacity(0.20),
+                        color: AppColors.mint.withValues(alpha: 0.20),
                         width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.shadow.withOpacity(0.30),
+                          color: AppColors.shadow.withValues(alpha: 0.30),
                           blurRadius: isSmallMobile ? 24 : 35,
                           offset: Offset(0, isSmallMobile ? 12 : 18),
                         ),
@@ -139,7 +137,7 @@ class _HeroRightState extends State<HeroRight> {
                               width: isSmallMobile ? 28 : 34,
                               height: isSmallMobile ? 28 : 34,
                               decoration: BoxDecoration(
-                                color: AppColors.mint.withOpacity(0.14),
+                                color: AppColors.mint.withValues(alpha: 0.14),
                                 borderRadius: BorderRadius.circular(
                                   isSmallMobile ? 8 : 10,
                                 ),
@@ -219,9 +217,9 @@ class _HeroRightState extends State<HeroRight> {
                               backgroundColor: AppColors.mint,
                               foregroundColor: AppColors.darkTeal,
                               disabledBackgroundColor:
-                                  AppColors.grey500.withOpacity(0.4),
+                                  AppColors.grey500.withValues(alpha: 0.4),
                               disabledForegroundColor:
-                                  AppColors.white.withOpacity(0.6),
+                                  AppColors.white.withValues(alpha: 0.6),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
@@ -273,11 +271,11 @@ class _HeroRightState extends State<HeroRight> {
         color: AppColors.lightMint,
         borderRadius: BorderRadius.circular(isSmallMobile ? 10 : 13),
         border: Border.all(
-          color: AppColors.white.withOpacity(0.8),
+          color: AppColors.white.withValues(alpha: 0.8),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.15),
+            color: AppColors.darkTeal.withValues(alpha: 0.15),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -327,11 +325,11 @@ class _HeroRightState extends State<HeroRight> {
         color: AppColors.cardBgSoft,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: AppColors.mint.withOpacity(0.45),
+          color: AppColors.mint.withValues(alpha: 0.45),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.18),
+            color: AppColors.darkTeal.withValues(alpha: 0.18),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -374,7 +372,7 @@ class _HeroRightState extends State<HeroRight> {
         color: AppColors.cardBgSoft,
         borderRadius: BorderRadius.circular(isSmallMobile ? 12 : 16),
         border: Border.all(
-          color: AppColors.mint.withOpacity(0.12),
+          color: AppColors.mint.withValues(alpha: 0.12),
         ),
       ),
       child: Column(
@@ -383,7 +381,7 @@ class _HeroRightState extends State<HeroRight> {
             width: isSmallMobile ? 42 : 52,
             height: isSmallMobile ? 42 : 52,
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.12),
+              color: AppColors.mint.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -442,8 +440,8 @@ class _HeroRightState extends State<HeroRight> {
         borderRadius: BorderRadius.circular(isSmallMobile ? 11 : 14),
         border: Border.all(
           color: active
-              ? AppColors.mint.withOpacity(0.65)
-              : AppColors.white.withOpacity(0.07),
+              ? AppColors.mint.withValues(alpha: 0.65)
+              : AppColors.white.withValues(alpha: 0.07),
           width: active ? 1.2 : 1,
         ),
       ),
@@ -452,7 +450,7 @@ class _HeroRightState extends State<HeroRight> {
           CircleAvatar(
             radius: avatarRadius,
             backgroundColor: active
-                ? AppColors.mint.withOpacity(0.25)
+                ? AppColors.mint.withValues(alpha: 0.25)
                 : AppColors.avatarBg,
             child: Text(
               initials,
@@ -528,7 +526,7 @@ class _HeroRightState extends State<HeroRight> {
                     vertical: isSmallMobile ? 2 : 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.mint.withOpacity(0.18),
+                    color: AppColors.mint.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(

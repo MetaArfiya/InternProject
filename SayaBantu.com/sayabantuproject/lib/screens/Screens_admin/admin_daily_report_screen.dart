@@ -468,7 +468,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withOpacity(0.03),
+            color: AppColors.black.withValues(alpha:0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -480,7 +480,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
@@ -577,7 +577,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             vertical: 6,
           ),
           decoration: BoxDecoration(
-            color: AppColors.infoBlue.withOpacity(0.10),
+            color: AppColors.infoBlue.withValues(alpha:0.10),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -733,7 +733,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                                     end: Alignment.bottomCenter,
                                     colors: [
                                       barColor,
-                                      barColor.withOpacity(0.6),
+                                      barColor.withValues(alpha:0.6),
                                     ],
                                   ),
                                   borderRadius:
@@ -912,7 +912,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         children: [
           _buildSmallIconBox(
             icon: Icons.receipt_long_outlined,
-            background: AppColors.infoBlue.withOpacity(0.12),
+            background: AppColors.infoBlue.withValues(alpha:0.12),
             iconColor: AppColors.infoBlue,
           ),
           const SizedBox(width: 8),
@@ -933,7 +933,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       children: [
         _buildSmallIconBox(
           icon: Icons.receipt_long_outlined,
-          background: AppColors.infoBlue.withOpacity(0.12),
+          background: AppColors.infoBlue.withValues(alpha:0.12),
           iconColor: AppColors.infoBlue,
         ),
         const SizedBox(width: 8),
@@ -991,7 +991,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         children: [
           _buildSmallIconBox(
             icon: Icons.work_outline,
-            background: t.warning.withOpacity(0.12),
+            background: t.warning.withValues(alpha:0.12),
             iconColor: t.warning,
           ),
           const SizedBox(width: 8),
@@ -1012,7 +1012,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       children: [
         _buildSmallIconBox(
           icon: Icons.work_outline,
-          background: t.warning.withOpacity(0.12),
+          background: t.warning.withValues(alpha:0.12),
           iconColor: t.warning,
         ),
         const SizedBox(width: 8),
@@ -1114,7 +1114,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             icon: Icons.receipt_long_outlined,
             label: 'Transaksi',
             iconColor: AppColors.infoBlue,
-            background: AppColors.infoBlue.withOpacity(0.12),
+            background: AppColors.infoBlue.withValues(alpha:0.12),
             child: transactionDetails.isEmpty
                 ? Text(
                     '$transactions transaksi',
@@ -1131,7 +1131,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             icon: Icons.work_outline,
             label: 'Pekerjaan',
             iconColor: t.warning,
-            background: t.warning.withOpacity(0.12),
+            background: t.warning.withValues(alpha:0.12),
             child: jobDetails.isEmpty
                 ? Text(
                     '$jobs pekerjaan',
@@ -1148,7 +1148,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             icon: Icons.account_balance_wallet_outlined,
             label: 'Komisi Admin',
             iconColor: t.success,
-            background: t.success.withOpacity(0.12),
+            background: t.success.withValues(alpha:0.12),
             child: Text(
               _formatRupiah(d['income'] ?? 0),
               style: TextStyle(
@@ -1383,7 +1383,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                       const EdgeInsets.symmetric(horizontal: 12),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: t.accent.withOpacity(0.10),
+                    color: t.accent.withValues(alpha:0.10),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -1495,7 +1495,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     const EdgeInsets.symmetric(horizontal: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: t.accent.withOpacity(0.10),
+                  color: t.accent.withValues(alpha:0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1570,9 +1570,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: t.danger.withOpacity(0.05),
+        color: t.danger.withValues(alpha:0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: t.danger.withOpacity(0.3)),
+        border: Border.all(color: t.danger.withValues(alpha:0.3)),
       ),
       child: Column(
         children: [
@@ -1625,13 +1625,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: t.accent.withOpacity(0.1),
+              color: t.accent.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.bar_chart_outlined,
               size: 34,
-              color: t.accent.withOpacity(0.7),
+              color: t.accent.withValues(alpha:0.7),
             ),
           ),
           const SizedBox(height: 14),

@@ -151,7 +151,7 @@ class SearchResultSection extends StatelessWidget {
         color: AppColors.sectionAltLight,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
           width: 1,
         ),
       ),
@@ -161,7 +161,7 @@ class SearchResultSection extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.20),
+              color: AppColors.mint.withValues(alpha: 0.20),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -253,13 +253,13 @@ class _JobCardState extends State<_JobCard> {
           border: Border.all(
             color: _isHovered
                 ? AppColors.mint
-                : AppColors.primaryTeal.withOpacity(0.10),
+                : AppColors.primaryTeal.withValues(alpha: 0.10),
             width: _isHovered ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.darkTeal.withOpacity(
-                _isHovered ? 0.10 : 0.05,
+              color: AppColors.darkTeal.withValues(
+                alpha: _isHovered ? 0.10 : 0.05,
               ),
               blurRadius: _isHovered ? 20 : 12,
               offset: const Offset(0, 6),
@@ -308,7 +308,7 @@ class _JobCardState extends State<_JobCard> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.mint.withOpacity(0.15),
+            color: AppColors.mint.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(14),
           ),
           child: const Icon(
@@ -358,7 +358,7 @@ class _JobCardState extends State<_JobCard> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.mint.withOpacity(0.15),
+            color: AppColors.mint.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(
@@ -431,7 +431,7 @@ class _JobCardState extends State<_JobCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.mint.withOpacity(0.15),
+        color: AppColors.mint.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

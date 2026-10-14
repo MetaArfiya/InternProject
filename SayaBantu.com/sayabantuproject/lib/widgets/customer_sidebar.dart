@@ -399,7 +399,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: AppColors.white.withOpacity(0.65),
+                            color: AppColors.white.withValues(alpha:0.65),
                             fontSize: 13,
                           ),
                         ),
@@ -485,7 +485,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
           vertical: 15,
         ),
         color: active
-            ? AppColors.mint.withOpacity(0.15) // ← dari orange soft → mint soft
+            ? AppColors.mint.withValues(alpha:0.15) // ← dari orange soft → mint soft
             : Colors.transparent,
         child: Row(
           children: [
@@ -493,7 +493,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               icon,
               color: active
                   ? AppColors.mint // ← aktif → mint
-                  : AppColors.white.withOpacity(0.70),
+                  : AppColors.white.withValues(alpha:0.70),
               size: 22,
             ),
             const SizedBox(width: 15),
@@ -505,7 +505,7 @@ class CustomerSidebarState extends State<CustomerSidebar> {
                 style: TextStyle(
                   color: active
                       ? AppColors.mint // ← aktif → mint
-                      : AppColors.white.withOpacity(0.85),
+                      : AppColors.white.withValues(alpha:0.85),
                   fontWeight: active
                       ? FontWeight.bold
                       : FontWeight.w500,
@@ -548,10 +548,10 @@ class CustomerSidebarState extends State<CustomerSidebar> {
           ),
           decoration: BoxDecoration(
             // ✅ dari merah → soft white/transparent (muted)
-            color: AppColors.white.withOpacity(0.08),
+            color: AppColors.white.withValues(alpha:0.08),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: AppColors.white.withOpacity(0.15),
+              color: AppColors.white.withValues(alpha:0.15),
             ),
           ),
           child: Row(

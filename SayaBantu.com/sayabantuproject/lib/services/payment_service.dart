@@ -1,156 +1,9 @@
-// // lib/services/payment_service.dart
-
-// import 'dart:convert';
-// import 'dart:typed_data';
-
-// import 'api_service.dart';
-
-// class PaymentService {
-//   /// ============================================================
-//   /// PELANGGAN — Ambil detail pembayaran + info rekening platform
-//   /// GET /pelanggan/payments/{id}
-//   /// ============================================================
-//   static Future<Map<String, dynamic>?> getPelangganPaymentDetail(int id) async {
-//     try {
-//       final response = await ApiService.get('/pelanggan/payments/$id');
-//       if (response.statusCode != 200) return null;
-
-//       final decoded = jsonDecode(response.body);
-//       if (decoded['success'] != true) return null;
-
-//       return Map<String, dynamic>.from(decoded['data']);
-//     } catch (e) {
-//       print('❌ PaymentService.getPelangganPaymentDetail: $e');
-//       return null;
-//     }
-//   }
-
-//   /// ============================================================
-//   /// PELANGGAN — Upload bukti transfer
-//   /// POST /pelanggan/payments/{id}/upload-proof
-//   /// ============================================================
-//   static Future<bool> uploadCustomerProof({
-//     required int paymentId,
-//     required Uint8List imageBytes,
-//     required String bankName,
-//     required String accountName,
-//     String? note,
-//   }) async {
-//     try {
-//       final response = await ApiService.postMultipart(
-//         '/pelanggan/payments/$paymentId/upload-proof',
-//         {
-//           'bank_name': bankName,
-//           'account_name': accountName,
-//           if (note != null && note.isNotEmpty) 'note': note,
-//         },
-//         files: {
-//           'proof': imageBytes,
-//         },
-//       );
-
-//       return response.statusCode == 200;
-//     } catch (e) {
-//       print('❌ PaymentService.uploadCustomerProof: $e');
-//       return false;
-//     }
-//   }
-
-//   /// ============================================================
-//   /// ADMIN — Ambil detail pembayaran + rekening mitra
-//   /// GET /admin/payments/{id}
-//   /// ============================================================
-//   static Future<Map<String, dynamic>?> getAdminPaymentDetail(int id) async {
-//     try {
-//       final response = await ApiService.get('/admin/payments/$id');
-//       if (response.statusCode != 200) return null;
-
-//       final decoded = jsonDecode(response.body);
-//       if (decoded['success'] != true) return null;
-
-//       return Map<String, dynamic>.from(decoded['data']);
-//     } catch (e) {
-//       print('❌ PaymentService.getAdminPaymentDetail: $e');
-//       return null;
-//     }
-//   }
-
-//   /// ============================================================
-//   /// ADMIN — Verifikasi bukti pelanggan
-//   /// PUT /admin/payments/{id}/verify
-//   /// ============================================================
-//   static Future<bool> verifyCustomerProof({
-//     required int paymentId,
-//     required String action, // 'approve' | 'reject'
-//     String? note,
-//   }) async {
-//     try {
-//       final response = await ApiService.put(
-//         '/admin/payments/$paymentId/verify',
-//         {
-//           'action': action,
-//           if (note != null && note.isNotEmpty) 'note': note,
-//         },
-//       );
-//       return response.statusCode == 200;
-//     } catch (e) {
-//       print('❌ PaymentService.verifyCustomerProof: $e');
-//       return false;
-//     }
-//   }
-
-//   /// ============================================================
-//   /// ADMIN — Transfer ke mitra + upload bukti
-//   /// POST /admin/payments/{id}/settle
-//   /// ============================================================
-//   static Future<bool> settleToMitra({
-//     required int paymentId,
-//     required Uint8List imageBytes,
-//     String? note,
-//   }) async {
-//     try {
-//       final response = await ApiService.postMultipart(
-//         '/admin/payments/$paymentId/settle',
-//         {
-//           if (note != null && note.isNotEmpty) 'note': note,
-//         },
-//         files: {
-//           'mitra_proof': imageBytes,
-//         },
-//       );
-
-//       return response.statusCode == 200;
-//     } catch (e) {
-//       print('❌ PaymentService.settleToMitra: $e');
-//       return false;
-//     }
-//   }
-
-//   /// ============================================================
-//   /// ADMIN — Refund
-//   /// PUT /admin/payments/{id}/refund
-//   /// ============================================================
-//   static Future<bool> refund({
-//     required int paymentId,
-//     required String reason,
-//   }) async {
-//     try {
-//       final response = await ApiService.put(
-//         '/admin/payments/$paymentId/refund',
-//         {'reason': reason},
-//       );
-//       return response.statusCode == 200;
-//     } catch (e) {
-//       print('❌ PaymentService.refund: $e');
-//       return false;
-//     }
-//   }
-// }
-
 // lib/services/payment_service.dart
 
 import 'dart:convert';
-import 'dart:typed_data';
+//import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 
 import 'api_service.dart';
 
@@ -187,7 +40,7 @@ class PaymentService {
 
       return Map<String, dynamic>.from(decoded['data']);
     } catch (e) {
-      print('❌ PaymentService.getPelangganPaymentDetail: $e');
+      debugPrint('❌ PaymentService.getPelangganPaymentDetail: $e');
       return null;
     }
   }
@@ -216,8 +69,8 @@ class PaymentService {
         },
       );
 
-      print('📤 UPLOAD PROOF: ${response.statusCode}');
-      print('📤 BODY: ${response.body}');
+      debugPrint('📤 UPLOAD PROOF: ${response.statusCode}');
+      debugPrint('📤 BODY: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return UploadResult.ok;
@@ -225,7 +78,7 @@ class PaymentService {
 
       return UploadResult.fail(_parseErrorMessage(response));
     } catch (e) {
-      print('❌ PaymentService.uploadCustomerProof: $e');
+      debugPrint('❌ PaymentService.uploadCustomerProof: $e');
       return UploadResult.fail('Tidak dapat terhubung ke server.');
     }
   }
@@ -243,7 +96,7 @@ class PaymentService {
 
       return Map<String, dynamic>.from(decoded['data']);
     } catch (e) {
-      print('❌ PaymentService.getAdminPaymentDetail: $e');
+      debugPrint('❌ PaymentService.getAdminPaymentDetail: $e');
       return null;
     }
   }
@@ -265,8 +118,8 @@ class PaymentService {
         },
       );
 
-      print('📤 VERIFY: ${response.statusCode}');
-      print('📤 BODY: ${response.body}');
+      debugPrint('📤 VERIFY: ${response.statusCode}');
+      debugPrint('📤 BODY: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return UploadResult.ok;
@@ -274,7 +127,7 @@ class PaymentService {
 
       return UploadResult.fail(_parseErrorMessage(response));
     } catch (e) {
-      print('❌ PaymentService.verifyCustomerProof: $e');
+      debugPrint('❌ PaymentService.verifyCustomerProof: $e');
       return UploadResult.fail('Tidak dapat terhubung ke server.');
     }
   }
@@ -299,8 +152,8 @@ class PaymentService {
         },
       );
 
-      print('📤 SETTLE: ${response.statusCode}');
-      print('📤 BODY: ${response.body}');
+      debugPrint('📤 SETTLE: ${response.statusCode}');
+      debugPrint('📤 BODY: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return UploadResult.ok;
@@ -308,13 +161,13 @@ class PaymentService {
 
       return UploadResult.fail(_parseErrorMessage(response));
     } catch (e) {
-      print('❌ PaymentService.settleToMitra: $e');
+      debugPrint('❌ PaymentService.settleToMitra: $e');
       return UploadResult.fail('Tidak dapat terhubung ke server.');
     }
   }
 
   // ============================================================
-  // ✅ ADMIN — Refund (INI YANG HILANG)
+  // ✅ ADMIN — Refund
   // ============================================================
   static Future<UploadResult> refund({
     required int paymentId,
@@ -326,8 +179,8 @@ class PaymentService {
         {'reason': reason},
       );
 
-      print('📤 REFUND: ${response.statusCode}');
-      print('📤 BODY: ${response.body}');
+      debugPrint('📤 REFUND: ${response.statusCode}');
+      debugPrint('📤 BODY: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return UploadResult.ok;
@@ -335,7 +188,7 @@ class PaymentService {
 
       return UploadResult.fail(_parseErrorMessage(response));
     } catch (e) {
-      print('❌ PaymentService.refund: $e');
+      debugPrint('❌ PaymentService.refund: $e');
       return UploadResult.fail('Tidak dapat terhubung ke server.');
     }
   }
@@ -353,7 +206,7 @@ class PaymentService {
 
       return Map<String, dynamic>.from(decoded);
     } catch (e) {
-      print('❌ PaymentService.checkJobRating: $e');
+      debugPrint('❌ PaymentService.checkJobRating: $e');
       return null;
     }
   }
@@ -384,7 +237,7 @@ class PaymentService {
 
       return null;
     } catch (e) {
-      print('❌ PaymentService.submitRating: $e');
+      debugPrint('❌ PaymentService.submitRating: $e');
       return null;
     }
   }

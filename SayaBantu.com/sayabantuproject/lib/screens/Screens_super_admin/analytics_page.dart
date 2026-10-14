@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class SuperAdminAnalyticsPage extends StatefulWidget {
   const SuperAdminAnalyticsPage({super.key});
@@ -14,33 +17,15 @@ class SuperAdminAnalyticsPage extends StatefulWidget {
 
 class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // ================================================================
-  // DESIGN TOKENS (disamakan dengan AdminVerificationScreen)
+  // THEME
   // ================================================================
 
-  static const Color _accent = Color(0xFFF97316);
-  static const Color _successColor = Color(0xFF16A34A);
-  static const Color _dangerColor = Color(0xFFDC2626);
-  static const Color _infoColor = Color(0xFF2563EB);
-  static const Color _warningColor = Color(0xFFD97706);
-  static const Color _purpleColor = Color(0xFF7C3AED);
-
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
-  static const Color _mutedText = Color(0xFF64748B);
-
-  static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 16;
-  static const double _cardRadius = 14;
-  static const double _radius = 10;
-
-  static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100;
+  AdminTheme get theme => AdminThemeProvider.of(context);
 
   // ================================================================
-  // STATE - ANALYTICS
+  // STATE — ANALYTICS
   // ================================================================
+
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -59,21 +44,29 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   String _periode = '7 hari terakhir';
 
   // ================================================================
-  // STATE - PAYMENT
+  // STATE — PAYMENT
   // ================================================================
+
   double _paymentTotalPembayaran = 0;
   double _paymentTotalKomisi = 0;
   double _paymentTotalMitraEarning = 0;
   double _paymentPendingAmount = 0;
-  double _paymentSettledAmount = 0;
   int _paymentTotalTransaksi = 0;
   Map<String, dynamic> _paymentPerStatus = {};
   List<dynamic> _paymentChart = [];
   List<dynamic> _paymentTopMitra = [];
 
   // ================================================================
+  // BREAKPOINTS
+  // ================================================================
+
+  static const double _mobileBreakpoint = 700;
+  static const double _tabletBreakpoint = 1100;
+
+  // ================================================================
   // LIFECYCLE
   // ================================================================
+
   @override
   void initState() {
     super.initState();
@@ -83,6 +76,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // ================================================================
   // LOAD SEMUA DATA (PARALEL)
   // ================================================================
+
   Future<void> _loadAll() async {
     if (mounted) {
       setState(() {
@@ -106,7 +100,8 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       final analyticsBody = jsonDecode(responses[0].body);
       if (analyticsBody['success'] != true) {
         throw Exception(
-          analyticsBody['message']?.toString() ?? 'Analytics gagal diambil.',
+          analyticsBody['message']?.toString() ??
+              'Analytics gagal diambil.',
         );
       }
 
@@ -148,9 +143,6 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       if (!mounted) return;
 
       setState(() {
-        // ============================================================
-        // ANALYTICS
-        // ============================================================
         final summary = _safeMap(analyticsBody['summary']);
         final charts = _safeMap(analyticsBody['charts']);
         final period = _safeMap(analyticsBody['period']);
@@ -173,18 +165,16 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
           _periode = _formatPeriod(start, end);
         }
 
-        // ============================================================
-        // PAYMENT
-        // ============================================================
         if (overviewData != null) {
           _paymentTotalPembayaran =
               _toDouble(overviewData['total_pembayaran']);
           _paymentTotalKomisi = _toDouble(overviewData['total_komisi']);
           _paymentTotalMitraEarning =
               _toDouble(overviewData['total_mitra_earning']);
-          _paymentPendingAmount = _toDouble(overviewData['pending_amount']);
-          _paymentSettledAmount = _toDouble(overviewData['settled_amount']);
-          _paymentTotalTransaksi = _toInt(overviewData['total_transaksi']);
+          _paymentPendingAmount =
+              _toDouble(overviewData['pending_amount']);
+          _paymentTotalTransaksi =
+              _toInt(overviewData['total_transaksi']);
           _paymentPerStatus = _safeMap(overviewData['per_status']);
         }
 
@@ -263,6 +253,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -277,17 +268,22 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: t.bg,
           child: RefreshIndicator(
             onRefresh: _loadAll,
-            color: _accent,
+            color: t.accent,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: _buildContent(context, isMobile),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1300),
+                  child: _buildContent(width, isMobile, t),
+                ),
+              ),
             ),
           ),
         );
@@ -295,33 +291,29 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context, bool isMobile) {
+  Widget _buildContent(double width, bool isMobile, AdminTheme t) {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 100),
         child: Center(
-          child: CircularProgressIndicator(color: _accent),
+          child: CircularProgressIndicator(color: t.accent),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      return _buildErrorState();
+      return _buildErrorState(t);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ==================================================
         // HEADER
-        // ==================================================
-        _buildHeader(context, isMobile),
-        const SizedBox(height: _gapAfterHeader),
+        _buildHeader(isMobile, t),
+        const SizedBox(height: 16),
 
-        // ==================================================
         // GENERAL STATS
-        // ==================================================
-        _buildSectionLabel('Ringkasan Platform', isMobile),
+        _buildSectionLabel('Ringkasan Platform', isMobile, t),
         const SizedBox(height: 12),
         _buildStatGrid(
           isMobile: isMobile,
@@ -331,52 +323,47 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
               value: _formatRupiah(_totalTransaksi),
               description: '7 hari terakhir',
               icon: Icons.payments_rounded,
-              color: const Color(0xFF00A86B),
+              color: t.accent,
             ),
             _StatData(
               title: 'JOB SELESAI',
               value: '$_jobSelesai',
               description: '7 hari terakhir',
               icon: Icons.check_circle_rounded,
-              color: const Color(0xFF159DDD),
+              color: t.accent,
             ),
             _StatData(
               title: 'PENGGUNA BARU',
               value: '$_penggunaBaru',
-              description: '$_pelangganBaru pelanggan · $_mitraBaru mitra',
+              description:
+                  '$_pelangganBaru pelanggan · $_mitraBaru mitra',
               icon: Icons.people_alt_rounded,
-              color: const Color(0xFF8454E8),
+              color: t.accent,
             ),
             _StatData(
               title: 'MITRA AKTIF',
               value: '$_mitraAktif',
               description: '$_mitraMenunggu menunggu verifikasi',
               icon: Icons.handyman_rounded,
-              color: const Color(0xFFE95D00),
+              color: t.accent,
             ),
           ],
+          t: t,
         ),
 
-        const SizedBox(height: _gapBetweenSections),
+        const SizedBox(height: 16),
 
-        // ==================================================
         // JOB CHART
-        // ==================================================
-        _JobChartCard(data: _jobSelesaiPerHari),
+        _JobChartCard(data: _jobSelesaiPerHari, t: t),
 
-        const SizedBox(height: _gapBetweenSections),
+        const SizedBox(height: 16),
 
-        // ==================================================
         // PEMBAYARAN
-        // ==================================================
-        _buildSectionLabel('Analytics Pembayaran', isMobile),
+        _buildSectionLabel('Analytics Pembayaran', isMobile, t),
         const SizedBox(height: 4),
         Text(
           'Ringkasan transaksi dan pencairan dana platform',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontSize: 12,
-                color: _mutedText,
-              ),
+          style: TextStyle(fontSize: 12, color: t.mutedText),
         ),
         const SizedBox(height: 12),
 
@@ -388,84 +375,79 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
               value: _formatRupiah(_paymentTotalPembayaran),
               description: '$_paymentTotalTransaksi transaksi',
               icon: Icons.account_balance_wallet_rounded,
-              color: const Color(0xFF00A86B),
+              color: t.accent,
             ),
             _StatData(
               title: 'KOMISI PLATFORM',
               value: _formatRupiah(_paymentTotalKomisi),
               description: 'Pendapatan aplikasi',
               icon: Icons.percent_rounded,
-              color: const Color(0xFFE95D00),
+              color: t.accent,
             ),
             _StatData(
               title: 'TOTAL KE MITRA',
               value: _formatRupiah(_paymentTotalMitraEarning),
               description: 'Sudah dibayarkan',
               icon: Icons.handshake_rounded,
-              color: const Color(0xFF159DDD),
+              color: t.accent,
             ),
             _StatData(
               title: 'PENDING CAIR',
               value: _formatRupiah(_paymentPendingAmount),
               description: 'Belum ditransfer',
               icon: Icons.hourglass_top_rounded,
-              color: const Color(0xFFE53935),
+              color: t.accent,
             ),
           ],
+          t: t,
         ),
 
-        const SizedBox(height: _gapBetweenSections),
+        const SizedBox(height: 16),
 
-        // ==================================================
         // PAYMENT CHART + TOP MITRA
-        // ==================================================
         _buildTwoColumnRow(
           isMobile: isMobile,
-          left: _PaymentChartCard(data: _paymentChart),
-          right: _TopMitraCard(data: _paymentTopMitra),
+          left: _PaymentChartCard(data: _paymentChart, t: t),
+          right: _TopMitraCard(data: _paymentTopMitra, t: t),
         ),
 
-        const SizedBox(height: _gapBetweenSections),
+        const SizedBox(height: 16),
 
-        // ==================================================
-        // BOTTOM ROW
-        // ==================================================
+        // BOTTOM ROW (hanya SEKALI, duplikat dihapus)
         _buildThreeColumnRow(
           isMobile: isMobile,
-          first: _DailyIncomeCard(data: _pendapatanHarian),
-          second: _UserGrowthCard(data: _pertumbuhanPengguna),
-          third: _PaymentStatusCard(data: _paymentPerStatus),
+          first: _DailyIncomeCard(data: _pendapatanHarian, t: t),
+          second: _UserGrowthCard(data: _pertumbuhanPengguna, t: t),
+          third: _PaymentStatusCard(data: _paymentPerStatus, t: t),
         ),
-
-        const SizedBox(height: 24),
       ],
     );
   }
 
   // ================================================================
-  // HEADER — disamakan dgn AdminVerificationScreen:
-  //   • Judul: headlineSmall + bold
-  //   • Subtitle: bodyMedium + grey.shade600
-  //   • Jarak judul → subtitle = 6 px
+  // HEADER
   // ================================================================
 
-  Widget _buildHeader(BuildContext context, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
-
+  Widget _buildHeader(bool isMobile, AdminTheme t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Analytics Platform',
-          style: textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+          style: TextStyle(
+            fontSize: isMobile ? 22 : 26,
+            fontWeight: FontWeight.w700,
+            color: t.cellText,
+            height: 1.2,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Ringkasan performa SiapBantu.com — $_periode',
-          style: textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+          style: TextStyle(
+            fontSize: isMobile ? 12.5 : 13,
+            color: t.mutedText,
+            height: 1.4,
           ),
         ),
       ],
@@ -476,24 +458,24 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // SECTION LABEL
   // ================================================================
 
-  Widget _buildSectionLabel(String text, bool isMobile) {
-    final textTheme = Theme.of(context).textTheme;
+  Widget _buildSectionLabel(String text, bool isMobile, AdminTheme t) {
     return Row(
       children: [
         Container(
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            color: _accent,
+            color: t.accent,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           text,
-          style: textTheme.titleMedium?.copyWith(
+          style: TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: _cellText,
+            color: t.cellText,
           ),
         ),
       ],
@@ -501,29 +483,30 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   }
 
   // ================================================================
-  // STAT GRID — MOBILE 2×2, WEB 4 KOLOM
+  // STAT GRID
   // ================================================================
 
   Widget _buildStatGrid({
     required bool isMobile,
     required List<_StatData> cards,
+    required AdminTheme t,
   }) {
     if (isMobile) {
       return Column(
         children: [
           Row(
             children: [
-              Expanded(child: _buildStatCard(cards[0])),
+              Expanded(child: _buildStatCard(cards[0], t)),
               const SizedBox(width: 10),
-              Expanded(child: _buildStatCard(cards[1])),
+              Expanded(child: _buildStatCard(cards[1], t)),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildStatCard(cards[2])),
+              Expanded(child: _buildStatCard(cards[2], t)),
               const SizedBox(width: 10),
-              Expanded(child: _buildStatCard(cards[3])),
+              Expanded(child: _buildStatCard(cards[3], t)),
             ],
           ),
         ],
@@ -533,27 +516,20 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
     return Row(
       children: [
         for (int i = 0; i < cards.length; i++) ...[
-          Expanded(child: _buildStatCard(cards[i])),
+          Expanded(child: _buildStatCard(cards[i], t)),
           if (i != cards.length - 1) const SizedBox(width: 14),
         ],
       ],
     );
   }
 
-  Widget _buildStatCard(_StatData data) {
+  Widget _buildStatCard(_StatData data, AdminTheme t) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _tableBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         children: [
@@ -561,7 +537,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: data.color.withOpacity(0.12),
+              color: data.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(data.icon, size: 21, color: data.color),
@@ -576,10 +552,11 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                   data.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: _mutedText,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.mutedText,
+                    letterSpacing: 0.3,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -587,10 +564,10 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                   data.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: t.cellText,
                     height: 1.1,
                   ),
                 ),
@@ -600,8 +577,8 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10.5,
-                    color: Color(0xFF94A3B8),
+                    fontSize: 10,
+                    color: AppColors.grey400,
                   ),
                 ),
               ],
@@ -613,7 +590,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   }
 
   // ================================================================
-  // 2-COLUMN & 3-COLUMN LAYOUT HELPERS
+  // LAYOUT HELPERS
   // ================================================================
 
   Widget _buildTwoColumnRow({
@@ -625,7 +602,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       return Column(
         children: [
           left,
-          const SizedBox(height: _gapBetweenSections),
+          const SizedBox(height: 16),
           right,
         ],
       );
@@ -650,9 +627,9 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
       return Column(
         children: [
           first,
-          const SizedBox(height: _gapBetweenSections),
+          const SizedBox(height: 16),
           second,
-          const SizedBox(height: _gapBetweenSections),
+          const SizedBox(height: 16),
           third,
         ],
       );
@@ -673,39 +650,39 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
   // ERROR STATE
   // ================================================================
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(AdminTheme t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        color: t.danger.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
             size: 48,
-            color: _dangerColor,
+            color: t.danger,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Gagal mengambil data analytics',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF7F1D1D),
+              color: t.danger,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             _errorMessage!,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF991B1B),
+              color: t.danger,
               height: 1.4,
             ),
           ),
@@ -715,11 +692,11 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(_radius),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),
@@ -755,8 +732,9 @@ class _StatData {
 
 class _JobChartCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final AdminTheme t;
 
-  const _JobChartCard({required this.data});
+  const _JobChartCard({required this.data, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -769,34 +747,37 @@ class _JobChartCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Job Selesai per Hari',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: t.cellText,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Data berdasarkan job yang berstatus Selesai',
-            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 11.5, color: t.mutedText),
           ),
           const SizedBox(height: 20),
           if (entries.isEmpty)
-            const SizedBox(
+            SizedBox(
               height: 180,
               child: Center(
                 child: Text(
                   'Belum ada data job selesai.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.grey400,
+                  ),
                 ),
               ),
             )
@@ -820,10 +801,10 @@ class _JobChartCard extends StatelessWidget {
                         children: [
                           Text(
                             '$value',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF52677F),
+                              color: t.cellText,
                             ),
                           ),
                           const SizedBox(height: 5),
@@ -836,8 +817,8 @@ class _JobChartCard extends StatelessWidget {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: weekend
-                                        ? const Color(0xFFEE5B00)
-                                        : const Color(0xFFB9D4F7),
+                                        ? t.accent.withValues(alpha: 0.9)
+                                        : t.accent.withValues(alpha: 0.55),
                                     borderRadius:
                                         const BorderRadius.vertical(
                                       top: Radius.circular(4),
@@ -850,9 +831,9 @@ class _JobChartCard extends StatelessWidget {
                           const SizedBox(height: 7),
                           Text(
                             item.key,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10.5,
-                              color: Color(0xFF64748B),
+                              color: t.mutedText,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -864,11 +845,17 @@ class _JobChartCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             children: [
-              _Legend(color: Color(0xFFB9D4F7), text: 'Hari Kerja'),
-              SizedBox(width: 20),
-              _Legend(color: Color(0xFFEE5B00), text: 'Weekend'),
+              _Legend(
+                color: t.accent.withValues(alpha: 0.55),
+                text: 'Hari Kerja',
+              ),
+              const SizedBox(width: 20),
+              _Legend(
+                color: t.accent.withValues(alpha: 0.9),
+                text: 'Weekend',
+              ),
             ],
           ),
         ],
@@ -883,8 +870,9 @@ class _JobChartCard extends StatelessWidget {
 
 class _PaymentChartCard extends StatelessWidget {
   final List<dynamic> data;
+  final AdminTheme t;
 
-  const _PaymentChartCard({required this.data});
+  const _PaymentChartCard({required this.data, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -896,34 +884,37 @@ class _PaymentChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Pendapatan Bulanan',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: t.cellText,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Total pembayaran 12 bulan terakhir',
-            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 11.5, color: t.mutedText),
           ),
           const SizedBox(height: 18),
           if (data.isEmpty)
-            const SizedBox(
+            SizedBox(
               height: 150,
               child: Center(
                 child: Text(
                   'Belum ada data pembayaran.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.grey400,
+                  ),
                 ),
               ),
             )
@@ -942,9 +933,9 @@ class _PaymentChartCard extends StatelessWidget {
                         width: 45,
                         child: Text(
                           item['bulan']?.toString() ?? '-',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF52677F),
+                            color: t.mutedText,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -955,7 +946,7 @@ class _PaymentChartCard extends StatelessWidget {
                             Container(
                               height: 16,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0F4F8),
+                                color: AppColors.grey100,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -965,7 +956,7 @@ class _PaymentChartCard extends StatelessWidget {
                               child: Container(
                                 height: 16,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF20ABE0),
+                                  color: t.accent,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
@@ -979,10 +970,10 @@ class _PaymentChartCard extends StatelessWidget {
                         child: Text(
                           _formatRupiahShort(total),
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F172A),
+                            color: t.cellText,
                           ),
                         ),
                       ),
@@ -1003,41 +994,45 @@ class _PaymentChartCard extends StatelessWidget {
 
 class _TopMitraCard extends StatelessWidget {
   final List<dynamic> data;
+  final AdminTheme t;
 
-  const _TopMitraCard({required this.data});
+  const _TopMitraCard({required this.data, required this.t});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Top Mitra',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: t.cellText,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Berdasarkan pendapatan tertinggi',
-            style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 11.5, color: t.mutedText),
           ),
           const SizedBox(height: 16),
           if (data.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
               child: Text(
                 'Belum ada data mitra.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.grey400,
+                ),
               ),
             )
           else
@@ -1057,12 +1052,13 @@ class _TopMitraCard extends StatelessWidget {
               }
 
               final colors = [
-                const Color(0xFFFFC107),
-                const Color(0xFF9E9E9E),
-                const Color(0xFFBC8A5F),
+                t.accent,
+                t.accent.withValues(alpha: 0.75),
+                t.accent.withValues(alpha: 0.55),
               ];
-              final color =
-                  idx <= 3 ? colors[idx - 1] : const Color(0xFFCBD5E1);
+              final color = idx <= 3
+                  ? colors[idx - 1]
+                  : AppColors.grey300;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -1074,7 +1070,7 @@ class _TopMitraCard extends StatelessWidget {
                       child: Text(
                         '$idx',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
@@ -1086,19 +1082,19 @@ class _TopMitraCard extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
+                          color: t.cellText,
                         ),
                       ),
                     ),
                     Text(
                       _formatRupiahShort(total),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF00A86B),
+                        color: t.accent,
                       ),
                     ),
                   ],
@@ -1117,8 +1113,9 @@ class _TopMitraCard extends StatelessWidget {
 
 class _PaymentStatusCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final AdminTheme t;
 
-  const _PaymentStatusCard({required this.data});
+  const _PaymentStatusCard({required this.data, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -1131,15 +1128,16 @@ class _PaymentStatusCard extends StatelessWidget {
     };
 
     final colors = {
-      'pending': const Color(0xFFE95D00),
-      'paid': const Color(0xFF159DDD),
-      'settled': const Color(0xFF00A86B),
-      'refunded': const Color(0xFF8454E8),
-      'failed': const Color(0xFFE53935),
+      'pending': t.accent,
+      'paid': t.accent,
+      'settled': t.accent,
+      'refunded': t.accent,
+      'failed': t.danger,
     };
 
     return _ListCard(
       title: 'Status Pembayaran',
+      t: t,
       children: labels.entries.map((e) {
         final count = _toInt(data[e.key]);
         return Padding(
@@ -1158,18 +1156,18 @@ class _PaymentStatusCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   e.value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF5E7188),
+                    color: t.mutedText,
                   ),
                 ),
               ),
               Text(
                 '$count',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+                  color: t.cellText,
                 ),
               ),
             ],
@@ -1206,7 +1204,10 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           text,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF71839A)),
+          style: const TextStyle(
+            fontSize: 10,
+            color: AppColors.grey500,
+          ),
         ),
       ],
     );
@@ -1219,8 +1220,9 @@ class _Legend extends StatelessWidget {
 
 class _DailyIncomeCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final AdminTheme t;
 
-  const _DailyIncomeCard({required this.data});
+  const _DailyIncomeCard({required this.data, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -1231,6 +1233,7 @@ class _DailyIncomeCard extends StatelessWidget {
 
     return _ListCard(
       title: 'Pendapatan Harian',
+      t: t,
       children: entries.map((item) {
         final double value = _toDouble(item.value);
         final double progress = maxValue == 0 ? 0 : value / maxValue;
@@ -1239,7 +1242,8 @@ class _DailyIncomeCard extends StatelessWidget {
           label: item.key,
           value: _formatRupiahShort(value),
           progress: progress.clamp(0.0, 1.0),
-          color: const Color(0xFF20ABE0),
+          color: t.accent,
+          t: t,
         );
       }).toList(),
     );
@@ -1252,8 +1256,9 @@ class _DailyIncomeCard extends StatelessWidget {
 
 class _UserGrowthCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final AdminTheme t;
 
-  const _UserGrowthCard({required this.data});
+  const _UserGrowthCard({required this.data, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -1264,6 +1269,7 @@ class _UserGrowthCard extends StatelessWidget {
 
     return _ListCard(
       title: 'Pertumbuhan Pengguna',
+      t: t,
       children: entries.map((item) {
         final int value = _toInt(item.value);
         final double progress = maxValue == 0 ? 0 : value / maxValue;
@@ -1272,7 +1278,8 @@ class _UserGrowthCard extends StatelessWidget {
           label: item.key,
           value: '+$value',
           progress: progress.clamp(0.0, 1.0),
-          color: const Color(0xFF9061E9),
+          color: t.accent,
+          t: t,
         );
       }).toList(),
     );
@@ -1286,34 +1293,42 @@ class _UserGrowthCard extends StatelessWidget {
 class _ListCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
+  final AdminTheme t;
 
-  const _ListCard({required this.title, required this.children});
+  const _ListCard({
+    required this.title,
+    required this.children,
+    required this.t,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: t.cellText,
             ),
           ),
           const SizedBox(height: 15),
           if (children.isEmpty)
-            const Text(
+            Text(
               'Belum ada data.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.grey400,
+              ),
             )
           else
             ...children,
@@ -1332,12 +1347,14 @@ class _ProgressRow extends StatelessWidget {
   final String value;
   final double progress;
   final Color color;
+  final AdminTheme t;
 
   const _ProgressRow({
     required this.label,
     required this.value,
     required this.progress,
     required this.color,
+    required this.t,
   });
 
   @override
@@ -1350,9 +1367,9 @@ class _ProgressRow extends StatelessWidget {
             width: 32,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF5E7188),
+                color: t.mutedText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1363,7 +1380,7 @@ class _ProgressRow extends StatelessWidget {
                 Container(
                   height: 15,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0F4F8),
+                    color: AppColors.grey100,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -1388,10 +1405,10 @@ class _ProgressRow extends StatelessWidget {
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
+                color: t.cellText,
               ),
             ),
           ),

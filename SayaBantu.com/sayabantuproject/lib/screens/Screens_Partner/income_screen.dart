@@ -27,17 +27,14 @@ class _IncomeScreenState extends State<IncomeScreen> {
   // DESIGN TOKENS
   // ============================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = AppColors.grey500;
+  static const Color _tableBorder = AppColors.grey200;
+  static const Color _tableDivider = AppColors.grey100;
   static const Color _cellText = AppColors.grey900;
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
   static const double _cardRadius = 14;
-  static const double _smallRadius = 12;
 
   @override
   void initState() {
@@ -129,7 +126,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.sectionAltLight, // ← mint muda
+      color: AppColors.sectionAltLight,
       child: RefreshIndicator(
         onRefresh: _loadData,
         color: _accent,
@@ -227,7 +224,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         subtitle:
             isMobile ? 'Akumulasi' : 'Akumulasi $_monthsCount bulan',
         icon: Icons.account_balance_wallet_outlined,
-        iconColor: _accent, // ← teal
+        iconColor: _accent,
         isCompact: isMobile,
       ),
       _summaryCard(
@@ -235,7 +232,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         value: '${s?.totalPekerjaan ?? 0}',
         subtitle: isMobile ? 'Pekerjaan' : 'Total pekerjaan',
         icon: Icons.check_circle_outline,
-        iconColor: const Color(0xFF16A34A), // tetap hijau (success)
+        iconColor: AppColors.success,
         isCompact: isMobile,
       ),
       _summaryCard(
@@ -243,7 +240,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         value: formatRupiah(s?.rataRataPerBulan ?? 0),
         subtitle: 'Per bulan',
         icon: Icons.trending_up,
-        iconColor: AppColors.primaryTeal, // ← dari biru
+        iconColor: AppColors.primaryTeal,
         isCompact: isMobile,
       ),
     ];
@@ -272,11 +269,11 @@ class _IncomeScreenState extends State<IncomeScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.03),
+            color: AppColors.darkTeal.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -288,7 +285,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             width: isCompact ? 34 : 42,
             height: isCompact ? 34 : 42,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
+              color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(isCompact ? 9 : 11),
             ),
             child: Icon(
@@ -367,7 +364,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -546,7 +543,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                           radius: 3.5,
                           color: AppColors.white,
                           strokeWidth: 2.5,
-                          strokeColor: _accent, // ← teal
+                          strokeColor: _accent,
                         );
                       },
                     ),
@@ -556,12 +553,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          _accent.withOpacity(0.2), // ← teal soft
-                          _accent.withOpacity(0.02),
+                          _accent.withValues(alpha: 0.2),
+                          _accent.withValues(alpha: 0.02),
                         ],
                       ),
                     ),
-                    color: _accent, // ← teal
+                    color: _accent,
                   ),
                 ],
               ),
@@ -586,7 +583,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -639,12 +636,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
             width: isMobile ? 38 : 44,
             height: isMobile ? 38 : 44,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.12),
+              color: _accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(isMobile ? 10 : 11),
             ),
             child: Icon(
               Icons.payments_outlined,
-              color: _accent, // ← teal
+              color: _accent,
               size: isMobile ? 18 : 20,
             ),
           ),
@@ -682,7 +679,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             style: TextStyle(
               fontSize: isMobile ? 13 : 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.primaryTeal, // ← dari hijau
+              color: AppColors.primaryTeal,
             ),
           ),
         ],
@@ -699,15 +696,17 @@ class _IncomeScreenState extends State<IncomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: AppColors.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(
+          color: AppColors.danger.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.error_outline,
-            color: Color(0xFFDC2626),
+            color: AppColors.danger,
             size: 48,
           ),
           const SizedBox(height: 12),
@@ -715,7 +714,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
             _error ?? 'Error',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFFDC2626),
+              color: AppColors.danger,
               fontSize: 13,
               height: 1.4,
             ),
@@ -726,8 +725,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent, // ← teal
-              foregroundColor: Colors.white,
+              backgroundColor: _accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -749,13 +748,13 @@ class _IncomeScreenState extends State<IncomeScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.bar_chart_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),

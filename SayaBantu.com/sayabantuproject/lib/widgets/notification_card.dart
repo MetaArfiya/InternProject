@@ -21,7 +21,7 @@ class CompactNotificationCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Row(
@@ -32,7 +32,7 @@ class CompactNotificationCard extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(
               // ✅ dari `notification.iconBackground` → mint soft
-              color: AppColors.mint.withOpacity(0.15),
+              color: AppColors.mint.withValues(alpha:0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -106,22 +106,22 @@ class PartnerNotificationCard extends StatelessWidget {
     // ============================================================
     final cardBg = isDark ? const Color(0xFF1E1E1E) : AppColors.white;
     final cardBorder = isDark
-        ? AppColors.white.withOpacity(0.08)
-        : AppColors.primaryTeal.withOpacity(0.10);
+        ? AppColors.white.withValues(alpha:0.08)
+        : AppColors.primaryTeal.withValues(alpha:0.10);
     final iconBg = isDark
-        ? AppColors.primaryTeal.withOpacity(0.15)
-        : AppColors.mint.withOpacity(0.15);
+        ? AppColors.primaryTeal.withValues(alpha:0.15)
+        : AppColors.mint.withValues(alpha:0.15);
     final iconColor = AppColors.primaryTeal; // teal di kedua mode
     final titleColor = isDark ? AppColors.white : AppColors.grey900;
     final messageColor = isDark
-        ? AppColors.white.withOpacity(0.70)
+        ? AppColors.white.withValues(alpha:0.70)
         : AppColors.grey600;
     final timeColor = isDark
-        ? AppColors.white.withOpacity(0.55)
+        ? AppColors.white.withValues(alpha:0.55)
         : AppColors.grey500;
     final badgeBg = isDark
-        ? AppColors.primaryTeal.withOpacity(0.20)
-        : AppColors.mint.withOpacity(0.20);
+        ? AppColors.primaryTeal.withValues(alpha:0.20)
+        : AppColors.mint.withValues(alpha:0.20);
     final badgeFg = AppColors.primaryTeal;
 
     return Container(
@@ -134,8 +134,8 @@ class PartnerNotificationCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.12)
-                : AppColors.darkTeal.withOpacity(0.025),
+                ? Colors.black.withValues(alpha:0.12)
+                : AppColors.darkTeal.withValues(alpha:0.025),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),

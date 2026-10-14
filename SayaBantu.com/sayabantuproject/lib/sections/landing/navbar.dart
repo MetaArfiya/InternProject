@@ -65,7 +65,7 @@ class CustomNavbar extends StatelessWidget {
             color: AppColors.white,
             boxShadow: [
               BoxShadow(
-                color: AppColors.darkTeal.withOpacity(0.06),
+                color: AppColors.darkTeal.withValues(alpha: 0.06),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -167,61 +167,27 @@ class CustomNavbar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _menuItem('Layanan', onLayanan, delay: 100),
-        _menuItem('Cara Kerja', onCaraKerja, delay: 150),
-        _menuItem('Jadi Mitra', onMitra, delay: 200),
-        _menuItem('Tentang Kami', onTentang, delay: 250),
+        _NavMenuItem(
+          title: 'Layanan',
+          onTap: onLayanan,
+          delay: 100,
+        ),
+        _NavMenuItem(
+          title: 'Cara Kerja',
+          onTap: onCaraKerja,
+          delay: 150,
+        ),
+        _NavMenuItem(
+          title: 'Jadi Mitra',
+          onTap: onMitra,
+          delay: 200,
+        ),
+        _NavMenuItem(
+          title: 'Tentang Kami',
+          onTap: onTentang,
+          delay: 250,
+        ),
       ],
-    );
-  }
-
-  Widget _menuItem(
-    String title,
-    VoidCallback onTap, {
-    required int delay,
-  }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool hovered = false;
-        return SafeMouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: () => setState(() => hovered = true),
-          onExit: () => setState(() => hovered = false),
-          child: GestureDetector(
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: hovered
-                    ? AppColors.mint.withOpacity(0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                title,
-                style: AppTextStyles.navLink.copyWith(
-                  color: hovered
-                      ? AppColors.primaryTeal
-                      : AppColors.grey800,
-                  fontWeight: hovered ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        )
-            .animate(delay: Duration(milliseconds: delay))
-            .fadeIn(duration: 400.ms)
-            .slideY(
-              begin: 0.10,
-              end: 0,
-              duration: 400.ms,
-              curve: Curves.easeOutCubic,
-            );
-      },
     );
   }
 
@@ -340,5 +306,69 @@ class CustomNavbar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ============================================================
+// NAV MENU ITEM — StatefulWidget terpisah
+// ============================================================
+class _NavMenuItem extends StatefulWidget {
+  final String title;
+  final VoidCallback onTap;
+  final int delay;
+
+  const _NavMenuItem({
+    required this.title,
+    required this.onTap,
+    required this.delay,
+  });
+
+  @override
+  State<_NavMenuItem> createState() => _NavMenuItemState();
+}
+
+class _NavMenuItemState extends State<_NavMenuItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeMouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: () => setState(() => _hovered = true),
+      onExit: () => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: _hovered
+                ? AppColors.mint.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            widget.title,
+            style: AppTextStyles.navLink.copyWith(
+              color: _hovered
+                  ? AppColors.primaryTeal
+                  : AppColors.grey800,
+              fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    )
+        .animate(delay: Duration(milliseconds: widget.delay))
+        .fadeIn(duration: 400.ms)
+        .slideY(
+          begin: 0.10,
+          end: 0,
+          duration: 400.ms,
+          curve: Curves.easeOutCubic,
+        );
   }
 }

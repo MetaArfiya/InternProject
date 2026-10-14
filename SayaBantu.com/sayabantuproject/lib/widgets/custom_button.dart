@@ -55,7 +55,7 @@ class CustomButton extends StatelessWidget {
               borderRadius: radius,
               border: outlined
                   ? Border.all(
-                      color: fg.withOpacity(0.5),
+                      color: fg.withValues(alpha:0.5),
                       width: 1.5,
                     )
                   : null,

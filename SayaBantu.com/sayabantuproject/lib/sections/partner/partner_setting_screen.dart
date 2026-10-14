@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
@@ -25,11 +26,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // DESIGN TOKENS
   // ============================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = AppColors.grey500;
+  static const Color _tableBorder = AppColors.grey200;
+  static const Color _tableDivider = AppColors.grey100;
   static const Color _cellText = AppColors.grey900;
 
   static const double _gapAfterHeader = 16;
@@ -224,7 +223,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
           insetPadding: const EdgeInsets.all(10),
           child: Stack(
             alignment: Alignment.topRight,
@@ -242,12 +241,15 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.black54,
+                    decoration: BoxDecoration(
+                      color: AppColors.black.withValues(alpha: 0.54),
                       shape: BoxShape.circle,
                     ),
-                    child:
-                        const Icon(Icons.close, color: Colors.white, size: 24),
+                    child: const Icon(
+                      Icons.close,
+                      color: AppColors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
@@ -1644,7 +1646,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: error ? Colors.red : AppColors.primaryTeal,
+          backgroundColor: error ? AppColors.danger : AppColors.primaryTeal,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1669,7 +1671,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: AppColors.sectionAltLight, // ← mint muda
+          color: AppColors.sectionAltLight,
           child: SafeArea(
             child: isLoading
                 ? const Center(
@@ -1765,9 +1767,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       height: 76,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.mint.withOpacity(0.20),
+                        color: AppColors.mint.withValues(alpha: 0.20),
                         border: Border.all(
-                          color: _accent.withOpacity(0.3),
+                          color: _accent.withValues(alpha: 0.3),
                           width: 2,
                         ),
                       ),
@@ -1811,13 +1813,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                                 padding: EdgeInsets.all(6),
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                 ),
                               )
                             : const Icon(
                                 Icons.camera_alt,
                                 size: 14,
-                                color: Colors.white,
+                                color: AppColors.white,
                               ),
                       ),
                     ),
@@ -1860,7 +1862,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                           label: rating > 0
                               ? '${rating.toStringAsFixed(1)} ($reviewsCount ulasan)'
                               : 'Belum ada ulasan',
-                          color: const Color(0xFFFBBF24),
+                          color: AppColors.starYellow,
                         ),
                         _badge(
                           icon: isVerified
@@ -1870,7 +1872,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                               ? 'Terverifikasi'
                               : 'Belum Terverifikasi',
                           color: isVerified
-                              ? const Color(0xFF16A34A)
+                              ? AppColors.success
                               : AppColors.grey500,
                         ),
                       ],
@@ -2188,10 +2190,10 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withOpacity(0.08),
+              color: AppColors.amber.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: const Color(0xFFF59E0B).withOpacity(0.3),
+                color: AppColors.amber.withValues(alpha: 0.3),
               ),
             ),
             child: const Row(
@@ -2199,7 +2201,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: Color(0xFFF59E0B),
+                  color: AppColors.amber,
                   size: 20,
                 ),
                 SizedBox(width: 10),
@@ -2229,7 +2231,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   Widget _genderDropdown() {
     final validGender = ['Laki-laki', 'Perempuan'].contains(gender);
     return DropdownButtonFormField<String>(
-      value: validGender ? gender : null,
+      initialValue: validGender ? gender : null,
       decoration: _inputDecoration(
         label: 'Jenis Kelamin',
         icon: Icons.wc_outlined,
@@ -2262,7 +2264,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
-          value: dropdownValue,
+          initialValue: dropdownValue,
           isExpanded: true,
           decoration: _inputDecoration(
             label: 'Nama Bank',
@@ -2441,7 +2443,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 width: 34,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.12),
+                  color: _accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(icon, color: _accent, size: 18),
@@ -2472,7 +2474,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             onTap: hasImage
                 ? () {
                     if (hasFile) {
-                      _showImageDialog(context, MemoryImage(bytes!));
+                      _showImageDialog(context, MemoryImage(bytes));
                     } else {
                       _showImageDialog(context, NetworkImage(url));
                     }
@@ -2488,7 +2490,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     color: AppColors.grey100,
                     child: hasFile
                         ? Image.memory(
-                            bytes!,
+                            bytes,
                             width: double.infinity,
                             height: 125,
                             fit: BoxFit.cover,
@@ -2530,7 +2532,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       top: 7,
                       right: 7,
                       child: Material(
-                        color: Colors.transparent,
+                        color: AppColors.transparent,
                         child: InkWell(
                           onTap: onRemove,
                           borderRadius: BorderRadius.circular(20),
@@ -2538,11 +2540,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: Colors.red.shade600,
+                              color: AppColors.danger,
                               shape: BoxShape.circle,
                               boxShadow: const [
                                 BoxShadow(
-                                  color: Colors.black26,
+                                  color: AppColors.black,
                                   blurRadius: 4,
                                 ),
                               ],
@@ -2550,7 +2552,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                             child: const Icon(
                               Icons.close,
                               size: 17,
-                              color: Colors.white,
+                              color: AppColors.white,
                             ),
                           ),
                         ),
@@ -2572,7 +2574,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             style: TextStyle(
               fontSize: 10,
               color: hasUrl || hasFile
-                  ? const Color(0xFF16A34A)
+                  ? AppColors.success
                   : AppColors.grey500,
             ),
           ),
@@ -2614,7 +2616,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     final waiting = verificationStatus == 'Menunggu Verifikasi';
     final verified = verificationStatus == 'Terverifikasi';
     final statusColor = verified
-        ? const Color(0xFF16A34A)
+        ? AppColors.success
         : waiting
             ? _accent
             : AppColors.grey500;
@@ -2627,9 +2629,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.08),
+        color: statusColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(_smallRadius),
-        border: Border.all(color: statusColor.withOpacity(0.25)),
+        border: Border.all(color: statusColor.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -2683,7 +2685,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         const SizedBox(height: 12),
 
         DropdownButtonFormField<String>(
-          value: validCategory ? selectedCategory : null,
+          initialValue: validCategory ? selectedCategory : null,
           decoration: _inputDecoration(
             label: 'Kategori Keahlian',
             icon: Icons.category_outlined,
@@ -2706,9 +2708,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.08),
+              color: _accent.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _accent.withOpacity(0.3)),
+              border: Border.all(color: _accent.withValues(alpha: 0.3)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2764,9 +2766,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.12),
+              color: AppColors.mint.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.mint.withOpacity(0.4)),
+              border: Border.all(color: AppColors.mint.withValues(alpha: 0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2933,21 +2935,22 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                             child: Container(
                               width: 28,
                               height: 28,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
+                              decoration: BoxDecoration(
+                                color: AppColors.danger,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black26,
+                                    color: AppColors.black
+                                        .withValues(alpha: 0.26),
                                     blurRadius: 4,
-                                    offset: Offset(0, 1),
+                                    offset: const Offset(0, 1),
                                   ),
                                 ],
                               ),
                               child: const Icon(
                                 Icons.close,
                                 size: 17,
-                                color: Colors.white,
+                                color: AppColors.white,
                               ),
                             ),
                           ),
@@ -3223,7 +3226,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
+                          color: _accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -3295,7 +3298,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       onPressed: () => Navigator.pop(dialogContext),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _accent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.white,
                         minimumSize: const Size(0, 44),
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -3358,7 +3361,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
+                          color: _accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -3435,7 +3438,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                               Navigator.pop(dialogContext, true),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _accent,
-                            foregroundColor: Colors.white,
+                            foregroundColor: AppColors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -3533,9 +3536,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.08),
+              color: _accent.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _accent.withOpacity(0.3)),
+              border: Border.all(color: _accent.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3601,7 +3604,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               backgroundColor:
                   isComplete ? _accent : AppColors.grey300,
               foregroundColor:
-                  isComplete ? Colors.white : AppColors.grey600,
+                  isComplete ? AppColors.white : AppColors.grey600,
               disabledBackgroundColor: AppColors.grey300,
               disabledForegroundColor: AppColors.grey500,
               elevation: 0,
@@ -3669,7 +3672,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.12),
+                    color: _accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.work_outline, color: _accent),
@@ -3700,7 +3703,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                 ),
                 Switch(
                   value: jobNotification,
-                  activeColor: _accent,
+                  activeThumbColor: _accent,
                   onChanged: updateNotification,
                 ),
               ],
@@ -3767,7 +3770,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accent,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 minimumSize: const Size(0, 44),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 elevation: 0,
@@ -3789,7 +3792,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   Widget _buildLogoutSection() {
     return _sectionCard(
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: _showLogoutDialog,
           borderRadius: BorderRadius.circular(_smallRadius),
@@ -3801,12 +3804,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626).withOpacity(0.10),
+                    color: AppColors.danger.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     Icons.logout,
-                    color: Color(0xFFDC2626),
+                    color: AppColors.danger,
                     size: 20,
                   ),
                 ),
@@ -3820,7 +3823,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFDC2626),
+                          color: AppColors.danger,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -3873,12 +3876,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFDC2626).withOpacity(0.12),
+                          color: AppColors.danger.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.logout,
-                          color: Color(0xFFDC2626),
+                          color: AppColors.danger,
                           size: 20,
                         ),
                       ),
@@ -3949,8 +3952,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                             await _logout();
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFDC2626),
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.danger,
+                            foregroundColor: AppColors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -4006,11 +4009,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.03),
+            color: AppColors.darkTeal.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -4032,7 +4035,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: _accent.withOpacity(0.12),
+            color: _accent.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: _accent, size: 20),
@@ -4167,7 +4170,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+//
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
@@ -48,7 +48,7 @@ class FooterSection extends StatelessWidget {
                     height: 240,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.mint.withOpacity(0.05),
+                      color: AppColors.mint.withValues(alpha: 0.05),
                     ),
                   ),
                 ),
@@ -71,7 +71,7 @@ class FooterSection extends StatelessWidget {
                         SizedBox(height: isMobile ? 32 : 48),
                         Container(
                           height: 1,
-                          color: AppColors.white.withOpacity(0.10),
+                          color: AppColors.white.withValues(alpha: 0.10),
                         ),
                         SizedBox(height: isMobile ? 16 : 24),
                         _buildBottomBar(isMobile: isMobile),
@@ -242,7 +242,7 @@ class FooterSection extends StatelessWidget {
     return SafeMouseRegion(
       cursor: SystemMouseCursors.click,
       child: Material(
-        color: AppColors.white.withOpacity(0.06),
+        color: AppColors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: () {},
@@ -294,7 +294,7 @@ class FooterSection extends StatelessWidget {
             link.label,
             style: AppTextStyles.bodySmallOnDark.copyWith(
               fontSize: 13,
-              color: AppColors.white.withOpacity(0.72),
+              color: AppColors.white.withValues(alpha: 0.72),
             ),
           ),
         ),
@@ -342,7 +342,7 @@ class FooterSection extends StatelessWidget {
       children: [
         Icon(
           icon,
-          color: AppColors.mint.withOpacity(0.75),
+          color: AppColors.mint.withValues(alpha: 0.75),
           size: 15,
         ),
         const SizedBox(width: 10),
@@ -351,7 +351,7 @@ class FooterSection extends StatelessWidget {
             text,
             style: AppTextStyles.bodySmallOnDark.copyWith(
               fontSize: 12.5,
-              color: AppColors.white.withOpacity(0.72),
+              color: AppColors.white.withValues(alpha: 0.72),
             ),
           ),
         ),
@@ -364,7 +364,7 @@ class FooterSection extends StatelessWidget {
       '© ${DateTime.now().year} SayaBantu.com — Semua hak dilindungi.',
       style: AppTextStyles.bodySmallOnDark.copyWith(
         fontSize: 11.5,
-        color: AppColors.white.withOpacity(0.55),
+        color: AppColors.white.withValues(alpha: 0.55),
       ),
     );
 
@@ -403,7 +403,7 @@ class FooterSection extends StatelessWidget {
           text,
           style: AppTextStyles.bodySmallOnDark.copyWith(
             fontSize: 11.5,
-            color: AppColors.white.withOpacity(0.70),
+            color: AppColors.white.withValues(alpha: 0.70),
             fontWeight: FontWeight.w600,
           ),
         ),

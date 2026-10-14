@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../models/partner_job_model.dart';
@@ -30,14 +31,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   // DESIGN TOKENS
   // ============================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = AppColors.grey500;
-  static const Color _cellText = AppColors.grey900;
-
-  static const double _smallRadius = 12;
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -89,7 +83,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
 
             if (decodedData is Map) {
               _activeOffersCount = int.tryParse(
-                    decodedData['active_offers_count']?.toString() ?? '0',
+                    decodedData['active_offers_count']?.toString() ??
+                        '0',
                   ) ??
                   0;
 
@@ -152,7 +147,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
+                          color: _accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -232,8 +227,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                             widget.onTakeOffer(job);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _accent, // ← teal
-                            foregroundColor: Colors.white,
+                            backgroundColor: _accent,
+                            foregroundColor: AppColors.white,
                             minimumSize: const Size(0, 46),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -269,7 +264,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.sectionAltLight, // ← mint muda
+      color: AppColors.sectionAltLight,
       child: RefreshIndicator(
         onRefresh: _fetchDashboardData,
         color: _accent,
@@ -368,7 +363,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         title: 'Lowongan',
         fullTitle: 'Total Lowongan',
         value: _jobs.length.toString(),
-        color: AppColors.primaryTeal, // ← dari biru
+        color: AppColors.primaryTeal,
         isCompact: isMobile,
       ),
       _statCard(
@@ -384,7 +379,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         title: 'Poin',
         fullTitle: 'Total Poin',
         value: _userPoints.toString(),
-        color: const Color(0xFF16A34A), // tetap hijau (poin)
+        color: AppColors.success,
         isCompact: isMobile,
       ),
     ];
@@ -415,11 +410,11 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.03),
+            color: AppColors.darkTeal.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -431,7 +426,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
             width: isCompact ? 34 : 42,
             height: isCompact ? 34 : 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(isCompact ? 9 : 11),
             ),
             child: Icon(
@@ -520,16 +515,18 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: AppColors.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(
+          color: AppColors.danger.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.cloud_off_outlined,
             size: 48,
-            color: Color(0xFFDC2626),
+            color: AppColors.danger,
           ),
           const SizedBox(height: 12),
           Text(
@@ -537,7 +534,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFFDC2626),
+              color: AppColors.danger,
               height: 1.4,
             ),
           ),
@@ -547,8 +544,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent, // ← teal
-              foregroundColor: Colors.white,
+              backgroundColor: _accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -570,13 +567,13 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.work_outline,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),

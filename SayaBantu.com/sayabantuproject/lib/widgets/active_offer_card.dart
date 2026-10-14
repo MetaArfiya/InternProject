@@ -141,7 +141,7 @@ Widget _buildStatus(ActiveOfferModel offer) {
     text = 'Sedang Dikerjakan';
   } else {
     // ✅ default → teal soft (dari grey)
-    backgroundColor = AppColors.mint.withOpacity(0.20);
+    backgroundColor = AppColors.mint.withValues(alpha:0.20);
     textColor = AppColors.primaryTeal;
     text = 'Menunggu';
   }
@@ -202,7 +202,7 @@ Widget _buildProofButton(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: AppColors.primaryTeal.withOpacity(0.15),
+              color: AppColors.primaryTeal.withValues(alpha:0.15),
             ),
             color: AppColors.grey50,
           ),
@@ -247,10 +247,10 @@ Widget _buildProofButton(
       width: 130,
       height: 75,
       decoration: BoxDecoration(
-        color: AppColors.mint.withOpacity(0.10), // ← teal soft
+        color: AppColors.mint.withValues(alpha:0.10), // ← teal soft
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.20),
+          color: AppColors.primaryTeal.withValues(alpha:0.20),
         ),
       ),
       child: Column(
@@ -408,7 +408,7 @@ Widget _buildApproval(ActiveOfferModel offer) {
   } else {
     // ✅ default → teal soft (dari grey)
     text = 'Belum ACC';
-    backgroundColor = AppColors.mint.withOpacity(0.15);
+    backgroundColor = AppColors.mint.withValues(alpha:0.15);
     textColor = AppColors.primaryTeal;
   }
 
@@ -480,7 +480,7 @@ Widget _buildAction(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primaryTeal, // ← teal
         side: BorderSide(
-          color: AppColors.primaryTeal.withOpacity(0.4),
+          color: AppColors.primaryTeal.withValues(alpha:0.4),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(
@@ -647,7 +647,7 @@ Future<void> _showDetailTimeline(
                           color: AppColors.grey50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.primaryTeal.withOpacity(0.10),
+                            color: AppColors.primaryTeal.withValues(alpha:0.10),
                           ),
                         ),
                         child: Text(
@@ -676,7 +676,7 @@ Future<void> _showDetailTimeline(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryTeal, // ← teal
                     side: BorderSide(
-                      color: AppColors.primaryTeal.withOpacity(0.4),
+                      color: AppColors.primaryTeal.withValues(alpha:0.4),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -744,7 +744,7 @@ Widget _timelineItem({
 }) {
   final Color finalColor = isActive ? iconColor : AppColors.grey400;
   final Color bgColor = isActive
-      ? iconColor.withOpacity(0.12)
+      ? iconColor.withValues(alpha:0.12)
       : AppColors.grey100;
 
   return IntrinsicHeight(
@@ -768,7 +768,7 @@ Widget _timelineItem({
                   width: 2,
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   color: isActive
-                      ? iconColor.withOpacity(0.4)
+                      ? iconColor.withValues(alpha:0.4)
                       : AppColors.grey200,
                 ),
               ),

@@ -1,6 +1,6 @@
 import 'dart:convert';
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -131,7 +131,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.black.withOpacity(0.55),
+                      color: AppColors.black.withValues(alpha: 0.55),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -608,7 +608,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 32,
-                backgroundColor: t.accent.withOpacity(0.12),
+                backgroundColor: t.accent.withValues(alpha: 0.12),
                 backgroundImage: selectedPhotoBytes != null
                     ? MemoryImage(selectedPhotoBytes!)
                     : fullPhotoUrl != null
@@ -616,10 +616,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                         : null,
                 child: selectedPhotoBytes == null &&
                         fullPhotoUrl == null
-                    ? Icon(
-                        Icons.shield_outlined,
-                        color: t.accent,
-                        size: 32,
+                    ? Text(
+                        _getInitials(adminName),
+                        style: TextStyle(
+                          color: t.accent,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       )
                     : null,
               ),
@@ -770,7 +773,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: t.accent.withOpacity(0.12),
+                            color: t.accent.withValues(alpha: 0.12),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                           ),
@@ -995,17 +998,20 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         children: [
           CircleAvatar(
             radius: 45,
-            backgroundColor: t.accent.withOpacity(0.12),
+            backgroundColor: t.accent.withValues(alpha: 0.12),
             backgroundImage: selectedPhotoBytes != null
                 ? MemoryImage(selectedPhotoBytes!)
                 : fullPhotoUrl != null
                     ? NetworkImage(fullPhotoUrl)
                     : null,
             child: selectedPhotoBytes == null && fullPhotoUrl == null
-                ? Icon(
-                    Icons.shield_outlined,
-                    color: t.accent,
-                    size: 42,
+                ? Text(
+                    _getInitials(adminName),
+                    style: TextStyle(
+                      color: t.accent,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
                   )
                 : null,
           ),
@@ -1447,7 +1453,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: t.accent.withOpacity(0.12),
+                                color: t.accent.withValues(alpha: 0.12),
                                 borderRadius:
                                     BorderRadius.circular(_radius),
                               ),
@@ -1703,7 +1709,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withOpacity(0.03),
+            color: AppColors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

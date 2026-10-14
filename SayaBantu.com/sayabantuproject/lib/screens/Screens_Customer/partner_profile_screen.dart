@@ -328,7 +328,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryTeal.withOpacity(0.25),
+                color: AppColors.primaryTeal.withValues(alpha:0.25),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -336,7 +336,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           ),
           child: CircleAvatar(
             radius: isMobile ? 42 : 52,
-            backgroundColor: AppColors.mint.withOpacity(0.30),
+            backgroundColor: AppColors.mint.withValues(alpha:0.30),
             backgroundImage: photo != null ? NetworkImage(photo) : null,
             onBackgroundImageError: photo != null ? (_, __) {} : null,
             child: photo == null
@@ -396,7 +396,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                   Container(
                     width: 1,
                     height: 12,
-                    color: AppColors.grey900.withOpacity(0.15),
+                    color: AppColors.grey900.withValues(alpha:0.15),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -568,7 +568,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.15), // ← dari orange soft
+              color: AppColors.mint.withValues(alpha:0.15), // ← dari orange soft
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -624,11 +624,11 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               color: AppColors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: AppColors.primaryTeal.withOpacity(0.10),
+                color: AppColors.primaryTeal.withValues(alpha:0.10),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.darkTeal.withOpacity(0.03),
+                  color: AppColors.darkTeal.withValues(alpha:0.03),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -742,11 +742,11 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                     color: AppColors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppColors.primaryTeal.withOpacity(0.10),
+                      color: AppColors.primaryTeal.withValues(alpha:0.10),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.darkTeal.withOpacity(0.03),
+                        color: AppColors.darkTeal.withValues(alpha:0.03),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -774,7 +774,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.55),
+                                  color: Colors.black.withValues(alpha:0.55),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Row(
@@ -975,7 +975,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.65),
+                        Colors.black.withValues(alpha:0.65),
                         Colors.transparent,
                       ],
                     ),
@@ -995,7 +995,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha:0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -1033,7 +1033,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha:0.7),
                           Colors.transparent,
                         ],
                       ),
@@ -1057,7 +1057,7 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
                               : 'Cubit untuk zoom',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha:0.6),
                             fontSize: 11,
                           ),
                         ),
@@ -1090,11 +1090,11 @@ class _Card extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.08),
+          color: AppColors.primaryTeal.withValues(alpha:0.08),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.04),
+            color: AppColors.darkTeal.withValues(alpha:0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1124,11 +1124,11 @@ class _StatisticCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.08),
+          color: AppColors.primaryTeal.withValues(alpha:0.08),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.03),
+            color: AppColors.darkTeal.withValues(alpha:0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1183,7 +1183,7 @@ class _NetworkImage extends StatelessWidget {
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
         return Container(
-          color: AppColors.mint.withOpacity(0.15),
+          color: AppColors.mint.withValues(alpha:0.15),
           child: const Center(
             child: SizedBox(
               width: 20,
@@ -1205,7 +1205,7 @@ class _NetworkImage extends StatelessWidget {
 
   Widget _fallback() {
     return Container(
-      color: AppColors.mint.withOpacity(0.15),
+      color: AppColors.mint.withValues(alpha:0.15),
       child: Center(
         child: Icon(
           fallbackIcon,

@@ -172,7 +172,7 @@ class _UploadMitraProofDialogState
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: t.success.withOpacity(0.12),
+                          color: t.success.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -201,7 +201,7 @@ class _UploadMitraProofDialogState
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: AppColors.infoBlue.withOpacity(0.12),
+                        color: AppColors.infoBlue.withValues(alpha:0.12),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Icon(
@@ -342,7 +342,7 @@ class _UploadMitraProofDialogState
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: t.success.withOpacity(0.12),
+                      color: t.success.withValues(alpha:0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -396,10 +396,10 @@ class _UploadMitraProofDialogState
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: t.success.withOpacity(0.08),
+                          color: t.success.withValues(alpha:0.08),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: t.success.withOpacity(0.25),
+                            color: t.success.withValues(alpha:0.25),
                           ),
                         ),
                         child: Column(
@@ -442,10 +442,10 @@ class _UploadMitraProofDialogState
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.infoBlue.withOpacity(0.06),
+                          color: AppColors.infoBlue.withValues(alpha:0.06),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: AppColors.infoBlue.withOpacity(0.2),
+                            color: AppColors.infoBlue.withValues(alpha:0.2),
                           ),
                         ),
                         child: Column(

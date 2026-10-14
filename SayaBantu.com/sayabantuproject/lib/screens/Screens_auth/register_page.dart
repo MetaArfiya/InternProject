@@ -638,7 +638,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 )
                               : DropdownButtonFormField<int>(
-                                  value: _selectedRoleId,
+                                  initialValue: _selectedRoleId,
                                   decoration: InputDecoration(
                                     border: OutlineInputBorder(
                                       borderRadius:

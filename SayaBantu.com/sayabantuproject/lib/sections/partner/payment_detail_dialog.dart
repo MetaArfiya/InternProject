@@ -121,7 +121,7 @@ class _PaymentDetailMitraDialogState extends State<PaymentDetailMitraDialog> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.12),
+              color: _accent.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
@@ -456,7 +456,7 @@ class _PaymentDetailMitraDialogState extends State<PaymentDetailMitraDialog> {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha:0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 13, color: color),
@@ -588,7 +588,7 @@ class _PaymentDetailMitraDialogState extends State<PaymentDetailMitraDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha:0.6),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -704,7 +704,7 @@ class _PaymentDetailMitraDialogState extends State<PaymentDetailMitraDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

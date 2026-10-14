@@ -579,7 +579,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: t.danger.withOpacity(0.15),
+            color: t.danger.withValues(alpha:0.15),
             borderRadius: BorderRadius.circular(t.radius),
           ),
           child: Row(
@@ -697,7 +697,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: t.danger.withOpacity(0.12),
+                          color: t.danger.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(t.radius),
                         ),
                         child: Icon(
@@ -805,7 +805,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       },
     ).then((shouldLogout) {
       if (shouldLogout == true) {
-        if (!mounted) return;
+        if (!context.mounted) return;
         _logout(context);
       }
     });

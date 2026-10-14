@@ -217,7 +217,7 @@ class WhySection extends StatelessWidget {
       widgets.add(
         FeatureItem(
           icon: f.icon,
-          bgColor: AppColors.mint.withOpacity(0.15),
+          bgColor: AppColors.mint.withValues(alpha: 0.15),
           iconColor: AppColors.primaryTeal,
           title: f.title,
           description: f.description,
@@ -255,9 +255,7 @@ class WhySection extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // ======================================================
         // MAIN IMAGE
-        // ======================================================
         Container(
           height: imageHeight,
           decoration: BoxDecoration(
@@ -268,7 +266,7 @@ class WhySection extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.darkTeal.withOpacity(0.20),
+                color: AppColors.darkTeal.withValues(alpha: 0.20),
                 blurRadius: 30,
                 offset: const Offset(0, 20),
               ),
@@ -281,9 +279,7 @@ class WhySection extends StatelessWidget {
               curve: Curves.easeOutCubic,
             ),
 
-        // ======================================================
         // FLOATING BADGE — Penawaran
-        // ======================================================
         Positioned(
           right: 10,
           top: isSmallMobile ? 16 : 30,
@@ -299,7 +295,7 @@ class WhySection extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow.withOpacity(0.25),
+                  color: AppColors.shadow.withValues(alpha: 0.25),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -335,9 +331,7 @@ class WhySection extends StatelessWidget {
               .moveY(begin: -8, end: 0, duration: 1500.ms),
         ),
 
-        // ======================================================
         // FLOATING BADGE — Mitra
-        // ======================================================
         Positioned(
           left: isSmallMobile ? 14 : 25,
           right: isSmallMobile ? 14 : 25,
@@ -351,7 +345,7 @@ class WhySection extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow.withOpacity(0.15),
+                  color: AppColors.shadow.withValues(alpha: 0.15),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),

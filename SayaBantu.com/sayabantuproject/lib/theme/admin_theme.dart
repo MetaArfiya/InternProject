@@ -5,12 +5,8 @@ import 'app_colors.dart';
 /// ============================================================
 /// AdminTheme
 /// ------------------------------------------------------------
-/// Token warna per-role (Admin / Super Admin).
-/// Semua warna diambil dari [AppColors] → konsisten dengan brand.
-///
-/// Pemakaian:
-///   final theme = AdminTheme.of(adminRole);
-///   Container(color: theme.accent)
+/// SEMUA ROLE (Admin & Super Admin) pakai TEAL.
+/// Hanya `danger` yang tetap merah untuk aksi destruktif.
 /// ============================================================
 class AdminTheme {
   final String role; // 'admin' | 'super_admin'
@@ -31,29 +27,24 @@ class AdminTheme {
   bool get isSuperAdmin => role == 'super_admin';
 
   // ============================================================
-  // BRAND / ACCENT
+  // BRAND / ACCENT — semua Teal (Admin & Super Admin)
   // ============================================================
 
-  Color get accent =>
-      isSuperAdmin ? AppColors.superAccent : AppColors.adminPrimary;
+  Color get accent => AppColors.adminPrimary;      // #0F766E
 
-  Color get accentLight =>
-      isSuperAdmin ? AppColors.superBadgeBg : AppColors.adminAccent;
+  Color get accentLight => AppColors.adminAccent;  // #2DD4BF (mint)
 
-  Color get accentText =>
-      isSuperAdmin ? AppColors.superBadgeText : AppColors.adminBadgeText;
+  Color get accentText => AppColors.adminBadgeText; // #134E4A
 
   // ============================================================
-  // SIDEBAR
+  // SIDEBAR — sama untuk kedua role
   // ============================================================
 
-  Color get sidebarBg =>
-      isSuperAdmin ? AppColors.superPrimaryDark : AppColors.darkTeal;
-
+  Color get sidebarBg => AppColors.darkTeal;       // #134E4A
   Color get sidebarText => AppColors.sidebarText;
   Color get sidebarMuted => AppColors.sidebarMuted;
-  Color get sidebarActiveBg => accent.withOpacity(0.14);
-  Color get sidebarActiveBorder => accent.withOpacity(0.35);
+  Color get sidebarActiveBg => accent.withValues(alpha: 0.14);
+  Color get sidebarActiveBorder => accent.withValues(alpha: 0.35);
 
   // ============================================================
   // BACKGROUND & SURFACE
@@ -73,25 +64,29 @@ class AdminTheme {
   Color get mutedText => AppColors.grey500;
 
   // ============================================================
-  // STATUS
+  // STATUS — semua TEAL (kecuali danger)
   // ============================================================
 
-  Color get success => AppColors.success;
-  Color get danger => AppColors.danger;
-  Color get warning => AppColors.warning;
-  Color get info => AppColors.info;
+  /// ✅ Sukses → Teal
+  Color get success => AppColors.adminPrimary;     // #0F766E
+
+  /// 🔴 Bahaya → TETAP MERAH (biar tidak salah klik reject/hapus)
+  Color get danger => AppColors.danger;            // #DC2626
+
+  /// ⚠️ Warning → Teal
+  Color get warning => AppColors.adminPrimary;     // #0F766E
+
+  /// ℹ️ Info → Teal
+  Color get info => AppColors.adminPrimary;        // #0F766E
 
   // ============================================================
-  // BADGE ROLE
+  // BADGE ROLE — sama untuk kedua role
   // ============================================================
 
   String get roleLabel => isSuperAdmin ? 'SUPER ADMIN' : 'ADMIN';
 
-  Color get badgeBg =>
-      isSuperAdmin ? AppColors.superBadgeBg : AppColors.adminBadgeBg;
-
-  Color get badgeText =>
-      isSuperAdmin ? AppColors.superBadgeText : AppColors.adminBadgeText;
+  Color get badgeBg => AppColors.adminBadgeBg;     // #CCFBF1
+  Color get badgeText => AppColors.adminBadgeText; // #134E4A
 
   // ============================================================
   // RADIUS

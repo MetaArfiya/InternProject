@@ -28,9 +28,6 @@ class TestimonialCard extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmall = screenWidth < 400;
 
-    // ==========================================
-    // SKALA UKURAN
-    // ==========================================
     final cardPadding = isSmall ? 14.0 : 18.0;
     final cardRadius = isSmall ? 14.0 : 18.0;
     final starSize = isSmall ? 14.0 : 17.0;
@@ -48,12 +45,12 @@ class TestimonialCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(cardRadius),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.06),
+            color: AppColors.darkTeal.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -102,7 +99,7 @@ class TestimonialCard extends StatelessWidget {
               vertical: isSmall ? 4 : 6,
             ),
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.15),
+              color: AppColors.mint.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -133,7 +130,7 @@ class TestimonialCard extends StatelessWidget {
           SizedBox(height: isSmall ? 10 : 14),
           Divider(
             height: 1,
-            color: AppColors.primaryTeal.withOpacity(0.10),
+            color: AppColors.primaryTeal.withValues(alpha: 0.10),
           ),
           SizedBox(height: isSmall ? 8 : 12),
 

@@ -39,16 +39,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // DESIGN TOKENS
   // ============================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = AppColors.grey500;
+  static const Color _tableBorder = AppColors.grey200;
+  static const Color _tableDivider = AppColors.grey100;
   static const Color _cellText = AppColors.grey900;
 
   static const double _commissionPercent = 15.0;
 
-  static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
 
   @override
@@ -129,7 +126,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     }
 
     if (rawPrice.contains('-')) {
-      _showSnack("Harga penawaran tidak boleh bernilai negatif.", error: true);
+      _showSnack(
+        "Harga penawaran tidak boleh bernilai negatif.",
+        error: true,
+      );
       return;
     }
 
@@ -203,11 +203,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }) {
     if (!mounted) return;
 
-    // ✅ default → teal, warning → amber, error → merah
     Color bg = AppColors.primaryTeal;
-    if (success) bg = AppColors.primaryTeal; // ← teal
-    if (warning) bg = const Color(0xFFF59E0B); // ← amber
-    if (error) bg = Colors.red;
+    if (success) bg = AppColors.primaryTeal;
+    if (warning) bg = AppColors.amber;
+    if (error) bg = AppColors.danger;
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -227,7 +226,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.sectionAltLight, // ← mint muda
+      backgroundColor: AppColors.sectionAltLight,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -326,13 +325,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       height: isMobile ? 100 : 110,
       child: Row(
         children: [
-          // KOTAK 1 — Budget Pelanggan (hijau, konotasi uang)
+          // KOTAK 1 — Budget Pelanggan (hijau)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.account_balance_wallet_outlined,
               label: isMobile ? 'Budget' : 'Budget Pelanggan',
               value: widget.job.price,
-              color: const Color(0xFF16A34A), // tetap hijau
+              color: AppColors.success,
               isCompact: isMobile,
             ),
           ),
@@ -345,7 +344,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               icon: Icons.local_offer_outlined,
               label: isMobile ? 'Harga Anda' : 'Harga Penawaran',
               value: _formatRupiah(_parsedPrice),
-              color: _accent, // ← teal
+              color: _accent,
               isCompact: isMobile,
             ),
           ),
@@ -360,7 +359,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                   ? 'Komisi 15%'
                   : 'Komisi Platform (15%)',
               value: _formatRupiah(_commissionAmount),
-              color: AppColors.primaryTeal, // ← dari ungu
+              color: AppColors.primaryTeal,
               isCompact: isMobile,
             ),
           ),
@@ -382,7 +381,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -394,7 +393,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             width: isCompact ? 28 : 34,
             height: isCompact ? 28 : 34,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -443,7 +442,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -462,17 +461,19 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           ),
           const SizedBox(height: 10),
 
-          // ✅ kategori badge — teal soft
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 5,
+            ),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               widget.job.category,
               style: const TextStyle(
-                color: _accent, // ← teal
+                color: _accent,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -527,7 +528,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -539,7 +540,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.12),
+                  color: _accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -695,7 +696,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: AppColors.white,
                         strokeWidth: 2,
                       ),
                     )
@@ -708,8 +709,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accent, // ← teal
-                foregroundColor: Colors.white,
+                backgroundColor: _accent,
+                foregroundColor: AppColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -730,8 +731,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
-          Icons.location_on_outlined,
+        Icon(
+          icon,
           color: AppColors.grey400,
           size: 18,
         ),
