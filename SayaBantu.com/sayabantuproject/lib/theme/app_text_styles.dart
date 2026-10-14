@@ -67,7 +67,7 @@ class AppTextStyles {
   static final TextStyle bodyOnDark = GoogleFonts.poppins(
     fontSize: 15,
     fontWeight: FontWeight.w400,
-    color: Colors.white.withOpacity(0.82),
+    color: Colors.white.withValues(alpha:0.82),
     height: 1.6,
     letterSpacing: 0.05,
   );
@@ -90,7 +90,7 @@ class AppTextStyles {
   static final TextStyle bodySmallOnDark = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    color: Colors.white.withOpacity(0.70),
+    color: Colors.white.withValues(alpha:0.70),
     height: 1.5,
   );
 
@@ -148,7 +148,7 @@ class AppTextStyles {
   static final TextStyle statLabel = GoogleFonts.poppins(
     fontSize: 11,
     fontWeight: FontWeight.w500,
-    color: Colors.white.withOpacity(0.68),
+    color: Colors.white.withValues(alpha:0.68),
   );
 
   // ============================================================
@@ -177,7 +177,7 @@ class AppTextStyles {
   static final TextStyle mockupMetaSoft = GoogleFonts.poppins(
     fontSize: 10,
     fontWeight: FontWeight.w400,
-    color: Colors.white.withOpacity(0.60),
+    color: Colors.white.withValues(alpha:0.60),
   );
 
   static final TextStyle mockupPrice = GoogleFonts.poppins(
@@ -207,7 +207,7 @@ class AppTextStyles {
   static final TextStyle mockupEmptySubtitle = GoogleFonts.poppins(
     fontSize: 11,
     fontWeight: FontWeight.w400,
-    color: Colors.white.withOpacity(0.65),
+    color: Colors.white.withValues(alpha:0.65),
   );
 
   static final TextStyle badgeVerifiedTitle = GoogleFonts.poppins(

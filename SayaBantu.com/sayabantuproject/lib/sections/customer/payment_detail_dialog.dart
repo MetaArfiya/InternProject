@@ -16,7 +16,7 @@ class PaymentDetailDialog extends StatefulWidget {
 }
 
 class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
-  bool _isUploading = false;
+  final bool _isUploading = false;
 
   static const Color _accent = Color(0xFFF97316);
   static const String _baseUrl = 'http://127.0.0.1:8000';
@@ -146,7 +146,7 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.12),
+              color: _accent.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.payment, color: _accent, size: 20),
@@ -314,9 +314,9 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
-        color: _accent.withOpacity(0.08),
+        color: _accent.withValues(alpha:0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _accent.withOpacity(0.2)),
+        border: Border.all(color: _accent.withValues(alpha:0.2)),
       ),
       child: Column(
         children: [
@@ -552,7 +552,7 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha:0.6),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -663,7 +663,7 @@ class _PaymentDetailDialogState extends State<PaymentDetailDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

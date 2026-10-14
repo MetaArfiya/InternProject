@@ -159,9 +159,6 @@ class _HeroLeftState extends State<HeroLeft> {
         final isLoading =
             snapshot.connectionState == ConnectionState.waiting;
 
-        // ==========================================
-        // SKALA UKURAN
-        // ==========================================
         final gapBadgeHeadline = compact ? 14.0 : (isMobile ? 18.0 : 22.0);
         final gapHeadlineDesc = compact ? 12.0 : 18.0;
         final gapDescSearch = compact ? 18.0 : 28.0;
@@ -278,10 +275,10 @@ class _HeroLeftState extends State<HeroLeft> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
       decoration: BoxDecoration(
-        color: AppColors.darkTeal.withOpacity(0.6),
+        color: AppColors.darkTeal.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: AppColors.mint.withOpacity(0.5),
+          color: AppColors.mint.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -312,10 +309,10 @@ class _HeroLeftState extends State<HeroLeft> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
       decoration: BoxDecoration(
-        color: AppColors.darkTeal.withOpacity(0.6),
+        color: AppColors.darkTeal.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: AppColors.mint.withOpacity(0.5),
+          color: AppColors.mint.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -342,7 +339,7 @@ class _HeroLeftState extends State<HeroLeft> {
       width: compact ? 180 : 220,
       height: compact ? 26 : 32,
       decoration: BoxDecoration(
-        color: AppColors.darkTeal.withOpacity(0.4),
+        color: AppColors.darkTeal.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(30),
       ),
     );
@@ -439,7 +436,7 @@ class _HeroLeftState extends State<HeroLeft> {
           borderRadius: BorderRadius.circular(compact ? 12 : 15),
           boxShadow: [
             BoxShadow(
-              color: AppColors.shadow.withOpacity(0.25),
+              color: AppColors.shadow.withValues(alpha: 0.25),
               blurRadius: compact ? 16 : 24,
               offset: Offset(0, compact ? 6 : 10),
             ),
@@ -590,7 +587,7 @@ class _HeroLeftState extends State<HeroLeft> {
           width: compact ? 56 : 70,
           height: compact ? 34 : 42,
           decoration: BoxDecoration(
-            color: AppColors.white.withOpacity(0.06),
+            color: AppColors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(8),
           ),
         ),

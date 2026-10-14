@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_storage.dart';
 
@@ -33,12 +34,11 @@ class ApiService {
   static Future<Map<String, String>> _headers() async {
     final token = await _getToken();
 
-    print("🔑 TOKEN DI API_SERVICE: '$token'");
+    debugPrint("🔑 TOKEN DI API_SERVICE: '$token'");
 
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
@@ -51,16 +51,13 @@ class ApiService {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _headers();
 
-    print('🌐 [GET] $url');
+    debugPrint('🌐 [GET] $url');
 
     final response = await http.get(url, headers: headers);
 
-    print(
-      '🔎 [GET RESPONSE] '
-      '${response.statusCode} - $url',
-    );
+    debugPrint('🔎 [GET RESPONSE] ${response.statusCode} - $url');
 
-    print('📦 BODY: ${response.body}');
+    debugPrint('📦 BODY: ${response.body}');
 
     return response;
   }
@@ -76,8 +73,8 @@ class ApiService {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _headers();
 
-    print('🌐 [POST] $url');
-    print('📤 DATA: $data');
+    debugPrint('🌐 [POST] $url');
+    debugPrint('📤 DATA: $data');
 
     final response = await http.post(
       url,
@@ -85,12 +82,9 @@ class ApiService {
       body: jsonEncode(data),
     );
 
-    print(
-      '🔎 [POST RESPONSE] '
-      '${response.statusCode} - $url',
-    );
+    debugPrint('🔎 [POST RESPONSE] ${response.statusCode} - $url');
 
-    print('📦 BODY: ${response.body}');
+    debugPrint('📦 BODY: ${response.body}');
 
     return response;
   }
@@ -106,24 +100,21 @@ class ApiService {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _headers();
 
-    print('🌐 [PUT] $url');
-    print('📤 DATA: $data');
+    debugPrint('🌐 [PUT] $url');
+    debugPrint('📤 DATA: $data');
 
     try {
       final response = await http
           .put(url, headers: headers, body: jsonEncode(data))
           .timeout(const Duration(seconds: 15));
 
-      print(
-        '🔎 [PUT RESPONSE] '
-        '${response.statusCode} - $url',
-      );
+      debugPrint('🔎 [PUT RESPONSE] ${response.statusCode} - $url');
 
-      print('📦 BODY: ${response.body}');
+      debugPrint('📦 BODY: ${response.body}');
 
       return response;
     } catch (e) {
-      print('❌ [PUT ERROR] $e');
+      debugPrint('❌ [PUT ERROR] $e');
       rethrow;
     }
   }
@@ -136,19 +127,17 @@ class ApiService {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _headers();
 
-    print('🌐 [DELETE] $url');
+    debugPrint('🌐 [DELETE] $url');
 
     final response = await http.delete(url, headers: headers);
 
-    print(
-      '🔎 [DELETE RESPONSE] '
-      '${response.statusCode} - $url',
-    );
+    debugPrint('🔎 [DELETE RESPONSE] ${response.statusCode} - $url');
 
-    print('📦 BODY: ${response.body}');
+    debugPrint('📦 BODY: ${response.body}');
 
     return response;
   }
+
   // ============================================================
   // POST MULTIPART / UPLOAD FILE
   // ============================================================
@@ -163,8 +152,8 @@ class ApiService {
 
     final token = await _getToken();
 
-    print('🌐 [POST MULTIPART] $url');
-    print('📤 FIELDS: $fields');
+    debugPrint('🌐 [POST MULTIPART] $url');
+    debugPrint('📤 FIELDS: $fields');
 
     final request = http.MultipartRequest('POST', url);
 
@@ -210,16 +199,13 @@ class ApiService {
 
       final response = await http.Response.fromStream(streamedResponse);
 
-      print(
-        '🔎 [MULTIPART RESPONSE] '
-        '${response.statusCode} - $url',
-      );
+      debugPrint('🔎 [MULTIPART RESPONSE] ${response.statusCode} - $url');
 
-      print('📦 BODY: ${response.body}');
+      debugPrint('📦 BODY: ${response.body}');
 
       return response;
     } catch (e) {
-      print('❌ [MULTIPART ERROR] $e');
+      debugPrint('❌ [MULTIPART ERROR] $e');
       rethrow;
     }
   }

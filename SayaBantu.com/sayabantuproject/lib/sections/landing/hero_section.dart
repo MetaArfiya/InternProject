@@ -69,7 +69,10 @@ class HeroSection extends StatelessWidget {
               right: -blobLarge * 0.3,
               top: -blobLarge * 0.3,
               child: IgnorePointer(
-                child: _blob(blobLarge, AppColors.mint.withOpacity(0.07)),
+                child: _blob(
+                  blobLarge,
+                  AppColors.mint.withValues(alpha: 0.07),
+                ),
               ),
             ),
             Positioned(
@@ -78,7 +81,7 @@ class HeroSection extends StatelessWidget {
               child: IgnorePointer(
                 child: _blob(
                   blobMedium,
-                  AppColors.white.withOpacity(0.035),
+                  AppColors.white.withValues(alpha: 0.035),
                 ),
               ),
             ),
@@ -86,7 +89,10 @@ class HeroSection extends StatelessWidget {
               left: -blobMedium * 0.4,
               bottom: -blobMedium * 0.5,
               child: IgnorePointer(
-                child: _blob(blobMedium, AppColors.mint.withOpacity(0.045)),
+                child: _blob(
+                  blobMedium,
+                  AppColors.mint.withValues(alpha: 0.045),
+                ),
               ),
             ),
 
@@ -127,7 +133,7 @@ class HeroSection extends StatelessWidget {
           onCariJasa: onCariJasa,
           onJadiMitra: onJadiMitra,
           onSearch: onSearch,
-          isCompact: isSmallMobile, // ← pass flag
+          isCompact: isSmallMobile,
         )
             .animate()
             .fade(duration: 700.ms)

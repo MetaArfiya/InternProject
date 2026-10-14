@@ -1310,7 +1310,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha:0.12),
             borderRadius: BorderRadius.circular(_radius),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -1392,7 +1392,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: AppColors.purple.withOpacity(0.12),
+                          color: AppColors.purple.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
                         child: const Icon(
@@ -1549,9 +1549,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha:0.10),
         borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha:0.25)),
       ),
       child: Row(
         children: [
@@ -1710,7 +1710,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: AppColors.purple.withOpacity(0.12),
+                          color: AppColors.purple.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
                         child: const Icon(
@@ -1804,7 +1804,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                             height: 28,
                                             decoration: BoxDecoration(
                                               color: AppColors.purple
-                                                  .withOpacity(0.12),
+                                                  .withValues(alpha:0.12),
                                               borderRadius:
                                                   BorderRadius.circular(7),
                                             ),
@@ -1926,7 +1926,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                                   ),
                                                   decoration: BoxDecoration(
                                                     color: AppColors.black
-                                                        .withOpacity(0.6),
+                                                        .withValues(alpha:0.6),
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             20),
@@ -2056,7 +2056,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     children: [
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor: AppColors.infoBlue.withOpacity(0.12),
+                        backgroundColor: AppColors.infoBlue.withValues(alpha:0.12),
                         backgroundImage: (profilePhoto != null &&
                                 profilePhoto.isNotEmpty &&
                                 profilePhoto != 'null')
@@ -2100,7 +2100,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: t.success.withOpacity(0.12),
+                          color: t.success.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -2238,7 +2238,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.purple,
                                 side: BorderSide(
-                                  color: AppColors.purple.withOpacity(0.4),
+                                  color: AppColors.purple.withValues(alpha:0.4),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
@@ -2664,7 +2664,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppColors.black.withOpacity(0.05),
+                    color: AppColors.black.withValues(alpha:0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -2690,8 +2690,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isActive
-                    ? activeColor.withOpacity(0.12)
-                    : AppColors.grey300.withOpacity(0.4),
+                    ? activeColor.withValues(alpha:0.12)
+                    : AppColors.grey300.withValues(alpha:0.4),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -2807,7 +2807,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: t.accent.withOpacity(0.10),
+                  color: t.accent.withValues(alpha:0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -2928,7 +2928,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withOpacity(0.03),
+            color: AppColors.black.withValues(alpha:0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2940,7 +2940,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
@@ -3130,7 +3130,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: _pillButton(
         icon: Icons.attach_file,
         label: 'Lihat Berkas',
-        bgColor: AppColors.purple.withOpacity(0.10),
+        bgColor: AppColors.purple.withValues(alpha:0.10),
         fgColor: AppColors.purple,
         onTap: () => _viewDocuments(p),
         t: t,
@@ -3154,7 +3154,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.close,
           label: 'Reject',
-          bgColor: t.danger.withOpacity(0.10),
+          bgColor: t.danger.withValues(alpha:0.10),
           fgColor: t.danger,
           onTap: isProcessing ? null : () => _reject(index),
           t: t,
@@ -3420,7 +3420,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.folder_open,
           label: 'Berkas',
-          bgColor: AppColors.purple.withOpacity(0.10),
+          bgColor: AppColors.purple.withValues(alpha:0.10),
           fgColor: AppColors.purple,
           onTap: () => _viewDocuments(p),
           t: t,
@@ -3450,7 +3450,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: t.success.withOpacity(0.12),
+                  color: t.success.withValues(alpha:0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -3531,7 +3531,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     minimumSize: const Size(0, 44),
                     foregroundColor: AppColors.purple,
                     side: BorderSide(
-                      color: AppColors.purple.withOpacity(0.4),
+                      color: AppColors.purple.withValues(alpha:0.4),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(_radius),
@@ -3642,7 +3642,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 20,
             child: _chip(
               text: p['pending_skills']?.toString() ?? '-',
-              bgColor: AppColors.purple.withOpacity(0.10),
+              bgColor: AppColors.purple.withValues(alpha:0.10),
               fgColor: AppColors.purple,
               bold: true,
             ),
@@ -3755,7 +3755,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.photo_library_outlined,
           label: 'Foto Bukti',
-          bgColor: AppColors.purple.withOpacity(0.10),
+          bgColor: AppColors.purple.withValues(alpha:0.10),
           fgColor: AppColors.purple,
           onTap: () => _viewSkillPhotos(pendingSkillsList[index]),
           t: t,
@@ -3771,7 +3771,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         _pillButton(
           icon: Icons.close,
           label: 'Tolak',
-          bgColor: t.danger.withOpacity(0.10),
+          bgColor: t.danger.withValues(alpha:0.10),
           fgColor: t.danger,
           onTap: isProcessing ? null : () => _rejectSkill(index),
           t: t,
@@ -3833,7 +3833,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     const SizedBox(height: 4),
                     _chip(
                       text: p['pending_skills']?.toString() ?? '-',
-                      bgColor: AppColors.purple.withOpacity(0.10),
+                      bgColor: AppColors.purple.withValues(alpha:0.10),
                       fgColor: AppColors.purple,
                       bold: true,
                     ),
@@ -3885,13 +3885,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: t.accent.withOpacity(0.1),
+              color: t.accent.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 34,
-              color: iconColor ?? t.accent.withOpacity(0.7),
+              color: iconColor ?? t.accent.withValues(alpha:0.7),
             ),
           ),
           const SizedBox(height: 14),

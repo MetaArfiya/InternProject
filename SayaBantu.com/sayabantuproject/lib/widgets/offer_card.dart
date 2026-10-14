@@ -45,7 +45,7 @@ class OfferCard extends StatelessWidget {
           borderWidth = 1;
         } else {
           // pending → border teal soft (dari gray)
-          borderColor = AppColors.primaryTeal.withOpacity(0.15);
+          borderColor = AppColors.primaryTeal.withValues(alpha:0.15);
           bgColor = AppColors.white;
           borderWidth = 1;
         }
@@ -96,7 +96,7 @@ class OfferCard extends StatelessWidget {
               radius: 26,
               backgroundColor: isAccepted
                   ? const Color(0xFFDCFCE7)
-                  : AppColors.mint.withOpacity(0.20), // ← dari orange soft
+                  : AppColors.mint.withValues(alpha:0.20), // ← dari orange soft
               child: Icon(
                 Icons.person,
                 color: isAccepted
@@ -211,7 +211,7 @@ class OfferCard extends StatelessWidget {
           radius: 35,
           backgroundColor: isAccepted
               ? const Color(0xFFDCFCE7)
-              : AppColors.mint.withOpacity(0.20), // ← dari orange soft
+              : AppColors.mint.withValues(alpha:0.20), // ← dari orange soft
           child: Icon(
             Icons.person,
             color: isAccepted
@@ -719,8 +719,8 @@ class OfferCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: isAccepted
-            ? const Color(0xFF16A34A).withOpacity(0.1)
-            : const Color(0xFFDC2626).withOpacity(0.08),
+            ? const Color(0xFF16A34A).withValues(alpha:0.1)
+            : const Color(0xFFDC2626).withValues(alpha:0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

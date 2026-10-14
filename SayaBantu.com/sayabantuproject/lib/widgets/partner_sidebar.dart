@@ -414,7 +414,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                         Text(
                           "Mitra Aktif",
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.65),
+                            color: Colors.white.withValues(alpha:0.65),
                             fontSize: 13,
                           ),
                         ),
@@ -610,7 +610,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           vertical: 15,
         ),
         color: active
-            ? AppColors.mint.withOpacity(0.15) // ← dari orange soft
+            ? AppColors.mint.withValues(alpha:0.15) // ← dari orange soft
             : Colors.transparent,
         child: Row(
           children: [
@@ -618,7 +618,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
               icon,
               color: active
                   ? AppColors.mint // ← aktif → mint
-                  : Colors.white.withOpacity(0.70),
+                  : Colors.white.withValues(alpha:0.70),
               size: 22,
             ),
             const SizedBox(width: 15),
@@ -630,7 +630,7 @@ class PartnerSidebarState extends State<PartnerSidebar> {
                 style: TextStyle(
                   color: active
                       ? AppColors.mint // ← aktif → mint
-                      : Colors.white.withOpacity(0.85),
+                      : Colors.white.withValues(alpha:0.85),
                   fontWeight:
                       active ? FontWeight.bold : FontWeight.w500,
                   fontSize: 14.5,
@@ -671,10 +671,10 @@ class PartnerSidebarState extends State<PartnerSidebar> {
           ),
           decoration: BoxDecoration(
             // ✅ dari merah soft → putih soft (muted)
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha:0.08),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha:0.15),
             ),
           ),
           child: Row(

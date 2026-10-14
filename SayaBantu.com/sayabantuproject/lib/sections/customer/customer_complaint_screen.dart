@@ -277,7 +277,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -347,7 +347,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: _accent.withOpacity(0.12),
+                              color: _accent.withValues(alpha:0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -392,7 +392,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                             children: [
                               // KATEGORI
                               DropdownButtonFormField<String>(
-                                value: selectedCategory,
+                                initialValue: selectedCategory,
                                 isExpanded: true,
                                 decoration: _inputDecoration(
                                   'Kategori Pengaduan',
@@ -559,7 +559,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                                         jobId: selectedJobId,
                                       );
 
-                                      if (!mounted) return;
+                                      if (!dialogContext.mounted) return;
 
                                       if (success) {
                                         Navigator.pop(dialogContext);
@@ -658,11 +658,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           color: isBlocking
-              ? const Color(0xFFF59E0B).withOpacity(0.08)
+              ? const Color(0xFFF59E0B).withValues(alpha:0.08)
               : AppColors.grey50,
           border: Border.all(
             color: isBlocking
-                ? const Color(0xFFF59E0B).withOpacity(0.4)
+                ? const Color(0xFFF59E0B).withValues(alpha:0.4)
                 : AppColors.grey300,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -696,14 +696,14 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
     }
 
     return DropdownButtonFormField<int?>(
-      value: selectedJobId,
+      initialValue: selectedJobId,
       isExpanded: true,
       decoration: _inputDecoration(label, hint: hint).copyWith(
         enabledBorder: isRequired && selectedJobId == null
             ? OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: const Color(0xFFF59E0B).withOpacity(0.55),
+                  color: const Color(0xFFF59E0B).withValues(alpha:0.55),
                   width: 1.3,
                 ),
               )
@@ -994,11 +994,11 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.03),
+            color: AppColors.darkTeal.withValues(alpha:0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1010,7 +1010,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
@@ -1129,7 +1129,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.10),
+              color: _accent.withValues(alpha:0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -1173,7 +1173,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Column(
@@ -1508,7 +1508,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
+                          color: _accent.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -1817,13 +1817,13 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.report_problem_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha:0.7),
             ),
           ),
           const SizedBox(height: 14),

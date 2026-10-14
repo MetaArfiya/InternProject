@@ -524,7 +524,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: _accent.withOpacity(0.15),
+        color: _accent.withValues(alpha: 0.15),
         shape: BoxShape.circle,
       ),
       child: Text(
@@ -651,7 +651,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   Widget _buildNoFilterResultState(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    //final textTheme = Theme.of(context).textTheme;
 
     return Center(
       child: Padding(
@@ -846,7 +846,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   context: context,
                   icon: Icons.local_offer_outlined,
                   label: 'Lihat Offer',
-                  bgColor: AppColors.mint.withOpacity(0.15),
+                  bgColor: AppColors.mint.withValues(alpha: 0.15),
                   fgColor: AppColors.primaryTeal,
                   onTap: () => widget.onOpenOffer(job),
                 ),
@@ -955,7 +955,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       fg = const Color(0xFFD97706);
     } else {
       // default: "mencari mitra" dll → mint/teal
-      bg = AppColors.mint.withOpacity(0.18);
+      bg = AppColors.mint.withValues(alpha:0.18);
       fg = AppColors.primaryTeal;
     }
 
@@ -1135,7 +1135,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.mint.withOpacity(0.20), // ← dari ungu → mint
+        color: AppColors.mint.withValues(alpha:0.20), // ← dari ungu → mint
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1286,7 +1286,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     final hasImage = imageUrl != null &&
         imageUrl.trim().isNotEmpty &&
         imageUrl.trim() != 'null';
-    final textTheme = Theme.of(context).textTheme;
+    //final textTheme = Theme.of(context).textTheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1779,13 +1779,13 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: _accent.withOpacity(0.1),
+                color: _accent.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.assignment_outlined,
                 size: 36,
-                color: _accent.withOpacity(0.7),
+                color: _accent.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 14),

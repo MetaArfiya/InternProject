@@ -267,7 +267,7 @@ class OfferScreen extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Column(
@@ -345,7 +345,7 @@ class OfferScreen extends StatelessWidget {
                   radius: 22,
                   backgroundColor: isAccepted
                       ? const Color(0xFFDCFCE7)
-                      : AppColors.mint.withOpacity(0.20), // ← dari orange soft
+                      : AppColors.mint.withValues(alpha:0.20), // ← dari orange soft
                   child: Icon(
                     Icons.person,
                     color: isAccepted
@@ -460,7 +460,7 @@ class OfferScreen extends StatelessWidget {
       label = 'Ditolak';
     } else {
       // pending → mint/teal (dari amber)
-      bg = AppColors.mint.withOpacity(0.20);
+      bg = AppColors.mint.withValues(alpha:0.20);
       fg = AppColors.primaryTeal;
       icon = Icons.hourglass_top;
       label = 'Menunggu';
@@ -661,7 +661,7 @@ class OfferScreen extends StatelessWidget {
       message = 'Pekerjaan ini sudah dibatalkan.';
     } else {
       // default → mint/teal (dari ungu)
-      bg = AppColors.mint.withOpacity(0.20);
+      bg = AppColors.mint.withValues(alpha:0.20);
       fg = AppColors.primaryTeal;
       icon = Icons.info_outline;
       message = 'Status pekerjaan: $status';
@@ -673,7 +673,7 @@ class OfferScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: fg.withOpacity(0.3)),
+        border: Border.all(color: fg.withValues(alpha:0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

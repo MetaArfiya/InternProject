@@ -97,14 +97,15 @@ class AppColors {
   // ============================================================
   // 12. EXTRA — badge, label, aksen sekunder
   // ============================================================
-  /// Biru info (blue-600)
-  static const Color infoBlue = Color(0xFF2563EB);
 
-  /// Ungu (violet-600)
-  static const Color purple = Color(0xFF7C3AED);
+  /// Biru info → sekarang TEAL
+  static const Color infoBlue = primaryTeal;       // #0F766E
 
-  /// Amber (amber-600)
-  static const Color amber = Color(0xFFD97706);
+  /// Ungu → sekarang TEAL
+  static const Color purple = primaryTeal;         // #0F766E
+
+  /// Amber → sekarang TEAL
+  static const Color amber = primaryTeal;          // #0F766E
 
   // ============================================================
   // 13. ALIAS

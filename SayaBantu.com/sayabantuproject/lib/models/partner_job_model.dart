@@ -1,3 +1,6 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
+
 class PartnerJobModel {
   final int id;
   final String title;
@@ -101,9 +104,9 @@ class PartnerJobModel {
         _buildImageUrl(json['image_url']);
 
     // Debug
-    print('🖼️ PARTNER JOB ${json['id']}');
-    print('🖼️ IMAGE DARI API: ${json['image_url']}');
-    print('🌐 IMAGE URL FLUTTER: $imageUrl');
+    debugPrint('🖼️ PARTNER JOB ${json['id']}');
+    debugPrint('🖼️ IMAGE DARI API: ${json['image_url']}');
+    debugPrint('🌐 IMAGE URL FLUTTER: $imageUrl');
 
     return PartnerJobModel(
       id: int.tryParse(

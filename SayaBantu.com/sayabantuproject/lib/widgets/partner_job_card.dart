@@ -37,11 +37,11 @@ class PartnerJobCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.04),
+            color: AppColors.darkTeal.withValues(alpha:0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),

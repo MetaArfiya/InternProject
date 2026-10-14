@@ -69,7 +69,7 @@ class PartnerCTASection extends StatelessWidget {
                     height: 380,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.mint.withOpacity(0.06),
+                      color: AppColors.mint.withValues(alpha: 0.06),
                     ),
                   ),
                 ),
@@ -83,7 +83,7 @@ class PartnerCTASection extends StatelessWidget {
                     height: 320,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.white.withOpacity(0.04),
+                      color: AppColors.white.withValues(alpha: 0.04),
                     ),
                   ),
                 ),
@@ -116,7 +116,9 @@ class PartnerCTASection extends StatelessWidget {
 
                         SizedBox(
                           width: isHorizontal ? 56 : 0,
-                          height: isHorizontal ? 0 : (isSmallMobile ? 28 : 40),
+                          height: isHorizontal
+                              ? 0
+                              : (isSmallMobile ? 28 : 40),
                         ),
 
                         // RIGHT
@@ -182,10 +184,10 @@ class PartnerCTASection extends StatelessWidget {
             vertical: badgePaddingV,
           ),
           decoration: BoxDecoration(
-            color: AppColors.darkTeal.withOpacity(0.5),
+            color: AppColors.darkTeal.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: AppColors.mint.withOpacity(0.55),
+              color: AppColors.mint.withValues(alpha: 0.55),
               width: 1,
             ),
           ),
@@ -321,18 +323,6 @@ class PartnerCTASection extends StatelessWidget {
     required bool isSmallMobile,
     required bool isTablet,
   }) {
-    // Tinggi card per item (pakai mainAxisExtent, biar tidak overflow)
-    final double cardHeight;
-    if (isSmallMobile) {
-      cardHeight = 130.0;
-    } else if (isMobile) {
-      cardHeight = 140.0;
-    } else if (isTablet) {
-      cardHeight = 155.0;
-    } else {
-      cardHeight = 150.0;
-    }
-
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

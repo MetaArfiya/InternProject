@@ -35,10 +35,10 @@ class BenefitCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.white.withOpacity(0.08),
+        color: AppColors.white.withValues(alpha:0.08),
         borderRadius: BorderRadius.circular(cardRadius),
         border: Border.all(
-          color: AppColors.mint.withOpacity(0.20),
+          color: AppColors.mint.withValues(alpha:0.20),
           width: 1,
         ),
       ),
@@ -51,7 +51,7 @@ class BenefitCard extends StatelessWidget {
             width: iconBox,
             height: iconBox,
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.15),
+              color: AppColors.mint.withValues(alpha:0.15),
               borderRadius: BorderRadius.circular(iconRadius),
             ),
             child: Icon(

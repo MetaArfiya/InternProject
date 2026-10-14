@@ -234,7 +234,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -496,11 +496,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withOpacity(0.03),
+            color: AppColors.darkTeal.withValues(alpha:0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -512,7 +512,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
@@ -634,7 +634,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.10),
+              color: _accent.withValues(alpha:0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -666,7 +666,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Column(
@@ -712,7 +712,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.10),
+              color: _accent.withValues(alpha:0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -1117,7 +1117,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.mint.withOpacity(0.20), // ← dari ungu
+        color: AppColors.mint.withValues(alpha:0.20), // ← dari ungu
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1170,7 +1170,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: _accent.withOpacity(0.12),
+                              color: _accent.withValues(alpha:0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -1218,11 +1218,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.mint.withOpacity(0.12),
+                                  color: AppColors.mint.withValues(alpha:0.12),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: AppColors.primaryTeal
-                                        .withOpacity(0.20),
+                                        .withValues(alpha:0.20),
                                   ),
                                 ),
                                 child: const Row(
@@ -1250,7 +1250,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                               const SizedBox(height: 14),
 
                               DropdownButtonFormField<String>(
-                                value: selectedCategory,
+                                initialValue: selectedCategory,
                                 isExpanded: true,
                                 decoration: _inputDecoration('Kategori'),
                                 style: const TextStyle(
@@ -1369,7 +1369,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                         description: desc,
                                       );
 
-                                      if (!mounted) return;
+                                      if (!dialogContext.mounted) return;
 
                                       if (success) {
                                         Navigator.pop(dialogContext);
@@ -1534,7 +1534,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.12),
+                          color: _accent.withValues(alpha:0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -1750,13 +1750,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.report_problem_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha:0.7),
             ),
           ),
           const SizedBox(height: 14),

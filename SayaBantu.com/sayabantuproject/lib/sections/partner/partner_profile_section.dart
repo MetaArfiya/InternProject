@@ -102,13 +102,13 @@ class PartnerProfileSection extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.person_outline,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha:0.7),
             ),
           ),
           const SizedBox(height: _gapBetweenSections),

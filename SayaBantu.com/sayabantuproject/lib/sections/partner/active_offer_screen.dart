@@ -24,11 +24,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   // DESIGN TOKENS
   // ============================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
-  static const Color _tableBorder = Color(0xFFE5E7EB);
-  static const Color _tableDivider = Color(0xFFF3F4F6);
-  static const Color _headerText = AppColors.grey500;
+  static const Color _tableBorder = AppColors.grey200;
+  static const Color _tableDivider = AppColors.grey100;
 
   static const double _gapAfterHeader = 16;
 
@@ -59,7 +57,8 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         List<dynamic> loadedOffersJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          final target = decodedData['data'] ?? decodedData['offers'] ?? [];
+          final target =
+              decodedData['data'] ?? decodedData['offers'] ?? [];
           if (target is List) loadedOffersJson = target;
         } else if (decodedData is List) {
           loadedOffersJson = decodedData;
@@ -113,7 +112,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.sectionAltLight, // ← mint muda
+      color: AppColors.sectionAltLight,
       child: RefreshIndicator(
         onRefresh: _refreshOffers,
         color: _accent,
@@ -246,7 +245,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -263,7 +262,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.12),
+                    color: _accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -271,7 +270,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: _accent, // ← teal
+                      color: _accent,
                     ),
                   ),
                 ),
@@ -325,7 +324,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
               label,
               style: const TextStyle(
                 fontSize: 12.5,
-                color: AppColors.grey700, // ← slate-700
+                color: AppColors.grey700,
                 fontWeight: FontWeight.w600,
                 height: 1.3,
               ),
@@ -457,23 +456,25 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: AppColors.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(
+          color: AppColors.danger.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.cloud_off_outlined,
             size: 48,
-            color: Color(0xFFDC2626),
+            color: AppColors.danger,
           ),
           const SizedBox(height: 14),
           Text(
             _errorMessage,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFFDC2626),
+              color: AppColors.danger,
               fontSize: 13,
               height: 1.4,
             ),
@@ -484,8 +485,8 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent, // ← teal
-              foregroundColor: Colors.white,
+              backgroundColor: _accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -507,13 +508,13 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.assignment_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
@@ -532,7 +533,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
 }
 
 // ============================================================
-// HEADER CELL (widget kecil untuk TableRow)
+// HEADER CELL
 // ============================================================
 class _HeaderCell extends StatelessWidget {
   final String text;
@@ -545,7 +546,7 @@ class _HeaderCell extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(
-          color: Color(0xFF6B7280),
+          color: AppColors.grey500,
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),

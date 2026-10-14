@@ -258,13 +258,13 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: _accent.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.notifications_none_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: _accent.withValues(alpha:0.7),
             ),
           ),
           const SizedBox(height: 14),

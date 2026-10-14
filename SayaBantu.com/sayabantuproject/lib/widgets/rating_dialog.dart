@@ -134,7 +134,7 @@ class _RatingDialogState extends State<RatingDialog> {
             height: 42,
             decoration: BoxDecoration(
               // ✅ dari amber → mint soft
-              color: AppColors.mint.withOpacity(0.18),
+              color: AppColors.mint.withValues(alpha:0.18),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -185,7 +185,7 @@ class _RatingDialogState extends State<RatingDialog> {
                   color: AppColors.grey50,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: AppColors.primaryTeal.withOpacity(0.10),
+                    color: AppColors.primaryTeal.withValues(alpha:0.10),
                   ),
                 ),
                 child: Column(

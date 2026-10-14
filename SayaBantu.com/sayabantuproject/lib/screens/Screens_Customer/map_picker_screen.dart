@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../theme/app_colors.dart';
+
 class MapPickerDialog extends StatefulWidget {
   final LatLng initialPosition;
 
@@ -19,124 +21,106 @@ class MapPickerDialog extends StatefulWidget {
 }
 
 class _MapPickerDialogState extends State<MapPickerDialog> {
-  late LatLng _selectedPosition;
+  // =========================================================
+  // STATE
+  // =========================================================
 
+  late LatLng _selectedPosition;
   final MapController _mapController = MapController();
 
   bool _isLoadingAddress = false;
-
   String _address = "";
+
+  // =========================================================
+  // INIT
+  // =========================================================
 
   @override
   void initState() {
     super.initState();
-
     _selectedPosition = widget.initialPosition;
-
     _getAddress(_selectedPosition);
   }
+
   // =========================================================
-// AMBIL LOKASI GPS SAAT INI
-// =========================================================
+  // AMBIL LOKASI GPS SAAT INI
+  // =========================================================
 
-Future<void> _goToCurrentLocation() async {
-  try {
-    bool serviceEnabled =
-        await Geolocator.isLocationServiceEnabled();
+  Future<void> _goToCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-    if (!serviceEnabled) {
-      if (!mounted) return;
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        _showSnack('GPS/lokasi perangkat sedang tidak aktif.');
+        return;
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'GPS/lokasi perangkat sedang tidak aktif.',
-          ),
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        _showSnack('Izin lokasi ditolak.');
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        _showSnack(
+          'Izin lokasi ditolak permanen. '
+          'Silakan aktifkan izin lokasi dari pengaturan perangkat.',
+        );
+        return;
+      }
+
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
         ),
       );
 
-      return;
-    }
-
-    LocationPermission permission =
-        await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission =
-          await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Izin lokasi ditolak.',
-          ),
-        ),
+      final LatLng currentPosition = LatLng(
+        position.latitude,
+        position.longitude,
       );
 
-      return;
-    }
-
-    if (permission ==
-        LocationPermission.deniedForever) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Izin lokasi ditolak permanen. '
-            'Silakan aktifkan izin lokasi dari pengaturan perangkat.',
-          ),
-        ),
-      );
+      setState(() {
+        _selectedPosition = currentPosition;
+        _isLoadingAddress = true;
+      });
 
-      return;
+      _mapController.move(currentPosition, 17);
+      await _getAddress(currentPosition);
+    } catch (e) {
+      debugPrint('Gagal mendapatkan lokasi GPS: $e');
+
+      if (!mounted) return;
+      _showSnack('Gagal mendapatkan lokasi saat ini: $e');
     }
-
-    final Position position =
-        await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
-    );
-
-    final LatLng currentPosition = LatLng(
-      position.latitude,
-      position.longitude,
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _selectedPosition = currentPosition;
-      _isLoadingAddress = true;
-    });
-
-    _mapController.move(
-      currentPosition,
-      17,
-    );
-
-    await _getAddress(currentPosition);
-  } catch (e) {
-    debugPrint(
-      'Gagal mendapatkan lokasi GPS: $e',
-    );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Gagal mendapatkan lokasi saat ini: $e',
-        ),
-      ),
-    );
   }
-}
+
+  // =========================================================
+  // SNACKBAR
+  // =========================================================
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   // =========================================================
   // REVERSE GEOCODING OPENSTREETMAP
   // =========================================================
@@ -177,16 +161,13 @@ Future<void> _goToCurrentLocation() async {
       }
 
       final data = jsonDecode(response.body);
-
-      final addressData =
-          data['address'] as Map<String, dynamic>?;
+      final addressData = data['address'] as Map<String, dynamic>?;
 
       if (addressData == null) {
         throw Exception('Data alamat tidak ditemukan');
       }
 
-      final formattedAddress =
-          _formatIndonesiaAddress(addressData);
+      final formattedAddress = _formatIndonesiaAddress(addressData);
 
       if (!mounted) return;
 
@@ -194,9 +175,7 @@ Future<void> _goToCurrentLocation() async {
         _address = formattedAddress;
       });
     } catch (e) {
-      debugPrint(
-        'Gagal mengambil alamat OpenStreetMap: $e',
-      );
+      debugPrint('Gagal mengambil alamat OpenStreetMap: $e');
 
       if (!mounted) return;
 
@@ -204,11 +183,11 @@ Future<void> _goToCurrentLocation() async {
         _address = 'Alamat tidak ditemukan';
       });
     } finally {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoadingAddress = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingAddress = false;
+        });
+      }
     }
   }
 
@@ -216,16 +195,13 @@ Future<void> _goToCurrentLocation() async {
   // FORMAT ALAMAT INDONESIA
   // =========================================================
 
-  String _formatIndonesiaAddress(
-    Map<String, dynamic> address,
-  ) {
+  String _formatIndonesiaAddress(Map<String, dynamic> address) {
     final List<String> parts = [];
 
     void addPart(dynamic value) {
       if (value == null) return;
 
       final text = value.toString().trim();
-
       if (text.isEmpty) return;
 
       if (!parts.contains(text)) {
@@ -233,93 +209,53 @@ Future<void> _goToCurrentLocation() async {
       }
     }
 
-    // -------------------------------------------------------
     // JALAN / GANG
-    // -------------------------------------------------------
-
     final road = address['road'];
-
     final houseNumber = address['house_number'];
 
-    if (road != null &&
-        road.toString().trim().isNotEmpty) {
+    if (road != null && road.toString().trim().isNotEmpty) {
       String roadName = road.toString().trim();
 
-      // Tidak menambahkan "Jl." otomatis karena
-      // nama jalan dari OSM bisa berupa Gang, Jalan,
-      // Lorong, dll.
       if (houseNumber != null &&
           houseNumber.toString().trim().isNotEmpty) {
-        roadName =
-            '$roadName No. ${houseNumber.toString().trim()}';
+        roadName = '$roadName No. ${houseNumber.toString().trim()}';
       }
 
       addPart(roadName);
     }
 
-    // -------------------------------------------------------
     // DUSUN / DESA / KELURAHAN
-    // -------------------------------------------------------
-
     addPart(address['neighbourhood']);
-
     addPart(address['quarter']);
-
     addPart(address['hamlet']);
 
-    // -------------------------------------------------------
     // DESA / KELURAHAN
-    // -------------------------------------------------------
-
     addPart(address['village']);
 
-    // -------------------------------------------------------
     // KECAMATAN
-    // -------------------------------------------------------
-
     addPart(address['suburb']);
-
     addPart(address['town']);
 
-    // -------------------------------------------------------
     // KOTA / KABUPATEN
-    // -------------------------------------------------------
-
     addPart(address['city']);
-
     addPart(address['municipality']);
-
     addPart(address['county']);
 
-    // -------------------------------------------------------
     // PROVINSI
-    // -------------------------------------------------------
+    String? province = address['state']?.toString().trim();
 
-    String? province =
-        address['state']?.toString().trim();
-
-    if (province != null &&
-        province.isNotEmpty) {
+    if (province != null && province.isNotEmpty) {
       province = _convertProvinceName(province);
-
       addPart(province);
     }
 
-    // -------------------------------------------------------
     // KODE POS
-    // -------------------------------------------------------
-
     addPart(address['postcode']);
 
-    // -------------------------------------------------------
     // NEGARA
-    // -------------------------------------------------------
+    final country = address['country']?.toString().trim();
 
-    final country =
-        address['country']?.toString().trim();
-
-    if (country != null &&
-        country.isNotEmpty) {
+    if (country != null && country.isNotEmpty) {
       if (country.toLowerCase() == 'indonesia') {
         addPart('Indonesia');
       } else {
@@ -338,71 +274,48 @@ Future<void> _goToCurrentLocation() async {
   // KONVERSI NAMA PROVINSI
   // =========================================================
 
-  String _convertProvinceName(
-    String province,
-  ) {
-    final normalized =
-        province.toLowerCase().trim();
+  String _convertProvinceName(String province) {
+    final normalized = province.toLowerCase().trim();
 
     switch (normalized) {
       case 'special region of yogyakarta':
-        return 'Daerah Istimewa Yogyakarta';
-
       case 'yogyakarta':
         return 'Daerah Istimewa Yogyakarta';
-
       case 'west java':
         return 'Jawa Barat';
-
       case 'central java':
         return 'Jawa Tengah';
-
       case 'east java':
         return 'Jawa Timur';
-
       case 'banten':
         return 'Banten';
-
       case 'jakarta':
       case 'dki jakarta':
         return 'DKI Jakarta';
-
       case 'west sumatra':
         return 'Sumatera Barat';
-
       case 'south sumatra':
         return 'Sumatera Selatan';
-
       case 'north sumatra':
         return 'Sumatera Utara';
-
       case 'south sulawesi':
         return 'Sulawesi Selatan';
-
       case 'north sulawesi':
         return 'Sulawesi Utara';
-
       case 'west kalimantan':
         return 'Kalimantan Barat';
-
       case 'south kalimantan':
         return 'Kalimantan Selatan';
-
       case 'east kalimantan':
         return 'Kalimantan Timur';
-
       case 'central kalimantan':
         return 'Kalimantan Tengah';
-
       case 'north kalimantan':
         return 'Kalimantan Utara';
-
       case 'bali':
         return 'Bali';
-
       case 'papua':
         return 'Papua';
-
       default:
         return province;
     }
@@ -412,10 +325,7 @@ Future<void> _goToCurrentLocation() async {
   // KETIKA PETA DIKLIK
   // =========================================================
 
-  void _onMapTap(
-    TapPosition tapPosition,
-    LatLng position,
-  ) {
+  void _onMapTap(TapPosition tapPosition, LatLng position) {
     if (!mounted) return;
 
     setState(() {
@@ -447,69 +357,53 @@ Future<void> _goToCurrentLocation() async {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth =
-        MediaQuery.of(context).size.width;
-
-    final screenHeight =
-        MediaQuery.of(context).size.height;
-
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isMobile = screenWidth < 600;
 
     return Dialog(
-      insetPadding: EdgeInsets.all(
-        isMobile ? 10 : 20,
-      ),
+      insetPadding: EdgeInsets.all(isMobile ? 10 : 20),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
       ),
       child: SizedBox(
-        width:
-            isMobile ? screenWidth - 20 : 700,
-        height:
-            isMobile ? screenHeight - 40 : 650,
+        width: isMobile ? screenWidth - 20 : 700,
+        height: isMobile ? screenHeight - 40 : 650,
         child: ClipRRect(
-          borderRadius:
-              BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(18),
           child: Column(
             children: [
-
               // =================================================
               // HEADER
               // =================================================
-
               Container(
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 16,
                 ),
                 child: Row(
                   children: [
-
                     const Icon(
                       Icons.location_on_outlined,
-                      color: Colors.orange,
+                      color: AppColors.primaryTeal,
                     ),
-
                     const SizedBox(width: 10),
-
                     const Expanded(
                       child: Text(
                         'Pilih Lokasi',
                         style: TextStyle(
                           fontSize: 20,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.grey900,
                         ),
                       ),
                     ),
-
                     IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon:
-                          const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.grey600,
+                      ),
                     ),
                   ],
                 ),
@@ -518,53 +412,37 @@ Future<void> _goToCurrentLocation() async {
               // =================================================
               // MAP
               // =================================================
-
               Expanded(
                 child: Stack(
                   children: [
-
                     FlutterMap(
-                      mapController:
-                          _mapController,
+                      mapController: _mapController,
                       options: MapOptions(
-                        initialCenter:
-                            _selectedPosition,
+                        initialCenter: _selectedPosition,
                         initialZoom: 16,
                         onTap: _onMapTap,
                       ),
                       children: [
-
-                        // =================================================
-                        // OPENSTREETMAP
-                        // =================================================
-
+                        // TILE LAYER — OpenStreetMap
                         TileLayer(
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName:
-                              'com.sayabantu.project',
+                          userAgentPackageName: 'com.sayabantu.project',
                         ),
 
-                        // =================================================
                         // MARKER
-                        // =================================================
-
                         MarkerLayer(
                           markers: [
-
                             Marker(
-                              point:
-                                  _selectedPosition,
+                              point: _selectedPosition,
                               width: 50,
                               height: 50,
-                              child:
-                                  const Icon(
+                              child: const Icon(
                                 Icons.location_pin,
                                 size: 50,
-                                color: Colors.red,
+                                color: AppColors.danger,
                               ),
                             ),
-
                           ],
                         ),
                       ],
@@ -573,66 +451,45 @@ Future<void> _goToCurrentLocation() async {
                     // =================================================
                     // PETUNJUK
                     // =================================================
-
                     Positioned(
                       top: 15,
                       left: 15,
                       right: 15,
                       child: Container(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 10,
                         ),
-                        decoration:
-                            BoxDecoration(
-                          color: Colors.white,
-                          borderRadius:
-                              BorderRadius.circular(
-                            10,
-                          ),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
                               blurRadius: 8,
-                              color: Colors.black
-                                  .withOpacity(
-                                0.15,
-                              ),
+                              color: AppColors.black
+                                  .withValues(alpha: 0.15),
                             ),
                           ],
                         ),
                         child: const Text(
                           'Ketuk peta untuk menentukan lokasi',
-                          textAlign:
-                              TextAlign.center,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.grey700),
                         ),
                       ),
                     ),
 
                     // =================================================
-                    // TOMBOL LOKASI TERPILIH
+                    // TOMBOL LOKASI GPS
                     // =================================================
-
                     Positioned(
                       right: 15,
                       bottom: 15,
-                      child:
-                          FloatingActionButton
-                              .small(
-                        backgroundColor:
-                            Colors.white,
-                        foregroundColor:
-                            Colors.black87,
-                        onPressed: () {
-                          _mapController.move(
-                            _selectedPosition,
-                            16,
-                          );
-                        },
-                        child: const Icon(
-                          Icons.my_location,
-                        ),
+                      child: FloatingActionButton.small(
+                        backgroundColor: AppColors.white,
+                        foregroundColor: AppColors.primaryTeal,
+                        onPressed: _goToCurrentLocation,
+                        child: const Icon(Icons.my_location),
                       ),
                     ),
                   ],
@@ -642,115 +499,89 @@ Future<void> _goToCurrentLocation() async {
               // =================================================
               // INFORMASI ALAMAT
               // =================================================
-
               Container(
-                padding:
-                    const EdgeInsets.all(18),
-                color: Colors.white,
+                padding: const EdgeInsets.all(18),
+                color: AppColors.white,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const Text(
                       'Lokasi terpilih',
                       style: TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.grey900,
                       ),
                     ),
-
                     const SizedBox(height: 8),
 
-                    // =================================================
                     // LOADING ALAMAT
-                    // =================================================
-
                     if (_isLoadingAddress)
-
                       const Row(
                         children: [
-
                           SizedBox(
                             width: 16,
                             height: 16,
-                            child:
-                                CircularProgressIndicator(
+                            child: CircularProgressIndicator(
                               strokeWidth: 2,
+                              color: AppColors.primaryTeal,
                             ),
                           ),
-
                           SizedBox(width: 10),
-
                           Text(
                             'Mencari alamat...',
+                            style: TextStyle(color: AppColors.grey600),
                           ),
-
                         ],
                       )
-
                     else
-
                       Text(
                         _address.isEmpty
                             ? 'Alamat belum ditemukan'
                             : _address,
                         maxLines: 3,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color:
-                              Colors.grey.shade700,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.grey700,
                         ),
                       ),
 
                     const SizedBox(height: 10),
 
-                    // =================================================
                     // KOORDINAT
-                    // =================================================
-
                     Text(
                       '${_selectedPosition.latitude.toStringAsFixed(6)}, '
                       '${_selectedPosition.longitude.toStringAsFixed(6)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color:
-                            Colors.grey.shade600,
+                        color: AppColors.grey500,
                       ),
                     ),
 
                     const SizedBox(height: 15),
 
-                    // =================================================
                     // BUTTON
-                    // =================================================
-
                     SizedBox(
                       width: double.infinity,
-                      child:
-                          ElevatedButton(
-                        onPressed:
-                            _isLoadingAddress ||
-                                    _address.isEmpty
-                                ? null
-                                : _useLocation,
-                        style:
-                            ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(
-                            0xffF97316,
-                          ),
-                          foregroundColor:
-                              Colors.white,
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
+                      child: ElevatedButton(
+                        onPressed: _isLoadingAddress || _address.isEmpty
+                            ? null
+                            : _useLocation,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryTeal,
+                          foregroundColor: AppColors.white,
+                          padding: const EdgeInsets.symmetric(
                             vertical: 15,
+                          ),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         child: const Text(
                           'Gunakan Lokasi Ini',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),

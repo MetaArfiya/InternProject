@@ -115,7 +115,7 @@ class _CompletionProofDialogState
                       height: 48,
                       decoration: BoxDecoration(
                         // ✅ dari hijau soft → mint soft
-                        color: AppColors.mint.withOpacity(0.20),
+                        color: AppColors.mint.withValues(alpha:0.20),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Icon(
@@ -149,7 +149,7 @@ class _CompletionProofDialogState
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.mint.withOpacity(0.20), // ← mint soft
+                      color: AppColors.mint.withValues(alpha:0.20), // ← mint soft
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
@@ -337,7 +337,7 @@ class _CompletionProofDialogState
                     height: 45,
                     decoration: BoxDecoration(
                       // ✅ dari hijau soft → mint soft
-                      color: AppColors.mint.withOpacity(0.20),
+                      color: AppColors.mint.withValues(alpha:0.20),
                       borderRadius: BorderRadius.circular(13),
                     ),
                     child: const Icon(
@@ -458,10 +458,10 @@ class _CompletionProofDialogState
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
                   // ✅ dari hijau soft → mint soft
-                  color: AppColors.mint.withOpacity(0.12),
+                  color: AppColors.mint.withValues(alpha:0.12),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primaryTeal.withOpacity(0.20),
+                    color: AppColors.primaryTeal.withValues(alpha:0.20),
                   ),
                 ),
                 child: const Row(
@@ -573,7 +573,7 @@ class _CompletionProofDialogState
             color: AppColors.grey50,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.primaryTeal.withOpacity(0.30), // ← teal border
+              color: AppColors.primaryTeal.withValues(alpha:0.30), // ← teal border
               width: 1.5,
             ),
           ),
@@ -585,7 +585,7 @@ class _CompletionProofDialogState
                 height: 60,
                 decoration: BoxDecoration(
                   // ✅ dari hijau soft → mint soft
-                  color: AppColors.mint.withOpacity(0.20),
+                  color: AppColors.mint.withValues(alpha:0.20),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Icon(
@@ -623,7 +623,7 @@ class _CompletionProofDialogState
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.20),
+          color: AppColors.primaryTeal.withValues(alpha:0.20),
         ),
       ),
       clipBehavior: Clip.antiAlias,

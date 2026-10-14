@@ -178,7 +178,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Column(
@@ -235,7 +235,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withOpacity(0.10),
+          color: AppColors.primaryTeal.withValues(alpha:0.10),
         ),
       ),
       child: Column(
@@ -244,7 +244,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.mint.withOpacity(0.15), // ← dari grey soft
+              color: AppColors.mint.withValues(alpha:0.15), // ← dari grey soft
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(

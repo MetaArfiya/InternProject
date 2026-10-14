@@ -33,11 +33,8 @@ class _StatCounterState extends State<StatCounter> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallMobile = screenWidth < 400;
-    final isMobile = screenWidth < 768;
+    //final isMobile = screenWidth < 768;
 
-    // ==========================================
-    // SKALA UKURAN
-    // ==========================================
     final cardPadding = widget.isCompact
         ? (isSmallMobile ? 14.0 : 16.0)
         : (isSmallMobile ? 16.0 : 20.0);
@@ -95,32 +92,29 @@ class _StatCounterState extends State<StatCounter> {
           ),
           decoration: BoxDecoration(
             color: _hover
-                ? AppColors.white.withOpacity(0.10)
-                : AppColors.white.withOpacity(0.06),
+                ? AppColors.white.withValues(alpha: 0.10)
+                : AppColors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(cardRadius),
             border: Border.all(
               color: _hover
-                  ? AppColors.mint.withOpacity(0.55)
-                  : AppColors.mint.withOpacity(0.18),
+                  ? AppColors.mint.withValues(alpha: 0.55)
+                  : AppColors.mint.withValues(alpha: 0.18),
               width: _hover ? 1.5 : 1,
             ),
             boxShadow: [
               if (_hover)
                 BoxShadow(
-                  color: AppColors.shadow.withOpacity(0.25),
+                  color: AppColors.shadow.withValues(alpha: 0.25),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
             ],
           ),
           child: widget.isCompact
-              // ==============================
               // COMPACT LAYOUT — horizontal
-              // ==============================
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Icon
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       width: iconBox,
@@ -128,7 +122,7 @@ class _StatCounterState extends State<StatCounter> {
                       decoration: BoxDecoration(
                         color: _hover
                             ? AppColors.mint
-                            : AppColors.mint.withOpacity(0.15),
+                            : AppColors.mint.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(iconRadius),
                       ),
                       child: Icon(
@@ -140,7 +134,6 @@ class _StatCounterState extends State<StatCounter> {
                       ),
                     ),
                     SizedBox(width: gapIconValue + 4),
-                    // Value + Title + Subtitle
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,7 +154,8 @@ class _StatCounterState extends State<StatCounter> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.statLabel.copyWith(
-                              color: AppColors.white.withOpacity(0.95),
+                              color: AppColors.white
+                                  .withValues(alpha: 0.95),
                               fontSize: titleFont,
                               fontWeight: FontWeight.w700,
                             ),
@@ -181,9 +175,7 @@ class _StatCounterState extends State<StatCounter> {
                     ),
                   ],
                 )
-              // ==============================
               // DEFAULT LAYOUT — vertikal
-              // ==============================
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +188,7 @@ class _StatCounterState extends State<StatCounter> {
                       decoration: BoxDecoration(
                         color: _hover
                             ? AppColors.mint
-                            : AppColors.mint.withOpacity(0.15),
+                            : AppColors.mint.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(iconRadius),
                       ),
                       child: Icon(
@@ -223,7 +215,7 @@ class _StatCounterState extends State<StatCounter> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.statLabel.copyWith(
-                        color: AppColors.white.withOpacity(0.95),
+                        color: AppColors.white.withValues(alpha: 0.95),
                         fontSize: titleFont,
                         fontWeight: FontWeight.w700,
                       ),

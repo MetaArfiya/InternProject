@@ -75,7 +75,7 @@ class _AdminPaymentDetailDialogState
                             color: (isApprove
                                     ? AppColors.infoBlue
                                     : t.danger)
-                                .withOpacity(0.12),
+                                .withValues(alpha:0.12),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                           ),
@@ -325,7 +325,7 @@ class _AdminPaymentDetailDialogState
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: t.danger.withOpacity(0.12),
+                            color: t.danger.withValues(alpha:0.12),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                           ),
@@ -674,7 +674,7 @@ class _AdminPaymentDetailDialogState
               vertical: 6,
             ),
             decoration: BoxDecoration(
-              color: AppColors.black.withOpacity(0.6),
+              color: AppColors.black.withValues(alpha:0.6),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -737,7 +737,7 @@ class _AdminPaymentDetailDialogState
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: t.accent.withOpacity(0.12),
+                      color: t.accent.withValues(alpha:0.12),
                       borderRadius: BorderRadius.circular(_radius),
                     ),
                     child: Icon(
@@ -849,11 +849,11 @@ class _AdminPaymentDetailDialogState
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: t.success.withOpacity(0.06),
+                            color: t.success.withValues(alpha:0.06),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                             border: Border.all(
-                              color: t.success.withOpacity(0.2),
+                              color: t.success.withValues(alpha:0.2),
                             ),
                           ),
                           child: Column(
@@ -968,10 +968,10 @@ class _AdminPaymentDetailDialogState
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: t.accent.withOpacity(0.08),
+                color: t.accent.withValues(alpha:0.08),
                 borderRadius: BorderRadius.circular(_radius),
                 border: Border.all(
-                  color: t.accent.withOpacity(0.25),
+                  color: t.accent.withValues(alpha:0.25),
                 ),
               ),
               child: Row(
@@ -1222,7 +1222,7 @@ class _AdminPaymentDetailDialogState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

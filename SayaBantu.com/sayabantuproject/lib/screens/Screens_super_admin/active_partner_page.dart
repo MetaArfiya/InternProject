@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../theme/admin_theme.dart';
+import '../../theme/admin_theme_provider.dart';
+import '../../theme/app_colors.dart';
 
 class ActivePartnerPage extends StatefulWidget {
   const ActivePartnerPage({super.key});
@@ -21,16 +24,21 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   String? _errorMessage;
 
   // ============================================================
-  // DESIGN TOKENS
+  // THEME
   // ============================================================
 
-  static const Color _accent = Color(0xFF16A34A);
-  static const Color _borderColor = Color(0xFFE5E7EB);
-  static const Color _headerText = Color(0xFF6B7280);
-  static const Color _cellText = Color(0xFF111827);
+  AdminTheme get theme => AdminThemeProvider.of(context);
+
+  // ============================================================
+  // BREAKPOINTS
+  // ============================================================
 
   static const double _mobileBreakpoint = 700;
   static const double _tabletBreakpoint = 1100;
+
+  // ============================================================
+  // LIFECYCLE
+  // ============================================================
 
   @override
   void initState() {
@@ -178,46 +186,54 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = theme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isMobile = width < _mobileBreakpoint;
-        final isTablet = width >= _mobileBreakpoint && width < _tabletBreakpoint;
+        final isTablet =
+            width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
-        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+        final horizontalPadding =
+            isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: const Color(0xFFF5F7FB),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: verticalPadding,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(isMobile),
-                    SizedBox(height: isMobile ? 18 : 24),
-                    _buildSearchBox(),
-                    SizedBox(height: isMobile ? 16 : 20),
+          color: t.bg,
+          child: RefreshIndicator(
+            onRefresh: _loadActivePartners,
+            color: t.accent,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isMobile, t),
+                      SizedBox(height: isMobile ? 18 : 24),
+                      _buildSearchBox(t),
+                      SizedBox(height: isMobile ? 16 : 20),
 
-                    if (_isLoading)
-                      _buildLoading()
-                    else if (_errorMessage != null)
-                      _buildError()
-                    else if (_filteredPartners.isEmpty)
-                      _buildEmptyState()
-                    else if (isMobile)
-                      _buildMobileList()
-                    else
-                      _buildDesktopTable(),
-                  ],
+                      if (_isLoading)
+                        _buildLoading(t)
+                      else if (_errorMessage != null)
+                        _buildError(t)
+                      else if (_filteredPartners.isEmpty)
+                        _buildEmptyState(t)
+                      else if (isMobile)
+                        _buildMobileList(t)
+                      else
+                        _buildDesktopTable(t),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -231,7 +247,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // HEADER
   // ============================================================
 
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(bool isMobile, AdminTheme t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,7 +256,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           style: TextStyle(
             fontSize: isMobile ? 22 : 26,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
+            color: t.cellText,
             height: 1.2,
           ),
         ),
@@ -249,7 +265,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           'Melihat mitra yang sedang mengerjakan pekerjaan aktif.',
           style: TextStyle(
             fontSize: isMobile ? 12.5 : 13,
-            color: const Color(0xFF64748B),
+            color: t.mutedText,
             height: 1.4,
           ),
         ),
@@ -261,27 +277,34 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // SEARCH BOX
   // ============================================================
 
-  Widget _buildSearchBox() {
+  Widget _buildSearchBox(AdminTheme t) {
     return Container(
       height: 46,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: t.border),
       ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(fontSize: 13.5, color: Color(0xFF334155)),
-        decoration: const InputDecoration(
-          hintText: 'Cari nama mitra, email, telepon, atau pekerjaan...',
-          hintStyle: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+        style: TextStyle(fontSize: 13.5, color: t.cellText),
+        decoration: InputDecoration(
+          hintText:
+              'Cari nama mitra, email, telepon, atau pekerjaan...',
+          hintStyle: const TextStyle(
+            color: AppColors.grey400,
+            fontSize: 13,
+          ),
           prefixIcon: Icon(
             Icons.search,
-            color: Color(0xFF6B7280),
+            color: t.headerText,
             size: 20,
           ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
         ),
       ),
     );
@@ -291,22 +314,22 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // LOADING
   // ============================================================
 
-  Widget _buildLoading() {
+  Widget _buildLoading(AdminTheme t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 60),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: t.border),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          CircularProgressIndicator(color: _accent),
-          SizedBox(height: 16),
+          CircularProgressIndicator(color: t.accent),
+          const SizedBox(height: 16),
           Text(
             'Mengambil data mitra aktif...',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+            style: TextStyle(color: t.mutedText, fontSize: 13),
           ),
         ],
       ),
@@ -317,28 +340,28 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // ERROR
   // ============================================================
 
-  Widget _buildError() {
+  Widget _buildError(AdminTheme t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: t.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
             size: 42,
-            color: Color(0xFFDC2626),
+            color: t.danger,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Gagal mengambil data mitra aktif',
             style: TextStyle(
               fontWeight: FontWeight.w700,
-              color: Color(0xFF7F1D1D),
+              color: t.danger,
               fontSize: 13.5,
             ),
           ),
@@ -346,9 +369,9 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           Text(
             _errorMessage ?? '',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF991B1B),
+              color: t.danger,
               height: 1.4,
             ),
           ),
@@ -358,8 +381,8 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              foregroundColor: Colors.white,
+              backgroundColor: t.accent,
+              foregroundColor: AppColors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -375,14 +398,14 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // EMPTY
   // ============================================================
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AdminTheme t) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         children: [
@@ -390,22 +413,22 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withOpacity(0.1),
+              color: t.accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.engineering_outlined,
               size: 34,
-              color: _accent.withOpacity(0.7),
+              color: t.accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Belum ada mitra yang sedang bekerja',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: Color(0xFF374151),
+              color: t.cellText,
               fontSize: 13,
             ),
           ),
@@ -418,64 +441,66 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // WEB — TABEL
   // ============================================================
 
-  Widget _buildDesktopTable() {
+  Widget _buildDesktopTable(AdminTheme t) {
     final partners = _filteredPartners;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTableHeaderRow(),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
+          _buildTableHeaderRow(t),
+          Divider(height: 1, thickness: 1, color: t.divider),
 
           for (int i = 0; i < partners.length; i++) ...[
-            _buildTableDataRow(partners[i]),
+            _buildTableDataRow(partners[i], t),
             if (i != partners.length - 1)
-              const Divider(height: 1, thickness: 1, color: Color(0xFFF3F4F6)),
+              Divider(height: 1, thickness: 1, color: t.divider),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildTableHeaderRow() {
+  Widget _buildTableHeaderRow(AdminTheme t) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 3, child: _headerCell('Mitra')),
-          Expanded(flex: 3, child: _headerCell('Kontak')),
-          Expanded(flex: 3, child: _headerCell('Pekerjaan Aktif')),
-          Expanded(flex: 3, child: _headerCell('Lokasi')),
-          // FIX 1: Ubah flex Status dari 2 menjadi 3
-          Expanded(flex: 3, child: _headerCell('Status')),
+          Expanded(flex: 3, child: _headerCell('Mitra', t)),
+          Expanded(flex: 3, child: _headerCell('Kontak', t)),
+          Expanded(flex: 3, child: _headerCell('Pekerjaan Aktif', t)),
+          Expanded(flex: 3, child: _headerCell('Lokasi', t)),
+          Expanded(flex: 3, child: _headerCell('Status', t)),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text) {
+  Widget _headerCell(String text, AdminTheme t) {
     return Text(
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: _headerText,
+        color: t.headerText,
       ),
     );
   }
 
-  Widget _buildTableDataRow(Map<String, dynamic> partner) {
-    final name = _getValue(partner, ['name', 'partner_name', 'mitra_name']);
-    final email = _getValue(partner, ['email', 'partner_email', 'mitra_email']);
-    final phone = _getValue(partner, ['phone', 'phone_number', 'nomor_telepon']);
+  Widget _buildTableDataRow(Map<String, dynamic> partner, AdminTheme t) {
+    final name =
+        _getValue(partner, ['name', 'partner_name', 'mitra_name']);
+    final email =
+        _getValue(partner, ['email', 'partner_email', 'mitra_email']);
+    final phone =
+        _getValue(partner, ['phone', 'phone_number', 'nomor_telepon']);
     final jobTitle = _getValue(
       partner,
       ['job_title', 'job_name', 'title', 'service_title'],
@@ -490,22 +515,22 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Mitra: Avatar + Nama
+          // Mitra
           Expanded(
             flex: 3,
             child: Row(
               children: [
-                _buildAvatar(name),
+                _buildAvatar(name, t),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: _cellText,
+                      color: t.cellText,
                       height: 1.3,
                     ),
                   ),
@@ -514,7 +539,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
             ),
           ),
 
-          // Kontak: Email + Phone
+          // Kontak
           Expanded(
             flex: 3,
             child: Column(
@@ -525,9 +550,9 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
                   email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
-                    color: _cellText,
+                    color: t.cellText,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -537,7 +562,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 11.5,
-                    color: Color(0xFF9CA3AF),
+                    color: AppColors.grey400,
                   ),
                 ),
               ],
@@ -551,9 +576,9 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
               jobTitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: Color(0xFF475569),
+                color: t.mutedText,
                 height: 1.3,
               ),
             ),
@@ -566,21 +591,20 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
               location,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: Color(0xFF475569),
+                color: t.mutedText,
                 height: 1.3,
               ),
             ),
           ),
 
           // Status
-          // FIX 1: Ubah flex Status dari 2 menjadi 3
           Expanded(
             flex: 3,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _buildStatusBadge(),
+              child: _buildStatusBadge(t),
             ),
           ),
         ],
@@ -592,7 +616,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // MOBILE — CARD LIST
   // ============================================================
 
-  Widget _buildMobileList() {
+  Widget _buildMobileList(AdminTheme t) {
     final partners = _filteredPartners;
 
     return Column(
@@ -604,16 +628,19 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           padding: EdgeInsets.only(
             bottom: index == partners.length - 1 ? 0 : 12,
           ),
-          child: _buildMobileCard(partner),
+          child: _buildMobileCard(partner, t),
         );
       }).toList(),
     );
   }
 
-  Widget _buildMobileCard(Map<String, dynamic> partner) {
-    final name = _getValue(partner, ['name', 'partner_name', 'mitra_name']);
-    final email = _getValue(partner, ['email', 'partner_email', 'mitra_email']);
-    final phone = _getValue(partner, ['phone', 'phone_number', 'nomor_telepon']);
+  Widget _buildMobileCard(Map<String, dynamic> partner, AdminTheme t) {
+    final name =
+        _getValue(partner, ['name', 'partner_name', 'mitra_name']);
+    final email =
+        _getValue(partner, ['email', 'partner_email', 'mitra_email']);
+    final phone =
+        _getValue(partner, ['phone', 'phone_number', 'nomor_telepon']);
     final jobTitle = _getValue(
       partner,
       ['job_title', 'job_name', 'title', 'service_title'],
@@ -627,18 +654,17 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: t.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER: avatar + nama + status
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAvatar(name),
+              _buildAvatar(name, t),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -648,15 +674,15 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: t.cellText,
                         height: 1.25,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _buildStatusBadge(),
+                    _buildStatusBadge(t),
                   ],
                 ),
               ),
@@ -664,35 +690,35 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          Divider(height: 1, color: t.divider),
           const SizedBox(height: 12),
 
-          _mobileInfo(Icons.email_outlined, email),
+          _mobileInfo(Icons.email_outlined, email, t),
           const SizedBox(height: 8),
-          _mobileInfo(Icons.phone_outlined, phone),
+          _mobileInfo(Icons.phone_outlined, phone, t),
           const SizedBox(height: 8),
-          _mobileInfo(Icons.work_outline, jobTitle),
+          _mobileInfo(Icons.work_outline, jobTitle, t),
           const SizedBox(height: 8),
-          _mobileInfo(Icons.location_on_outlined, location),
+          _mobileInfo(Icons.location_on_outlined, location, t),
         ],
       ),
     );
   }
 
-  Widget _mobileInfo(IconData icon, String text) {
+  Widget _mobileInfo(IconData icon, String text, AdminTheme t) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF94A3B8)),
+        Icon(icon, size: 16, color: AppColors.grey400),
         const SizedBox(width: 9),
         Expanded(
           child: Text(
             text,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
-              color: Color(0xFF475569),
+              color: t.mutedText,
               height: 1.35,
             ),
           ),
@@ -705,21 +731,21 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // AVATAR & STATUS
   // ============================================================
 
-  Widget _buildAvatar(String name) {
+  Widget _buildAvatar(String name, AdminTheme t) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: _accent.withOpacity(0.12),
+        color: t.accent.withValues(alpha: 0.12),
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         initial,
-        style: const TextStyle(
-          color: _accent,
+        style: TextStyle(
+          color: t.accent,
           fontWeight: FontWeight.w700,
           fontSize: 15,
         ),
@@ -727,23 +753,26 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
     );
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(AdminTheme t) {
+    // "Sedang Bekerja" = status sukses → sekarang TEAL (karena t.success = Teal)
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFDCFCE7),
+        color: t.accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.circle,
-            size: 6,
-            color: Color(0xFF16A34A),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: t.accent,
+              shape: BoxShape.circle,
+            ),
           ),
-          SizedBox(width: 5),
-          // FIX 2: Bungkus dengan FittedBox agar teks mengecil otomatis jika ruang kurang
+          const SizedBox(width: 5),
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -752,7 +781,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF15803D),
+                  color: t.accent,
                 ),
               ),
             ),
