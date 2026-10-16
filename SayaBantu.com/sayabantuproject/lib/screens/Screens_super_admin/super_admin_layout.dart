@@ -386,10 +386,10 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // ROLE CHIP
+  // ROLE CHIP (hanya untuk mobile app bar)
   // =========================================================
 
-    Widget _roleChip({bool small = false, String label = 'Super Admin'}) {
+  Widget _roleChip({bool small = false, String label = 'Super Admin'}) {
     final t = theme;
     return Container(
       padding: EdgeInsets.symmetric(
@@ -860,8 +860,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
   Widget _buildDesktopLayout(BuildContext context) {
     final t = theme;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 700 && screenWidth < 1100;
 
     return Scaffold(
       backgroundColor: t.bg,
@@ -869,7 +867,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            width: isTablet ? 240 : 260,
+            width: 250,
             child: _buildSidebar(context),
           ),
           Expanded(child: _buildContentArea()),
@@ -952,179 +950,194 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // SIDEBAR
+  // SIDEBAR (gaya AdminLayout/CustomerSidebar)
   // =========================================================
 
   Widget _buildSidebar(BuildContext context) {
     final t = theme;
-    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
       height: double.infinity,
       color: t.sidebarBg,
-      child: Column(
-        children: [
-          const SizedBox(height: 22),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
 
-          // Profil admin
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                _buildSuperAdminProfileImage(size: 46),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        superAdminName,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: t.sidebarText,
+            // =================================================
+            // PROFIL SUPER ADMIN
+            // =================================================
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                children: [
+                  _buildSuperAdminProfileImage(size: 52),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          superAdminName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      _roleChip(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 28),
-
-          // Menu
-          ..._menus.asMap().entries.map(
-                (entry) => _menuItem(
-                  context: context,
-                  index: entry.key,
-                  icon: entry.value['icon'] as IconData,
-                  activeIcon: entry.value['activeIcon'] as IconData,
-                  title: entry.value['title'] as String,
-                ),
-              ),
-
-          const Spacer(),
-
-          // Logout
-          _logoutButton(context),
-
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  // =========================================================
-  // MENU ITEM
-  // =========================================================
-
-  Widget _menuItem({
-    required BuildContext context,
-    required int index,
-    required IconData icon,
-    required IconData activeIcon,
-    required String title,
-    String? badge,
-  }) {
-    final t = theme;
-    final textTheme = Theme.of(context).textTheme;
-    final bool active = _selectedIndex == index;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: InkWell(
-        onTap: () => setState(() => _selectedIndex = index),
-        borderRadius: BorderRadius.circular(t.radius),
-        child: Container(
-          width: double.infinity,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: active ? t.sidebarActiveBg : AppColors.transparent,
-            borderRadius: BorderRadius.circular(t.radius),
-            border: active && t.isSuperAdmin
-                ? Border.all(color: t.sidebarActiveBorder, width: 1)
-                : null,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                active ? activeIcon : icon,
-                size: 20,
-                color: active ? t.accent : t.sidebarText,
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        active ? FontWeight.w700 : FontWeight.w500,
-                    color: active ? t.accent : t.sidebarText,
-                  ),
-                ),
-              ),
-              if (badge != null)
-                Container(
-                  width: 20,
-                  height: 20,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: t.danger,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    badge,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w700,
+                        const SizedBox(height: 3),
+                        Text(
+                          'Super Admin',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color:
+                                AppColors.white.withValues(alpha: 0.65),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // =================================================
+            // MENU
+            // =================================================
+
+            ..._menus.asMap().entries.map(
+                  (entry) => _menuItem(
+                    context: context,
+                    index: entry.key,
+                    icon: entry.value['icon'] as IconData,
+                    title: entry.value['title'] as String,
+                  ),
                 ),
-            ],
-          ),
+
+            const Spacer(),
+
+            // =================================================
+            // LOGOUT
+            // =================================================
+
+            _logoutButton(context),
+
+            const SizedBox(height: 15),
+          ],
         ),
       ),
     );
   }
 
   // =========================================================
-  // LOGOUT BUTTON
+  // MENU ITEM (flat, mint accent, aksen bar kanan)
+  // =========================================================
+
+  Widget _menuItem({
+    required BuildContext context,
+    required int index,
+    required IconData icon,
+    required String title,
+  }) {
+    final bool active = _selectedIndex == index;
+
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
+        ),
+        color: active
+            ? AppColors.mint.withValues(alpha: 0.15)
+            : AppColors.transparent,
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: active
+                  ? AppColors.mint
+                  : AppColors.white.withValues(alpha: 0.70),
+              size: 22,
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: active
+                      ? AppColors.mint
+                      : AppColors.white.withValues(alpha: 0.85),
+                  fontWeight:
+                      active ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14.5,
+                ),
+              ),
+            ),
+            if (active)
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.mint,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // LOGOUT BUTTON (gaya CustomerSidebar)
   // =========================================================
 
   Widget _logoutButton(BuildContext context) {
-    final t = theme;
-    final textTheme = Theme.of(context).textTheme;
-
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
         onTap: _logout,
-        borderRadius: BorderRadius.circular(t.radius),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           width: double.infinity,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 13,
+          ),
           decoration: BoxDecoration(
-            color: t.danger.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(t.radius),
+            color: AppColors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.15),
+            ),
           ),
           child: Row(
             children: [
-              Icon(Icons.logout_outlined, size: 20, color: t.danger),
-              const SizedBox(width: 13),
+              const Icon(
+                Icons.logout,
+                color: AppColors.mint,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Keluar',
-                  style: textTheme.bodyMedium?.copyWith(
+                  style: const TextStyle(
+                    color: AppColors.white,
                     fontWeight: FontWeight.w600,
-                    color: t.danger,
+                    fontSize: 14,
                   ),
                 ),
               ),
@@ -1266,7 +1279,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // PROFILE PAGE
+  // PROFILE PAGE (tidak diubah)
   // =========================================================
 
   Widget _buildProfilePage() {
@@ -1300,7 +1313,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // HEADER
                       Text(
                         'Profil Super Admin',
                         style: TextStyle(
@@ -1322,7 +1334,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
                       const SizedBox(height: 20),
 
-                      // SECTION LABEL
                       Row(
                         children: [
                           Container(
@@ -1347,7 +1358,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
                       const SizedBox(height: 12),
 
-                      // CARD PROFIL
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.all(isMobile ? 20 : 24),

@@ -23,14 +23,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   AdminTheme get theme => AdminThemeProvider.of(context);
 
   // ============================================================
-  // TOKENS
+  // TOKENS — disamakan dengan CustomerSettingScreen
   // ============================================================
 
   static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 14;
-  static const double _cardRadius = 14;
-  static const double _radius = 10;
+  static const double _gapBetweenSections = 20; // was 14
+  static const double _cardRadius = 16;         // was 14
+  static const double _radius = 12;             // was 10
   static const double _mobileBreakpoint = 700;
+  static const double _tabletBreakpoint = 1100; // NEW
+  static const double _cardMaxWidth = 800;      // NEW — constrain card di tablet
 
   // ============================================================
   // DATA STATE
@@ -843,7 +845,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // DIALOGS (ekstrak reusable)
+  // DIALOGS
   // ============================================================
 
   Widget _buildConfirmDialog(
@@ -870,12 +872,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _dialogHeader(
-                context,
-                icon: icon,
-                color: color,
-                title: title,
-              ),
+              _dialogHeader(context, icon: icon, color: color, title: title),
               const SizedBox(height: 12),
               Divider(height: 1, color: t.divider),
               const SizedBox(height: 16),
@@ -1811,6 +1808,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final String? ktpPath = partner['verification_image']?.toString();
     final String? selfiePath = partner['selfie_image']?.toString();
 
+    final String profilePhotoUrl = _buildImageUrl(profilePhoto);
+
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -1836,16 +1835,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         backgroundColor: AppColors.infoBlue.withValues(
                           alpha: 0.12,
                         ),
-                        backgroundImage:
-                            (profilePhoto != null &&
-                                profilePhoto.isNotEmpty &&
-                                profilePhoto != 'null')
-                            ? NetworkImage(_buildImageUrl(profilePhoto))
+                        backgroundImage: profilePhotoUrl.isNotEmpty
+                            ? NetworkImage(profilePhotoUrl)
                             : null,
-                        child:
-                            (profilePhoto == null ||
-                                profilePhoto.isEmpty ||
-                                profilePhoto == 'null')
+                        child: profilePhotoUrl.isEmpty
                             ? const Icon(
                                 Icons.person,
                                 size: 26,
@@ -2202,11 +2195,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final isMobile = width < _mobileBreakpoint;
-              final isTablet = width >= _mobileBreakpoint && width < 1100;
+              final isTablet = width >= _mobileBreakpoint &&
+                  width < _tabletBreakpoint;
 
-              final horizontalPadding = isMobile
-                  ? 16.0
-                  : (isTablet ? 24.0 : 28.0);
+              // ✅ FIX: tablet + mobile → pakai card (table hanya di desktop)
+              final useCards = isMobile || isTablet;
+
+              final horizontalPadding =
+                  isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
               final verticalPadding = isMobile ? 16.0 : 28.0;
 
               return SingleChildScrollView(
@@ -2215,64 +2211,73 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   horizontal: horizontalPadding,
                   vertical: verticalPadding,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context, isMobile),
-                    const SizedBox(height: _gapAfterHeader),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1300),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(context, isMobile),
+                        const SizedBox(height: _gapAfterHeader),
 
-                    if (isLoading)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 60),
-                        child: Center(
-                          child: CircularProgressIndicator(color: t.accent),
-                        ),
-                      )
-                    else ...[
-                      _buildTabSelector(isMobile),
-                      const SizedBox(height: _gapBetweenSections),
+                        if (isLoading)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 60),
+                            child: Center(
+                              child: CircularProgressIndicator(color: t.accent),
+                            ),
+                          )
+                        else ...[
+                          _buildTabSelector(isMobile),
+                          const SizedBox(height: _gapBetweenSections),
 
-                      if (_selectedTab == 'pending') ...[
-                        _summary(isMobile),
-                        const SizedBox(height: _gapBetweenSections),
-                        partners.isEmpty ? _empty() : _table(isMobile),
-                      ] else if (_selectedTab == 'verified') ...[
-                        _buildVerifiedList(isMobile),
-                      ] else ...[
-                        _buildPendingSkillsList(isMobile),
+                          if (_selectedTab == 'pending') ...[
+                            _summary(isMobile),
+                            const SizedBox(height: _gapBetweenSections),
+                            partners.isEmpty
+                                ? _empty()
+                                : _table(useCards),
+                          ] else if (_selectedTab == 'verified') ...[
+                            _buildVerifiedList(useCards),
+                          ] else ...[
+                            _buildPendingSkillsList(useCards),
+                          ],
+
+                          if (_selectedTab == 'pending' &&
+                              partners.isNotEmpty) ...[
+                            const SizedBox(height: _gapBetweenSections),
+                            _buildPaginationFullWidth(
+                              total: partners.length,
+                              currentPage: _pendingPage,
+                              onPageChanged: (p) =>
+                                  setState(() => _pendingPage = p),
+                              label: 'mitra',
+                            ),
+                          ] else if (_selectedTab == 'verified' &&
+                              verifiedPartners.isNotEmpty) ...[
+                            const SizedBox(height: _gapBetweenSections),
+                            _buildPaginationFullWidth(
+                              total: verifiedPartners.length,
+                              currentPage: _verifiedPage,
+                              onPageChanged: (p) =>
+                                  setState(() => _verifiedPage = p),
+                              label: 'mitra',
+                            ),
+                          ] else if (_selectedTab == 'pendingSkills' &&
+                              pendingSkillsList.isNotEmpty) ...[
+                            const SizedBox(height: _gapBetweenSections),
+                            _buildPaginationFullWidth(
+                              total: pendingSkillsList.length,
+                              currentPage: _skillsPage,
+                              onPageChanged: (p) =>
+                                  setState(() => _skillsPage = p),
+                              label: 'pengajuan',
+                            ),
+                          ],
+                        ],
                       ],
-
-                      if (_selectedTab == 'pending' && partners.isNotEmpty) ...[
-                        const SizedBox(height: _gapBetweenSections),
-                        _buildPaginationFullWidth(
-                          total: partners.length,
-                          currentPage: _pendingPage,
-                          onPageChanged: (p) =>
-                              setState(() => _pendingPage = p),
-                          label: 'mitra',
-                        ),
-                      ] else if (_selectedTab == 'verified' &&
-                          verifiedPartners.isNotEmpty) ...[
-                        const SizedBox(height: _gapBetweenSections),
-                        _buildPaginationFullWidth(
-                          total: verifiedPartners.length,
-                          currentPage: _verifiedPage,
-                          onPageChanged: (p) =>
-                              setState(() => _verifiedPage = p),
-                          label: 'mitra',
-                        ),
-                      ] else if (_selectedTab == 'pendingSkills' &&
-                          pendingSkillsList.isNotEmpty) ...[
-                        const SizedBox(height: _gapBetweenSections),
-                        _buildPaginationFullWidth(
-                          total: pendingSkillsList.length,
-                          currentPage: _skillsPage,
-                          onPageChanged: (p) => setState(() => _skillsPage = p),
-                          label: 'pengajuan',
-                        ),
-                      ],
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
               );
             },
@@ -2299,9 +2304,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             Expanded(
               child: Text(
                 'Verifikasi Mitra',
-                style: textTheme.headlineSmall?.copyWith(
+                style: TextStyle(
+                  fontSize: isMobile ? 22 : 26,
                   fontWeight: FontWeight.bold,
                   color: t.cellText,
+                  height: 1.2,
                 ),
               ),
             ),
@@ -2336,7 +2343,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         const SizedBox(height: 6),
         Text(
           _subtitleForTab(),
-          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
+          style: TextStyle(
+            fontSize: isMobile ? 12.5 : 13,
+            color: t.mutedText,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -2354,14 +2365,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // TAB SELECTOR (MOBILE-FRIENDLY)
+  // TAB SELECTOR
   // ============================================================
 
-  Widget _buildTabSelector(bool mobile) {
+  Widget _buildTabSelector(bool isMobile) {
     final t = theme;
 
-    // 🔹 Mobile: pakai scroll horizontal + label pendek
-    if (mobile) {
+    // Mobile: chips horizontal scroll
+    if (isMobile) {
       return SizedBox(
         height: 48,
         child: ListView(
@@ -2396,7 +2407,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
     }
 
-    // Tablet & desktop: 3 kolom
+    // Tablet & Desktop: 3 tab buttons (flexible, tidak overflow)
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -2440,7 +2451,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     );
   }
 
-  // Chip-style tab untuk mobile
   Widget _tabChip({
     required String label,
     required int count,
@@ -2537,6 +2547,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
@@ -2605,9 +2616,13 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
+          // ✅ FIX: Wrap agar tidak overflow di layar sempit
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              // Rows per page
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -2651,39 +2666,43 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
-              _paginationIconButton(
-                icon: Icons.chevron_left,
-                onTap: currentPage > 1
-                    ? () => onPageChanged(currentPage - 1)
-                    : null,
-                t: t,
-              ),
-              const SizedBox(width: 8),
-              Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: t.accent.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$currentPage / $totalPages',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.accent,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _paginationIconButton(
+                    icon: Icons.chevron_left,
+                    onTap: currentPage > 1
+                        ? () => onPageChanged(currentPage - 1)
+                        : null,
+                    t: t,
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _paginationIconButton(
-                icon: Icons.chevron_right,
-                onTap: currentPage < totalPages
-                    ? () => onPageChanged(currentPage + 1)
-                    : null,
-                t: t,
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: t.accent.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$currentPage / $totalPages',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.accent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _paginationIconButton(
+                    icon: Icons.chevron_right,
+                    onTap: currentPage < totalPages
+                        ? () => onPageChanged(currentPage + 1)
+                        : null,
+                    t: t,
+                  ),
+                ],
               ),
             ],
           ),
@@ -2724,10 +2743,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // SUMMARY (MOBILE: 1 baris horizontal scroll)
+  // SUMMARY
   // ============================================================
 
-  Widget _summary(bool mobile) {
+  Widget _summary(bool isMobile) {
     final t = theme;
 
     final cards = [
@@ -2738,7 +2757,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         icon: Icons.hourglass_empty,
         color: t.warning,
         t: t,
-        mobile: mobile,
+        mobile: isMobile,
       ),
       _summaryCard(
         title: 'Disetujui',
@@ -2747,7 +2766,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         icon: Icons.check_circle_outline,
         color: t.success,
         t: t,
-        mobile: mobile,
+        mobile: isMobile,
       ),
       _summaryCard(
         title: 'Ditolak',
@@ -2756,12 +2775,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         icon: Icons.cancel_outlined,
         color: t.danger,
         t: t,
-        mobile: mobile,
+        mobile: isMobile,
       ),
     ];
 
-    // Mobile: pakai horizontal scroll agar card lebar
-    if (mobile) {
+    if (isMobile) {
       return SizedBox(
         height: 92,
         child: ListView.separated(
@@ -2865,19 +2883,25 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // PENDING TABLE
+  // PENDING TABLE / CARD LIST
   // ============================================================
 
-  Widget _table(bool mobile) {
+  Widget _table(bool useCards) {
     final t = theme;
     final pageItems = _paginatedPartners;
     final baseIndex = (_pendingPage - 1) * _itemsPerPage;
 
-    if (mobile) {
-      return Column(
-        children: List.generate(
-          pageItems.length,
-          (i) => _mobileCard(pageItems[i], baseIndex + i),
+    if (useCards) {
+      // ✅ constrain max width agar card tidak stretching di tablet
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
+          child: Column(
+            children: List.generate(
+              pageItems.length,
+              (i) => _mobileCard(pageItems[i], baseIndex + i),
+            ),
+          ),
         ),
       );
     }
@@ -2911,12 +2935,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       ),
       child: Row(
         children: [
-          _headerCell('Nama Mitra', 25, t),
-          _headerCell('Kategori', 22, t),
-          _headerCell('Kota', 18, t),
-          _headerCell('Waktu Daftar', 15, t),
-          _headerCell('Berkas', 18, t),
-          _headerCell('Aksi', 24, t),
+          _headerCell('Nama Mitra', 24, t),
+          _headerCell('Kategori', 16, t),
+          _headerCell('Kota', 13, t),
+          _headerCell('Waktu', 14, t),
+          _headerCell('Berkas', 16, t),
+          _headerCell('Aksi', 25, t),
         ],
       ),
     );
@@ -2927,6 +2951,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       flex: flex,
       child: Text(
         text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 13,
           color: t.headerText,
@@ -2945,30 +2971,36 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       ),
       child: Row(
         children: [
-          Expanded(flex: 25, child: _name(p, t)),
+          Expanded(flex: 24, child: _name(p, t)),
           Expanded(
-            flex: 22,
+            flex: 16,
             child: Text(
               p['category']?.toString() ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
           Expanded(
-            flex: 18,
+            flex: 13,
             child: Text(
               p['city']?.toString() ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
           Expanded(
-            flex: 15,
+            flex: 14,
             child: Text(
               p['time']?.toString() ?? 'Baru saja',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: t.mutedText),
             ),
           ),
-          Expanded(flex: 18, child: _documentButton(p, t)),
-          Expanded(flex: 24, child: _actions(index, t)),
+          Expanded(flex: 16, child: _documentButton(p, t)),
+          Expanded(flex: 25, child: _actions(index, t)),
         ],
       ),
     );
@@ -2980,6 +3012,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       children: [
         Text(
           p['name']?.toString() ?? 'Tanpa Nama',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -3076,7 +3110,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // MOBILE CARD - PENDING MITRA (DIRAPIKAN)
+  // MOBILE CARD - PENDING MITRA
   // ============================================================
 
   Widget _mobileCard(Map<String, dynamic> p, int index) {
@@ -3102,13 +3136,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header: Avatar + Nama + Waktu
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar
                 Container(
                   width: 44,
                   height: 44,
@@ -3138,7 +3170,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Nama + email + kota
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -3204,7 +3235,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             ),
           ),
 
-          // Chip kategori
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
@@ -3234,12 +3264,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(height: 12),
           Divider(height: 1, color: t.divider),
 
-          // Aksi
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Row(
               children: [
-                // Lihat Berkas
                 Expanded(
                   child: TextButton.icon(
                     onPressed: () => _viewDocuments(p),
@@ -3250,6 +3278,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.purple,
@@ -3261,7 +3291,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                // Reject
                 Expanded(
                   child: TextButton.icon(
                     onPressed: isProcessing ? null : () => _reject(index),
@@ -3272,6 +3301,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: t.danger,
@@ -3283,7 +3314,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                // Approve
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: isProcessing ? null : () => _approve(index),
@@ -3294,6 +3324,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: t.success,
@@ -3319,7 +3351,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // VERIFIED LIST
   // ============================================================
 
-  Widget _buildVerifiedList(bool mobile) {
+  Widget _buildVerifiedList(bool useCards) {
     final t = theme;
     if (isLoadingVerified && verifiedPartners.isEmpty) {
       return Padding(
@@ -3337,11 +3369,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     final pageItems = _paginatedVerified;
 
-    if (mobile) {
-      return Column(
-        children: List.generate(
-          pageItems.length,
-          (i) => _verifiedMobileCard(pageItems[i]),
+    if (useCards) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
+          child: Column(
+            children: List.generate(
+              pageItems.length,
+              (i) => _verifiedMobileCard(pageItems[i]),
+            ),
+          ),
         ),
       );
     }
@@ -3400,6 +3437,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 22,
             child: Text(
               p['category']?.toString() ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
@@ -3407,6 +3446,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 15,
             child: Text(
               p['city']?.toString() ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: t.cellText),
             ),
           ),
@@ -3416,12 +3457,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               children: [
                 Icon(Icons.stars, size: 13, color: t.warning),
                 const SizedBox(width: 4),
-                Text(
-                  '${p['point'] ?? 0}',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.cellText,
+                Flexible(
+                  child: Text(
+                    '${p['point'] ?? 0}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: t.cellText,
+                    ),
                   ),
                 ),
               ],
@@ -3433,12 +3478,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               children: [
                 Icon(Icons.star, size: 13, color: t.warning),
                 const SizedBox(width: 4),
-                Text(
-                  (p['rating'] ?? 0).toStringAsFixed(1),
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.cellText,
+                Flexible(
+                  child: Text(
+                    (p['rating'] ?? 0).toStringAsFixed(1),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: t.cellText,
+                    ),
                   ),
                 ),
               ],
@@ -3460,6 +3509,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               child: Text(
                 p['name']?.toString() ?? 'Tanpa Nama',
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -3508,7 +3558,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // MOBILE CARD - VERIFIED (DIRAPIKAN)
+  // MOBILE CARD - VERIFIED
   // ============================================================
 
   Widget _verifiedMobileCard(Map<String, dynamic> p) {
@@ -3535,11 +3585,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
               Container(
                 width: 44,
                 height: 44,
@@ -3609,7 +3657,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
           const SizedBox(height: 10),
 
-          // Info row: kategori, kota, poin, rating
           Wrap(
             spacing: 8,
             runSpacing: 6,
@@ -3641,7 +3688,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           Divider(height: 1, color: t.divider),
           const SizedBox(height: 8),
 
-          // Aksi
           Row(
             children: [
               Expanded(
@@ -3654,6 +3700,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.purple,
@@ -3680,6 +3728,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.infoBlue,
@@ -3733,7 +3783,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // PENDING SKILLS LIST
   // ============================================================
 
-  Widget _buildPendingSkillsList(bool mobile) {
+  Widget _buildPendingSkillsList(bool useCards) {
     final t = theme;
     if (isLoadingPendingSkills && pendingSkillsList.isEmpty) {
       return Padding(
@@ -3753,11 +3803,16 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final pageItems = _paginatedSkills;
     final baseIndex = (_skillsPage - 1) * _itemsPerPage;
 
-    if (mobile) {
-      return Column(
-        children: List.generate(
-          pageItems.length,
-          (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
+    if (useCards) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
+          child: Column(
+            children: List.generate(
+              pageItems.length,
+              (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
+            ),
+          ),
         ),
       );
     }
@@ -3832,6 +3887,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             flex: 14,
             child: Text(
               p['time']?.toString() ?? 'Baru saja',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: t.mutedText),
             ),
           ),
@@ -3856,6 +3913,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: Text(
         text,
         overflow: TextOverflow.ellipsis,
+        maxLines: 1,
         style: TextStyle(
           fontSize: 12,
           color: fgColor,
@@ -3900,6 +3958,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               Text(
                 p['name']?.toString() ?? 'Tanpa Nama',
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -3909,6 +3968,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               Text(
                 p['email']?.toString() ?? '-',
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
                 style: const TextStyle(fontSize: 11, color: AppColors.grey400),
               ),
             ],
@@ -3952,7 +4012,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // MOBILE CARD - PENDING SKILLS (DIRAPIKAN)
+  // MOBILE CARD - PENDING SKILLS
   // ============================================================
 
   Widget _pendingSkillMobileCard(Map<String, dynamic> p, int index) {
@@ -3978,7 +4038,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
             child: Row(
@@ -4062,7 +4121,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             ),
           ),
 
-          // Keahlian chip
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Column(
@@ -4154,7 +4212,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           const SizedBox(height: 12),
           Divider(height: 1, color: t.divider),
 
-          // Aksi
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Row(
@@ -4170,6 +4227,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.purple,
@@ -4191,6 +4250,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: t.danger,
@@ -4212,6 +4273,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: t.success,

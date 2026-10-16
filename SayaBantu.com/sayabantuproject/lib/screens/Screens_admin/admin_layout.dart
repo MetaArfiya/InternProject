@@ -303,7 +303,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // ============================================================
-  // ROLE CHIP
+  // ROLE CHIP (dipakai di mobile app bar)
   // ============================================================
 
   Widget _roleChip({bool small = false}) {
@@ -338,7 +338,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     final t = theme;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 700;
-    final isTablet = screenWidth >= 700 && screenWidth < 1100;
     final textTheme = Theme.of(context).textTheme;
 
     return AdminThemeProvider(
@@ -351,7 +350,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           children: [
             if (!isMobile)
               SizedBox(
-                width: isTablet ? 240 : 260,
+                width: 250,
                 child: _buildSidebar(context),
               ),
             Expanded(child: _buildBody()),
@@ -424,174 +423,196 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   Widget _buildSidebar(BuildContext context) {
     final t = theme;
-    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       width: double.infinity,
       height: double.infinity,
       color: t.sidebarBg,
-      child: Column(
-        children: [
-          const SizedBox(height: 22),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
 
-          // Profil admin
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                _buildAdminProfileImage(size: 46),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        adminName,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: t.sidebarText,
+            // =================================================
+            // PROFIL ADMIN (seperti CustomerSidebar)
+            // =================================================
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                children: [
+                  _buildAdminProfileImage(size: 52),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          adminName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      _roleChip(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 28),
-
-          // Menu
-          ..._menus.map(
-            (menu) => _menuItem(
-              context: context,
-              icon: menu['icon'] as IconData,
-              activeIcon: menu['activeIcon'] as IconData,
-              title: menu['title'] as String,
-              active: activeMenu == menu['key'],
-              onTap: () => _changePage(context, menu['key'] as String),
-            ),
-          ),
-
-          const Spacer(),
-
-          // Logout
-          _logoutButton(context),
-
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // MENU ITEM
-  // ============================================================
-
-  Widget _menuItem({
-    required BuildContext context,
-    required IconData icon,
-    required IconData activeIcon,
-    required String title,
-    required bool active,
-    required VoidCallback onTap,
-    String? badge,
-  }) {
-    final t = theme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(t.radius),
-        child: Container(
-          width: double.infinity,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: active ? t.sidebarActiveBg : AppColors.transparent,
-            borderRadius: BorderRadius.circular(t.radius),
-            border: active && t.isSuperAdmin
-                ? Border.all(color: t.sidebarActiveBorder, width: 1)
-                : null,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                active ? activeIcon : icon,
-                size: 20,
-                color: active ? t.accent : t.sidebarText,
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    color: active ? t.accent : t.sidebarText,
-                  ),
-                ),
-              ),
-              if (badge != null)
-                Container(
-                  width: 20,
-                  height: 20,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: t.danger,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    badge,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w700,
+                        const SizedBox(height: 3),
+                        Text(
+                          adminRole,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color:
+                                AppColors.white.withValues(alpha: 0.65),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // =================================================
+            // MENU — pakai `icon` (outline) untuk SEMUA state,
+            // sama seperti CustomerSidebar. Tidak swap ke activeIcon.
+            // =================================================
+
+            ..._menus.map(
+              (menu) => _menuItem(
+                context: context,
+                icon: menu['icon'] as IconData,
+                title: menu['title'] as String,
+                active: activeMenu == menu['key'],
+                onTap: () =>
+                    _changePage(context, menu['key'] as String),
+              ),
+            ),
+
+            const Spacer(),
+
+            // =================================================
+            // LOGOUT
+            // =================================================
+
+            _logoutButton(context),
+
+            const SizedBox(height: 15),
+          ],
         ),
       ),
     );
   }
 
   // ============================================================
-  // LOGOUT BUTTON
+  // MENU ITEM (gaya CustomerSidebar — flat, aksen bar kanan,
+  // icon sama untuk aktif/tidak aktif)
+  // ============================================================
+
+    Widget _menuItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
+        ),
+        // aktif → mint soft (sama seperti CustomerSidebar)
+        color: active
+            ? AppColors.mint.withValues(alpha: 0.15)
+            : AppColors.transparent,
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              // aktif → MINT cerah, non-aktif → putih pudar
+              color: active
+                  ? AppColors.mint
+                  : AppColors.white.withValues(alpha: 0.70),
+              size: 22,
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: active
+                      ? AppColors.mint
+                      : AppColors.white.withValues(alpha: 0.85),
+                  fontWeight:
+                      active ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14.5,
+                ),
+              ),
+            ),
+            if (active)
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.mint,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOGOUT BUTTON (gaya CustomerSidebar)
   // ============================================================
 
   Widget _logoutButton(BuildContext context) {
     final t = theme;
-    final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
         onTap: () => _showLogoutDialog(context),
-        borderRadius: BorderRadius.circular(t.radius),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           width: double.infinity,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 13,
+          ),
           decoration: BoxDecoration(
-            color: t.danger.withValues(alpha:0.15),
-            borderRadius: BorderRadius.circular(t.radius),
+            color: AppColors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.15),
+            ),
           ),
           child: Row(
             children: [
-              Icon(Icons.logout_outlined, size: 20, color: t.danger),
-              const SizedBox(width: 13),
+              Icon(
+                Icons.logout,
+                color: AppColors.mint,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Keluar',
-                  style: textTheme.bodyMedium?.copyWith(
+                  style: const TextStyle(
+                    color: AppColors.white,
                     fontWeight: FontWeight.w600,
-                    color: t.danger,
+                    fontSize: 14,
                   ),
                 ),
               ),
@@ -629,14 +650,17 @@ class _AdminLayoutState extends State<AdminLayout> {
           unselectedItemColor: t.sidebarMuted,
           selectedFontSize: 11,
           unselectedFontSize: 11,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+          selectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w600),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w500),
           elevation: 0,
           items: _menus
               .map(
                 (m) => BottomNavigationBarItem(
                   icon: Icon(m['icon'] as IconData, size: 22),
-                  activeIcon: Icon(m['activeIcon'] as IconData, size: 22),
+                  activeIcon:
+                      Icon(m['activeIcon'] as IconData, size: 22),
                   label: m['shortLabel'] as String,
                 ),
               )
@@ -697,12 +721,12 @@ class _AdminLayoutState extends State<AdminLayout> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: t.danger.withValues(alpha:0.12),
+                          color: t.danger.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(t.radius),
                         ),
-                        child: Icon(
-                          Icons.logout_outlined,
-                          color: t.danger,
+                        child: const Icon(
+                          Icons.logout,
+                          color: AppColors.primaryTeal,
                           size: 20,
                         ),
                       ),
