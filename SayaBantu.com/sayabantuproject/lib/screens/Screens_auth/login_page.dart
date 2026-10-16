@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final email = _emailController.text.trim().toLowerCase();
+    final email = _emailController.text.trim();
 
     final password = _passwordController.text;
 

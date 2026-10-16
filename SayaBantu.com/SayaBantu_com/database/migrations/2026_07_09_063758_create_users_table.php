@@ -13,7 +13,13 @@ return new class extends Migration
             $table->unsignedInteger('role_id');
 
             $table->string('name', 255);
-            $table->string('email', 255)->unique();
+
+            // ✅ CASE-SENSITIVE email
+            $table->string('email', 255)
+                  ->charset('utf8mb4')
+                  ->collation('utf8mb4_bin')
+                  ->unique();
+
             $table->string('password', 255);
 
             $table->string('phone', 20)->nullable();
