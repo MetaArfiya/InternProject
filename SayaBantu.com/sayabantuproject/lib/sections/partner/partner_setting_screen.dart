@@ -155,6 +155,18 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   void initState() {
     super.initState();
     loadProfileFromApi();
+
+    // ✅ Live update status validasi saat user mengetik
+    nameController.addListener(_rebuildOnChange);
+    fullNameController.addListener(_rebuildOnChange);
+    cityController.addListener(_rebuildOnChange);
+    addressController.addListener(_rebuildOnChange);
+    bankAccountNumberController.addListener(_rebuildOnChange);
+    bankAccountNameController.addListener(_rebuildOnChange);
+  }
+
+  void _rebuildOnChange() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -183,6 +195,25 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   // ============================================================
   // HELPERS
   // ============================================================
+
+  /// Ubah ISO string (mis. "2006-10-20T17:00:00.000000Z")
+  /// menjadi "yyyy-MM-dd".
+  String _toDateOnly(String? raw) {
+    if (raw == null) return '';
+    final s = raw.trim();
+    if (s.isEmpty || s == 'null') return '';
+
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) return s;
+
+    try {
+      final dt = DateTime.parse(s).toLocal();
+      return '${dt.year.toString().padLeft(4, '0')}-'
+          '${dt.month.toString().padLeft(2, '0')}-'
+          '${dt.day.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '';
+    }
+  }
 
   String getFullPhotoUrl(String value) {
     String raw = value.trim();
@@ -387,9 +418,13 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
         if (mitra is Map) {
           final loadedGender = mitra['gender']?.toString() ?? '';
-          final loadedBirthDate = mitra['birth_date']?.toString() ??
-              mitra['birthDate']?.toString() ??
-              '';
+
+          // ✅ FIX: format tanggal lahir dari ISO menjadi yyyy-MM-dd
+          final loadedBirthDate = _toDateOnly(
+            mitra['birth_date']?.toString() ??
+                mitra['birthDate']?.toString(),
+          );
+
           final loadedCity = mitra['city']?.toString() ?? '';
           final loadedBio = mitra['bio']?.toString() ??
               mitra['description']?.toString() ??
@@ -800,7 +835,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
       final mitraResponse = await ApiService.put('/mitra/profile', {
         'gender': gender,
-        'birth_date': birthDate,
+        'birth_date': _toDateOnly(birthDate), // ✅ jamin yyyy-MM-dd
         'city': selectedCity,
         'bio': selectedDescription,
       });
@@ -1072,7 +1107,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SUBMIT VERIFICATION
+  // SUBMIT VERIFICATION (dipanggil langsung, bukan dari submitAll)
   // ============================================================
 
   Future<void> submitVerification() async {
@@ -1188,6 +1223,165 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Gagal mengirim verifikasi: $e', error: true);
     } finally {
       if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  // ============================================================
+  // UPLOAD DARI CAPTURED BYTES (dipakai submitAllMitraData)
+  // ============================================================
+
+  Future<void> _submitCapturedVerification({
+    required Uint8List ktp,
+    required String? ktpName,
+    required Uint8List selfie,
+    required String? selfieName,
+  }) async {
+    try {
+      final token = AuthStorage.getString('token');
+
+      final request = html.HttpRequest();
+      final formData = html.FormData();
+
+      formData.appendBlob(
+        'ktp_file',
+        html.Blob([ktp], 'image/jpeg'),
+        ktpName ?? 'ktp.jpg',
+      );
+      formData.appendBlob(
+        'selfie_file',
+        html.Blob([selfie], 'image/jpeg'),
+        selfieName ?? 'selfie.jpg',
+      );
+
+      request.open('POST', 'http://127.0.0.1:8000/api/mitra/verification');
+      if (token != null && token.isNotEmpty) {
+        request.setRequestHeader('Authorization', 'Bearer $token');
+      }
+
+      final completer = Completer<bool>();
+      request.onLoad.listen((_) {
+        if (!completer.isCompleted) {
+          completer.complete(request.status == 200 || request.status == 201);
+        }
+      });
+      request.onError.listen((_) {
+        if (!completer.isCompleted) completer.complete(false);
+      });
+
+      request.send(formData);
+      final success = await completer.future;
+
+      if (success) {
+        if (mounted) {
+          setState(() {
+            ktpBytes = null;
+            ktpFileName = null;
+            selfieBytes = null;
+            selfieFileName = null;
+            verificationStatus = 'Menunggu Verifikasi';
+          });
+        }
+        debugPrint('✅ Verifikasi KTP+selfie berhasil diupload');
+      } else {
+        debugPrint('❌ Gagal upload verifikasi: ${request.responseText}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error upload verification: $e');
+    }
+  }
+
+  Future<void> _uploadCapturedSkillPhotos(
+    List<Uint8List> bytes,
+    List<String> names,
+  ) async {
+    try {
+      final token = AuthStorage.getString('token');
+      final request = html.HttpRequest();
+      final formData = html.FormData();
+
+      for (int i = 0; i < bytes.length; i++) {
+        formData.appendBlob(
+          'photos[]',
+          html.Blob([bytes[i]], 'image/jpeg'),
+          names[i],
+        );
+      }
+      formData.append(
+        'is_pending',
+        pendingSkills.isNotEmpty ? 'true' : 'false',
+      );
+
+      request.open('POST', 'http://127.0.0.1:8000/api/mitra/skill-photos');
+      request.setRequestHeader('Accept', 'application/json');
+      if (token != null && token.isNotEmpty) {
+        request.setRequestHeader('Authorization', 'Bearer $token');
+      }
+
+      final completer = Completer<bool>();
+      request.onLoad.listen((_) {
+        if (!completer.isCompleted) {
+          completer.complete(request.status == 200 || request.status == 201);
+        }
+      });
+      request.onError.listen((_) {
+        if (!completer.isCompleted) completer.complete(false);
+      });
+
+      request.send(formData);
+      await completer.future;
+      debugPrint('✅ Skill photos uploaded');
+    } catch (e) {
+      debugPrint('❌ Error upload skill photos: $e');
+    }
+  }
+
+  Future<void> _uploadCapturedCertificate(
+    Uint8List bytes,
+    String? name,
+  ) async {
+    try {
+      final token = AuthStorage.getString('token');
+      final request = html.HttpRequest();
+      final formData = html.FormData();
+
+      String mimeType = 'image/jpeg';
+      final lowerName = (name ?? '').toLowerCase();
+      if (lowerName.endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (lowerName.endsWith('.webp')) {
+        mimeType = 'image/webp';
+      }
+
+      formData.appendBlob(
+        'certificate',
+        html.Blob([bytes], mimeType),
+        name ?? 'certificate.jpg',
+      );
+      if (pendingSkills.isNotEmpty) {
+        formData.append('is_pending', 'true');
+      }
+
+      request.open('POST', 'http://127.0.0.1:8000/api/mitra/certificate');
+      request.setRequestHeader('Accept', 'application/json');
+      if (token != null && token.isNotEmpty) {
+        request.setRequestHeader('Authorization', 'Bearer $token');
+      }
+
+      final completer = Completer<bool>();
+      request.onLoad.listen((_) {
+        if (!completer.isCompleted) {
+          completer.complete(request.status == 200 || request.status == 201);
+        }
+      });
+      request.onError.listen((_) {
+        if (!completer.isCompleted) completer.complete(false);
+      });
+
+      request.send(formData);
+      await completer.future;
+      debugPrint('✅ Certificate uploaded');
+    } catch (e) {
+      debugPrint('❌ Error upload certificate: $e');
     }
   }
 
@@ -3325,7 +3519,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
   }
 
   // ============================================================
-  // SUBMIT ALL
+  // SUBMIT ALL (FIX UTAMA)
   // ============================================================
 
   Future<void> submitAllMitraData() async {
@@ -3335,6 +3529,18 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       await _showIncompleteMitraDialog(incomplete);
       return;
     }
+
+    // ✅ CAPTURE SEMUA FILE BYTES DULU
+    // karena saveSkill() akan panggil loadProfileFromApi()
+    // yang me-reset ktpBytes/selfieBytes jadi null
+    final capturedKtp = ktpBytes;
+    final capturedKtpName = ktpFileName;
+    final capturedSelfie = selfieBytes;
+    final capturedSelfieName = selfieFileName;
+    final capturedCert = certificateBytes;
+    final capturedCertName = certificateFileName;
+    final capturedSkillPhotos = List<Uint8List>.from(skillPhotoBytes);
+    final capturedSkillNames = List<String>.from(skillPhotoNames);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -3467,27 +3673,33 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     if (confirmed != true) return;
 
     try {
+      // 1. Simpan data teks ke DB
       await saveBasicProfile();
       await saveIdentity();
       await saveBankAccount();
       await saveSkill();
 
-      if (skillPhotoBytes.isNotEmpty) {
-        throw Exception('Foto keahlian gagal diupload.');
+      // 2. ✅ Upload foto keahlian pakai captured bytes
+      if (capturedSkillPhotos.isNotEmpty) {
+        await _uploadCapturedSkillPhotos(
+          capturedSkillPhotos,
+          capturedSkillNames,
+        );
       }
 
-      if (ktpBytes != null && selfieBytes != null) {
-        await submitVerification();
-        if (ktpBytes != null || selfieBytes != null) {
-          throw Exception('Dokumen verifikasi gagal dikirim.');
-        }
+      // 3. ✅ Upload verifikasi KTP + selfie pakai captured bytes
+      if (capturedKtp != null && capturedSelfie != null) {
+        await _submitCapturedVerification(
+          ktp: capturedKtp,
+          ktpName: capturedKtpName,
+          selfie: capturedSelfie,
+          selfieName: capturedSelfieName,
+        );
       }
 
-      if (certificateBytes != null) {
-        await uploadCertificate();
-        if (certificateBytes != null) {
-          throw Exception('Sertifikat gagal diupload.');
-        }
+      // 4. ✅ Upload sertifikat pakai captured bytes
+      if (capturedCert != null) {
+        await _uploadCapturedCertificate(capturedCert, capturedCertName);
       }
 
       await loadProfileFromApi();
@@ -4086,6 +4298,8 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       maxLength: maxLength,
+      // ✅ paksa rebuild setiap perubahan agar validasi & tombol live update
+      onChanged: readOnly ? null : (_) => setState(() {}),
       decoration: _inputDecoration(
         label: label,
         icon: icon,
