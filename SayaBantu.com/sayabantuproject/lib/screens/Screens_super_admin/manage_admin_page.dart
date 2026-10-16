@@ -38,6 +38,42 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   static const double _tabletBreakpoint = 1100;
 
   // ============================================================
+  // VALIDATION RULES
+  // ============================================================
+
+  static const int _nameMin = 3;
+  static const int _nameMax = 100;
+  static const int _emailMax = 100;
+  static const int _phoneMin = 10;
+  static const int _phoneMax = 15;
+  static const int _passwordMin = 6;
+  static const int _passwordMax = 100;
+
+  static final RegExp _nameRegex = RegExp(r"^[a-zA-Z\s.,'-]+$");
+
+  static final RegExp _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
+
+  // ============================================================
+  // FORMATTERS
+  // ============================================================
+
+  static final List<TextInputFormatter> _nameFormatters = [
+    FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s.,'-]")),
+  ];
+
+  static final List<TextInputFormatter> _phoneFormatters = [
+    FilteringTextInputFormatter.digitsOnly,
+  ];
+
+  static final List<TextInputFormatter> _emailFormatters = [
+    FilteringTextInputFormatter.allow(
+      RegExp(r"[a-zA-Z0-9@._%+-]"),
+    ),
+  ];
+
+  // ============================================================
   // INIT
   // ============================================================
 
@@ -59,6 +95,67 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // ============================================================
+  // VALIDATORS
+  // ============================================================
+
+  String? _validateName(String? value) {
+    final v = (value ?? '').trim();
+
+    if (v.isEmpty) return 'Nama wajib diisi.';
+    if (v.length < _nameMin) return 'Nama minimal $_nameMin karakter.';
+    if (v.length > _nameMax) return 'Nama maksimal $_nameMax karakter.';
+    if (!_nameRegex.hasMatch(v)) {
+      return "Nama hanya boleh huruf dan simbol . , ' -";
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    final v = (value ?? '').trim();
+
+    if (v.isEmpty) return 'Email wajib diisi.';
+    if (v.length > _emailMax) {
+      return 'Email maksimal $_emailMax karakter.';
+    }
+    if (v.contains(' ')) return 'Email tidak boleh mengandung spasi.';
+    if (!_emailRegex.hasMatch(v)) {
+      return 'Format email tidak valid (contoh: user@domain.com).';
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    final v = (value ?? '').trim();
+
+    // Opsional
+    if (v.isEmpty) return null;
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(v)) {
+      return 'Nomor telepon hanya boleh berisi angka.';
+    }
+    if (v.length < _phoneMin) {
+      return 'Nomor telepon minimal $_phoneMin digit.';
+    }
+    if (v.length > _phoneMax) {
+      return 'Nomor telepon maksimal $_phoneMax digit.';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final v = value ?? '';
+
+    if (v.isEmpty) return 'Password wajib diisi.';
+    if (v.length < _passwordMin) {
+      return 'Password minimal $_passwordMin karakter.';
+    }
+    if (v.length > _passwordMax) {
+      return 'Password maksimal $_passwordMax karakter.';
+    }
+    return null;
   }
 
   // ============================================================
@@ -918,21 +1015,25 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // TAMBAH ADMIN
+  // TAMBAH ADMIN — dengan validasi lengkap
   // ============================================================
 
   void _showAddAdminDialog(AdminTheme t) {
+    final formKey = GlobalKey<FormState>();
+
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final phoneController = TextEditingController();
     final passwordController = TextEditingController();
 
+    bool isSubmitting = false;
+    bool obscurePassword = true;
+    AutovalidateMode autovalidateMode = AutovalidateMode.disabled;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        bool isSubmitting = false;
-
         return AdminThemeProvider(
           theme: t,
           child: StatefulBuilder(
@@ -953,6 +1054,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // HEADER
                         Row(
                           children: [
                             Container(
@@ -997,57 +1099,100 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                         Divider(height: 1, color: t.divider),
                         const SizedBox(height: 16),
 
+                        // FORM
                         Flexible(
                           child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _dialogField(
-                                  t: t,
-                                  controller: nameController,
-                                  label: 'Nama',
-                                  icon: Icons.person_outline,
-                                  enabled: !isSubmitting,
-                                ),
-                                const SizedBox(height: 12),
-                                _dialogField(
-                                  t: t,
-                                  controller: emailController,
-                                  label: 'Email',
-                                  icon: Icons.email_outlined,
-                                  keyboardType:
-                                      TextInputType.emailAddress,
-                                  enabled: !isSubmitting,
-                                ),
-                                const SizedBox(height: 12),
-                                _dialogField(
-                                  t: t,
-                                  controller: phoneController,
-                                  label: 'Nomor Telepon',
-                                  icon: Icons.phone_outlined,
-                                  keyboardType: TextInputType.phone,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter
-                                        .digitsOnly,
-                                  ],
-                                  enabled: !isSubmitting,
-                                ),
-                                const SizedBox(height: 12),
-                                _dialogField(
-                                  t: t,
-                                  controller: passwordController,
-                                  label: 'Password',
-                                  icon: Icons.lock_outline,
-                                  obscureText: true,
-                                  enabled: !isSubmitting,
-                                ),
-                              ],
+                            child: Form(
+                              key: formKey,
+                              autovalidateMode: autovalidateMode,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _dialogField(
+                                    t: t,
+                                    controller: nameController,
+                                    label: 'Nama',
+                                    hint: 'Contoh: Budi Santoso',
+                                    helper:
+                                        'Min $_nameMin, maks $_nameMax karakter',
+                                    icon: Icons.person_outline,
+                                    enabled: !isSubmitting,
+                                    maxLength: _nameMax,
+                                    inputFormatters: _nameFormatters,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    validator: _validateName,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
+                                    controller: emailController,
+                                    label: 'Email',
+                                    hint: 'Contoh: budi@sayabantu.com',
+                                    helper:
+                                        'Maks $_emailMax karakter, format email valid',
+                                    icon: Icons.email_outlined,
+                                    keyboardType:
+                                        TextInputType.emailAddress,
+                                    enabled: !isSubmitting,
+                                    maxLength: _emailMax,
+                                    inputFormatters: _emailFormatters,
+                                    validator: _validateEmail,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
+                                    controller: phoneController,
+                                    label: 'Nomor Telepon',
+                                    hint: 'Contoh: 081234567890',
+                                    helper:
+                                        'Opsional — $_phoneMin-$_phoneMax digit, hanya angka',
+                                    icon: Icons.phone_outlined,
+                                    keyboardType: TextInputType.phone,
+                                    enabled: !isSubmitting,
+                                    maxLength: _phoneMax,
+                                    inputFormatters: _phoneFormatters,
+                                    validator: _validatePhone,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
+                                    controller: passwordController,
+                                    label: 'Password',
+                                    hint: 'Min $_passwordMin karakter',
+                                    helper:
+                                        '$_passwordMin-$_passwordMax karakter',
+                                    icon: Icons.lock_outline,
+                                    obscureText: obscurePassword,
+                                    enabled: !isSubmitting,
+                                    maxLength: _passwordMax,
+                                    validator: _validatePassword,
+                                    suffixIcon: IconButton(
+                                      onPressed: () {
+                                        setDialogState(() {
+                                          obscurePassword =
+                                              !obscurePassword;
+                                        });
+                                      },
+                                      icon: Icon(
+                                        obscurePassword
+                                            ? Icons.visibility_outlined
+                                            : Icons
+                                                .visibility_off_outlined,
+                                        size: 20,
+                                        color: t.headerText,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
 
                         const SizedBox(height: 20),
 
+                        // ACTIONS
                         Row(
                           children: [
                             Expanded(
@@ -1082,47 +1227,25 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                 onPressed: isSubmitting
                                     ? null
                                     : () async {
-                                        final name = nameController.text
-                                            .trim();
-                                        final email = emailController
-                                            .text
-                                            .trim();
-                                        final phone = phoneController
-                                            .text
-                                            .trim();
+                                        setDialogState(() {
+                                          autovalidateMode = AutovalidateMode
+                                              .onUserInteraction;
+                                        });
+
+                                        if (!(formKey.currentState
+                                                ?.validate() ??
+                                            false)) {
+                                          return;
+                                        }
+
+                                        final name =
+                                            nameController.text.trim();
+                                        final email =
+                                            emailController.text.trim();
+                                        final phone =
+                                            phoneController.text.trim();
                                         final password =
                                             passwordController.text;
-
-                                        if (name.isEmpty ||
-                                            email.isEmpty ||
-                                            password.isEmpty) {
-                                          _showMessage(
-                                            'Nama, email, dan password wajib diisi.',
-                                            isError: true,
-                                            t: t,
-                                          );
-                                          return;
-                                        }
-
-                                        if (phone.isNotEmpty &&
-                                            !RegExp(r'^[0-9]+$')
-                                                .hasMatch(phone)) {
-                                          _showMessage(
-                                            'Nomor telepon hanya boleh berisi angka.',
-                                            isError: true,
-                                            t: t,
-                                          );
-                                          return;
-                                        }
-
-                                        if (password.length < 6) {
-                                          _showMessage(
-                                            'Password minimal 6 karakter.',
-                                            isError: true,
-                                            t: t,
-                                          );
-                                          return;
-                                        }
 
                                         setDialogState(
                                           () => isSubmitting = true,
@@ -1162,9 +1285,27 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                               final body = jsonDecode(
                                                 response.body,
                                               );
-                                              message = body['message']
-                                                      ?.toString() ??
-                                                  message;
+
+                                              if (body['errors'] is Map) {
+                                                final errors =
+                                                    body['errors'] as Map;
+                                                if (errors.isNotEmpty) {
+                                                  final firstKey =
+                                                      errors.keys.first;
+                                                  final firstErr =
+                                                      errors[firstKey];
+                                                  if (firstErr is List &&
+                                                      firstErr
+                                                          .isNotEmpty) {
+                                                    message = firstErr[0]
+                                                        .toString();
+                                                  }
+                                                }
+                                              } else if (body['message'] !=
+                                                  null) {
+                                                message = body['message']
+                                                    .toString();
+                                              }
                                             } catch (_) {}
 
                                             if (dialogContext.mounted) {
@@ -1183,8 +1324,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                         } catch (e) {
                                           if (dialogContext.mounted) {
                                             setDialogState(
-                                              () => isSubmitting =
-                                                  false,
+                                              () => isSubmitting = false,
                                             );
                                           }
 
@@ -1244,7 +1384,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // EDIT ADMIN
+  // EDIT ADMIN — dengan validasi lengkap
   // ============================================================
 
   void _showEditAdminDialog(
@@ -1257,6 +1397,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
       _showMessage('ID admin tidak ditemukan.', isError: true, t: t);
       return;
     }
+
+    final formKey = GlobalKey<FormState>();
 
     final nameController = TextEditingController(
       text: (admin['name'] ?? '').toString(),
@@ -1278,6 +1420,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
       barrierDismissible: false,
       builder: (dialogContext) {
         bool isSubmitting = false;
+        AutovalidateMode autovalidateMode = AutovalidateMode.disabled;
 
         return AdminThemeProvider(
           theme: t,
@@ -1299,6 +1442,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // HEADER
                         Row(
                           children: [
                             Container(
@@ -1343,94 +1487,118 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                         Divider(height: 1, color: t.divider),
                         const SizedBox(height: 16),
 
+                        // FORM
                         Flexible(
                           child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _dialogField(
-                                  t: t,
-                                  controller: nameController,
-                                  label: 'Nama',
-                                  icon: Icons.person_outline,
-                                  enabled: !isSubmitting,
-                                ),
-                                const SizedBox(height: 12),
-                                _dialogField(
-                                  t: t,
-                                  controller: emailController,
-                                  label: 'Email',
-                                  icon: Icons.email_outlined,
-                                  keyboardType:
-                                      TextInputType.emailAddress,
-                                  enabled: !isSubmitting,
-                                ),
-                                const SizedBox(height: 12),
-                                _dialogField(
-                                  t: t,
-                                  controller: phoneController,
-                                  label: 'Nomor Telepon',
-                                  icon: Icons.phone_outlined,
-                                  keyboardType: TextInputType.phone,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter
-                                        .digitsOnly,
-                                  ],
-                                  enabled: !isSubmitting,
-                                ),
-                                const SizedBox(height: 8),
+                            child: Form(
+                              key: formKey,
+                              autovalidateMode: autovalidateMode,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _dialogField(
+                                    t: t,
+                                    controller: nameController,
+                                    label: 'Nama',
+                                    hint: 'Contoh: Budi Santoso',
+                                    helper:
+                                        'Min $_nameMin, maks $_nameMax karakter',
+                                    icon: Icons.person_outline,
+                                    enabled: !isSubmitting,
+                                    maxLength: _nameMax,
+                                    inputFormatters: _nameFormatters,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    validator: _validateName,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
+                                    controller: emailController,
+                                    label: 'Email',
+                                    hint: 'Contoh: budi@sayabantu.com',
+                                    helper:
+                                        'Maks $_emailMax karakter, format email valid',
+                                    icon: Icons.email_outlined,
+                                    keyboardType:
+                                        TextInputType.emailAddress,
+                                    enabled: !isSubmitting,
+                                    maxLength: _emailMax,
+                                    inputFormatters: _emailFormatters,
+                                    validator: _validateEmail,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
+                                    controller: phoneController,
+                                    label: 'Nomor Telepon',
+                                    hint: 'Contoh: 081234567890',
+                                    helper:
+                                        'Opsional — $_phoneMin-$_phoneMax digit, hanya angka',
+                                    icon: Icons.phone_outlined,
+                                    keyboardType: TextInputType.phone,
+                                    enabled: !isSubmitting,
+                                    maxLength: _phoneMax,
+                                    inputFormatters: _phoneFormatters,
+                                    validator: _validatePhone,
+                                  ),
+                                  const SizedBox(height: 8),
 
-                                // SWITCH STATUS
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.grey50,
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                    border: Border.all(color: t.border),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.toggle_on_outlined,
-                                        size: 20,
-                                        color: t.headerText,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          'Status Aktif',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: t.cellText,
+                                  // SWITCH STATUS
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.grey50,
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      border:
+                                          Border.all(color: t.border),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.toggle_on_outlined,
+                                          size: 20,
+                                          color: t.headerText,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            'Status Aktif',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight:
+                                                  FontWeight.w600,
+                                              color: t.cellText,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      Switch(
-                                        value: isActive,
-                                        activeThumbColor: t.accent,
-                                        onChanged: isSubmitting
-                                            ? null
-                                            : (value) {
-                                                setDialogState(() {
-                                                  isActive = value;
-                                                });
-                                              },
-                                      ),
-                                    ],
+                                        Switch(
+                                          value: isActive,
+                                          activeThumbColor: t.accent,
+                                          onChanged: isSubmitting
+                                              ? null
+                                              : (value) {
+                                                  setDialogState(() {
+                                                    isActive = value;
+                                                  });
+                                                },
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
 
                         const SizedBox(height: 20),
 
+                        // ACTIONS
                         Row(
                           children: [
                             Expanded(
@@ -1465,35 +1633,23 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                 onPressed: isSubmitting
                                     ? null
                                     : () async {
-                                        final name = nameController.text
-                                            .trim();
-                                        final email = emailController
-                                            .text
-                                            .trim();
-                                        final phone = phoneController
-                                            .text
-                                            .trim();
+                                        setDialogState(() {
+                                          autovalidateMode = AutovalidateMode
+                                              .onUserInteraction;
+                                        });
 
-                                        if (name.isEmpty ||
-                                            email.isEmpty) {
-                                          _showMessage(
-                                            'Nama dan email wajib diisi.',
-                                            isError: true,
-                                            t: t,
-                                          );
+                                        if (!(formKey.currentState
+                                                ?.validate() ??
+                                            false)) {
                                           return;
                                         }
 
-                                        if (phone.isNotEmpty &&
-                                            !RegExp(r'^[0-9]+$')
-                                                .hasMatch(phone)) {
-                                          _showMessage(
-                                            'Nomor telepon hanya boleh berisi angka.',
-                                            isError: true,
-                                            t: t,
-                                          );
-                                          return;
-                                        }
+                                        final name =
+                                            nameController.text.trim();
+                                        final email =
+                                            emailController.text.trim();
+                                        final phone =
+                                            phoneController.text.trim();
 
                                         setDialogState(
                                           () => isSubmitting = true,
@@ -1511,8 +1667,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                             },
                                           );
 
-                                          if (response.statusCode ==
-                                              200) {
+                                          if (response.statusCode == 200) {
                                             if (dialogContext.mounted) {
                                               Navigator.pop(
                                                 dialogContext,
@@ -1534,15 +1689,31 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                             final body = jsonDecode(
                                               response.body,
                                             );
-                                            message = body['message']
-                                                    ?.toString() ??
-                                                message;
+
+                                            if (body['errors'] is Map) {
+                                              final errors =
+                                                  body['errors'] as Map;
+                                              if (errors.isNotEmpty) {
+                                                final firstKey =
+                                                    errors.keys.first;
+                                                final firstErr =
+                                                    errors[firstKey];
+                                                if (firstErr is List &&
+                                                    firstErr.isNotEmpty) {
+                                                  message = firstErr[0]
+                                                      .toString();
+                                                }
+                                              }
+                                            } else if (body['message'] !=
+                                                null) {
+                                              message =
+                                                  body['message'].toString();
+                                            }
                                           } catch (_) {}
 
                                           if (dialogContext.mounted) {
                                             setDialogState(
-                                              () => isSubmitting =
-                                                  false,
+                                              () => isSubmitting = false,
                                             );
                                           }
 
@@ -1554,8 +1725,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                         } catch (e) {
                                           if (dialogContext.mounted) {
                                             setDialogState(
-                                              () => isSubmitting =
-                                                  false,
+                                              () => isSubmitting = false,
                                             );
                                           }
 
@@ -1775,29 +1945,43 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-  // DIALOG FIELD
+  // DIALOG FIELD — TextFormField + validator + helper
   // ============================================================
 
   Widget _dialogField({
     required AdminTheme t,
     required TextEditingController controller,
     required String label,
+    String? hint,
+    String? helper,
     IconData? icon,
     bool obscureText = false,
     bool enabled = true,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    int? maxLength,
+    String? Function(String?)? validator,
+    Widget? suffixIcon,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      textCapitalization: textCapitalization,
       enabled: enabled,
+      maxLength: maxLength,
+      validator: validator,
       style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint,
+        helperText: helper,
+        helperMaxLines: 2,
         prefixIcon: icon != null ? Icon(icon, size: 19) : null,
+        suffixIcon: suffixIcon,
+        counterText: '',
         filled: true,
         fillColor: AppColors.grey50,
         contentPadding: const EdgeInsets.symmetric(
@@ -1816,9 +2000,35 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: t.accent, width: 1.5),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: t.danger, width: 1.2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: t.danger, width: 1.5),
+        ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: t.border),
+        ),
+        labelStyle: TextStyle(
+          fontSize: 13,
+          color: t.headerText,
+        ),
+        hintStyle: const TextStyle(
+          fontSize: 13,
+          color: AppColors.grey400,
+        ),
+        helperStyle: TextStyle(
+          fontSize: 11,
+          color: t.headerText.withValues(alpha: 0.8),
+          height: 1.3,
+        ),
+        errorStyle: TextStyle(
+          fontSize: 11,
+          color: t.danger,
+          height: 1.3,
         ),
       ),
     );

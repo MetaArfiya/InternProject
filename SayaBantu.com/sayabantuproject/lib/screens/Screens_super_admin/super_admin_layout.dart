@@ -29,7 +29,7 @@ class SuperAdminLayout extends StatefulWidget {
 
 class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // =========================================================
-  // THEME — sekarang semua TEAL (Super Admin = Admin)
+  // THEME
   // =========================================================
 
   AdminTheme get theme => AdminTheme.of('admin');
@@ -260,7 +260,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // PROFILE IMAGE
+  // PROFILE IMAGE — FIXED: SELALU BULAT
   // =========================================================
 
   Widget _buildSuperAdminProfileImage({double size = 40}) {
@@ -269,58 +269,49 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     final bgColor = t.accentLight;
     final initials = _getInitials();
 
-    Widget fallback() => Container(
+    return GestureDetector(
+      onTap: _showEditProfileDialog,
+      child: ClipOval(
+        child: Container(
           width: size,
           height: size,
           color: bgColor,
           alignment: Alignment.center,
-          child: Text(
-            initials,
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: size * 0.38,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        );
-
-    return GestureDetector(
-      onTap: _showEditProfileDialog,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-        ),
-        child: fullPhotoUrl == null
-            ? fallback()
-            : ClipOval(
-                child: Image.network(
+          child: fullPhotoUrl == null
+              ? Text(
+                  initials,
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: size * 0.38,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : Image.network(
                   fullPhotoUrl,
                   width: size,
                   height: size,
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return Container(
-                      width: size,
-                      height: size,
-                      color: bgColor,
-                      alignment: Alignment.center,
-                      child: const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.white,
-                        ),
+                    return SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
                       ),
                     );
                   },
-                  errorBuilder: (context, error, stackTrace) => fallback(),
+                  errorBuilder: (context, error, stackTrace) => Text(
+                    initials,
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: size * 0.38,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -386,7 +377,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // ROLE CHIP (hanya untuk mobile app bar)
+  // ROLE CHIP
   // =========================================================
 
   Widget _roleChip({bool small = false, String label = 'Super Admin'}) {
@@ -605,16 +596,18 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // ============================================
+                      // AVATAR — FIXED: SELALU BULAT
+                      // ============================================
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
+                          ClipOval(
+                            child: SizedBox(
+                              width: 100,
+                              height: 100,
+                              child: _buildDialogProfileImage(),
                             ),
-                            child: _buildDialogProfileImage(),
                           ),
                           Material(
                             color: t.accent,
@@ -950,7 +943,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // SIDEBAR (gaya AdminLayout/CustomerSidebar)
+  // SIDEBAR
   // =========================================================
 
   Widget _buildSidebar(BuildContext context) {
@@ -965,10 +958,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           children: [
             const SizedBox(height: 20),
 
-            // =================================================
             // PROFIL SUPER ADMIN
-            // =================================================
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
@@ -1009,10 +999,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
             const SizedBox(height: 20),
 
-            // =================================================
             // MENU
-            // =================================================
-
             ..._menus.asMap().entries.map(
                   (entry) => _menuItem(
                     context: context,
@@ -1024,10 +1011,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
             const Spacer(),
 
-            // =================================================
             // LOGOUT
-            // =================================================
-
             _logoutButton(context),
 
             const SizedBox(height: 15),
@@ -1038,7 +1022,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // MENU ITEM (flat, mint accent, aksen bar kanan)
+  // MENU ITEM
   // =========================================================
 
   Widget _menuItem({
@@ -1101,7 +1085,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // LOGOUT BUTTON (gaya CustomerSidebar)
+  // LOGOUT BUTTON
   // =========================================================
 
   Widget _logoutButton(BuildContext context) {
@@ -1279,7 +1263,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // PROFILE PAGE (tidak diubah)
+  // PROFILE PAGE
   // =========================================================
 
   Widget _buildProfilePage() {

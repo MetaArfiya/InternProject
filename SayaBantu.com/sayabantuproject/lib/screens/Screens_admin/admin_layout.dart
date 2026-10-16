@@ -241,28 +241,13 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // ============================================================
-  // PROFILE IMAGE
+  // PROFILE IMAGE — FIXED: SELALU BULAT
   // ============================================================
 
   Widget _buildAdminProfileImage({double size = 40}) {
     final fullPhotoUrl = _getFullPhotoUrl();
     final bgColor = theme.accentLight;
     final initials = _getInitials();
-
-    Widget fallback() => Container(
-          width: size,
-          height: size,
-          color: bgColor,
-          alignment: Alignment.center,
-          child: Text(
-            initials,
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: size * 0.38,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        );
 
     return Container(
       width: size,
@@ -271,32 +256,63 @@ class _AdminLayoutState extends State<AdminLayout> {
         color: bgColor,
         shape: BoxShape.circle,
       ),
-      child: fullPhotoUrl == null
-          ? fallback()
-          : ClipOval(
-              child: Image.network(
+      child: ClipOval(
+        child: fullPhotoUrl == null
+            ? _adminInitials(
+                initials: initials,
+                size: size,
+                bgColor: bgColor,
+              )
+            : Image.network(
                 fullPhotoUrl,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return Container(
-                    width: size,
-                    height: size,
-                    color: bgColor,
-                    alignment: Alignment.center,
-                    child: const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.white,
-                      ),
-                    ),
+                  return _adminInitials(
+                    initials: initials,
+                    size: size,
+                    bgColor: bgColor,
+                    loading: true,
                   );
                 },
-                errorBuilder: (context, error, stackTrace) => fallback(),
+                errorBuilder: (context, error, stackTrace) => _adminInitials(
+                  initials: initials,
+                  size: size,
+                  bgColor: bgColor,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _adminInitials({
+    required String initials,
+    required double size,
+    required Color bgColor,
+    bool loading = false,
+  }) {
+    return Container(
+      width: size,
+      height: size,
+      color: bgColor,
+      alignment: Alignment.center,
+      child: loading
+          ? SizedBox(
+              width: size * 0.4,
+              height: size * 0.4,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.white,
+              ),
+            )
+          : Text(
+              initials,
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: size * 0.38,
+                fontWeight: FontWeight.bold,
               ),
             ),
     );
@@ -433,10 +449,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           children: [
             const SizedBox(height: 20),
 
-            // =================================================
-            // PROFIL ADMIN (seperti CustomerSidebar)
-            // =================================================
-
+            // PROFIL ADMIN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
@@ -477,11 +490,7 @@ class _AdminLayoutState extends State<AdminLayout> {
 
             const SizedBox(height: 20),
 
-            // =================================================
-            // MENU — pakai `icon` (outline) untuk SEMUA state,
-            // sama seperti CustomerSidebar. Tidak swap ke activeIcon.
-            // =================================================
-
+            // MENU
             ..._menus.map(
               (menu) => _menuItem(
                 context: context,
@@ -495,10 +504,7 @@ class _AdminLayoutState extends State<AdminLayout> {
 
             const Spacer(),
 
-            // =================================================
             // LOGOUT
-            // =================================================
-
             _logoutButton(context),
 
             const SizedBox(height: 15),
@@ -509,11 +515,10 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // ============================================================
-  // MENU ITEM (gaya CustomerSidebar — flat, aksen bar kanan,
-  // icon sama untuk aktif/tidak aktif)
+  // MENU ITEM
   // ============================================================
 
-    Widget _menuItem({
+  Widget _menuItem({
     required BuildContext context,
     required IconData icon,
     required String title,
@@ -528,7 +533,6 @@ class _AdminLayoutState extends State<AdminLayout> {
           horizontal: 20,
           vertical: 15,
         ),
-        // aktif → mint soft (sama seperti CustomerSidebar)
         color: active
             ? AppColors.mint.withValues(alpha: 0.15)
             : AppColors.transparent,
@@ -536,7 +540,6 @@ class _AdminLayoutState extends State<AdminLayout> {
           children: [
             Icon(
               icon,
-              // aktif → MINT cerah, non-aktif → putih pudar
               color: active
                   ? AppColors.mint
                   : AppColors.white.withValues(alpha: 0.70),
@@ -574,12 +577,10 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // ============================================================
-  // LOGOUT BUTTON (gaya CustomerSidebar)
+  // LOGOUT BUTTON
   // ============================================================
 
   Widget _logoutButton(BuildContext context) {
-    final t = theme;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
@@ -600,7 +601,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           ),
           child: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.logout,
                 color: AppColors.mint,
                 size: 20,
