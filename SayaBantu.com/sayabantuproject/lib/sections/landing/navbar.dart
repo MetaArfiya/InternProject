@@ -113,50 +113,24 @@ class CustomNavbar extends StatelessWidget {
   }
 
   // ============================================================
-  // LOGO
+  // LOGO (Hanya Gambar, tanpa teks "SayaBantu")
   // ============================================================
   Widget _buildLogo({required bool isSmallMobile}) {
-    final double boxSize = isSmallMobile ? 32 : 38;
-    final double iconSize = isSmallMobile ? 18 : 22;
-    final double textSize = isSmallMobile ? 17 : 20;
+    // Tentukan ukuran logo
+    final double logoHeight = isSmallMobile ? 42 : 48;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: boxSize,
-          height: boxSize,
-          decoration: BoxDecoration(
-            color: AppColors.primaryTeal,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Icon(
-            Icons.handyman_rounded,
-            color: AppColors.mint,
-            size: iconSize,
-          ),
-        ),
-        const SizedBox(width: 8),
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: textSize,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-            children: const [
-              TextSpan(
-                text: 'Saya',
-                style: TextStyle(color: AppColors.darkTeal),
-              ),
-              TextSpan(
-                text: 'Bantu',
-                style: TextStyle(color: AppColors.primaryTeal),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return Image.asset(
+      'assets/images/Logo_SayaBantu.png',
+      height: logoHeight,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback jika gambar gagal dimuat
+        return Icon(
+          Icons.handyman_rounded,
+          color: AppColors.primaryTeal,
+          size: logoHeight,
+        );
+      },
     );
   }
 
