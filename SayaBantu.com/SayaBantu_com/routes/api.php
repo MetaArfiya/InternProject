@@ -18,6 +18,8 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\ChatController;
 use App\Models\AppReview;
 
 
@@ -293,6 +295,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
+    Route::get('/jobs/{id}/tracking', [TrackingController::class, 'getTracking']);
+
+    Route::get ('/jobs/{id}/chat', [ChatController::class, 'index']);
+    Route::post('/jobs/{id}/chat', [ChatController::class, 'store']);
+
 
     // =====================================================
     // SUPER ADMIN
@@ -382,6 +389,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/mitra/earnings/monthly', [PaymentController::class, 'mitraMonthlyStats']);
 
         Route::get('/mitra/my-jobs/complaint-eligible', [JobController::class, 'myJobsForComplaintMitra']);
+
+        Route::post('/jobs/{id}/tracking/start',    [TrackingController::class, 'start']);
+        Route::post('/jobs/{id}/tracking/location', [TrackingController::class, 'updateLocation']);
+        Route::post('/jobs/{id}/tracking/status',   [TrackingController::class, 'updateStatus']);
+        Route::post('/jobs/{id}/tracking/stop',     [TrackingController::class, 'stop']);
     });
 
 
@@ -410,5 +422,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/pelanggan/ratings',              [RatingController::class, 'storeFromPelanggan']);
         Route::get('/pelanggan/ratings/job/{jobId}',   [RatingController::class, 'checkJobRating']);
+
     });
 });

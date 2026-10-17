@@ -18,6 +18,8 @@ class jobs extends Model
         'location',
         'latitude',
         'longitude',
+        'location_lat',                 // ← TAMBAH INI
+        'location_lng',                 // ← TAMBAH INI
         'location_description',
         'image_url',
         'initial_budget',
@@ -28,14 +30,19 @@ class jobs extends Model
         'status',
         'is_verified',
         'verified_by',
-        // ════════════════════════════════════════════
-        // TAMBAHAN UNTUK BUKTI PENYELESAIAN
-        // ════════════════════════════════════════════
         'completion_photo_url',
         'completion_submitted_at',
         'completion_status',
         'completion_verified_at',
         'completion_admin_note',
+
+        'mitra_lat',
+        'mitra_lng',
+        'mitra_location_updated_at',
+        'tracking_status',
+        'tracking_started_at',
+        'distance_km',
+        'eta_minutes',
     ];
 
     // ============================================================

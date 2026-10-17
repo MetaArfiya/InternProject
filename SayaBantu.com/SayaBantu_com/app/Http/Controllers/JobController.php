@@ -173,6 +173,15 @@ class JobController extends Controller
      */
     public function store(Request $request)
     {
+
+        Log::info('JOB STORE DEBUG', [
+            'location_lat_input' => $request->input('location_lat'),
+            'location_lng_input' => $request->input('location_lng'),
+            'latitude_input'     => $request->input('latitude'),
+            'longitude_input'    => $request->input('longitude'),
+            'all_keys'           => array_keys($request->all()),
+        ]);
+
         Log::info('=== DEBUG UPLOAD JOB ===');
         Log::info('Has image: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
 
@@ -184,6 +193,8 @@ class JobController extends Controller
             'latitude'        => 'nullable|numeric',
             'longitude'       => 'nullable|numeric',
             'category'        => 'nullable|string',
+            'location_lat'    => 'nullable|numeric|between:-90,90',
+            'location_lng'    => 'nullable|numeric|between:-180,180',
             'initial_budget'  => 'required|numeric',
             'duration'        => 'required|string|max:50',
             'image'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -270,20 +281,51 @@ class JobController extends Controller
             ], 200);
         }
 
+        // =========================================================
+        // PARAMETER LOKASI (opsional)
+        // =========================================================
+        $lat    = $request->query('lat');
+        $lng    = $request->query('lng');
+        $radius = (float) $request->query('radius', 5); // default 5 km
+
+        if ($radius < 1)  $radius = 1;
+        if ($radius > 50) $radius = 50;
+
+        $hasLocation = $lat !== null && $lng !== null
+            && is_numeric($lat) && is_numeric($lng);
+
+        if ($hasLocation) {
+            $lat = (float) $lat;
+            $lng = (float) $lng;
+        }
+
+        // =========================================================
+        // SKILLS MITRA
+        // =========================================================
         $mitraSkills = [];
-        $rawSkills = !empty($mitraProfile->skills) ? $mitraProfile->skills : ($mitraProfile->category ?? '');
+        $rawSkills = !empty($mitraProfile->skills)
+            ? $mitraProfile->skills
+            : ($mitraProfile->category ?? '');
 
         if (!empty($rawSkills)) {
             $mitraSkills = explode(',', $rawSkills);
             $mitraSkills = array_map(function ($skill) {
-                $cleanSkill = preg_replace('/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u', '', $skill);
+                $cleanSkill = preg_replace(
+                    '/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u',
+                    '',
+                    $skill
+                );
                 return strtolower(trim($cleanSkill));
             }, $mitraSkills);
             $mitraSkills = array_unique(array_filter($mitraSkills));
         }
 
+        // =========================================================
+        // QUERY DASAR
+        // =========================================================
         $query = jobs::withCount('bids')->where('status', 'Mencari Mitra');
 
+        // Filter skills
         if (!empty($mitraSkills)) {
             $query->where(function ($q) use ($mitraSkills) {
                 foreach ($mitraSkills as $skill) {
@@ -294,12 +336,53 @@ class JobController extends Controller
             $query->whereRaw('1 = 0');
         }
 
+        // Mitra belum pernah bid job ini
         $query->whereDoesntHave('bids', function ($bQuery) use ($mitraId) {
             $bQuery->where('mitra_id', $mitraId);
         });
 
-        $jobs = $query->latest()->get();
+        // =========================================================
+        // FILTER RADIUS (Haversine)
+        // =========================================================
+        if ($hasLocation) {
+            $haversine = '(6371 * acos(
+                cos(radians(?)) *
+                cos(radians(location_lat)) *
+                cos(radians(location_lng) - radians(?)) +
+                sin(radians(?)) *
+                sin(radians(location_lat))
+            ))';
 
+            // Hitung jarak, filter <= radius, urutkan terdekat
+            // Catatan: job TANPA koordinat tidak akan muncul saat filter aktif
+            $query->whereNotNull('location_lat')
+                ->whereNotNull('location_lng')
+                ->selectRaw("jobs.*, $haversine AS distance_km", [$lat, $lng, $lat])
+                ->havingRaw('distance_km <= ?', [$radius])
+                ->orderBy('distance_km', 'asc');
+        } else {
+            // Tanpa lokasi — tampilkan semua, urut terbaru
+            $query->latest();
+        }
+
+        $jobs = $query->get();
+
+        // =========================================================
+        // FORMAT RESPONSE — pastikan distance_km masuk
+        // =========================================================
+        $jobsTransformed = $jobs->map(function ($job) {
+            $arr = $job->toArray();
+            // Pastikan distance_km selalu ada sebagai float / null
+            $arr['distance_km'] = isset($job->distance_km)
+                ? round((float) $job->distance_km, 2)
+                : null;
+            $arr['job_code'] = '#JOB-' . str_pad((string) $job->id, 4, '0', STR_PAD_LEFT);
+            return $arr;
+        });
+
+        // =========================================================
+        // SIDEBAR INFO
+        // =========================================================
         $activeOffersCount = job_bids::where('mitra_id', $mitraId)
             ->whereIn('status', ['Menunggu', 'Diterima Pelanggan'])
             ->count();
@@ -308,12 +391,21 @@ class JobController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Berhasil mengambil daftar pekerjaan sesuai kemampuan Mitra.',
+            'message' => $hasLocation
+                ? "Berhasil mengambil pekerjaan dalam radius {$radius} km."
+                : 'Berhasil mengambil daftar pekerjaan sesuai kemampuan Mitra.',
             'mitra_skills' => array_values($mitraSkills),
             'active_offers_count' => $activeOffersCount,
             'user_points' => $userPoints,
-            'data' => $jobs,
-            'jobs' => $jobs
+            'meta' => [
+                'radius_km'    => $hasLocation ? $radius : null,
+                'mitra_lat'    => $hasLocation ? $lat : null,
+                'mitra_lng'    => $hasLocation ? $lng : null,
+                'using_radius' => $hasLocation,
+                'total'        => $jobsTransformed->count(),
+            ],
+            'data' => $jobsTransformed,
+            'jobs' => $jobsTransformed,
         ], 200);
     }
 
@@ -927,7 +1019,6 @@ class JobController extends Controller
                 'message' => 'Pekerjaan berhasil dibatalkan.',
                 'data'    => $job->fresh()
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('Error JobController@cancelJobByPelanggan: ' . $e->getMessage());
             return response()->json([
