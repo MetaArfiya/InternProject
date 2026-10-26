@@ -385,7 +385,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                     if (_filteredPayments.isEmpty)
                       _buildEmptyState()
                     else ...[
-                      isMobile ? _buildMobileList() : _buildDesktopTable(),
+                      isMobile 
+                          ? _buildMobileList() 
+                          : _buildDesktopTable(width), // <-- Passing maxWidth
                       _buildPagination(isMobile),
                     ],
                   ],
@@ -700,12 +702,17 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   }
 
   // ============================================================
-  // DESKTOP TABLE
+  // DESKTOP TABLE (FULL WIDTH)
   // ============================================================
 
-  Widget _buildDesktopTable() {
+  Widget _buildDesktopTable(double maxWidth) {
     final t = theme;
     final textTheme = Theme.of(context).textTheme;
+
+    // Hitung lebar maksimal tabel berdasarkan padding layar
+    final isTablet = maxWidth >= _mobileBreakpoint && maxWidth < 1100;
+    final horizontalPadding = isTablet ? 24.0 : 28.0;
+    final tableWidth = maxWidth - (horizontalPadding * 2);
 
     return Container(
       width: double.infinity,
@@ -718,94 +725,98 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         borderRadius: BorderRadius.circular(_radius),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: DataTable(
-            horizontalMargin: 20,
-            columnSpacing: 28,
-            headingRowHeight: 52,
-            dataRowMinHeight: 64,
-            dataRowMaxHeight: 82,
-            headingTextStyle: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: t.headerText,
-            ),
-            headingRowColor: WidgetStateProperty.all(AppColors.grey50),
-            dividerThickness: 0.6,
-            columns: const [
-              DataColumn(label: Text('ID TRANSAKSI')),
-              DataColumn(label: Text('PEKERJAAN')),
-              DataColumn(label: Text('PELANGGAN')),
-              DataColumn(label: Text('MITRA')),
-              DataColumn(label: Text('TOTAL')),
-              DataColumn(label: Text('KOMISI')),
-              DataColumn(label: Text('STATUS')),
-              DataColumn(label: Text('AKSI')),
-            ],
-            rows: _paginatedPayments.map((payment) {
-              return DataRow(
-                cells: [
-                  DataCell(_desktopTransactionId(payment)),
-                  DataCell(
-                    SizedBox(
-                      width: 190,
-                      child: Text(
-                        payment.jobTitle ?? '-',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+          child: ConstrainedBox(
+            // Paksa tabel melebar minimal selebar layar
+            constraints: BoxConstraints(minWidth: tableWidth),
+            child: DataTable(
+              horizontalMargin: 24,
+              columnSpacing: 36, // Jarak antar kolom diperlebar
+              headingRowHeight: 52,
+              dataRowMinHeight: 64,
+              dataRowMaxHeight: 82,
+              headingTextStyle: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: t.headerText,
+              ),
+              headingRowColor: WidgetStateProperty.all(AppColors.grey50),
+              dividerThickness: 0.6,
+              columns: const [
+                DataColumn(label: Text('ID TRANSAKSI')),
+                DataColumn(label: Text('PEKERJAAN')),
+                DataColumn(label: Text('PELANGGAN')),
+                DataColumn(label: Text('MITRA')),
+                DataColumn(label: Text('TOTAL')),
+                DataColumn(label: Text('KOMISI')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('AKSI')),
+              ],
+              rows: _paginatedPayments.map((payment) {
+                return DataRow(
+                  cells: [
+                    DataCell(_desktopTransactionId(payment)),
+                    DataCell(
+                      SizedBox(
+                        width: 200, // Lebar kolom pekerjaan disesuaikan
+                        child: Text(
+                          payment.jobTitle ?? '-',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: t.cellText,
+                          ),
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 160, // Lebar kolom pelanggan disesuaikan
+                        child: Text(
+                          payment.pelangganName ?? '-',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: t.cellText),
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 160, // Lebar kolom mitra disesuaikan
+                        child: Text(
+                          payment.mitraName ?? '-',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: t.cellText),
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        PaymentModel.formatRupiah(payment.jobAmount),
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                           color: t.cellText,
                         ),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 145,
-                      child: Text(
-                        payment.pelangganName ?? '-',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: t.cellText),
+                    DataCell(
+                      Text(
+                        PaymentModel.formatRupiah(payment.commissionAmount),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: t.success,
+                        ),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 145,
-                      child: Text(
-                        payment.mitraName ?? '-',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: t.cellText),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      PaymentModel.formatRupiah(payment.jobAmount),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: t.cellText,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      PaymentModel.formatRupiah(payment.commissionAmount),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: t.success,
-                      ),
-                    ),
-                  ),
-                  DataCell(_statusBadge(payment.status)),
-                  DataCell(_desktopAction(payment)),
-                ],
-              );
-            }).toList(),
+                    DataCell(_statusBadge(payment.status)),
+                    DataCell(_desktopAction(payment)),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ),
       ),
