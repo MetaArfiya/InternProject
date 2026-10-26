@@ -507,7 +507,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
             flex: 3,
             child: Row(
               children: [
-                _buildAvatar(name, t),
+                _buildAvatar(name, partner['photo_url']?.toString(), t),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -645,7 +645,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAvatar(name, t),
+              _buildAvatar(name, partner['photo_url']?.toString(), t),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -708,7 +708,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // AVATAR & STATUS
   // ============================================================
 
-  Widget _buildAvatar(String name, AdminTheme t) {
+    Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Container(
@@ -719,13 +719,36 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: t.accent,
-          fontWeight: FontWeight.w700,
-          fontSize: 15,
-        ),
+      child: ClipOval(
+        child: (photoUrl != null && photoUrl.isNotEmpty)
+            ? Image.network(
+                photoUrl, // <-- LANGSUNG PAKAI URL ASLI DARI LARAVEL
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Text(
+                      initial,
+                      style: TextStyle(
+                        color: t.accent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Center(
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    color: t.accent,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
       ),
     );
   }

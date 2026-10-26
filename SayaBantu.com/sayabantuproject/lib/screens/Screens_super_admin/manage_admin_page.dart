@@ -614,7 +614,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
             flex: 3,
             child: Row(
               children: [
-                _buildAvatar(name, t),
+                _buildAvatar(name, admin['photo_url']?.toString(), t),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -789,7 +789,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAvatar(name, t),
+              _buildAvatar(name, admin['photo_url']?.toString(), t),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -910,27 +910,50 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   // AVATAR
   // ============================================================
 
-  Widget _buildAvatar(String name, AdminTheme t) {
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
+      final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: t.accent.withValues(alpha: 0.12),
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: t.accent,
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
+      return Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: t.accent.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
         ),
-      ),
-    );
-  }
+        alignment: Alignment.center,
+        child: ClipOval(
+          child: (photoUrl != null && photoUrl.isNotEmpty)
+              ? Image.network(
+                  photoUrl,
+                  width: 42,
+                  height: 42,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Text(
+                        initial,
+                        style: TextStyle(
+                          color: t.accent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : Center(
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      color: t.accent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+        ),
+      );
+    }
 
   // ============================================================
   // STATUS

@@ -425,3 +425,30 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 });
+Route::get('/complaints/image/{filename}', function ($filename) {
+    $path = 'complaints/' . $filename;
+
+    if (!Storage::disk('public')->exists($path)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Bukti foto pengaduan tidak ditemukan.',
+        ], 404);
+    }
+
+    $file = Storage::disk('public')->get($path);
+
+    $mimeType = match (strtolower(pathinfo($filename, PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png'         => 'image/png',
+        'webp'        => 'image/webp',
+        'gif'         => 'image/gif',
+        default       => 'application/octet-stream',
+    };
+
+    return Response::make($file, 200)
+        ->header('Content-Type', $mimeType)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        ->header('Access-Control-Allow-Headers', '*')
+        ->header('Cache-Control', 'public, max-age=86400');
+})->where('filename', '.*');

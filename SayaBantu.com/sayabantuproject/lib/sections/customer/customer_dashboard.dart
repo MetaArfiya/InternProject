@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/job_model.dart';
 import '../../services/api_service.dart';
+import '../../sections/customer/customer_tracking_page.dart'; // ← NEW
 import '../../theme/app_colors.dart';
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/pekerjaan_card.dart';
@@ -58,18 +59,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   static const double _tabletBreakpoint = 1100;
   static const double _bodyFontSize = 13;
 
-  // ✅ Aksen warna — konsisten dengan brand teal
   static const Color _accent = AppColors.primaryTeal;
 
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
   static const Color _headerText = AppColors.grey500;
   static const Color _cellText = AppColors.grey900;
-
-  // ============================================================
-  // SPACING — mengikuti pola DashboardHeader
-  //   title → 6 → subtitle → 16 → elemen berikutnya
-  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -169,8 +164,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   // ============================================================
-  // ✅ BATALKAN PEKERJAAN — API CALL
-  // Endpoint: POST /jobs/{id}/cancel-customer
+  // BATALKAN PEKERJAAN
   // ============================================================
 
   Future<void> _cancelJob(JobModel job) async {
@@ -262,6 +256,30 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         s == 'pending' ||
         s == 'baru' ||
         s == 'diposting';
+  }
+
+  // ============================================================
+  // ✅ NEW: CEK APAKAH TOMBOL "LACAK MITRA" HARUS MUNCUL
+  // ============================================================
+
+  bool _canTrack(JobModel job) {
+    final s = job.status.toLowerCase().trim();
+    return s == 'sedang dikerjakan' ||
+        s.contains('dikerjakan') ||
+        s == 'dalam pengerjaan';
+  }
+
+  // ============================================================
+  // ✅ NEW: BUKA HALAMAN TRACKING
+  // ============================================================
+
+  void _openTracking(JobModel job) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CustomerTrackingPage(jobId: job.id),
+      ),
+    );
   }
 
   // ============================================================
@@ -360,7 +378,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: AppColors.sectionAltLight, // ← dari theme → mint muda
+          color: AppColors.sectionAltLight,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
@@ -439,19 +457,19 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         icon: Icons.assignment,
         value: totalJobs.toString(),
         title: 'Total Posting',
-        color: AppColors.primaryTeal, // ← teal
+        color: AppColors.primaryTeal,
       ),
       StatisticCard(
         icon: Icons.settings,
         value: runningJobs.toString(),
         title: 'Sedang Berjalan',
-        color: AppColors.mint, // ← mint
+        color: AppColors.mint,
       ),
       StatisticCard(
         icon: Icons.check_circle,
         value: completedJobs.toString(),
         title: 'Selesai',
-        color: const Color(0xFF16A34A), // ← tetap hijau (untuk "selesai")
+        color: const Color(0xFF16A34A),
       ),
     ];
 
@@ -586,12 +604,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
   // ============================================================
   // JUDUL SECTION
-  // ------------------------------------------------------------
-  // ✅ SAMA PERSIS dengan judul "Pekerjaan Saya" di DashboardHeader:
-  //    - Tanpa bar / dekorasi
-  //    - Font headlineSmall + bold
-  //    - Warna default theme
-  //    - Letak di kiri (sejajar dengan judul halaman)
   // ============================================================
 
   Widget _buildSectionTitle(BuildContext context) {
@@ -651,8 +663,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   Widget _buildNoFilterResultState(BuildContext context) {
-    //final textTheme = Theme.of(context).textTheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
@@ -850,6 +860,19 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   fgColor: AppColors.primaryTeal,
                   onTap: () => widget.onOpenOffer(job),
                 ),
+
+                // ✅ NEW: TOMBOL LACAK MITRA
+                // Muncul hanya saat status "Sedang Dikerjakan"
+                if (_canTrack(job))
+                  _pillButton(
+                    context: context,
+                    icon: Icons.location_searching,
+                    label: 'Lacak Mitra',
+                    bgColor: const Color(0xFF0F766E),
+                    fgColor: Colors.white,
+                    onTap: () => _openTracking(job),
+                  ),
+
                 if (_canConfirm(job))
                   _pillButton(
                     context: context,
@@ -954,8 +977,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFFD97706);
     } else {
-      // default: "mencari mitra" dll → mint/teal
-      bg = AppColors.mint.withValues(alpha:0.18);
+      bg = AppColors.mint.withValues(alpha: 0.18);
       fg = AppColors.primaryTeal;
     }
 
@@ -1135,7 +1157,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.mint.withValues(alpha:0.20), // ← dari ungu → mint
+        color: AppColors.mint.withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -1143,7 +1165,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         style: const TextStyle(
           fontSize: 12.5,
           fontWeight: FontWeight.w600,
-          color: AppColors.primaryTeal, // ← teal
+          color: AppColors.primaryTeal,
         ),
       ),
     );
@@ -1286,7 +1308,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     final hasImage = imageUrl != null &&
         imageUrl.trim().isNotEmpty &&
         imageUrl.trim() != 'null';
-    //final textTheme = Theme.of(context).textTheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

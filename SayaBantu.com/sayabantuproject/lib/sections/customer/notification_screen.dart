@@ -6,6 +6,7 @@ import '../../models/notification_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/notification_card.dart';
+import '../shared/chat_page.dart'; // <-- PASTIKAN PATH INI BENAR (Sesuaikan dengan foldermu)
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -147,8 +148,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
       itemCount: _notifications.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
+        final notif = _notifications[index];
+
         return CompactNotificationCard(
-          notification: _notifications[index],
+          notification: notif,
+          onTap: () {
+            // Cek jika ini notifikasi chat dan ada jobId
+            if (notif.type == 'chat' && notif.jobId != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatPage(
+                    jobId: notif.jobId!,
+                    title: 'Chat Koordinasi',
+                  ),
+                ),
+              );
+            }
+          },
         );
       },
     );
@@ -178,7 +195,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -235,7 +252,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -244,7 +261,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.mint.withValues(alpha:0.15), // ← dari grey soft
+              color: AppColors.mint.withValues(alpha: 0.15), // ← dari grey soft
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(

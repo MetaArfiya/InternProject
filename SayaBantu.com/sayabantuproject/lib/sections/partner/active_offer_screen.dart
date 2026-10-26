@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -14,11 +15,16 @@ class ActiveOfferScreen extends StatefulWidget {
   State<ActiveOfferScreen> createState() => _ActiveOfferScreenState();
 }
 
-class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
+// Tambahkan WidgetsBindingObserver untuk mendeteksi jika aplikasi di-minimize
+class _ActiveOfferScreenState extends State<ActiveOfferScreen>
+    with WidgetsBindingObserver {
   List<ActiveOfferModel> _offers = [];
 
   bool _isLoading = true;
   String _errorMessage = '';
+
+  Timer? _refreshTimer;
+  bool _isAppInForeground = true;
 
   // ============================================================
   // DESIGN TOKENS
@@ -33,20 +39,62 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Fetch pertama kali (tampilkan loading)
     _fetchMyOffers();
+
+    // Setup timer untuk fetch otomatis setiap 5 detik (mode silent)
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel(); // Selalu matikan timer saat halaman ditutup
+    super.dispose();
   }
 
   // ============================================================
-  // FETCH
+  // AUTO REFRESH & LIFECYCLE
   // ============================================================
 
-  Future<void> _fetchMyOffers() async {
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      // Hanya fetch jika aplikasi sedang dibuka di layar
+      if (_isAppInForeground && mounted) {
+        _fetchMyOffers(silent: true);
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _isAppInForeground = true;
+      // Fetch langsung saat aplikasi dibuka kembali dari background
+      _fetchMyOffers(silent: true); 
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _isAppInForeground = false;
+    }
+  }
+
+  // ============================================================
+  // FETCH DATA
+  // ============================================================
+
+  Future<void> _fetchMyOffers({bool silent = false}) async {
     if (!mounted) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+    // Jika bukan silent, tampilkan loading screen
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+    }
 
     try {
       final response = await ApiService.get('/mitra/my-offers');
@@ -57,8 +105,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         List<dynamic> loadedOffersJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          final target =
-              decodedData['data'] ?? decodedData['offers'] ?? [];
+          final target = decodedData['data'] ?? decodedData['offers'] ?? [];
           if (target is List) loadedOffersJson = target;
         } else if (decodedData is List) {
           loadedOffersJson = decodedData;
@@ -81,9 +128,10 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         setState(() {
           _offers = loadedOffers;
           _isLoading = false;
+          _errorMessage = ''; // Reset error jika sebelumnya ada
         });
       } else {
-        if (!mounted) return;
+        if (!mounted || silent) return;
         setState(() {
           _errorMessage =
               'Gagal memuat penawaran.\nStatus: ${response.statusCode}';
@@ -91,7 +139,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
         });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _errorMessage = 'Terjadi kesalahan koneksi.\n$e';
         _isLoading = false;
@@ -136,9 +184,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(context),
-
                   const SizedBox(height: _gapAfterHeader),
-
                   _buildContent(
                     isMobile: isMobile,
                     isTablet: isTablet,

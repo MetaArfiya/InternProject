@@ -8,6 +8,7 @@ class NotificationModel {
   final String message;
   final DateTime? createdAt;
   final bool isRead;
+  final int? jobId;        // <-- TAMBAHKAN INI UNTUK NAVIGASI CHAT
 
   NotificationModel({
     required this.id,
@@ -16,6 +17,7 @@ class NotificationModel {
     required this.message,
     this.createdAt,
     this.isRead = false,
+    this.jobId,            // <-- TAMBAHKAN INI
   });
 
   // ============================================================
@@ -23,6 +25,10 @@ class NotificationModel {
   // ============================================================
   IconData get icon {
     switch (type.toLowerCase()) {
+      case 'new_chat_message':
+      case 'chat':
+        return Icons.chat_bubble_outline_rounded; // <-- ICON CHAT
+
       case 'new_bid_received':
       case 'bid_received':
       case 'penawaran_baru':
@@ -58,6 +64,10 @@ class NotificationModel {
   // ============================================================
   Color get iconColor {
     switch (type.toLowerCase()) {
+      case 'new_chat_message':
+      case 'chat':
+        return const Color(0xff0EA5E9); // Biru muda untuk chat
+
       case 'new_bid_received':
       case 'bid_received':
       case 'penawaran_baru':
@@ -93,6 +103,10 @@ class NotificationModel {
   // ============================================================
   Color get iconBackground {
     switch (type.toLowerCase()) {
+      case 'new_chat_message':
+      case 'chat':
+        return const Color(0xffE0F2FE); // Latar biru muda untuk chat
+
       case 'new_bid_received':
       case 'bid_received':
       case 'penawaran_baru':
@@ -150,9 +164,7 @@ class NotificationModel {
   // FROM JSON — untuk format Laravel Notification
   // ============================================================
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    // ---------------------------------------------------------
     // 1. Ambil data nested (Laravel taruh payload di 'data')
-    // ---------------------------------------------------------
     Map<String, dynamic> data = {};
     if (json['data'] is Map<String, dynamic>) {
       data = json['data'] as Map<String, dynamic>;
@@ -162,18 +174,13 @@ class NotificationModel {
       } catch (_) {}
     }
 
-    // ---------------------------------------------------------
     // 2. Extract type — prioritas dari data['type'],
-    //    fallback dari class name (App\Notifications\NewBidReceived → new_bid_received)
-    // ---------------------------------------------------------
     String type = data['type']?.toString() ?? '';
     if (type.isEmpty) {
       type = _extractTypeFromClass(json['type']?.toString() ?? '');
     }
 
-    // ---------------------------------------------------------
     // 3. Title & message
-    // ---------------------------------------------------------
     final String title = data['title']?.toString() ??
         data['judul']?.toString() ??
         _defaultTitle(type);
@@ -183,18 +190,20 @@ class NotificationModel {
         data['pesan']?.toString() ??
         '-';
 
-    // ---------------------------------------------------------
     // 4. Tanggal
-    // ---------------------------------------------------------
     final dynamic rawDate = json['created_at'] ?? json['createdAt'];
     final DateTime? createdAt = rawDate == null
         ? null
         : DateTime.tryParse(rawDate.toString());
 
-    // ---------------------------------------------------------
     // 5. is_read
-    // ---------------------------------------------------------
     final bool isRead = json['read_at'] != null;
+
+    // 6. Ambil jobId dari data
+    int? jobId;
+    if (data['job_id'] != null) {
+      jobId = int.tryParse(data['job_id'].toString());
+    }
 
     return NotificationModel(
       id: json['id']?.toString() ?? '',
@@ -203,20 +212,18 @@ class NotificationModel {
       message: message,
       createdAt: createdAt,
       isRead: isRead,
+      jobId: jobId, // <-- MASUKKAN KE SINI
     );
   }
 
   // ============================================================
   // HELPER: Extract type dari class name Laravel
-  // "App\\Notifications\\NewBidReceived" → "new_bid_received"
   // ============================================================
   static String _extractTypeFromClass(String fullClass) {
     if (fullClass.isEmpty) return 'info';
 
-    // Ambil bagian setelah '\' terakhir
     final className = fullClass.split('\\').last;
 
-    // Convert PascalCase → snake_case
     final snake = className
         .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]}_${m[2]}')
         .toLowerCase();
@@ -229,6 +236,9 @@ class NotificationModel {
   // ============================================================
   static String _defaultTitle(String type) {
     switch (type.toLowerCase()) {
+      case 'new_chat_message':
+      case 'chat':
+        return 'Pesan Baru';
       case 'new_bid_received':
       case 'bid_received':
         return 'Penawaran Baru';
@@ -247,9 +257,3 @@ class NotificationModel {
     }
   }
 }
-
-// // Helper kecil untuk decode JSON di dalam model
-// dynamic jsonDecode(String s) {
-//   // Import di atas sudah include dart:convert
-//   return const JsonCodec().decode(s);
-// }

@@ -98,8 +98,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
-          _error =
-              decoded['message']?.toString() ?? 'Gagal memuat pembayaran.';
+          _error = decoded['message']?.toString() ?? 'Gagal memuat pembayaran.';
         });
         return;
       }
@@ -115,12 +114,10 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
 
         _payments = decoded['data'] is List
             ? (decoded['data'] as List)
-                .map(
-                  (e) => PaymentModel.fromJson(
-                    Map<String, dynamic>.from(e),
-                  ),
-                )
-                .toList()
+                  .map(
+                    (e) => PaymentModel.fromJson(Map<String, dynamic>.from(e)),
+                  )
+                  .toList()
             : [];
 
         _currentPage = 1;
@@ -194,18 +191,16 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
   Future<void> _openPaymentDetail(PaymentModel payment) async {
     final t = theme;
 
+    // Tampilkan loading
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) {
-        return Center(
-          child: CircularProgressIndicator(color: t.accent),
-        );
+        return Center(child: CircularProgressIndicator(color: t.accent));
       },
     );
 
-    final detailData =
-        await PaymentService.getAdminPaymentDetail(payment.id);
+    final detailData = await PaymentService.getAdminPaymentDetail(payment.id);
 
     if (!mounted) return;
     Navigator.pop(context);
@@ -213,51 +208,59 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     PaymentModel paymentToUse = payment;
 
     if (detailData != null && detailData['payment'] is Map) {
-      final parsed = PaymentModel.fromJson(
-        Map<String, dynamic>.from(detailData['payment']),
-      );
+      try {
+        final parsed = PaymentModel.fromJson(
+          Map<String, dynamic>.from(detailData['payment']),
+        );
 
-      Map<String, dynamic>? bankMap;
+        Map<String, dynamic>? bankMap;
+        if (detailData['transfer_to'] is Map) {
+          bankMap = Map<String, dynamic>.from(detailData['transfer_to']);
+        }
 
-      if (detailData['transfer_to'] is Map) {
-        bankMap = Map<String, dynamic>.from(detailData['transfer_to']);
+        paymentToUse = PaymentModel(
+          id: parsed.id,
+          jobId: parsed.jobId,
+          pelangganId: parsed.pelangganId,
+          mitraId: parsed.mitraId,
+          jobAmount: parsed.jobAmount,
+          commissionPercent: parsed.commissionPercent,
+          commissionAmount: parsed.commissionAmount,
+          totalPaid: parsed.totalPaid,
+          mitraEarning: parsed.mitraEarning,
+          status: parsed.status,
+          paymentMethod: parsed.paymentMethod,
+          referenceCode: parsed.referenceCode,
+          customerProofUrl: parsed.customerProofUrl,
+          customerProofUploadedAt: parsed.customerProofUploadedAt,
+          customerBankName: parsed.customerBankName,
+          customerAccountName: parsed.customerAccountName,
+          mitraProofUrl: parsed.mitraProofUrl,
+          mitraProofUploadedAt: parsed.mitraProofUploadedAt,
+          adminNote: parsed.adminNote,
+          mitraBank: bankMap ?? parsed.mitraBank,
+          paidAt: parsed.paidAt,
+          settledAt: parsed.settledAt,
+          createdAt: parsed.createdAt,
+          jobTitle: parsed.jobTitle,
+          mitraName: parsed.mitraName,
+          pelangganName: parsed.pelangganName,
+        );
+      } catch (e) {
+        debugPrint('❌ ERROR PARSING PAYMENT DETAIL: $e');
+        // fallback ke payment awal
       }
-
-      paymentToUse = PaymentModel(
-        id: parsed.id,
-        jobId: parsed.jobId,
-        pelangganId: parsed.pelangganId,
-        mitraId: parsed.mitraId,
-        jobAmount: parsed.jobAmount,
-        commissionPercent: parsed.commissionPercent,
-        commissionAmount: parsed.commissionAmount,
-        totalPaid: parsed.totalPaid,
-        mitraEarning: parsed.mitraEarning,
-        status: parsed.status,
-        paymentMethod: parsed.paymentMethod,
-        referenceCode: parsed.referenceCode,
-        customerProofUrl: parsed.customerProofUrl,
-        customerProofUploadedAt: parsed.customerProofUploadedAt,
-        customerBankName: parsed.customerBankName,
-        customerAccountName: parsed.customerAccountName,
-        mitraProofUrl: parsed.mitraProofUrl,
-        mitraProofUploadedAt: parsed.mitraProofUploadedAt,
-        adminNote: parsed.adminNote,
-        mitraBank: bankMap ?? parsed.mitraBank,
-        paidAt: parsed.paidAt,
-        settledAt: parsed.settledAt,
-        createdAt: parsed.createdAt,
-        jobTitle: parsed.jobTitle,
-        mitraName: parsed.mitraName,
-        pelangganName: parsed.pelangganName,
-      );
     }
 
+    // ✅ FIX: bungkus dengan AdminThemeProvider
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) {
-        return AdminPaymentDetailDialog(payment: paymentToUse);
+      builder: (dialogContext) {
+        return AdminThemeProvider(
+          theme: t,
+          child: AdminPaymentDetailDialog(payment: paymentToUse),
+        );
       },
     );
 
@@ -347,8 +350,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             final isMobile = width < _mobileBreakpoint;
             final isTablet = width >= _mobileBreakpoint && width < 1100;
 
-            final horizontalPadding =
-                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final horizontalPadding = isMobile
+                ? 16.0
+                : (isTablet ? 24.0 : 28.0);
             final verticalPadding = isMobile ? 16.0 : 28.0;
 
             return SingleChildScrollView(
@@ -381,9 +385,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                     if (_filteredPayments.isEmpty)
                       _buildEmptyState()
                     else ...[
-                      isMobile
-                          ? _buildMobileList()
-                          : _buildDesktopTable(),
+                      isMobile ? _buildMobileList() : _buildDesktopTable(),
                       _buildPagination(isMobile),
                     ],
                   ],
@@ -446,8 +448,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
       ),
       _summaryCard(
         title: 'Total ke Mitra',
-        value:
-            PaymentModel.formatRupiah(summary?.totalMitraEarning ?? 0),
+        value: PaymentModel.formatRupiah(summary?.totalMitraEarning ?? 0),
         icon: Icons.handshake_outlined,
         color: t.accent,
       ),
@@ -628,10 +629,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           _buildStatusDropdown(),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 5,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: t.accent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
@@ -661,11 +659,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         borderRadius: BorderRadius.circular(_radius),
         icon: Padding(
           padding: const EdgeInsets.only(left: 4),
-          child: Icon(
-            Icons.keyboard_arrow_down,
-            size: 18,
-            color: t.headerText,
-          ),
+          child: Icon(Icons.keyboard_arrow_down, size: 18, color: t.headerText),
         ),
         style: TextStyle(
           fontSize: 13,
@@ -734,8 +728,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
               fontWeight: FontWeight.w500,
               color: t.headerText,
             ),
-            headingRowColor:
-                WidgetStateProperty.all(AppColors.grey50),
+            headingRowColor: WidgetStateProperty.all(AppColors.grey50),
             dividerThickness: 0.6,
             columns: const [
               DataColumn(label: Text('ID TRANSAKSI')),
@@ -773,10 +766,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.pelangganName ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: t.cellText,
-                        ),
+                        style: TextStyle(fontSize: 13, color: t.cellText),
                       ),
                     ),
                   ),
@@ -787,10 +777,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                         payment.mitraName ?? '-',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: t.cellText,
-                        ),
+                        style: TextStyle(fontSize: 13, color: t.cellText),
                       ),
                     ),
                   ),
@@ -806,9 +793,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   ),
                   DataCell(
                     Text(
-                      PaymentModel.formatRupiah(
-                        payment.commissionAmount,
-                      ),
+                      PaymentModel.formatRupiah(payment.commissionAmount),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -863,19 +848,11 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         ),
         if (payment.canVerifyCustomerProof) ...[
           const SizedBox(width: 6),
-          const Icon(
-            Icons.fiber_new,
-            color: AppColors.purple,
-            size: 18,
-          ),
+          const Icon(Icons.fiber_new, color: AppColors.purple, size: 18),
         ],
         if (payment.canSettleToMitra) ...[
           const SizedBox(width: 6),
-          const Icon(
-            Icons.priority_high,
-            color: AppColors.infoBlue,
-            size: 18,
-          ),
+          const Icon(Icons.priority_high, color: AppColors.infoBlue, size: 18),
         ],
       ],
     );
@@ -895,8 +872,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -905,9 +881,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: fgColor,
-                    ),
+                  fontWeight: FontWeight.w600,
+                  color: fgColor,
+                ),
               ),
             ],
           ),
@@ -1093,10 +1069,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
                   height: 42,
                   child: OutlinedButton.icon(
                     onPressed: () => _openPaymentDetail(payment),
-                    icon: const Icon(
-                      Icons.visibility_outlined,
-                      size: 16,
-                    ),
+                    icon: const Icon(Icons.visibility_outlined, size: 16),
                     label: const Text(
                       'Lihat Detail',
                       style: TextStyle(
@@ -1136,10 +1109,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           width: 80,
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: t.mutedText,
-            ),
+            style: TextStyle(fontSize: 12, color: t.mutedText),
           ),
         ),
         const SizedBox(width: 6),
@@ -1169,13 +1139,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: t.mutedText,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: t.mutedText)),
         const SizedBox(width: 10),
         Flexible(
           child: Text(
@@ -1398,10 +1362,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
             color: t.cellText,
           ),
           items: _itemsPerPageOptions.map((value) {
-            return DropdownMenuItem<int>(
-              value: value,
-              child: Text('$value'),
-            );
+            return DropdownMenuItem<int>(value: value, child: Text('$value'));
           }).toList(),
           onChanged: (value) {
             if (value == null) return;
@@ -1433,9 +1394,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: enabled ? AppColors.grey300 : t.border,
-            ),
+            border: Border.all(color: enabled ? AppColors.grey300 : t.border),
           ),
           child: Icon(
             icon,
@@ -1468,11 +1427,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           Text(
             _error ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: t.danger,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: TextStyle(color: t.danger, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -1517,10 +1472,7 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           Text(
             'Tidak ada data pembayaran.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: t.mutedText,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: t.mutedText, fontSize: 13),
           ),
         ],
       ),

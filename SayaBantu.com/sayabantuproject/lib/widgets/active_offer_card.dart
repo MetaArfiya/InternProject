@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/active_offer_model.dart';
 import '../sections/partner/completion_proof_dialog.dart';
+import '../sections/partner/partner_tracking_page.dart'; // ← NEW
 import '../theme/app_colors.dart';
 
 // ================================================================
@@ -49,7 +50,7 @@ TableRow buildActiveOfferRow(
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryTeal, // ← teal
+            color: AppColors.primaryTeal,
           ),
         ),
       ),
@@ -94,7 +95,6 @@ Widget _buildRanking(ActiveOfferModel offer) {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            // ✅ tetap hijau (konotasi "top")
             color: const Color(0xffDCFCE7),
             borderRadius: BorderRadius.circular(20),
           ),
@@ -125,23 +125,19 @@ Widget _buildStatus(ActiveOfferModel offer) {
   String text;
 
   if (completed) {
-    // ✅ tetap biru (konotasi "selesai")
     backgroundColor = const Color(0xffDBEAFE);
     textColor = const Color(0xff2563EB);
     text = 'Selesai';
   } else if (waiting) {
-    // ✅ tetap amber (konotasi "menunggu")
     backgroundColor = const Color(0xffFEF3C7);
     textColor = const Color(0xffB45309);
     text = 'Menunggu Konfirmasi';
   } else if (isWorking) {
-    // ✅ tetap hijau (konotasi "aktif")
     backgroundColor = const Color(0xffDCFCE7);
     textColor = const Color(0xff15803D);
     text = 'Sedang Dikerjakan';
   } else {
-    // ✅ default → teal soft (dari grey)
-    backgroundColor = AppColors.mint.withValues(alpha:0.20);
+    backgroundColor = AppColors.mint.withValues(alpha: 0.20);
     textColor = AppColors.primaryTeal;
     text = 'Menunggu';
   }
@@ -202,7 +198,7 @@ Widget _buildProofButton(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: AppColors.primaryTeal.withValues(alpha:0.15),
+              color: AppColors.primaryTeal.withValues(alpha: 0.15),
             ),
             color: AppColors.grey50,
           ),
@@ -247,10 +243,10 @@ Widget _buildProofButton(
       width: 130,
       height: 75,
       decoration: BoxDecoration(
-        color: AppColors.mint.withValues(alpha:0.10), // ← teal soft
+        color: AppColors.mint.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.20),
+          color: AppColors.primaryTeal.withValues(alpha: 0.20),
         ),
       ),
       child: Column(
@@ -259,13 +255,13 @@ Widget _buildProofButton(
           const Icon(
             Icons.image_outlined,
             size: 26,
-            color: AppColors.primaryTeal, // ← teal
+            color: AppColors.primaryTeal,
           ),
           const SizedBox(height: 4),
           const Text(
             'Upload Bukti',
             style: TextStyle(
-              color: AppColors.primaryTeal, // ← teal
+              color: AppColors.primaryTeal,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -396,19 +392,16 @@ Widget _buildApproval(ActiveOfferModel offer) {
   Color textColor;
 
   if (offer.status == 'Selesai') {
-    // ✅ tetap hijau (konotasi "sudah ACC")
     text = 'Sudah ACC';
     backgroundColor = const Color(0xffDCFCE7);
     textColor = const Color(0xff15803D);
   } else if (offer.status == 'Menunggu Konfirmasi Selesai') {
-    // ✅ tetap amber (konotasi "menunggu")
     text = 'Menunggu ACC';
     backgroundColor = const Color(0xffFEF3C7);
     textColor = const Color(0xffB45309);
   } else {
-    // ✅ default → teal soft (dari grey)
     text = 'Belum ACC';
-    backgroundColor = AppColors.mint.withValues(alpha:0.15);
+    backgroundColor = AppColors.mint.withValues(alpha: 0.15);
     textColor = AppColors.primaryTeal;
   }
 
@@ -433,7 +426,7 @@ Widget _buildApproval(ActiveOfferModel offer) {
 }
 
 // ================================================================
-// AKSI
+// AKSI — dengan tombol Mulai Perjalanan
 // ================================================================
 Widget _buildAction(
   BuildContext context,
@@ -443,27 +436,65 @@ Widget _buildAction(
   final String? rawPath = offer.completionPhotoUrl ?? offer.proofImage;
   final bool hasProof = rawPath != null && rawPath.isNotEmpty;
 
-  // Sedang dikerjakan & belum ada bukti → tombol Upload Bukti
+  // Sedang dikerjakan & belum ada bukti → 2 tombol: Lacak + Selesai
   if (isWorking && !hasProof) {
-    return SizedBox(
-      height: 38,
-      child: ElevatedButton.icon(
-        onPressed: () => _showCompletionProofDialog(context, offer),
-        icon: const Icon(Icons.camera_alt_outlined, size: 17),
-        label: const Text(
-          'Pekerjaan Selesai',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryTeal, // ← dari hijau
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Tombol Mulai Perjalanan (buka peta tracking)
+        SizedBox(
+          height: 36,
+          child: ElevatedButton.icon(
+            onPressed: () => _openPartnerTracking(context, offer),
+            icon: const Icon(Icons.navigation_outlined, size: 15),
+            label: const Text(
+              'Mulai Perjalanan',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
           ),
         ),
-      ),
+
+        const SizedBox(height: 6),
+
+        // Tombol Pekerjaan Selesai (upload bukti)
+        SizedBox(
+          height: 36,
+          child: OutlinedButton.icon(
+            onPressed: () => _showCompletionProofDialog(context, offer),
+            icon: const Icon(Icons.camera_alt_outlined, size: 15),
+            label: const Text(
+              'Pekerjaan Selesai',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryTeal,
+              side: BorderSide(
+                color: AppColors.primaryTeal.withValues(alpha: 0.4),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -478,14 +509,30 @@ Widget _buildAction(
         style: TextStyle(fontSize: 12),
       ),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primaryTeal, // ← teal
+        foregroundColor: AppColors.primaryTeal,
         side: BorderSide(
-          color: AppColors.primaryTeal.withValues(alpha:0.4),
+          color: AppColors.primaryTeal.withValues(alpha: 0.4),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
+      ),
+    ),
+  );
+}
+
+// ================================================================
+// BUKA HALAMAN TRACKING MITRA
+// ================================================================
+void _openPartnerTracking(BuildContext context, ActiveOfferModel offer) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => PartnerTrackingPage(
+        jobId: offer.jobId,
+        jobCode: '#JOB-${offer.jobId}',
+        title: offer.title,
       ),
     ),
   );
@@ -523,7 +570,7 @@ Future<void> _showDetailTimeline(
                   const Icon(
                     Icons.timeline,
                     size: 22,
-                    color: AppColors.primaryTeal, // ← teal
+                    color: AppColors.primaryTeal,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -618,7 +665,7 @@ Future<void> _showDetailTimeline(
 
                     _timelineItem(
                       icon: Icons.verified_outlined,
-                      iconColor: AppColors.primaryTeal, // ← dari ungu
+                      iconColor: AppColors.primaryTeal,
                       title: 'Diverifikasi Pelanggan',
                       subtitle: 'Pelanggan menyetujui bukti (ACC)',
                       time: _formatDateTime(offer.completionVerifiedAt),
@@ -647,7 +694,7 @@ Future<void> _showDetailTimeline(
                           color: AppColors.grey50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.primaryTeal.withValues(alpha:0.10),
+                            color: AppColors.primaryTeal.withValues(alpha: 0.10),
                           ),
                         ),
                         child: Text(
@@ -674,9 +721,9 @@ Future<void> _showDetailTimeline(
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryTeal, // ← teal
+                    foregroundColor: AppColors.primaryTeal,
                     side: BorderSide(
-                      color: AppColors.primaryTeal.withValues(alpha:0.4),
+                      color: AppColors.primaryTeal.withValues(alpha: 0.4),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -744,7 +791,7 @@ Widget _timelineItem({
 }) {
   final Color finalColor = isActive ? iconColor : AppColors.grey400;
   final Color bgColor = isActive
-      ? iconColor.withValues(alpha:0.12)
+      ? iconColor.withValues(alpha: 0.12)
       : AppColors.grey100;
 
   return IntrinsicHeight(
@@ -768,7 +815,7 @@ Widget _timelineItem({
                   width: 2,
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   color: isActive
-                      ? iconColor.withValues(alpha:0.4)
+                      ? iconColor.withValues(alpha: 0.4)
                       : AppColors.grey200,
                 ),
               ),
@@ -881,7 +928,7 @@ Future<void> _showCompletionProofDialog(
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
       content: Text('Bukti pekerjaan berhasil dikirim.'),
-      backgroundColor: AppColors.primaryTeal, // ← dari hijau
+      backgroundColor: AppColors.primaryTeal,
       behavior: SnackBarBehavior.floating,
     ),
   );

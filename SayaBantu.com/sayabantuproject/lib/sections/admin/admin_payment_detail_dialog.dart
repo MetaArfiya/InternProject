@@ -278,10 +278,18 @@ class _AdminPaymentDetailDialogState
   // ============================================================
 
   Future<void> _settleToMitra() async {
+    final t = _themeOf(context);
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => UploadMitraProofDialog(payment: widget.payment),
+      builder: (dialogContext) {
+
+        return AdminThemeProvider(
+          theme: t,
+          child: UploadMitraProofDialog(payment: widget.payment),
+        );
+      },
     );
 
     if (result == true && mounted) {

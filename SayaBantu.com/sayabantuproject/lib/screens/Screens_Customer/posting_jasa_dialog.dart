@@ -379,6 +379,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       request.fields['address_detail'] = _detailAlamatController.text.trim();
       request.fields['latitude'] = _latitude!.toString();
       request.fields['longitude'] = _longitude!.toString();
+      request.fields['location_lat'] = _latitude!.toString();
+      request.fields['location_lng'] = _longitude!.toString();
 
       if (_pickedFile != null && _imageBytes != null) {
         request.files.add(

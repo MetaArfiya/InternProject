@@ -13,6 +13,9 @@ class ComplaintModel {
   final String? adminResponse;
   final DateTime? createdAt;
   final DateTime? handledAt;
+  final String? proofPhoto;
+  final String? proofPhotoUrl;
+
 
   ComplaintModel({
     required this.id,
@@ -27,6 +30,8 @@ class ComplaintModel {
     this.adminResponse,
     this.createdAt,
     this.handledAt,
+    this.proofPhoto,
+    this.proofPhotoUrl,
   });
 
   // ============================================================
@@ -83,6 +88,8 @@ class ComplaintModel {
       handledAt: json['handled_at'] != null
           ? DateTime.tryParse(json['handled_at'].toString())
           : null,
+      proofPhoto: json['proof_photo']?.toString(),
+      proofPhotoUrl: json['proof_photo_url']?.toString(),
     );
   }
 }

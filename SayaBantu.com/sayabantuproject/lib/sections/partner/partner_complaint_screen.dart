@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../models/complaint_model.dart';
 import '../../services/api_service.dart';
@@ -42,7 +44,6 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   static const double _fieldFontSize = 13;
   static const double _smallRadius = 12;
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
@@ -52,6 +53,12 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
   static const double _gapTitleToContent = 16;
+
+  // Base URL foto bukti — otomatis diturunkan dari ApiService.baseUrl
+  static final String _storageBaseUrl =
+      '${ApiService.baseUrl.replaceAll(RegExp(r'/api$'), '')}/storage';
+
+  final ImagePicker _imagePicker = ImagePicker();
 
   final List<String> _categories = const [
     'Aplikasi',
@@ -201,13 +208,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Menunggu':
-        return _accent; // teal
+        return _accent;
       case 'Diproses':
-        return AppColors.primaryTeal; // ← dari ungu
+        return AppColors.primaryTeal;
       case 'Selesai':
-        return const Color(0xFF16A34A); // hijau
+        return const Color(0xFF16A34A);
       case 'Ditolak':
-        return const Color(0xFFDC2626); // merah
+        return const Color(0xFFDC2626);
       default:
         return AppColors.grey500;
     }
@@ -234,7 +241,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -256,6 +263,28 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
+  // PROOF PHOTO HELPERS
+  // ============================================================
+
+  String? _getProofPhotoUrl(ComplaintModel c) {
+    final url = c.proofPhotoUrl;
+    if (url != null && url.trim().isNotEmpty && url != 'null') {
+      return url;
+    }
+
+    final path = c.proofPhoto;
+    if (path != null && path.trim().isNotEmpty && path != 'null') {
+      return '$_storageBaseUrl/$path';
+    }
+
+    return null;
+  }
+
+  bool _hasProofPhoto(ComplaintModel c) {
+    return _getProofPhotoUrl(c) != null;
+  }
+
+  // ============================================================
   // BUILD
   // ============================================================
 
@@ -264,7 +293,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.sectionAltLight, // ← mint muda
+      color: AppColors.sectionAltLight,
       child: RefreshIndicator(
         onRefresh: _loadComplaints,
         color: _accent,
@@ -370,7 +399,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accent, // ← teal
+        backgroundColor: _accent,
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(
@@ -430,19 +459,19 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         title: 'Total',
         value: '${_summary['total'] ?? 0}',
         icon: Icons.report_problem_outlined,
-        color: AppColors.primaryTeal, // ← dari biru
+        color: AppColors.primaryTeal,
       ),
       _summaryCard(
         title: 'Menunggu',
         value: '${_summary['menunggu'] ?? 0}',
         icon: Icons.access_time,
-        color: const Color(0xFFF59E0B), // amber
+        color: const Color(0xFFF59E0B),
       ),
       _summaryCard(
         title: 'Diproses',
         value: '${_summary['diproses'] ?? 0}',
         icon: Icons.sync,
-        color: AppColors.primaryTeal, // ← dari ungu
+        color: AppColors.primaryTeal,
       ),
       _summaryCard(
         title: 'Selesai',
@@ -496,11 +525,11 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withValues(alpha:0.03),
+            color: AppColors.darkTeal.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -512,7 +541,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha:0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
@@ -634,7 +663,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha:0.10),
+              color: _accent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -666,7 +695,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -712,7 +741,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha:0.10),
+              color: _accent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -720,10 +749,40 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: _accent, // ← teal
+                color: _accent,
               ),
             ),
           ),
+
+          // BADGE BUKTI FOTO
+          if (_hasProofPhoto(complaint)) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.image_outlined, size: 12, color: _accent),
+                  SizedBox(width: 4),
+                  Text(
+                    'Bukti foto tersedia',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: _accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 12),
           const Divider(height: 1, color: _tableDivider),
@@ -761,7 +820,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 11),
-                foregroundColor: _accent, // ← dari ungu
+                foregroundColor: _accent,
                 side: const BorderSide(color: AppColors.grey300),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -845,6 +904,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           Expanded(flex: 2, child: _headerCell(context, 'ID')),
           Expanded(flex: 4, child: _headerCell(context, 'Judul Laporan')),
           Expanded(flex: 3, child: _headerCell(context, 'Kategori')),
+          Expanded(flex: 2, child: _headerCell(context, 'Bukti')),
           Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
           Expanded(flex: 3, child: _headerCell(context, 'Status')),
           Expanded(flex: 2, child: _headerCell(context, 'Aksi')),
@@ -910,6 +970,49 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                 fontSize: 13,
               ),
             ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _hasProofPhoto(complaint)
+                ? GestureDetector(
+                    onTap: () => _showFullScreenImage(
+                      _getProofPhotoUrl(complaint)!,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        _getProofPhotoUrl(complaint)!,
+                        width: 52,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 52,
+                          height: 40,
+                          alignment: Alignment.center,
+                          color: AppColors.grey100,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            size: 14,
+                            color: AppColors.grey500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : Container(
+                    width: 52,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.grey50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 14,
+                      color: AppColors.grey400,
+                    ),
+                  ),
           ),
           Expanded(
             flex: 2,
@@ -1117,14 +1220,14 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.mint.withValues(alpha:0.20), // ← dari ungu
+        color: AppColors.mint.withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         'Hal $page / $totalPages',
         style: const TextStyle(
           fontWeight: FontWeight.w600,
-          color: AppColors.primaryTeal, // ← teal
+          color: AppColors.primaryTeal,
           fontSize: 12,
         ),
       ),
@@ -1141,6 +1244,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
 
     String selectedCategory = _categories.first;
     bool isSubmitting = false;
+    XFile? proofPhoto;
 
     showDialog(
       context: context,
@@ -1170,7 +1274,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: _accent.withValues(alpha:0.12),
+                              color: _accent.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -1213,16 +1317,15 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Info box → mint soft
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.mint.withValues(alpha:0.12),
+                                  color: AppColors.mint.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: AppColors.primaryTeal
-                                        .withValues(alpha:0.20),
+                                        .withValues(alpha: 0.20),
                                   ),
                                 ),
                                 child: const Row(
@@ -1302,6 +1405,23 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                       'Jelaskan detail masalah atau saran Anda...',
                                 ).copyWith(alignLabelWithHint: true),
                               ),
+
+                              const SizedBox(height: 14),
+
+                              _buildProofPhotoField(
+                                proofPhoto: proofPhoto,
+                                isSubmitting: isSubmitting,
+                                onPick: () async {
+                                  final picked = await _showPhotoSourceSheet(
+                                    context,
+                                  );
+                                  if (picked == null) return;
+                                  setDialogState(() => proofPhoto = picked);
+                                },
+                                onRemove: () {
+                                  setDialogState(() => proofPhoto = null);
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -1314,7 +1434,8 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: isSubmitting
-                                  ? null                                  : () => Navigator.pop(dialogContext),
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 46),
                                 foregroundColor: AppColors.grey700,
@@ -1367,6 +1488,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                         category: selectedCategory,
                                         title: title,
                                         description: desc,
+                                        proofPhoto: proofPhoto,
                                       );
 
                                       if (!dialogContext.mounted) return;
@@ -1380,7 +1502,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _accent, // ← teal
+                                backgroundColor: _accent,
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(0, 46),
                                 elevation: 0,
@@ -1414,6 +1536,253 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // PROOF PHOTO FIELD
+  // ============================================================
+
+  Widget _buildProofPhotoField({
+    required XFile? proofPhoto,
+    required bool isSubmitting,
+    required Future<void> Function() onPick,
+    required VoidCallback onRemove,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Bukti Foto',
+              style: TextStyle(
+                fontSize: _fieldFontSize,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey700,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Text(
+              '(opsional)',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.grey500,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (proofPhoto == null)
+          InkWell(
+            onTap: isSubmitting ? null : () => onPick(),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                vertical: 20,
+                horizontal: 12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.grey300,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 28,
+                    color: AppColors.grey500,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Tap untuk unggah bukti foto',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.grey600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'JPG, PNG, WEBP — maks 5MB',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: AppColors.grey400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: FutureBuilder<Uint8List>(
+                  future: proofPhoto.readAsBytes(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(
+                        width: double.infinity,
+                        height: 160,
+                        color: AppColors.grey50,
+                        alignment: Alignment.center,
+                        child: const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+                    return Image.memory(
+                      snapshot.data!,
+                      width: double.infinity,
+                      height: 160,
+                      fit: BoxFit.cover,
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Material(
+                  color: Colors.black54,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: isSubmitting ? null : onRemove,
+                    customBorder: const CircleBorder(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 6,
+                left: 6,
+                child: Material(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(6),
+                  child: InkWell(
+                    onTap: isSubmitting ? null : () => onPick(),
+                    borderRadius: BorderRadius.circular(6),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.refresh,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Ganti',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // PHOTO SOURCE SHEET
+  // ============================================================
+
+  Future<XFile?> _showPhotoSourceSheet(BuildContext context) async {
+    return showModalBottomSheet<XFile?>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grey300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Pilih Sumber Foto',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.grey900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: _accent,
+                ),
+                title: const Text('Dari Galeri'),
+                onTap: () async {
+                  final picked = await _imagePicker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 80,
+                    maxWidth: 1600,
+                  );
+                  if (!sheetContext.mounted) return;
+                  Navigator.pop(sheetContext, picked);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_camera_outlined,
+                  color: _accent,
+                ),
+                title: const Text('Dari Kamera'),
+                onTap: () async {
+                  final picked = await _imagePicker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 80,
+                    maxWidth: 1600,
+                  );
+                  if (!sheetContext.mounted) return;
+                  Navigator.pop(sheetContext, picked);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         );
       },
     );
@@ -1456,29 +1825,41 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
   }
 
   // ============================================================
-  // SUBMIT
+  // SUBMIT (MULTIPART)
   // ============================================================
 
   Future<bool> _submitComplaint({
     required String category,
     required String title,
     required String description,
+    XFile? proofPhoto,
   }) async {
     try {
-      final body = {
+      final fields = <String, String>{
         'category': category,
         'title': title,
         'description': description,
       };
 
-      final response = await ApiService.post('/complaints', body);
+      // Konversi XFile → Uint8List (untuk postMultipart)
+      Map<String, Uint8List>? files;
+      if (proofPhoto != null) {
+        final bytes = await proofPhoto.readAsBytes();
+        files = {'proof_photo': bytes};
+      }
+
+      final response = await ApiService.postMultipart(
+        '/complaints',
+        fields,
+        files: files,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return false;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Laporan berhasil dikirim. Terima kasih!'),
-            backgroundColor: AppColors.primaryTeal, // ← teal
+            backgroundColor: AppColors.primaryTeal,
           ),
         );
         return true;
@@ -1534,7 +1915,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: _accent.withValues(alpha:0.12),
+                          color: _accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -1583,6 +1964,17 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
                           _sectionLabel('Deskripsi'),
                           const SizedBox(height: 6),
                           _detailBox(complaint.description),
+
+                          // BUKTI FOTO
+                          if (_hasProofPhoto(complaint)) ...[
+                            const SizedBox(height: 16),
+                            _sectionLabel('Bukti Foto'),
+                            const SizedBox(height: 6),
+                            _buildProofImageDetail(
+                              _getProofPhotoUrl(complaint)!,
+                            ),
+                          ],
+
                           const SizedBox(height: 16),
                           _sectionLabel('Tanggapan Admin'),
                           const SizedBox(height: 6),
@@ -1614,6 +2006,119 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProofImageDetail(String url) {
+    return GestureDetector(
+      onTap: () => _showFullScreenImage(url),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              url,
+              width: double.infinity,
+              height: 180,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  height: 180,
+                  alignment: Alignment.center,
+                  color: AppColors.grey50,
+                  child: const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              },
+              errorBuilder: (_, __, ___) => Container(
+                height: 180,
+                width: double.infinity,
+                alignment: Alignment.center,
+                color: AppColors.grey50,
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.broken_image_outlined,
+                      color: AppColors.grey500,
+                      size: 32,
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Gagal memuat gambar',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Row(
+            children: [
+              Icon(Icons.open_in_full_rounded, size: 12, color: _accent),
+              SizedBox(width: 4),
+              Text(
+                'Tap untuk melihat ukuran penuh',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: _accent,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenImage(String url) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(8),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: Center(
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white70,
+                    size: 48,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1727,7 +2232,7 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent, // ← teal
+              backgroundColor: _accent,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1750,13 +2255,13 @@ class _PartnerComplaintScreenState extends State<PartnerComplaintScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha:0.1),
+              color: _accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.report_problem_outlined,
               size: 34,
-              color: _accent.withValues(alpha:0.7),
+              color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),

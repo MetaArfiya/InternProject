@@ -18,8 +18,8 @@ class jobs extends Model
         'location',
         'latitude',
         'longitude',
-        'location_lat',                 // ← TAMBAH INI
-        'location_lng',                 // ← TAMBAH INI
+        'location_lat',
+        'location_lng',     
         'location_description',
         'image_url',
         'initial_budget',

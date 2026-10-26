@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../models/partner_job_model.dart';
 import '../../widgets/partner_job_card.dart';
@@ -20,12 +21,26 @@ class PartnerDashboard extends StatefulWidget {
 }
 
 class _PartnerDashboardState extends State<PartnerDashboard> {
+  // ============================================================
+  // DATA
+  // ============================================================
+
   List<PartnerJobModel> _jobs = [];
   bool _isLoading = true;
   String _errorMessage = '';
 
   int _activeOffersCount = 0;
   int _userPoints = 0;
+
+  // ============================================================
+  // LOKASI & RADIUS
+  // ============================================================
+
+  double? _mitraLat;
+  double? _mitraLng;
+  bool _loadingLocation = false;
+  bool _locationDenied = false;
+  double _radiusKm = 5;
 
   // ============================================================
   // DESIGN TOKENS
@@ -36,24 +51,94 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
 
+  // ============================================================
+  // LIFECYCLE
+  // ============================================================
+
   @override
   void initState() {
     super.initState();
-    _fetchDashboardData();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _requestLocationAndFetch();
   }
 
   // ============================================================
-  // FETCH DATA
+  // AMBIL LOKASI + FETCH
   // ============================================================
 
-  Future<void> _fetchDashboardData() async {
+  Future<void> _requestLocationAndFetch() async {
+    if (!mounted) return;
     setState(() {
-      _isLoading = true;
-      _errorMessage = '';
+      _loadingLocation = true;
+      _locationDenied = false;
     });
 
     try {
-      final response = await ApiService.get('/mitra/available-jobs');
+      // 1. Cek izin lokasi
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        if (!mounted) return;
+        setState(() {
+          _loadingLocation = false;
+          _locationDenied = true;
+        });
+        // Fallback: fetch tanpa radius
+        await _fetchDashboardData();
+        return;
+      }
+
+      // 2. Ambil posisi
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _mitraLat = pos.latitude;
+        _mitraLng = pos.longitude;
+        _loadingLocation = false;
+      });
+
+      // 3. Fetch dengan radius
+      await _fetchDashboardData();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingLocation = false;
+        _locationDenied = true;
+      });
+      await _fetchDashboardData();
+    }
+  }
+
+  Future<void> _fetchDashboardData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+    }
+
+    try {
+      // Build endpoint dengan / tanpa radius
+      final String endpoint;
+      if (_mitraLat != null && _mitraLng != null) {
+        endpoint =
+            '/mitra/available-jobs?lat=$_mitraLat&lng=$_mitraLng&radius=$_radiusKm';
+      } else {
+        endpoint = '/mitra/available-jobs';
+      }
+
+      final response = await ApiService.get(endpoint);
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
@@ -83,8 +168,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
 
             if (decodedData is Map) {
               _activeOffersCount = int.tryParse(
-                    decodedData['active_offers_count']?.toString() ??
-                        '0',
+                    decodedData['active_offers_count']?.toString() ?? '0',
                   ) ??
                   0;
 
@@ -113,6 +197,14 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    if (_mitraLat == null || _mitraLng == null) {
+      await _requestLocationAndFetch();
+    } else {
+      await _fetchDashboardData(silent: true);
     }
   }
 
@@ -266,7 +358,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
       height: double.infinity,
       color: AppColors.sectionAltLight,
       child: RefreshIndicator(
-        onRefresh: _fetchDashboardData,
+        onRefresh: _onRefresh,
         color: _accent,
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -290,6 +382,10 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
                   _buildHeader(context),
 
                   const SizedBox(height: _gapAfterHeader),
+
+                  _buildLocationCard(),
+
+                  const SizedBox(height: _gapBetweenSections),
 
                   _buildStatRow(isMobile: isMobile),
 
@@ -338,17 +434,230 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   // ============================================================
+  // LOCATION + RADIUS CARD
+  // ============================================================
+
+  Widget _buildLocationCard() {
+    final hasLocation = _mitraLat != null && _mitraLng != null;
+
+    // -------- Belum ada lokasi --------
+    if (!hasLocation) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.amber.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.location_off_outlined,
+                color: AppColors.amber,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Lokasi Belum Aktif',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.grey900,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Aktifkan lokasi untuk melihat job terdekat dari kamu.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.grey600,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed:
+                  _loadingLocation ? null : _requestLocationAndFetch,
+              style: TextButton.styleFrom(
+                foregroundColor: _accent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+              child: _loadingLocation
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Aktifkan',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // -------- Sudah ada lokasi --------
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _accent.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(
+                  Icons.radar,
+                  color: _accent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Radius Pencarian',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Sesuaikan jangkauan job dari lokasimu',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_radiusKm.round()} km',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Slider
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: _accent,
+              thumbColor: _accent,
+              overlayColor: _accent.withValues(alpha: 0.15),
+              inactiveTrackColor: _accent.withValues(alpha: 0.15),
+              trackHeight: 4,
+            ),
+            child: Slider(
+              value: _radiusKm,
+              min: 1,
+              max: 20,
+              divisions: 19,
+              onChanged: (v) {
+                setState(() => _radiusKm = v);
+              },
+              onChangeEnd: (_) => _fetchDashboardData(silent: true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
   // SECTION TITLE
   // ============================================================
 
   Widget _buildSectionTitle(BuildContext context) {
-    return const Text(
-      'Daftar Lowongan',
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: AppColors.grey900,
-      ),
+    return Row(
+      children: [
+        const Text(
+          'Daftar Lowongan',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.grey900,
+          ),
+        ),
+        const SizedBox(width: 8),
+        if (_jobs.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${_jobs.length}',
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: _accent,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -496,12 +805,64 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     return Column(
       children: [
         for (int i = 0; i < _jobs.length; i++) ...[
-          PartnerJobCard(
-            job: _jobs[i],
-            onTakeOffer: () => _showTakeOfferConfirmation(_jobs[i]),
-          ),
+          _buildJobWithDistance(_jobs[i]),
           if (i != _jobs.length - 1) const SizedBox(height: 16),
         ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // JOB CARD + DISTANCE BADGE
+  // ============================================================
+
+  Widget _buildJobWithDistance(PartnerJobModel job) {
+    return Stack(
+      children: [
+        // Card asli
+        PartnerJobCard(
+          job: job,
+          onTakeOffer: () => _showTakeOfferConfirmation(job),
+        ),
+
+        // Badge jarak — overlay di kanan atas
+        if (job.distanceKm != null)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 9,
+                vertical: 5,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.success.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.near_me,
+                    size: 12,
+                    color: AppColors.success,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${job.distanceKm!.toStringAsFixed(1)} km',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -540,7 +901,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _fetchDashboardData,
+            onPressed: _bootstrap,
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
@@ -558,6 +919,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   }
 
   Widget _buildEmptyState() {
+    final hasLocation = _mitraLat != null && _mitraLng != null;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -571,20 +934,55 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.work_outline,
+              hasLocation ? Icons.search_off : Icons.work_outline,
               size: 34,
               color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Belum ada lowongan pekerjaan saat ini.',
+          Text(
+            hasLocation
+                ? 'Belum ada lowongan di radius ${_radiusKm.round()} km.'
+                : 'Belum ada lowongan pekerjaan saat ini.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.grey600,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.grey700,
             ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            hasLocation
+                ? 'Coba perbesar radius atau refresh untuk job baru.'
+                : 'Silakan cek lagi nanti.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.grey500,
+              height: 1.5,
+            ),
+          ),
+          if (hasLocation) ...[
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: _onRefresh,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accent,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
         ],
       ),
     );

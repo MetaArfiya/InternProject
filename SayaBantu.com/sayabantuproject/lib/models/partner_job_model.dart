@@ -13,6 +13,11 @@ class PartnerJobModel {
   final bool hasOffered;
   final String? imageUrl;
 
+  // ============================================================
+  // 🆕 FIELD BARU — Jarak dari mitra (km)
+  // ============================================================
+  final double? distanceKm;
+
   PartnerJobModel({
     required this.id,
     required this.title,
@@ -24,6 +29,7 @@ class PartnerJobModel {
     this.status = "open",
     this.hasOffered = false,
     this.imageUrl,
+    this.distanceKm,   // ← baru
   });
 
   // ============================================================
@@ -37,58 +43,20 @@ class PartnerJobModel {
 
     if (url.isEmpty) return null;
 
-    // ------------------------------------------------------------
-    // Jika Laravel sudah mengirim URL lengkap
-    // ------------------------------------------------------------
-
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
 
-    // ------------------------------------------------------------
-    // URL server Laravel
-    //
-    // Android Emulator:
-    // http://10.0.2.2:8000
-    //
-    // Jika menggunakan Chrome/Desktop:
-    // bisa diganti menjadi http://localhost:8000
-    // ------------------------------------------------------------
-
     const String serverUrl = 'http://localhost:8000';
 
-    // ------------------------------------------------------------
-    // Jika Laravel mengirim:
-    //
-    // /storage/jobs/nama-file.jpg
-    //
-    // menjadi:
-    //
-    // http://10.0.2.2:8000/api/images/jobs/nama-file.jpg
-    // ------------------------------------------------------------
-
     if (url.startsWith('/storage/jobs/')) {
-      final String filename =
-          url.substring('/storage/jobs/'.length);
-
+      final String filename = url.substring('/storage/jobs/'.length);
       return '$serverUrl/api/images/jobs/$filename';
     }
-
-    // ------------------------------------------------------------
-    // Jika hanya berupa path:
-    //
-    // /images/jobs/file.jpg
-    // ------------------------------------------------------------
 
     if (url.startsWith('/')) {
       return '$serverUrl$url';
     }
-
-    // ------------------------------------------------------------
-    // Jika Laravel hanya mengirim:
-    //
-    // jobs/file.jpg
-    // ------------------------------------------------------------
 
     return '$serverUrl/$url';
   }
@@ -97,22 +65,28 @@ class PartnerJobModel {
   // FROM JSON
   // ============================================================
 
-  factory PartnerJobModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final String? imageUrl =
-        _buildImageUrl(json['image_url']);
+  factory PartnerJobModel.fromJson(Map<String, dynamic> json) {
+    final String? imageUrl = _buildImageUrl(json['image_url']);
+
+    // ---- Parse distance_km (bisa null / int / double / string) ----
+    double? parsedDistance;
+    final rawDistance = json['distance_km'];
+    if (rawDistance != null) {
+      if (rawDistance is num) {
+        parsedDistance = rawDistance.toDouble();
+      } else {
+        parsedDistance = double.tryParse(rawDistance.toString());
+      }
+    }
 
     // Debug
     debugPrint('🖼️ PARTNER JOB ${json['id']}');
     debugPrint('🖼️ IMAGE DARI API: ${json['image_url']}');
     debugPrint('🌐 IMAGE URL FLUTTER: $imageUrl');
+    debugPrint('📏 DISTANCE: $parsedDistance km');
 
     return PartnerJobModel(
-      id: int.tryParse(
-            json['id']?.toString() ?? '0',
-          ) ??
-          0,
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
 
       title: json['title']?.toString() ??
           json['tittle']?.toString() ??
@@ -142,8 +116,7 @@ class PartnerJobModel {
 
       status: json['status']?.toString() ?? 'open',
 
-      hasOffered:
-          json['has_offered'] == true ||
+      hasOffered: json['has_offered'] == true ||
           json['has_offered'] == 1 ||
           json['has_offered'] == '1' ||
           json['has_offered'] == 'true' ||
@@ -153,6 +126,9 @@ class PartnerJobModel {
           json['hasOffered'] == 'true',
 
       imageUrl: imageUrl,
+
+      // 🆕
+      distanceKm: parsedDistance,
     );
   }
 
@@ -172,6 +148,7 @@ class PartnerJobModel {
       'status': status,
       'has_offered': hasOffered,
       'image_url': imageUrl,
+      'distance_km': distanceKm,
     };
   }
 }

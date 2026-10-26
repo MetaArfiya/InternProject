@@ -16,32 +16,43 @@ class Complaint extends Model
         'title',
         'description',
         'job_id',
+        'proof_photo',
         'status',
         'admin_response',
         'handled_by',
         'handled_at',
     ];
 
+    // Tidak perlu $appends kalau Flutter pakai proof_photo langsung
+    // Tapi kalau mau konsisten dengan pola photo_url user:
+    protected $appends = ['proof_photo_url'];
+
     protected $casts = [
         'handled_at' => 'datetime',
         'created_at' => 'datetime',
     ];
 
-    // Relasi: Pengadu
     public function user()
     {
         return $this->belongsTo(users::class, 'user_id');
     }
 
-    // Relasi: Job yang diadukan
     public function job()
     {
         return $this->belongsTo(jobs::class, 'job_id');
     }
 
-    // Relasi: Admin yang menangani
     public function handler()
     {
         return $this->belongsTo(users::class, 'handled_by');
+    }
+
+    /**
+     * Sama seperti users.photo_url: kirim path relatif saja.
+     * Flutter yang akan menggabungkan dengan baseUrl + /storage/
+     */
+    public function getProofPhotoUrlAttribute()
+    {
+        return $this->proof_photo;  // contoh: "complaints/xxx.png"
     }
 }

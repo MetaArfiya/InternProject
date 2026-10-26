@@ -6,6 +6,7 @@ import '../../models/notification_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/notification_card.dart';
+import '../shared/chat_page.dart'; // <-- PASTIKAN PATH INI BENAR (Sesuaikan dengan foldermu)
 
 class PartnerNotificationScreen extends StatefulWidget {
   const PartnerNotificationScreen({super.key});
@@ -24,9 +25,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
   // DESIGN TOKENS
   // ============================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
-
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
 
@@ -93,7 +92,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.sectionAltLight, // ← mint muda
+      color: AppColors.sectionAltLight,
       child: RefreshIndicator(
         onRefresh: _loadNotifications,
         color: _accent,
@@ -117,9 +116,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(context),
-
                   const SizedBox(height: _gapAfterHeader),
-
                   _buildContent(context),
                 ],
               ),
@@ -178,7 +175,25 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
     return Column(
       children: [
         for (int i = 0; i < _notifications.length; i++) ...[
-          PartnerNotificationCard(notification: _notifications[i]),
+          // GANTI MENJADI CompactNotificationCard DAN TAMBAHKAN onTap
+          CompactNotificationCard(
+            notification: _notifications[i],
+            onTap: () {
+              final notif = _notifications[i];
+              // Cek jika notifikasi bertipe chat dan ada jobId
+              if (notif.type == 'chat' && notif.jobId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatPage(
+                      jobId: notif.jobId!,
+                      title: 'Chat Koordinasi',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
           if (i != _notifications.length - 1)
             const SizedBox(height: _gapBetweenSections),
         ],
@@ -231,7 +246,7 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accent, // ← teal
+              backgroundColor: _accent,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -258,13 +273,13 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha:0.1),
+              color: _accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.notifications_none_outlined,
               size: 34,
-              color: _accent.withValues(alpha:0.7),
+              color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),

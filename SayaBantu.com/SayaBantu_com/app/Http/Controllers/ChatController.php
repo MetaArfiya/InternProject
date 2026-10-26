@@ -6,6 +6,7 @@ use App\Models\jobs;
 use App\Models\JobMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\Notification;
 
 class ChatController extends Controller
 {
@@ -28,21 +29,27 @@ class ChatController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        // ⚠️ JANGAN pakai 'role' di select — kolomnya tidak ada.
-        // Load relasi 'role' terpisah.
-        $messages = JobMessage::with(['sender:id,name,role_id', 'sender.role'])
+        // Tambahkan profile_photo ke dalam select sender
+        $messages = JobMessage::with(['sender:id,name,role_id,photo_profile', 'sender.role'])
             ->where('job_id', $jobId)
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($m) use ($user) {
+                // Buat URL lengkap untuk foto profil
+                $photoUrl = null;
+                if ($m->sender && $m->sender->photo_profile) {
+                    $photoUrl = url('/api/images/profile/' . basename($m->sender->photo_profile));
+                }
+
                 return [
-                    'id'          => $m->id,
-                    'message'     => $m->message,
-                    'is_mine'     => $m->sender_id === $user->id,
-                    'sender_name' => $m->sender->name ?? 'User',
-                    'sender_role' => $this->extractRoleName($m->sender),
-                    'time'        => $m->created_at->format('H:i'),
-                    'created_at'  => $m->created_at->toIso8601String(),
+                    'id'           => $m->id,
+                    'message'      => $m->message,
+                    'is_mine'      => $m->sender_id === $user->id,
+                    'sender_name'  => $m->sender->name ?? 'User',
+                    'sender_role'  => $this->extractRoleName($m->sender),
+                    'sender_photo' => $photoUrl, // <-- TAMBAHKAN INI
+                    'time'         => $m->created_at->format('H:i'),
+                    'created_at'   => $m->created_at->toIso8601String(),
                 ];
             });
 
@@ -52,7 +59,7 @@ class ChatController extends Controller
         ]);
     }
 
-    // POST /api/jobs/{id}/chat
+        // POST /api/jobs/{id}/chat
     public function store(Request $request, $jobId)
     {
         $request->validate([
@@ -75,17 +82,57 @@ class ChatController extends Controller
             'message'   => $request->message,
         ]);
 
+        // ========================================================
+        // 🆕 TAMBAHKAN BLOK INI UNTUK NOTIFIKASI CHAT
+        // ========================================================
+        $roleRaw = $user->role ?? null;
+        $roleName = is_object($roleRaw) ? ($roleRaw->role_name ?? '') : (string) $roleRaw;
+        $role = strtolower(trim($roleName));
+
+        $receiverId = null;
+        if ($role === 'pelanggan') {
+            $receiverId = $job->mitra_id;
+        } elseif ($role === 'mitra') {
+            $receiverId = $job->pelanggan_id;
+        }
+
+        if ($receiverId) {
+            // Menggunakan Query Builder untuk menyisipkan ke tabel notifications Laravel
+            \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                'id' => (string) \Illuminate\Support\Str::uuid(), // Laravel notif butuh UUID untuk ID
+                'type' => 'App\Notifications\NewChatMessage', // Bebas mau diisi apa
+                'notifiable_type' => 'App\Models\users', // Sesuaikan dengan model user kamu
+                'notifiable_id' => $receiverId,
+                'data' => json_encode([
+                    'job_id' => $jobId,
+                    'message' => $user->name . ' mengirim pesan: "' . substr($request->message, 0, 30) . '..."',
+                    'type' => 'chat',
+                ]),
+                'read_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        // ========================================================
+
+        // Buat URL lengkap untuk foto profil pengirim
+        $photoUrl = null;
+        if ($user->photo_profile) {
+            $photoUrl = url('/api/images/profile/' . basename($user->photo_profile));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Pesan terkirim.',
             'data'    => [
-                'id'          => $msg->id,
-                'message'     => $msg->message,
-                'is_mine'     => true,
-                'sender_name' => $user->name,
-                'sender_role' => $this->extractRoleName($user),
-                'time'        => $msg->created_at->format('H:i'),
-                'created_at'  => $msg->created_at->toIso8601String(),
+                'id'           => $msg->id,
+                'message'      => $msg->message,
+                'is_mine'      => true,
+                'sender_name'  => $user->name,
+                'sender_role'  => $this->extractRoleName($user),
+                'sender_photo' => $photoUrl, 
+                'time'         => $msg->created_at->format('H:i'),
+                'created_at'   => $msg->created_at->toIso8601String(),
             ],
         ]);
     }

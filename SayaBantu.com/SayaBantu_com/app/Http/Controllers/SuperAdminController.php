@@ -65,7 +65,7 @@ class SuperAdminController extends Controller
                 'title' => 'Menambahkan admin baru',
 
                 'detail' =>
-                    'Menambahkan akun admin ' . $admin->name,
+                'Menambahkan akun admin ' . $admin->name,
 
                 'icon' => 'person_add',
 
@@ -77,7 +77,7 @@ class SuperAdminController extends Controller
             'success' => true,
 
             'message' =>
-                'Akun Admin baru berhasil dibuat oleh Super Admin!',
+            'Akun Admin baru berhasil dibuat oleh Super Admin!',
 
             'data' => [
                 'id' => $admin->id,
@@ -114,7 +114,6 @@ class SuperAdminController extends Controller
                 'message' => 'Pengaturan sistem berhasil diambil.',
                 'data' => $setting,
             ], 200);
-
         } catch (\Exception $e) {
 
             return response()->json([
@@ -191,7 +190,6 @@ class SuperAdminController extends Controller
 
                 $setting->platform_commission_percent =
                     $validated['platform_commission_percent'];
-
             } else {
 
                 // ==================================================
@@ -234,7 +232,7 @@ class SuperAdminController extends Controller
                     'title' => 'Mengubah pengaturan sistem',
 
                     'detail' =>
-                        'Pengaturan sistem berhasil diperbarui.',
+                    'Pengaturan sistem berhasil diperbarui.',
 
                     'icon' => 'settings',
 
@@ -259,7 +257,6 @@ class SuperAdminController extends Controller
                 'message' => 'Pengaturan sistem berhasil diperbarui.',
                 'data' => $setting,
             ], 200);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
 
             return response()->json([
@@ -267,7 +264,6 @@ class SuperAdminController extends Controller
                 'message' => 'Data pengaturan tidak valid.',
                 'errors' => $e->errors(),
             ], 422);
-
         } catch (\Exception $e) {
 
             return response()->json([
@@ -432,6 +428,7 @@ class SuperAdminController extends Controller
      */
     public function getAdmins()
     {
+        // Tambahkan 'photo_profile' ke dalam select
         $admins = users::where('role_id', 2)
             ->latest()
             ->get([
@@ -442,7 +439,28 @@ class SuperAdminController extends Controller
                 'is_active',
                 'last_login_at',
                 'created_at',
-            ]);
+                'photo_profile', // <-- TAMBAHKAN INI
+            ])
+            ->map(function ($admin) {
+                // Buat URL lengkap untuk foto profil
+                $photoUrl = null;
+                if ($admin->photo_profile) {
+                    // Menggunakan basename() agar path-nya tidak dobel
+                    $photoUrl = url('/api/images/profile/' . basename($admin->photo_profile));
+                }
+
+                // Kembalikan data dengan tambahan photo_url
+                return [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'email' => $admin->email,
+                    'phone' => $admin->phone,
+                    'is_active' => $admin->is_active,
+                    'last_login_at' => $admin->last_login_at,
+                    'created_at' => $admin->created_at,
+                    'photo_url' => $photoUrl, // <-- KIRIM KE FLUTTER
+                ];
+            });
 
         return response()->json([
             'success' => true,
@@ -509,7 +527,6 @@ class SuperAdminController extends Controller
                 $detail = 'Menonaktifkan akun admin ' . $admin->name;
                 $icon = 'block';
             }
-
         } else {
 
             $title = 'Mengubah data admin';
@@ -597,7 +614,7 @@ class SuperAdminController extends Controller
                 'title' => 'Menghapus admin',
 
                 'detail' =>
-                    'Menghapus akun admin ' . $adminName,
+                'Menghapus akun admin ' . $adminName,
 
                 'icon' => 'delete',
 
@@ -608,10 +625,10 @@ class SuperAdminController extends Controller
         return response()->json([
             'success' => true,
             'message' =>
-                'Akun Admin berhasil dihapus dari sistem secara permanen.'
+            'Akun Admin berhasil dihapus dari sistem secara permanen.'
         ], 200);
     }
-        /**
+    /**
      * =========================================================
      * SUPER ADMIN — Daftar Mitra Aktif (sedang bekerja)
      * GET /superadmin/active-partners
@@ -625,8 +642,9 @@ class SuperAdminController extends Controller
     {
         try {
             $jobs = \App\Models\jobs::with([
-                    'mitra:id,name,email,phone',
-                ])
+                // Tambahkan photo_profile di sini
+                'mitra:id,name,email,phone,photo_profile',
+            ])
                 ->whereIn('status', [
                     'Sedang Dikerjakan',
                     'Menunggu Konfirmasi Selesai',
@@ -638,17 +656,24 @@ class SuperAdminController extends Controller
             $data = $jobs->map(function ($job) {
                 $mitra = $job->mitra;
 
+                // Buat URL foto profil
+                $photoUrl = null;
+                if ($mitra && $mitra->photo_profile) {
+                    $photoUrl = url('/api/images/profile/' . basename($mitra->photo_profile));
+                }
+
                 return [
                     'id'            => $job->id,
                     'mitra_id'      => $job->mitra_id,
                     'name'          => $mitra?->name ?? 'Mitra',
                     'email'         => $mitra?->email ?? '-',
                     'phone'         => $mitra?->phone ?? '-',
+                    'photo_url'     => $photoUrl, // <-- TAMBAHKAN INI
                     'job_title'     => $job->tittle ?? '-',
                     'job_id'        => $job->id,
                     'location'      => $job->location ?? '-',
                     'status'        => $job->status,
-                    'started_at' => $job->started_at,
+                    'started_at'    => $job->started_at,
                     'final_price'   => $job->final_price,
                 ];
             });
@@ -659,7 +684,6 @@ class SuperAdminController extends Controller
                 'total'   => $data->count(),
                 'data'    => $data,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('SuperAdminController@activePartners: ' . $e->getMessage());
 

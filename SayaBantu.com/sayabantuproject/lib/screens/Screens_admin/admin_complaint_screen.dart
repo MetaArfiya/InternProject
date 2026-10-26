@@ -1,6 +1,12 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+
+// 🔥 Import khusus Web untuk bypass CORS
+import 'dart:ui_web' as ui_web;
+import 'package:web/web.dart' as web;
 
 import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
@@ -30,6 +36,20 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   static const double _gapBetweenSections = 16;
   static const double _cardRadius = 14;
   static const double _radius = 10;
+
+  /// Base URL storage yang otomatis menyesuaikan platform.
+  /// Kembali menggunakan /storage karena route /api/images/complaints tidak ada (404).
+  static String get _storageBaseUrl {
+    if (kIsWeb) return 'http://127.0.0.1:8000/storage';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:8000/storage';
+    } catch (_) {}
+    return 'http://127.0.0.1:8000/storage';
+  }
+
+  /// Cache buster per sesi — mencegah browser memakai cache negatif.
+  late final String _cacheBuster =
+      DateTime.now().millisecondsSinceEpoch.toString();
 
   // ============================================================
   // STATE
@@ -66,6 +86,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   void initState() {
     super.initState();
     debugPrint('🔥 ADMIN COMPLAINT SCREEN INIT');
+    debugPrint('🧹 CACHE BUSTER: $_cacheBuster');
     _loadComplaints();
   }
 
@@ -279,6 +300,43 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   }
 
   // ============================================================
+  // PROOF PHOTO HELPERS
+  // ============================================================
+
+  String? _getProofPhotoUrl(Map<String, dynamic> c) {
+    final url = c['proof_photo_url']?.toString().trim();
+    if (url != null && url.isNotEmpty && url != 'null') {
+      return _buildStorageUrl(url);
+    }
+
+    final path = c['proof_photo']?.toString().trim();
+    if (path != null && path.isNotEmpty && path != 'null') {
+      return _buildStorageUrl(path);
+    }
+
+    return null;
+  }
+
+  String _buildStorageUrl(String rawPath) {
+    var p = rawPath.trim();
+
+    if (p.startsWith('http://') || p.startsWith('https://')) {
+      return _withCacheBuster(p);
+    }
+
+    if (p.startsWith('/')) p = p.substring(1);
+    if (p.startsWith('storage/')) p = p.substring('storage/'.length);
+
+    return _withCacheBuster('$_storageBaseUrl/$p');
+  }
+
+  String _withCacheBuster(String url) {
+    if (url.contains('?v=')) return url;
+    final sep = url.contains('?') ? '&' : '?';
+    return '$url${sep}v=$_cacheBuster';
+  }
+
+  // ============================================================
   // FILTER
   // ============================================================
 
@@ -324,9 +382,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(context),
-
                   const SizedBox(height: _gapAfterHeader),
-
                   if (_isLoading)
                     Padding(
                       padding:
@@ -415,7 +471,6 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       ),
     ];
 
-    // MOBILE — 2 kolom x 2
     if (isMobile) {
       return Column(
         children: [
@@ -438,7 +493,6 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       );
     }
 
-    // TABLET — 2 kolom x 2
     if (isTablet) {
       return Column(
         children: [
@@ -461,7 +515,6 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       );
     }
 
-    // DESKTOP — 4 kolom
     return Row(
       children: [
         for (int i = 0; i < cards.length; i++) ...[
@@ -482,7 +535,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
         border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha:0.03),
+            color: AppColors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -494,7 +547,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: data.color.withValues(alpha:0.12),
+              color: data.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(data.icon, color: data.color, size: 21),
@@ -562,21 +615,18 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FILTER BAR
           _buildFilterBar(context),
 
           const SizedBox(height: 14),
           Divider(height: 1, color: t.divider),
           const SizedBox(height: 14),
 
-          // SECTION TITLE
           _buildSectionTitle(context),
 
           const SizedBox(height: 16),
           Divider(height: 1, color: t.divider),
           const SizedBox(height: 14),
 
-          // LIST / TABLE
           if (_filteredComplaints.isEmpty)
             _buildEmptyState(context)
           else if (isMobile)
@@ -632,7 +682,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             vertical: 6,
           ),
           decoration: BoxDecoration(
-            color: t.accent.withValues(alpha:0.10),
+            color: t.accent.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -724,6 +774,81 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   }
 
   // ============================================================
+  // IMAGE WIDGET (BYPASS CORS DI WEB)
+  // ============================================================
+
+  Widget _proofImage({
+    required String url,
+    required double width,
+    required double height,
+    required AdminTheme t,
+    required String tag,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    assert(width.isFinite, 'Width must be finite');
+    assert(height.isFinite, 'Height must be finite');
+
+    // 🔥 JIKA DI WEB: Gunakan HTML <img> (Bebas CORS 100%)
+    if (kIsWeb) {
+      // Buat ID unik berdasarkan URL dan ukuran
+      final viewType = 'img-${url.hashCode}-${width.toInt()}-${height.toInt()}';
+      
+      ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+        final img = web.HTMLImageElement()
+          ..src = url
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..style.objectFit = 'cover'
+          ..style.borderRadius = '6px';
+        return img;
+      });
+
+      return SizedBox(
+        width: width,
+        height: height,
+        child: HtmlElementView(viewType: viewType),
+      );
+    }
+
+    // 🔥 JIKA DI MOBILE/DESKTOP: Gunakan Image.network biasa
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Image.network(
+        url,
+        width: width,
+        height: height,
+        fit: fit,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: AppColors.grey100,
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('❌ IMAGE FAIL ($tag): $url');
+          debugPrint('❌ REASON ($tag): $error');
+          return Container(
+            color: AppColors.grey100,
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 18,
+              color: t.mutedText,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================
   // DESKTOP TABLE
   // ============================================================
 
@@ -746,7 +871,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
-            width: isTablet ? 900 : 1100,
+            width: isTablet ? 980 : 1180,
             child: DataTable(
               headingRowColor:
                   WidgetStateProperty.all(AppColors.grey50),
@@ -762,6 +887,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
               ),
               columns: const [
                 DataColumn(label: Text('Pengaduan')),
+                DataColumn(label: Text('Bukti')),
                 DataColumn(label: Text('Pengadu')),
                 DataColumn(label: Text('Pekerjaan')),
                 DataColumn(label: Text('Kategori')),
@@ -769,6 +895,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                 DataColumn(label: Text('Aksi')),
               ],
               rows: complaints.map((c) {
+                final proofUrl = _getProofPhotoUrl(c);
                 return DataRow(
                   cells: [
                     // PENGADUAN
@@ -797,6 +924,44 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+
+                    // BUKTI FOTO
+                    DataCell(
+                      SizedBox(
+                        width: 70,
+                        child: proofUrl != null
+                            ? GestureDetector(
+                                onTap: () =>
+                                    _showFullScreenImage(proofUrl),
+                                child: ClipRRect(
+                                  borderRadius:
+                                      BorderRadius.circular(6),
+                                  child: _proofImage(
+                                    url: proofUrl,
+                                    width: 60,
+                                    height: 48,
+                                    t: t,
+                                    tag: 'table',
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                width: 60,
+                                height: 48,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey50,
+                                  borderRadius:
+                                      BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 16,
+                                  color: AppColors.grey400,
+                                ),
+                              ),
                       ),
                     ),
 
@@ -898,6 +1063,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     final t = theme;
     final status = c['status']?.toString() ?? '-';
     final textTheme = Theme.of(context).textTheme;
+    final proofUrl = _getProofPhotoUrl(c);
 
     return Container(
       width: double.infinity,
@@ -963,6 +1129,63 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             c['category']?.toString() ?? '-',
             t,
           ),
+
+          // THUMBNAIL BUKTI FOTO (mobile)
+          if (proofUrl != null) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _showFullScreenImage(proofUrl),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final imageWidth = constraints.maxWidth;
+                    return _proofImage(
+                      url: proofUrl,
+                      width: imageWidth,
+                      height: 140,
+                      t: t,
+                      tag: 'mobile',
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 9),
+          ],
+
+          // BADGE BUKTI FOTO
+          if (proofUrl != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: Row(
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: t.accent.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Icon(
+                      Icons.image_outlined,
+                      size: 14,
+                      color: t.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Text(
+                    'Bukti foto tersedia',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: t.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           const SizedBox(height: 5),
 
@@ -1111,7 +1334,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -1175,7 +1398,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             context: context,
             icon: Icons.cancel_outlined,
             label: 'Tolak',
-            bgColor: t.danger.withValues(alpha:0.10),
+            bgColor: t.danger.withValues(alpha: 0.10),
             fgColor: t.danger,
             onTap: () => _confirmReject(c),
           ),
@@ -1234,6 +1457,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         final status = c['status']?.toString() ?? '';
+        final proofUrl = _getProofPhotoUrl(c);
 
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -1258,7 +1482,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: t.accent.withValues(alpha:0.12),
+                          color: t.accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
                         child: Icon(
@@ -1351,15 +1575,25 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                             t: t,
                           ),
 
+                          // BUKTI FOTO
+                          if (proofUrl != null) ...[
+                            const SizedBox(height: 12),
+                            _detailSectionBox(
+                              title: 'Bukti Foto',
+                              child: _buildProofImage(proofUrl, t),
+                              t: t,
+                            ),
+                          ],
+
                           if ((c['admin_response']?.toString() ?? '')
                               .isNotEmpty) ...[
                             const SizedBox(height: 12),
                             _detailSectionBox(
                               title: 'Tanggapan Admin',
                               backgroundColor:
-                                  t.success.withValues(alpha:0.08),
+                                  t.success.withValues(alpha: 0.08),
                               borderColor:
-                                  t.success.withValues(alpha:0.25),
+                                  t.success.withValues(alpha: 0.25),
                               titleColor: t.success,
                               child: Text(
                                 c['admin_response'].toString(),
@@ -1539,6 +1773,99 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   }
 
   // ============================================================
+  // PROOF IMAGE WIDGET (detail dialog)
+  // ============================================================
+
+  Widget _buildProofImage(String url, AdminTheme t) {
+    return GestureDetector(
+      onTap: () => _showFullScreenImage(url),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final imageWidth = constraints.maxWidth;
+                return _proofImage(
+                  url: url,
+                  width: imageWidth,
+                  height: 180,
+                  t: t,
+                  tag: 'detail',
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                Icons.open_in_full_rounded,
+                size: 12,
+                color: t.accent,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Tap untuk melihat ukuran penuh',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: t.accent,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // FULL SCREEN IMAGE DIALOG
+  // ============================================================
+
+  void _showFullScreenImage(String url) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(8),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: Center(
+                child: _proofImage(
+                  url: url,
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  t: theme,
+                  tag: 'fullscreen',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // DETAIL SECTION BOX
   // ============================================================
 
@@ -1649,7 +1976,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: t.danger.withValues(alpha:0.12),
+                          color: t.danger.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(_radius),
                         ),
                         child: Icon(
@@ -1819,13 +2146,13 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: t.accent.withValues(alpha:0.1),
+              color: t.accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.inbox_outlined,
               size: 34,
-              color: t.accent.withValues(alpha:0.7),
+              color: t.accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
@@ -1862,9 +2189,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: t.danger.withValues(alpha:0.05),
+        color: t.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: t.danger.withValues(alpha:0.3)),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [

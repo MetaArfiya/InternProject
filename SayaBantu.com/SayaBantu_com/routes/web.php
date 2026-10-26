@@ -32,7 +32,12 @@ Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
     }
     
     $file = Storage::disk('public')->get($path);
-    $type = Storage::disk('public')->mimeType($path);
+    $type = match (strtolower(pathinfo($filename, PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        default => 'application/octet-stream',
+    };
     
     // Kembalikan file dalam bentuk respon gambar, bukan download
     return Response::make($file, 200)->header("Content-Type", $type);

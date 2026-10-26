@@ -74,7 +74,6 @@ class ComplaintController extends Controller
                 'summary' => $summary,
                 'data'    => $complaints,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('ComplaintController@myComplaints: ' . $e->getMessage());
             return response()->json([
@@ -96,6 +95,7 @@ class ComplaintController extends Controller
                 'title'       => 'required|string|max:255',
                 'description' => 'required|string',
                 'job_id'      => 'nullable|integer|exists:jobs,id',
+                'proof_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             ]);
 
             $user = auth()->user();
@@ -103,7 +103,6 @@ class ComplaintController extends Controller
 
             // =====================================================
             // VALIDASI KATEGORI WAJIB JOB (role-aware)
-            // Mitra: array kosong → validasi ini akan skip
             // =====================================================
             $requiredCategories = $this->jobRequiredCategories($role);
 
@@ -124,7 +123,6 @@ class ComplaintController extends Controller
 
             // =====================================================
             // VALIDASI JOB MILIK SENDIRI (role-aware)
-            // Mitra: skip karena biasanya tidak kirim job_id
             // =====================================================
             if ($request->job_id) {
                 $job = jobs::find($request->job_id);
@@ -136,7 +134,6 @@ class ComplaintController extends Controller
                     ], 404);
                 }
 
-                // Pelanggan → cek pelanggan_id
                 if (
                     $role === 'Pelanggan'
                     && (int) $job->pelanggan_id !== (int) $user->id
@@ -147,7 +144,6 @@ class ComplaintController extends Controller
                     ], 403);
                 }
 
-                // Mitra → cek mitra_id
                 if (
                     $role === 'Mitra'
                     && (int) $job->mitra_id !== (int) $user->id
@@ -160,6 +156,16 @@ class ComplaintController extends Controller
             }
 
             // =====================================================
+            // UPLOAD BUKTI FOTO (jika ada) ← INI YANG HILANG
+            // =====================================================
+            $proofPhotoPath = null;
+
+            if ($request->hasFile('proof_photo')) {
+                $proofPhotoPath = $request->file('proof_photo')
+                    ->store('complaints', 'public');
+            }
+
+            // =====================================================
             // SIMPAN
             // =====================================================
             $complaint = Complaint::create([
@@ -169,32 +175,15 @@ class ComplaintController extends Controller
                 'title'       => $request->title,
                 'description' => $request->description,
                 'job_id'      => $request->job_id,
+                'proof_photo' => $proofPhotoPath,
                 'status'      => 'Menunggu',
             ]);
-
-            // =====================================================
-            // NOTIFIKASI KE ADMIN (opsional)
-            // =====================================================
-            // try {
-            //     $admins = users::whereHas('role', function ($q) {
-            //         $q->whereIn('role_name', ['Admin', 'Super Admin']);
-            //     })->get();
-            //
-            //     foreach ($admins as $admin) {
-            //         $admin->notify(
-            //             new \App\Notifications\NewComplaint($complaint)
-            //         );
-            //     }
-            // } catch (\Exception $e) {
-            //     Log::warning('Gagal kirim notif complaint: ' . $e->getMessage());
-            // }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Pengaduan berhasil dikirim.',
                 'data'    => $complaint->load('job:id,tittle'),
             ], 201);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
@@ -243,7 +232,6 @@ class ComplaintController extends Controller
                 'success' => true,
                 'data'    => $complaint,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('ComplaintController@show: ' . $e->getMessage());
             return response()->json([
@@ -284,7 +272,6 @@ class ComplaintController extends Controller
                 'summary' => $summary,
                 'data'    => $complaints,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('ComplaintController@adminIndex: ' . $e->getMessage());
             return response()->json([
@@ -363,7 +350,6 @@ class ComplaintController extends Controller
                     'user:id,name,email',
                 ]),
             ], 200);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
