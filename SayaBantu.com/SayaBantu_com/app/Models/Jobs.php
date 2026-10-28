@@ -16,6 +16,7 @@ class jobs extends Model
         'description',
         'category',
         'location',
+        'region',
         'latitude',
         'longitude',
         'location_lat',

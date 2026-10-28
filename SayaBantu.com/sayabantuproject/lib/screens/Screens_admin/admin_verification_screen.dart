@@ -23,16 +23,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   AdminTheme get theme => AdminThemeProvider.of(context);
 
   // ============================================================
-  // TOKENS — disamakan dengan CustomerSettingScreen
+  // TOKENS — DISAMAKAN DENGAN KODE 2 (AdminDailyReportScreen)
   // ============================================================
 
   static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 20; // was 14
-  static const double _cardRadius = 16;         // was 14
-  static const double _radius = 12;             // was 10
+  static const double _gapBetweenSections = 14;
+  static const double _cardRadius = 14;
+  static const double _radius = 10;
   static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100; // NEW
-  static const double _cardMaxWidth = 800;      // NEW — constrain card di tablet
+  static const double _tabletBreakpoint = 1100;
 
   // ============================================================
   // DATA STATE
@@ -2198,7 +2197,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               final isTablet = width >= _mobileBreakpoint &&
                   width < _tabletBreakpoint;
 
-              // ✅ FIX: tablet + mobile → pakai card (table hanya di desktop)
               final useCards = isMobile || isTablet;
 
               final horizontalPadding =
@@ -2211,73 +2209,68 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   horizontal: horizontalPadding,
                   vertical: verticalPadding,
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1300),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(context, isMobile),
-                        const SizedBox(height: _gapAfterHeader),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context),
+                    const SizedBox(height: _gapAfterHeader),
 
-                        if (isLoading)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 60),
-                            child: Center(
-                              child: CircularProgressIndicator(color: t.accent),
-                            ),
-                          )
-                        else ...[
-                          _buildTabSelector(isMobile),
-                          const SizedBox(height: _gapBetweenSections),
+                    if (isLoading)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60),
+                        child: Center(
+                          child: CircularProgressIndicator(color: t.accent),
+                        ),
+                      )
+                    else ...[
+                      _buildTabSelector(isMobile),
+                      const SizedBox(height: _gapBetweenSections),
 
-                          if (_selectedTab == 'pending') ...[
-                            _summary(isMobile),
-                            const SizedBox(height: _gapBetweenSections),
-                            partners.isEmpty
-                                ? _empty()
-                                : _table(useCards),
-                          ] else if (_selectedTab == 'verified') ...[
-                            _buildVerifiedList(useCards),
-                          ] else ...[
-                            _buildPendingSkillsList(useCards),
-                          ],
-
-                          if (_selectedTab == 'pending' &&
-                              partners.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: partners.length,
-                              currentPage: _pendingPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _pendingPage = p),
-                              label: 'mitra',
-                            ),
-                          ] else if (_selectedTab == 'verified' &&
-                              verifiedPartners.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: verifiedPartners.length,
-                              currentPage: _verifiedPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _verifiedPage = p),
-                              label: 'mitra',
-                            ),
-                          ] else if (_selectedTab == 'pendingSkills' &&
-                              pendingSkillsList.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: pendingSkillsList.length,
-                              currentPage: _skillsPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _skillsPage = p),
-                              label: 'pengajuan',
-                            ),
-                          ],
-                        ],
+                      if (_selectedTab == 'pending') ...[
+                        _summary(isMobile),
+                        const SizedBox(height: _gapBetweenSections),
+                        partners.isEmpty
+                            ? _empty()
+                            : _table(useCards),
+                      ] else if (_selectedTab == 'verified') ...[
+                        _buildVerifiedList(useCards),
+                      ] else ...[
+                        _buildPendingSkillsList(useCards),
                       ],
-                    ),
-                  ),
+
+                      if (_selectedTab == 'pending' &&
+                          partners.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: partners.length,
+                          currentPage: _pendingPage,
+                          onPageChanged: (p) =>
+                              setState(() => _pendingPage = p),
+                          label: 'mitra',
+                        ),
+                      ] else if (_selectedTab == 'verified' &&
+                          verifiedPartners.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: verifiedPartners.length,
+                          currentPage: _verifiedPage,
+                          onPageChanged: (p) =>
+                              setState(() => _verifiedPage = p),
+                          label: 'mitra',
+                        ),
+                      ] else if (_selectedTab == 'pendingSkills' &&
+                          pendingSkillsList.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: pendingSkillsList.length,
+                          currentPage: _skillsPage,
+                          onPageChanged: (p) =>
+                              setState(() => _skillsPage = p),
+                          label: 'pengajuan',
+                        ),
+                      ],
+                    ],
+                  ],
                 ),
               );
             },
@@ -2288,66 +2281,27 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // HEADER
+  // HEADER (FONT DISAMAKAN DENGAN KODE 2)
   // ============================================================
 
-  Widget _buildHeader(BuildContext context, bool isMobile) {
+  Widget _buildHeader(BuildContext context) {
     final t = theme;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                'Verifikasi Mitra',
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 26,
-                  fontWeight: FontWeight.bold,
-                  color: t.cellText,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                splashRadius: 16,
-                constraints: const BoxConstraints.tightFor(
-                  width: 32,
-                  height: 32,
-                ),
-                visualDensity: VisualDensity.compact,
-                onPressed: () async {
-                  if (_selectedTab == 'pending') {
-                    await _fetchUnverifiedMitra();
-                  } else if (_selectedTab == 'verified') {
-                    await _fetchVerifiedMitra();
-                  } else {
-                    await _fetchPendingSkills();
-                  }
-                  if (!mounted) return;
-                  _message('Data diperbarui.');
-                },
-                icon: Icon(Icons.refresh, size: 20, color: t.mutedText),
-                tooltip: 'Refresh',
-              ),
-            ),
-          ],
+        Text(
+          'Verifikasi Mitra',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: t.cellText,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           _subtitleForTab(),
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: t.mutedText,
-            height: 1.4,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -2371,7 +2325,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   Widget _buildTabSelector(bool isMobile) {
     final t = theme;
 
-    // Mobile: chips horizontal scroll
     if (isMobile) {
       return SizedBox(
         height: 48,
@@ -2407,7 +2360,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
     }
 
-    // Tablet & Desktop: 3 tab buttons (flexible, tidak overflow)
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -2616,7 +2568,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // ✅ FIX: Wrap agar tidak overflow di layar sempit
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -2743,7 +2694,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   // ============================================================
-  // SUMMARY
+  // SUMMARY (FONT DISAMAKAN DENGAN KODE 2)
   // ============================================================
 
   Widget _summary(bool isMobile) {
@@ -2858,7 +2809,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: mobile ? 18 : 20,
+                    fontSize: 16, // Disamakan dengan kode 2
                     fontWeight: FontWeight.w700,
                     color: t.cellText,
                     height: 1.1,
@@ -2892,16 +2843,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final baseIndex = (_pendingPage - 1) * _itemsPerPage;
 
     if (useCards) {
-      // ✅ constrain max width agar card tidak stretching di tablet
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
-          child: Column(
-            children: List.generate(
-              pageItems.length,
-              (i) => _mobileCard(pageItems[i], baseIndex + i),
-            ),
-          ),
+      return Column(
+        children: List.generate(
+          pageItems.length,
+          (i) => _mobileCard(pageItems[i], baseIndex + i),
         ),
       );
     }
@@ -3370,15 +3315,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final pageItems = _paginatedVerified;
 
     if (useCards) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
-          child: Column(
-            children: List.generate(
-              pageItems.length,
-              (i) => _verifiedMobileCard(pageItems[i]),
-            ),
-          ),
+      return Column(
+        children: List.generate(
+          pageItems.length,
+          (i) => _verifiedMobileCard(pageItems[i]),
         ),
       );
     }
@@ -3804,15 +3744,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final baseIndex = (_skillsPage - 1) * _itemsPerPage;
 
     if (useCards) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
-          child: Column(
-            children: List.generate(
-              pageItems.length,
-              (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
-            ),
-          ),
+      return Column(
+        children: List.generate(
+          pageItems.length,
+          (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
         ),
       );
     }

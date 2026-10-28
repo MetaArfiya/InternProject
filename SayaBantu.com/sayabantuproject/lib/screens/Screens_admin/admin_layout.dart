@@ -13,6 +13,7 @@ import 'admin_complaint_screen.dart';
 import 'admin_daily_report_screen.dart';
 import 'admin_rating_screen.dart';
 import 'admin_payment_screen.dart';
+import 'admin_warning_screen.dart';
 import 'admin_profile_screen.dart';
 
 import '../../screens/Screens_Landing/landing_page.dart';
@@ -74,6 +75,13 @@ class _AdminLayoutState extends State<AdminLayout> {
       'icon': Icons.report_problem_outlined,
       'activeIcon': Icons.report_problem,
       'shortLabel': 'Pengaduan',
+    },
+    {
+      'key': 'warning',
+      'title': 'Surat Peringatan',
+      'icon': Icons.warning_amber_outlined,
+      'activeIcon': Icons.warning_amber,
+      'shortLabel': 'SP',
     },
     {
       'key': 'report',
@@ -388,6 +396,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       children: [
         const AdminVerificationScreen(),
         const AdminComplaintScreen(),
+        const AdminWarningScreen(),
         AdminDailyReportScreen(
           key: ValueKey('report_$_reportRefreshKey'),
         ),

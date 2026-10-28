@@ -32,6 +32,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   final _kategoriLainnyaController = TextEditingController();
   final _lokasiController = TextEditingController();
   final _detailAlamatController = TextEditingController();
+  final _regionController = TextEditingController();
 
   // =========================================================
   // FOTO
@@ -103,6 +104,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     _kategoriLainnyaController.dispose();
     _lokasiController.dispose();
     _detailAlamatController.dispose();
+    _regionController.dispose();
     super.dispose();
   }
 
@@ -232,12 +234,14 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       }
       final LatLng selectedPosition = positionData;
       final String address = result["address"]?.toString() ?? "";
+      final String region = result["region"]?.toString() ?? "";
 
       if (!mounted) return;
       setState(() {
         _latitude = selectedPosition.latitude;
         _longitude = selectedPosition.longitude;
         _lokasiController.text = address;
+        _regionController.text = region;
       });
     } catch (e) {
       if (!mounted) return;
@@ -257,6 +261,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     setState(() {
       _latitude = null;
       _longitude = null;
+      _regionController.clear();
       _lokasiController.clear();
       _detailAlamatController.clear();
     });
@@ -336,6 +341,12 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       return;
     }
 
+    final regionParts = _regionController.text.split(',').map((part) => part.trim()).toList();
+    if (regionParts.length != 2 || regionParts.any((part) => part.isEmpty)) {
+      _showMessage('Pastikan wilayah berformat Kota/Kabupaten, Provinsi. Contoh: Kota Kediri, Jawa Timur.');
+      return;
+    }
+
     if (_detailAlamatController.text.trim().isEmpty) {
       _showMessage("Detail alamat wajib diisi.");
       return;
@@ -376,6 +387,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           : _kategori;
       request.fields['duration'] = _waktuPengerjaan;
       request.fields['location'] = _lokasiController.text.trim();
+      request.fields['region'] = _regionController.text.trim();
       request.fields['address_detail'] = _detailAlamatController.text.trim();
       request.fields['latitude'] = _latitude!.toString();
       request.fields['longitude'] = _longitude!.toString();
@@ -648,6 +660,15 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         ),
                       ),
                       const SizedBox(height: 4),
+                      _buildField(
+                        label: 'Wilayah (Kota/Kabupaten, Provinsi)',
+                        child: TextField(
+                          controller: _regionController,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: _inputDecoration(hint: 'Contoh: Kota Kediri, Jawa Timur'),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
                           TextButton.icon(

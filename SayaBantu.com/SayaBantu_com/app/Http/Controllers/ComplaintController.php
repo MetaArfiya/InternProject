@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Complaint;
 use App\Models\jobs;
 use App\Models\users;
+use App\Helpers\AdminTerritory;
 
 class ComplaintController extends Controller
 {
@@ -221,6 +222,14 @@ class ComplaintController extends Controller
             $isOwner = (int) $complaint->user_id === (int) $userId;
             $isAdmin = in_array($role, ['Admin', 'Super Admin'], true);
 
+            if ($role === 'Admin') {
+                $scoped = Complaint::query();
+                $this->scopeAdminComplaints($scoped);
+                if (!$scoped->whereKey($complaint->id)->exists()) {
+                    return response()->json(['success' => false, 'message' => 'Pengaduan berada di luar wilayah tugas Anda.'], 403);
+                }
+            }
+
             if (!$isOwner && !$isAdmin) {
                 return response()->json([
                     'success' => false,
@@ -252,6 +261,7 @@ class ComplaintController extends Controller
                 'user:id,name,email',
                 'job:id,tittle',
             ]);
+            $this->scopeAdminComplaints($query);
 
             if ($request->filled('status') && $request->status !== 'all') {
                 $query->where('status', $request->status);
@@ -259,12 +269,14 @@ class ComplaintController extends Controller
 
             $complaints = $query->latest()->get();
 
+            $summaryQuery = Complaint::query();
+            $this->scopeAdminComplaints($summaryQuery);
             $summary = [
-                'total'     => Complaint::count(),
-                'menunggu'  => Complaint::where('status', 'Menunggu')->count(),
-                'diproses'  => Complaint::where('status', 'Diproses')->count(),
-                'selesai'   => Complaint::where('status', 'Selesai')->count(),
-                'ditolak'   => Complaint::where('status', 'Ditolak')->count(),
+                'total' => (clone $summaryQuery)->count(),
+                'menunggu' => (clone $summaryQuery)->where('status', 'Menunggu')->count(),
+                'diproses' => (clone $summaryQuery)->where('status', 'Diproses')->count(),
+                'selesai' => (clone $summaryQuery)->where('status', 'Selesai')->count(),
+                'ditolak' => (clone $summaryQuery)->where('status', 'Ditolak')->count(),
             ];
 
             return response()->json([
@@ -288,7 +300,9 @@ class ComplaintController extends Controller
     public function adminRespond(Request $request, $id)
     {
         try {
-            $complaint = Complaint::find($id);
+            $complaintQuery = Complaint::query();
+            $this->scopeAdminComplaints($complaintQuery);
+            $complaint = $complaintQuery->find($id);
 
             if (!$complaint) {
                 return response()->json([
@@ -359,5 +373,19 @@ class ComplaintController extends Controller
                 'message' => 'Gagal menanggapi pengaduan.',
             ], 500);
         }
+    }
+
+    private function scopeAdminComplaints($query): void
+    {
+        $area = AdminTerritory::area();
+        if ($area === '') {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        $query->where(function ($scope) {
+            $scope->whereHas('job', fn ($job) => AdminTerritory::constrainJobs($job))
+                ->orWhereHas('user', fn ($user) => AdminTerritory::constrainAddress($user));
+        });
     }
 }

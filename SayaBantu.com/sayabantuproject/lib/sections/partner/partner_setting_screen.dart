@@ -800,6 +800,11 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
       _showMessage('Kota/Kabupaten wajib diisi.', error: true);
       return;
     }
+    final cityParts = selectedCity.split(',').map((part) => part.trim()).toList();
+    if (cityParts.length != 2 || cityParts.any((part) => part.isEmpty)) {
+      _showMessage('Gunakan format wilayah Kota/Kabupaten, Provinsi. Contoh: Kota Kediri, Jawa Timur.', error: true);
+      return;
+    }
     if (selectedAddress.isEmpty) {
       _showMessage('Alamat lengkap wajib diisi.', error: true);
       return;
@@ -2233,8 +2238,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                     const SizedBox(height: 10),
                     _textField(
                       controller: cityController,
-                      label: 'Kota/Kabupaten',
+                      label: 'Wilayah (Kota/Kabupaten, Provinsi)',
                       icon: Icons.location_city_outlined,
+                      hintText: 'Kota Kediri, Jawa Timur',
                       maxLength: 100,
                       inputFormatters: nameFormatters,
                     ),
@@ -2266,8 +2272,9 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
                       Expanded(
                         child: _textField(
                           controller: cityController,
-                          label: 'Kota/Kabupaten',
+                          label: 'Wilayah (Kota/Kabupaten, Provinsi)',
                           icon: Icons.location_city_outlined,
+                          hintText: 'Kota Kediri, Jawa Timur',
                           maxLength: 100,
                           inputFormatters: nameFormatters,
                         ),

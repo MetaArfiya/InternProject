@@ -11,6 +11,7 @@ use App\Models\SuperAdminActivity;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\ActivityLogger;
+use App\Helpers\RegionFormat;
 
 class SuperAdminController extends Controller
 {
@@ -20,6 +21,7 @@ class SuperAdminController extends Controller
      */
     public function createAdmin(Request $request)
     {
+        $request->merge(['region' => RegionFormat::normalize($request->input('region'))]);
         $request->validate([
             'name' => 'required|string|max:255',
 
@@ -34,7 +36,19 @@ class SuperAdminController extends Controller
             'password' => 'required|string|min:6',
 
             'phone' => 'nullable|string|max:20',
+            'region' => ['required', 'string', 'max:150', 'regex:/^[^,]+,\s*[^,]+$/u'],
         ]);
+
+        $regionTaken = users::where('role_id', 2)
+            ->whereRaw('LOWER(admin_region) = ?', [RegionFormat::key($request->region)])
+            ->exists();
+        if ($regionTaken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wilayah tersebut sudah memiliki admin.',
+                'errors' => ['region' => ['Wilayah tersebut sudah memiliki admin.']],
+            ], 422);
+        }
 
         $admin = users::create([
             'role_id' => 2,
@@ -42,6 +56,7 @@ class SuperAdminController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
+            'admin_region' => $request->region,
             'is_active' => true,
             'last_login_at' => null,
         ]);
@@ -84,6 +99,7 @@ class SuperAdminController extends Controller
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'phone' => $admin->phone,
+                'region' => $admin->admin_region,
                 'is_active' => $admin->is_active,
                 'last_login_at' => $admin->last_login_at,
             ],
@@ -440,6 +456,7 @@ class SuperAdminController extends Controller
                 'last_login_at',
                 'created_at',
                 'photo_profile', // <-- TAMBAHKAN INI
+                'admin_region',
             ])
             ->map(function ($admin) {
                 // Buat URL lengkap untuk foto profil
@@ -455,6 +472,7 @@ class SuperAdminController extends Controller
                     'name' => $admin->name,
                     'email' => $admin->email,
                     'phone' => $admin->phone,
+                    'region' => $admin->admin_region,
                     'is_active' => $admin->is_active,
                     'last_login_at' => $admin->last_login_at,
                     'created_at' => $admin->created_at,
@@ -475,6 +493,7 @@ class SuperAdminController extends Controller
      */
     public function updateAdmin(Request $request, $id)
     {
+        $request->merge(['region' => RegionFormat::normalize($request->input('region'))]);
         $admin = users::where('role_id', 2)->find($id);
 
         if (!$admin) {
@@ -496,9 +515,22 @@ class SuperAdminController extends Controller
             ],
 
             'phone' => 'nullable|string|max:20',
+            'region' => ['required', 'string', 'max:150', 'regex:/^[^,]+,\s*[^,]+$/u'],
 
             'is_active' => 'required|boolean',
         ]);
+
+        $regionTaken = users::where('role_id', 2)
+            ->where('id', '!=', $admin->id)
+            ->whereRaw('LOWER(admin_region) = ?', [RegionFormat::key($request->region)])
+            ->exists();
+        if ($regionTaken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wilayah tersebut sudah memiliki admin.',
+                'errors' => ['region' => ['Wilayah tersebut sudah memiliki admin.']],
+            ], 422);
+        }
 
         // Simpan data lama sebelum update
         $oldName = $admin->name;
@@ -509,6 +541,7 @@ class SuperAdminController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
+            'admin_region' => $request->region,
             'is_active' => $request->is_active,
         ]);
 
@@ -569,6 +602,7 @@ class SuperAdminController extends Controller
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'phone' => $admin->phone,
+                'region' => $admin->admin_region,
                 'is_active' => $admin->is_active,
                 'last_login_at' => $admin->last_login_at,
             ],

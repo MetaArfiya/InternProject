@@ -9,6 +9,7 @@ use App\Models\mitra_profiles;
 use App\Models\users;
 use App\Models\jobs;
 use App\Helpers\ActivityLogger;
+use App\Helpers\AdminTerritory;
 
 class AdminController extends Controller
 {
@@ -19,24 +20,28 @@ class AdminController extends Controller
     public function unverifiedMitra()
     {
         // Ambil profil mitra + data user (untuk foto_profil & nama)
-        $mitras = mitra_profiles::with([
+        $mitrasQuery = mitra_profiles::with([
             'user:id,name,email,phone,address,photo_profile',
         ])
-            ->where('is_verified', 0)
-            ->latest()
-            ->get();
+            ->where('is_verified', 0);
+        AdminTerritory::constrainMitraProfiles($mitrasQuery);
+        $mitras = $mitrasQuery->latest()->get();
 
         // =====================================================
         // STATISTIK
         // =====================================================
 
-        $menungguCount = mitra_profiles::where('is_verified', 0)->count();
+        $menungguQuery = mitra_profiles::where('is_verified', 0);
+        AdminTerritory::constrainMitraProfiles($menungguQuery);
+        $menungguCount = $menungguQuery->count();
 
-        $disetujuiHariIni = mitra_profiles::where('is_verified', 1)
-            ->whereDate('verified_at', today())
-            ->count();
+        $approvedQuery = mitra_profiles::where('is_verified', 1)->whereDate('verified_at', today());
+        AdminTerritory::constrainMitraProfiles($approvedQuery);
+        $disetujuiHariIni = $approvedQuery->count();
 
-        $ditolakCount = mitra_profiles::where('is_verified', 2)->count();
+        $rejectedQuery = mitra_profiles::where('is_verified', 2);
+        AdminTerritory::constrainMitraProfiles($rejectedQuery);
+        $ditolakCount = $rejectedQuery->count();
 
         // =====================================================
         // PASTIKAN SEMUA FIELD GAMBAR ADA DI RESPONSE
@@ -108,6 +113,10 @@ class AdminController extends Controller
             ], 404);
         }
 
+        if (!AdminTerritory::allowsMitraProfile($mitraProfile)) {
+            return response()->json(['success' => false, 'message' => 'Mitra berada di luar wilayah tugas Anda.'], 403);
+        }
+
         // AMBIL DATA USER MITRA
         $mitraUser = users::find($mitraProfile->user_id);
         $mitraName = $mitraUser?->name ?? 'Mitra';
@@ -164,9 +173,13 @@ class AdminController extends Controller
 
     public function contentModeration()
     {
-        $jobs = jobs::with('pelanggan')->latest()->get();
+        $jobsQuery = jobs::with('pelanggan');
+        AdminTerritory::constrainJobs($jobsQuery);
+        $jobs = $jobsQuery->latest()->get();
 
-        $reportedCount = jobs::where('status', 'Dibatalkan')->count();
+        $reportedQuery = jobs::where('status', 'Dibatalkan');
+        AdminTerritory::constrainJobs($reportedQuery);
+        $reportedCount = $reportedQuery->count();
 
         return response()->json([
             'success' => true,
@@ -204,6 +217,10 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Postingan tidak ditemukan!',
             ], 404);
+        }
+
+        if (!AdminTerritory::allowsJob($job)) {
+            return response()->json(['success' => false, 'message' => 'Pekerjaan berada di luar wilayah tugas Anda.'], 403);
         }
 
         // SAFE
@@ -293,7 +310,8 @@ class AdminController extends Controller
             // job_id   = penghubung payment dengan pekerjaan
             //
 
-            $payments = DB::table('payments')
+            $territory = AdminTerritory::area();
+            $paymentsQuery = DB::table('payments')
                 ->leftJoin(
                     'jobs',
                     'payments.job_id',
@@ -308,7 +326,26 @@ class AdminController extends Controller
                     'payments.commission_amount',
                     'payments.created_at'
                 )
-                ->where('payments.created_at', '>=', $start)
+                ->where('payments.created_at', '>=', $start);
+            if ($territory === '') {
+                $paymentsQuery->whereRaw('1 = 0');
+            } else {
+                $regionPatterns = array_map(
+                    fn ($variant) => '%' . addcslashes($variant, '%_\\') . '%',
+                    \App\Helpers\RegionFormat::variants($territory)
+                );
+                $paymentsQuery->where(function ($jobs) use ($territory, $regionPatterns) {
+                    $jobs->whereRaw('LOWER(TRIM(jobs.region)) = ?', [\App\Helpers\RegionFormat::key($territory)])
+                        ->orWhere(function ($legacy) use ($regionPatterns) {
+                            $legacy->whereNull('jobs.region')->where(function ($locations) use ($regionPatterns) {
+                                foreach ($regionPatterns as $pattern) {
+                                    $locations->orWhere('jobs.location', 'like', $pattern);
+                                }
+                            });
+                    });
+                });
+            }
+            $payments = $paymentsQuery
                 ->orderBy('payments.created_at', 'asc')
                 ->get();
 
@@ -597,12 +634,13 @@ class AdminController extends Controller
     public function verifiedMitra()
     {
         try {
-            $mitras = mitra_profiles::with([
+            $mitrasQuery = mitra_profiles::with([
                 'user:id,name,email,phone,address,photo_profile',
             ])
                 ->where('is_verified', 1)
-                ->orderBy('verified_at', 'desc')
-                ->get()
+                ->orderBy('verified_at', 'desc');
+            AdminTerritory::constrainMitraProfiles($mitrasQuery);
+            $mitras = $mitrasQuery->get()
                 ->map(function ($mitra) {
                     $user = $mitra->user;
 

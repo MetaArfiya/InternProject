@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Rating;
 use App\Models\mitra_profiles;
 use App\Models\Payment;
+use App\Helpers\AdminTerritory;
 
 class RatingController extends Controller
 {
@@ -24,6 +25,7 @@ class RatingController extends Controller
                 'mitra:id,name',
                 'pelanggan:id,name',
             ]);
+            $this->scopeAdminRatings($query);
 
             // Filter by stars
             if ($request->filled('stars')) {
@@ -38,7 +40,9 @@ class RatingController extends Controller
             $ratings = $query->latest()->get();
 
             // Summary
-            $all = Rating::where('is_hidden', 0)->get();
+            $allQuery = Rating::where('is_hidden', 0);
+            $this->scopeAdminRatings($allQuery);
+            $all = $allQuery->get();
             $total     = $all->count();
             $avg       = $total > 0 ? round($all->avg('stars'), 1) : 0;
             $highCount = $all->where('stars', '>=', 4)->count();
@@ -87,6 +91,10 @@ class RatingController extends Controller
                 ], 404);
             }
 
+            if (!$this->isInAdminTerritory($rating)) {
+                return response()->json(['success' => false, 'message' => 'Rating berada di luar wilayah tugas Anda.'], 403);
+            }
+
             return response()->json([
                 'success' => true,
                 'data'    => $rating,
@@ -117,6 +125,10 @@ class RatingController extends Controller
                     'success' => false,
                     'message' => 'Rating tidak ditemukan.',
                 ], 404);
+            }
+
+            if (!$this->isInAdminTerritory($rating)) {
+                return response()->json(['success' => false, 'message' => 'Rating berada di luar wilayah tugas Anda.'], 403);
             }
 
             $mitraId = $rating->mitra_id;
@@ -155,6 +167,10 @@ class RatingController extends Controller
                     'success' => false,
                     'message' => 'Rating tidak ditemukan.',
                 ], 404);
+            }
+
+            if (!$this->isInAdminTerritory($rating)) {
+                return response()->json(['success' => false, 'message' => 'Rating berada di luar wilayah tugas Anda.'], 403);
             }
 
             $request->validate([
@@ -201,6 +217,10 @@ class RatingController extends Controller
                     'success' => false,
                     'message' => 'Rating tidak ditemukan.',
                 ], 404);
+            }
+
+            if (!$this->isInAdminTerritory($rating)) {
+                return response()->json(['success' => false, 'message' => 'Rating berada di luar wilayah tugas Anda.'], 403);
             }
 
             $rating->update([
@@ -466,5 +486,23 @@ class RatingController extends Controller
         } catch (\Exception $e) {
             Log::warning('Recalculate mitra rating failed: ' . $e->getMessage());
         }
+    }
+
+    private function scopeAdminRatings($query): void
+    {
+        $area = AdminTerritory::area();
+        if ($area === '') {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+        $query->whereHas('job', fn ($jobs) => AdminTerritory::constrainJobs($jobs));
+    }
+
+    private function isInAdminTerritory(Rating $rating): bool
+    {
+        $area = AdminTerritory::area();
+        return $area !== '' && $rating->job()->where(function ($jobs) {
+            AdminTerritory::constrainJobs($jobs);
+        })->exists();
     }
 }

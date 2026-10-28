@@ -30,6 +30,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
 
   bool _isLoadingAddress = false;
   String _address = "";
+  String _region = "";
 
   // =========================================================
   // INIT
@@ -168,11 +169,13 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
       }
 
       final formattedAddress = _formatIndonesiaAddress(addressData);
+      final normalizedRegion = _formatRegion(addressData);
 
       if (!mounted) return;
 
       setState(() {
         _address = formattedAddress;
+        _region = normalizedRegion;
       });
     } catch (e) {
       debugPrint('Gagal mengambil alamat OpenStreetMap: $e');
@@ -189,6 +192,17 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
         });
       }
     }
+  }
+
+  String _formatRegion(Map<String, dynamic> address) {
+    final localities = [address['city'], address['municipality'], address['county'], address['town']]
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .toList();
+    var province = address['state']?.toString().trim() ?? '';
+    if (province.isNotEmpty) province = _convertProvinceName(province);
+    if (localities.isEmpty || province.isEmpty) return '';
+    return '${localities.first}, $province';
   }
 
   // =========================================================
@@ -347,6 +361,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
       {
         'position': _selectedPosition,
         'address': _address,
+        'region': _region,
       },
     );
   }

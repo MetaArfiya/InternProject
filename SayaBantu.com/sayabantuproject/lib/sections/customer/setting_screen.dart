@@ -1391,6 +1391,7 @@ class _CustomerSettingScreenState extends State<CustomerSettingScreen> {
                             icon: Icons.location_on_outlined,
                             maxLength: 500,
                             maxLines: 3,
+                          hintText: 'Alamat lengkap, akhiri dengan Kota/Kabupaten, Provinsi. Contoh: Kota Kediri, Jawa Timur',
                             alignLabelWithHint: true,
                           ),
                         ],

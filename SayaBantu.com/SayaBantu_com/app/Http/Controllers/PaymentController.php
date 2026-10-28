@@ -11,6 +11,7 @@ use App\Models\users;
 use App\Models\mitra_profiles;
 use App\Models\system_setting;
 use App\Helpers\ActivityLogger;
+use App\Helpers\AdminTerritory;
 
 class PaymentController extends Controller
 {
@@ -308,13 +309,13 @@ class PaymentController extends Controller
     public function adminIndex()
     {
         try {
-            $payments = Payment::with([
+            $paymentsQuery = Payment::with([
                     'job:id,tittle,final_price',
                     'pelanggan:id,name,phone',
                     'mitra:id,name,phone',
-                ])
-                ->latest()
-                ->get();
+                ]);
+            $this->scopeAdminPayments($paymentsQuery);
+            $payments = $paymentsQuery->latest()->get();
 
             // Ambil rekening mitra untuk setiap payment
             $payments->transform(function ($p) {
@@ -359,12 +360,13 @@ class PaymentController extends Controller
     public function showForAdmin($id)
     {
         try {
-            $payment = Payment::with([
+            $paymentQuery = Payment::with([
                     'job',
                     'pelanggan:id,name,email,phone',
                     'mitra:id,name,email,phone',
-                ])
-                ->find($id);
+                ]);
+            $this->scopeAdminPayments($paymentQuery);
+            $payment = $paymentQuery->find($id);
 
             if (!$payment) {
                 return response()->json([
@@ -404,7 +406,9 @@ class PaymentController extends Controller
     public function verifyCustomerProof(Request $request, $id)
     {
         try {
-            $payment = Payment::find($id);
+            $paymentQuery = Payment::query();
+            $this->scopeAdminPayments($paymentQuery);
+            $payment = $paymentQuery->find($id);
 
             if (!$payment) {
                 return response()->json([
@@ -484,7 +488,9 @@ class PaymentController extends Controller
     public function settle(Request $request, $id)
     {
         try {
-            $payment = Payment::find($id);
+            $paymentQuery = Payment::query();
+            $this->scopeAdminPayments($paymentQuery);
+            $payment = $paymentQuery->find($id);
 
             if (!$payment) {
                 return response()->json([
@@ -563,7 +569,9 @@ class PaymentController extends Controller
     public function refund(Request $request, $id)
     {
         try {
-            $payment = Payment::find($id);
+            $paymentQuery = Payment::query();
+            $this->scopeAdminPayments($paymentQuery);
+            $payment = $paymentQuery->find($id);
 
             if (!$payment) {
                 return response()->json([
@@ -793,5 +801,15 @@ class PaymentController extends Controller
                 'message' => 'Gagal memuat top mitra: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function scopeAdminPayments($query): void
+    {
+        $area = AdminTerritory::area();
+        if ($area === '') {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+        $query->whereHas('job', fn ($jobs) => AdminTerritory::constrainJobs($jobs));
     }
 }

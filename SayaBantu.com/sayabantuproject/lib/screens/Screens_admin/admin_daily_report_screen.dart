@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:html' as html;
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
@@ -200,6 +203,98 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           (item) => Map<String, dynamic>.from(item),
         )
         .toList();
+  }
+
+  String _xmlEscape(String value) => value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&apos;');
+
+  String _excelColumn(int index) {
+    var n = index + 1;
+    var result = '';
+    while (n > 0) {
+      final remainder = (n - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      n = (n - remainder - 1) ~/ 26;
+    }
+    return result;
+  }
+
+  String _worksheetXml(List<List<Object?>> rows) {
+    final buffer = StringBuffer('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>''');
+    for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      buffer.write('<row r="${rowIndex + 1}">');
+      for (var colIndex = 0; colIndex < rows[rowIndex].length; colIndex++) {
+        final value = rows[rowIndex][colIndex];
+        final reference = '${_excelColumn(colIndex)}${rowIndex + 1}';
+        if (value is num) {
+          buffer.write('<c r="$reference"><v>$value</v></c>');
+        } else {
+          buffer.write('<c r="$reference" t="inlineStr"><is><t xml:space="preserve">${_xmlEscape(value?.toString() ?? '')}</t></is></c>');
+        }
+      }
+      buffer.write('</row>');
+    }
+    buffer.write('</sheetData></worksheet>');
+    return buffer.toString();
+  }
+
+  void _exportExcel() {
+    if (_dailyData.isEmpty) return;
+    final period = _periodOptions.firstWhere((item) => item['value'] == _periodKey)['label']!;
+    final summaryRows = <List<Object?>>[
+      ['Laporan Admin SayaBantu'],
+      ['Periode', period],
+      ['Tanggal Ekspor', DateTime.now().toLocal().toString().split('.').first],
+      ['Total Transaksi', _totalTransactions],
+      ['Total Pekerjaan', _totalJobs],
+      ['Total Komisi Admin (Rp)', _totalIncome],
+      ['Rata-rata Komisi Harian (Rp)', _averageIncome],
+    ];
+    final detailRows = <List<Object?>>[
+      ['Tanggal', 'Jumlah Transaksi', 'Referensi Transaksi', 'Jumlah Pekerjaan', 'Rincian Pekerjaan', 'Komisi Admin (Rp)'],
+    ];
+    for (final day in _dailyData) {
+      final transactions = _getTransactionDetails(day)
+          .map((item) => item['reference_code']?.toString() ?? '-')
+          .join(', ');
+      final jobs = _getJobDetails(day)
+          .map((item) => item['title']?.toString() ?? item['tittle']?.toString() ?? item['code']?.toString() ?? '-')
+          .join(', ');
+      detailRows.add([
+        day['day']?.toString() ?? '-',
+        (day['transactions'] as num?)?.toInt() ?? 0,
+        transactions,
+        (day['jobs'] as num?)?.toInt() ?? 0,
+        jobs,
+        (day['income'] as num?)?.toDouble() ?? 0,
+      ]);
+    }
+
+    final archive = Archive()
+      ..addFile(ArchiveFile.bytes('[Content_Types].xml', Uint8List.fromList(utf8.encode('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'''))))
+      ..addFile(ArchiveFile.bytes('_rels/.rels', Uint8List.fromList(utf8.encode('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'''))))
+      ..addFile(ArchiveFile.bytes('xl/workbook.xml', Uint8List.fromList(utf8.encode('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Ringkasan" sheetId="1" r:id="rId1"/><sheet name="Rincian Harian" sheetId="2" r:id="rId2"/></sheets></workbook>'''))))
+      ..addFile(ArchiveFile.bytes('xl/_rels/workbook.xml.rels', Uint8List.fromList(utf8.encode('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/></Relationships>'''))))
+      ..addFile(ArchiveFile.bytes('xl/worksheets/sheet1.xml', Uint8List.fromList(utf8.encode(_worksheetXml(summaryRows)))))
+      ..addFile(ArchiveFile.bytes('xl/worksheets/sheet2.xml', Uint8List.fromList(utf8.encode(_worksheetXml(detailRows)))));
+
+    final bytes = Uint8List.fromList(ZipEncoder().encode(archive));
+    final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final date = DateTime.now().toLocal().toIso8601String().substring(0, 10);
+    html.AnchorElement(href: url)
+      ..download = 'laporan_admin_${_periodKey}_$date.xlsx'
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 
   // ============================================================
@@ -543,6 +638,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             ),
             const SizedBox(height: 10),
             _buildPeriodDropdown(fullWidth: true),
+            const SizedBox(height: 10),
+            SizedBox(width: double.infinity, child: _buildExportButton()),
           ],
         ),
       );
@@ -598,10 +695,18 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               ),
             ),
           ),
+          const SizedBox(width: 12),
+          _buildExportButton(),
         ],
       ),
     );
   }
+
+  Widget _buildExportButton() => FilledButton.icon(
+        onPressed: _dailyData.isEmpty ? null : _exportExcel,
+        icon: const Icon(Icons.download_outlined, size: 18),
+        label: const Text('Export Excel'),
+      );
 
   Widget _buildPeriodDropdown({bool fullWidth = false}) {
     final t = theme;

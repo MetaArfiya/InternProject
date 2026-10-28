@@ -133,6 +133,41 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
     }
   }
 
+  Future<void> _showBalanceRequests() async {
+    List<dynamic> requests = [];
+    try {
+      final response = await ApiService.get('/admin/balance-requests');
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200 && decoded['success'] == true) requests = decoded['data'] as List? ?? [];
+    } catch (_) {}
+    if (!mounted) return;
+    await showDialog<void>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, refresh) => AlertDialog(
+      title: const Text('Pengajuan Top Up & Tarik Saldo'),
+      content: SizedBox(width: 680, child: requests.isEmpty
+        ? const Text('Belum ada pengajuan atau gagal memuat data.')
+        : ListView.separated(shrinkWrap: true, itemCount: requests.length, separatorBuilder: (_, __) => const Divider(), itemBuilder: (_, i) {
+          final r = Map<String, dynamic>.from(requests[i] as Map);
+          final user = r['user'] is Map ? r['user'] as Map : {};
+          final pending = r['status'] == 'pending';
+          final amount = PaymentModel.formatRupiah(double.tryParse('${r['amount']}') ?? 0);
+          return ListTile(isThreeLine: true, title: Text('${r['type'] == 'top_up' ? 'Top Up' : 'Tarik Saldo'} • $amount'), subtitle: Text('${user['name'] ?? 'Pelanggan'}\n${r['bank_name'] ?? '-'} • ${r['account_number'] ?? '-'} (${r['account_name'] ?? '-'})\nStatus: ${r['status']}'), trailing: pending ? Wrap(children: [IconButton(tooltip: 'Tolak', onPressed: () async { if (await _reviewBalanceRequest(r['id'], 'rejected')) refresh(() => r['status'] = 'rejected'); }, icon: const Icon(Icons.close, color: Colors.red)), IconButton(tooltip: 'Setujui', onPressed: () async { if (await _reviewBalanceRequest(r['id'], 'approved')) refresh(() => r['status'] = 'approved'); }, icon: const Icon(Icons.check, color: Colors.green))]) : null);
+        })),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Tutup'))],
+    )));
+  }
+
+  Future<bool> _reviewBalanceRequest(dynamic id, String status) async {
+    try {
+      final response = await ApiService.put('/admin/balance-requests/$id/review', {'status': status});
+      if (response.statusCode == 200 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'approved' ? 'Pengajuan disetujui.' : 'Pengajuan ditolak.')));
+        return true;
+      }
+    } catch (_) {}
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal memperbarui pengajuan.')));
+    return false;
+  }
+
   // ============================================================
   // FILTER & PAGINATION
   // ============================================================
@@ -423,6 +458,8 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           'Kelola dan pantau seluruh transaksi pembayaran pelanggan dan mitra.',
           style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(onPressed: _showBalanceRequests, icon: const Icon(Icons.account_balance_wallet_outlined), label: const Text('Pengajuan Saldo')),
       ],
     );
   }

@@ -596,9 +596,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // ============================================
-                      // AVATAR — FIXED: SELALU BULAT
-                      // ============================================
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
@@ -958,7 +955,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           children: [
             const SizedBox(height: 20),
 
-            // PROFIL SUPER ADMIN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
@@ -999,7 +995,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
             const SizedBox(height: 20),
 
-            // MENU
             ..._menus.asMap().entries.map(
                   (entry) => _menuItem(
                     context: context,
@@ -1011,7 +1006,6 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
             const Spacer(),
 
-            // LOGOUT
             _logoutButton(context),
 
             const SizedBox(height: 15),
@@ -1263,7 +1257,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   }
 
   // =========================================================
-  // PROFILE PAGE
+  // PROFILE PAGE (FONT & LAYOUT DISAMAKAN)
   // =========================================================
 
   Widget _buildProfilePage() {
@@ -1291,159 +1285,150 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profil Super Admin',
-                        style: TextStyle(
-                          fontSize: isMobile ? 22 : 26,
-                          fontWeight: FontWeight.w700,
-                          color: t.cellText,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Kelola informasi profil akun Super Admin.',
-                        style: TextStyle(
-                          fontSize: isMobile ? 12.5 : 13,
-                          color: t.mutedText,
-                          height: 1.4,
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: t.accent,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Informasi Akun',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: t.cellText,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isMobile ? 20 : 24),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: t.border),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildSuperAdminProfileImage(size: 100),
-                            const SizedBox(height: 18),
-
-                            Text(
-                              superAdminName,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: t.cellText,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-
-                            _roleChip(),
-
-                            const SizedBox(height: 20),
-                            Divider(height: 1, color: t.divider),
-                            const SizedBox(height: 20),
-
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton.icon(
-                                onPressed: _showEditProfileDialog,
-                                icon: const Icon(
-                                  Icons.edit_outlined,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  'Edit Profil',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: t.accent,
-                                  foregroundColor: AppColors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: OutlinedButton.icon(
-                                onPressed: _logout,
-                                icon: Icon(
-                                  Icons.logout_outlined,
-                                  size: 18,
-                                  color: t.danger,
-                                ),
-                                label: Text(
-                                  'Keluar',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: t.danger,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color:
-                                        t.danger.withValues(alpha: 0.3),
-                                  ),
-                                  backgroundColor:
-                                      t.danger.withValues(alpha: 0.05),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(t),
+                  const SizedBox(height: 20),
+                  _buildSectionLabel('Informasi Akun', t),
+                  const SizedBox(height: 12),
+                  _buildProfileCard(isMobile, t),
+                ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProfileHeader(AdminTheme t) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Profil Super Admin',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: t.cellText,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Kelola informasi profil akun Super Admin.',
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionLabel(String text, AdminTheme t) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            color: t.accent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: t.cellText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileCard(bool isMobile, AdminTheme t) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 20 : 24),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.border),
+      ),
+      child: Column(
+        children: [
+          _buildSuperAdminProfileImage(size: 100),
+          const SizedBox(height: 18),
+          Text(
+            superAdminName,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: t.cellText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _roleChip(),
+          const SizedBox(height: 20),
+          Divider(height: 1, color: t.divider),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _showEditProfileDialog,
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text(
+                'Edit Profil',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: t.accent,
+                foregroundColor: AppColors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: _logout,
+              icon: Icon(
+                Icons.logout_outlined,
+                size: 18,
+                color: t.danger,
+              ),
+              label: Text(
+                'Keluar',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: t.danger,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: t.danger.withValues(alpha: 0.3),
+                ),
+                backgroundColor: t.danger.withValues(alpha: 0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

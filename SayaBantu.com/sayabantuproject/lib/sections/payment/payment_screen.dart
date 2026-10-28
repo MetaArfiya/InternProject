@@ -24,11 +24,20 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  static const List<String> _senderBanks = [
+    'BCA', 'Mandiri', 'BNI', 'BRI', 'BSI (Syariah)', 'CIMB Niaga',
+    'Permata', 'Danamon', 'BTN', 'OCBC', 'Panin', 'Maybank',
+    'Bank Mega', 'Bukopin', 'Bank Jago', 'SeaBank', 'Lainnya',
+  ];
+  static const List<String> _senderEWallets = [
+    'DANA', 'GoPay', 'OVO', 'ShopeePay', 'LinkAja',
+  ];
   bool _isLoading = true;
   String? _errorMessage;
 
   List<PaymentModel> _payments = [];
   PaymentSummary? _summary;
+  int _walletBalance = 0;
 
   String _selectedStatus = 'Semua';
   final Map<int, Map<String, dynamic>?> _ratingCache = {};
@@ -147,6 +156,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final decoded = jsonDecode(response.body);
 
+      var walletBalance = _walletBalance;
+      if (!_isMitra) {
+        try {
+          final walletResponse = await ApiService.get('/pelanggan/balance-requests');
+          if (walletResponse.statusCode == 200) {
+            final walletData = jsonDecode(walletResponse.body);
+            walletBalance = int.tryParse('${walletData['balance']}') ?? walletBalance;
+          }
+        } catch (_) {}
+      }
+
       if (decoded['success'] != true) {
         setState(() {
           _isLoading = false;
@@ -166,6 +186,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 .map((e) => PaymentModel.fromJson(e))
                 .toList()
             : [];
+        _walletBalance = walletBalance;
         _isLoading = false;
       });
     } catch (e) {
@@ -259,6 +280,248 @@ class _PaymentScreenState extends State<PaymentScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    }
+  }
+
+  Future<void> _openBalanceRequest(String type) async {
+    final amount = TextEditingController();
+    final bank = TextEditingController();
+    final account = TextEditingController();
+    final name = TextEditingController();
+    final note = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+    String? selectedSenderBank;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final isMobile = MediaQuery.of(dialogContext).size.width < 700;
+        final title = type == 'top_up' ? 'Pengajuan Top Up' : 'Pengajuan Tarik Saldo';
+        InputDecoration decoration(String hint) => InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 13, color: AppColors.grey400),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.grey300)),
+        );
+        Widget field(String label, TextEditingController controller, {String? hint, TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1}) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.grey700)),
+            const SizedBox(height: 8),
+            TextFormField(controller: controller, keyboardType: keyboardType, maxLines: maxLines, validator: validator, decoration: decoration(hint ?? '')),
+          ]),
+        );
+        Future<void> submit(StateSetter setDialogState) async {
+          if (!formKey.currentState!.validate()) return;
+          setDialogState(() => isSubmitting = true);
+          try {
+            final response = await ApiService.post('/pelanggan/balance-requests', {'type': type, 'amount': int.parse(amount.text), 'bank_name': bank.text.trim(), 'account_number': account.text.trim(), 'account_name': name.text.trim(), 'note': note.text.trim()});
+            final body = jsonDecode(response.body);
+            if (response.statusCode == 201 && body['success'] == true) { if (dialogContext.mounted) Navigator.pop(dialogContext, true); }
+            else if (dialogContext.mounted) { ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(body['message']?.toString() ?? 'Pengajuan gagal dikirim.'))); setDialogState(() => isSubmitting = false); }
+          } catch (_) { if (dialogContext.mounted) { ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('Tidak dapat terhubung ke server.'))); setDialogState(() => isSubmitting = false); } }
+        }
+        Future<void> chooseSenderBank() async {
+          final category = await showDialog<String>(
+            context: dialogContext,
+            builder: (categoryContext) => AlertDialog(
+              title: const Text('Pilih Jenis Rekening'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_outlined, color: _accent),
+                    title: const Text('Bank'),
+                    onTap: () => Navigator.pop(categoryContext, 'bank'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_wallet_outlined, color: _accent),
+                    title: const Text('E-wallet'),
+                    onTap: () => Navigator.pop(categoryContext, 'ewallet'),
+                  ),
+                ],
+              ),
+              actions: [TextButton(onPressed: () => Navigator.pop(categoryContext), child: const Text('Batal'))],
+            ),
+          );
+          if (category == null || !dialogContext.mounted) return;
+
+          final options = category == 'bank' ? _senderBanks : _senderEWallets;
+          final categoryLabel = category == 'bank' ? 'Bank' : 'E-wallet';
+          final searchController = TextEditingController();
+          final selection = await showDialog<String>(
+            context: dialogContext,
+            builder: (pickerContext) => StatefulBuilder(
+              builder: (pickerContext, refreshOptions) {
+                final query = searchController.text.trim().toLowerCase();
+                final filtered = options
+                    .where((option) => option.toLowerCase().contains(query))
+                    .toList();
+                return AlertDialog(
+                  title: Text('Pilih $categoryLabel'),
+                  content: SizedBox(
+                    width: 420,
+                    height: 420,
+                    child: Column(children: [
+                      TextField(
+                        controller: searchController,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: 'Cari $categoryLabel',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onChanged: (_) => refreshOptions(() {}),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(child: Text('Pilihan tidak ditemukan.'))
+                            : ListView.builder(
+                                itemCount: filtered.length,
+                                itemBuilder: (_, index) => ListTile(
+                                  title: Text(filtered[index]),
+                                  onTap: () => Navigator.pop(pickerContext, filtered[index]),
+                                ),
+                              ),
+                      ),
+                    ]),
+                  ),
+                  actions: [TextButton(onPressed: () => Navigator.pop(pickerContext), child: const Text('Batal'))],
+                );
+              },
+            ),
+          );
+          searchController.dispose();
+          if (selection != null) {
+            selectedSenderBank = selection;
+            bank.text = selection;
+          }
+        }
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: isMobile ? MediaQuery.of(dialogContext).size.width - 32 : 600, maxHeight: MediaQuery.of(dialogContext).size.height * .9),
+            child: StatefulBuilder(builder: (context, setDialogState) => Padding(
+              padding: EdgeInsets.all(isMobile ? 18 : 28),
+              child: Form(key: formKey, child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.grey900)),
+                const SizedBox(height: 6),
+                Text('Isi informasi pengajuan saldo berikut.', style: const TextStyle(fontSize: 13, color: AppColors.grey500)),
+                SizedBox(height: isMobile ? 22 : 28),
+                Row(children: [Container(width: 3, height: 16, decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2))), const SizedBox(width: 8), const Text('Informasi Pengajuan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey800))]),
+                const SizedBox(height: 14),
+                field('Jumlah', amount, hint: 'Minimal Rp10.000', keyboardType: TextInputType.number, validator: (v) => (int.tryParse(v ?? '') ?? 0) < 10000 ? 'Masukkan jumlah minimal Rp10.000' : null),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(type == 'top_up' ? 'Rekening Pengirim' : 'Rekening Tujuan', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.grey700)),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: bank,
+                        readOnly: true,
+                        onTap: () => chooseSenderBank(),
+                        validator: (value) => selectedSenderBank == null ? 'Pilih bank atau e-wallet' : null,
+                        decoration: decoration('Pilih Bank atau E-wallet').copyWith(
+                          prefixIcon: const Icon(Icons.account_balance_outlined),
+                          suffixIcon: const Icon(Icons.search),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                field(type == 'top_up' ? 'Nomor Rekening Pengirim' : 'Nomor Rekening Tujuan', account, hint: 'Masukkan nomor rekening', keyboardType: TextInputType.number, validator: (v) => v == null || v.trim().isEmpty ? 'Wajib diisi' : null),
+                field('Nama Pemilik Rekening', name, hint: 'Nama sesuai rekening', validator: (v) => v == null || v.trim().isEmpty ? 'Wajib diisi' : null),
+                field('Catatan (Opsional)', note, hint: 'Tambahkan keterangan jika diperlukan', maxLines: 3),
+                if (isMobile) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting ? null : () => submit(setDialogState),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(isSubmitting ? 'Memproses...' : 'Kirim Pengajuan'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext, false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext, false),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 50),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Batal'),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting ? null : () => submit(setDialogState),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 50),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Text(isSubmitting ? 'Memproses...' : 'Kirim Pengajuan'),
+                        ),
+                      ),
+                    ],
+                  ),
+              ]))),
+            )),
+          ),
+        );
+      },
+    );
+    amount.dispose(); bank.dispose(); account.dispose(); name.dispose(); note.dispose();
+    if (accepted == true && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pengajuan terkirim dan menunggu tinjauan admin.')));
+  }
+
+  Future<void> _showBalanceRequestHistory() async {
+    try {
+      final response = await ApiService.get('/pelanggan/balance-requests');
+      final decoded = jsonDecode(response.body);
+      if (!mounted) return;
+      final rows = decoded['success'] == true ? (decoded['data'] as List? ?? []) : <dynamic>[];
+      await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+        title: const Text('Riwayat Pengajuan Saldo'),
+        content: SizedBox(width: 460, child: rows.isEmpty
+          ? const Text('Belum ada pengajuan saldo.')
+          : ListView.separated(shrinkWrap: true, itemCount: rows.length, separatorBuilder: (_, __) => const Divider(), itemBuilder: (_, i) {
+              final row = Map<String, dynamic>.from(rows[i] as Map);
+              final isTopUp = row['type'] == 'top_up';
+              final amount = PaymentModel.formatRupiah(double.tryParse('${row['amount']}') ?? 0);
+              final status = row['status'] == 'pending' ? 'Menunggu admin' : row['status'] == 'approved' ? 'Disetujui' : 'Ditolak';
+              return ListTile(contentPadding: EdgeInsets.zero, title: Text('${isTopUp ? 'Top Up' : 'Tarik Saldo'} • $amount'), subtitle: Text('$status\n${row['bank_name'] ?? '-'} • ${row['account_number'] ?? '-'}'));
+            })),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Tutup'))],
+      ));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Riwayat pengajuan gagal dimuat.')));
     }
   }
 
@@ -357,6 +620,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
             color: AppColors.grey500,
           ),
         ),
+        if (!_isMitra) ...[
+          const SizedBox(height: 14),
+          Wrap(spacing: 10, runSpacing: 8, children: [
+            OutlinedButton.icon(onPressed: () => _openBalanceRequest('top_up'), icon: const Icon(Icons.add), label: const Text('Ajukan Top Up')),
+            FilledButton.tonalIcon(onPressed: () => _openBalanceRequest('withdrawal'), icon: const Icon(Icons.south_west), label: const Text('Ajukan Tarik Saldo')),
+            TextButton.icon(onPressed: _showBalanceRequestHistory, icon: const Icon(Icons.history), label: const Text('Riwayat Pengajuan')),
+          ]),
+        ],
       ],
     );
   }
@@ -414,6 +685,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
         value: PaymentModel.formatRupiah(s.totalKomisi),
         icon: Icons.percent,
         color: const Color(0xFF16A34A),
+      ));
+      cards.add(_SummaryData(
+        title: 'Saldo',
+        shortTitle: 'Saldo',
+        value: PaymentModel.formatRupiah(_walletBalance.toDouble()),
+        icon: Icons.account_balance_wallet_outlined,
+        color: _accent,
       ));
     }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -25,13 +26,6 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
-  final ScrollController _scrollController = ScrollController();
-
-  String _searchKeyword = '';
-  List<JobModel> _filteredJobs = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-
   // ============================================================
   // GLOBAL KEYS
   // ============================================================
@@ -42,7 +36,20 @@ class _LandingPageState extends State<LandingPage> {
   final GlobalKey _searchResultKey = GlobalKey();
 
   // ============================================================
-  // API BASE URL — konsisten dengan hero_left & hero_right
+  // STATE
+  // ============================================================
+  String _searchKeyword = '';
+  List<JobModel> _filteredJobs = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  // Debounce untuk mencegah spam API saat user mengetik
+  Timer? _debounceTimer;
+  // Guard agar tidak setState setelah dispose
+  bool _isDisposed = false;
+
+  // ============================================================
+  // API BASE URL
   // ============================================================
   String get _baseUrl {
     if (kIsWeb) return 'http://127.0.0.1:8000/api';
@@ -57,15 +64,24 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _isDisposed = true;
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  // ============================================================
+  // SAFE SETSTATE
+  // ============================================================
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted || _isDisposed) return;
+    setState(fn);
   }
 
   // ============================================================
   // API CALL
   // ============================================================
   Future<void> _fetchJobsFromApi() async {
-    setState(() {
+    _safeSetState(() {
       _isLoading = true;
       _errorMessage = null;
     });
@@ -85,6 +101,8 @@ class _LandingPageState extends State<LandingPage> {
         },
       );
 
+      if (_isDisposed) return;
+
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         List<dynamic> jobListJson = [];
@@ -96,51 +114,58 @@ class _LandingPageState extends State<LandingPage> {
           jobListJson = decoded;
         }
 
-        setState(() {
-          _filteredJobs =
-              jobListJson.map((json) => JobModel.fromJson(json)).toList();
+        _safeSetState(() {
+          _filteredJobs = jobListJson
+              .map((json) => JobModel.fromJson(json as Map<String, dynamic>))
+              .toList();
           _isLoading = false;
         });
       } else {
-        setState(() {
+        _safeSetState(() {
           _errorMessage =
               'Gagal mengambil data (Kode: ${response.statusCode})';
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Terjadi kesalahan koneksi ke backend: $e';
+      if (_isDisposed) return;
+      _safeSetState(() {
+        _errorMessage = 'Tidak dapat terhubung ke server. '
+            'Pastikan koneksi internet Anda aktif.';
         _isLoading = false;
       });
+      debugPrint('Fetch jobs error: $e');
     }
   }
 
   // ============================================================
-  // SEARCH
+  // SEARCH (dengan debounce)
   // ============================================================
   void _searchJob(String keyword) {
-    setState(() {
-      _searchKeyword = keyword;
-    });
-
-    _fetchJobsFromApi();
-
-    if (keyword.trim().isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToKey(_searchResultKey);
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _safeSetState(() {
+        _searchKeyword = keyword;
       });
-    }
+
+      _fetchJobsFromApi();
+
+      if (keyword.trim().isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToKey(_searchResultKey);
+        });
+      }
+    });
   }
 
   // ============================================================
   // SCROLL TO KEY
   // ============================================================
   void _scrollToKey(GlobalKey key) {
-    final context = key.currentContext;
-    if (context != null) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
       Scrollable.ensureVisible(
-        context,
+        ctx,
         duration: const Duration(milliseconds: 700),
         curve: Curves.easeInOut,
       );
@@ -152,95 +177,109 @@ class _LandingPageState extends State<LandingPage> {
   // ============================================================
   @override
   Widget build(BuildContext context) {
+    final bool showSearchResult = _searchKeyword.trim().isNotEmpty;
+
     return Scaffold(
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        child: Column(
-          children: [
-            // ============================
-            // NAVBAR
-            // ============================
-            CustomNavbar(
+      body: CustomScrollView(
+        slivers: [
+          // ============================
+          // NAVBAR
+          // ============================
+          SliverToBoxAdapter(
+            child: CustomNavbar(
               onLayanan: () => _scrollToKey(_layananKey),
               onCaraKerja: () => _scrollToKey(_caraKerjaKey),
               onMitra: () => _scrollToKey(_mitraKey),
               onTentang: () => _scrollToKey(_tentangKey),
             ),
+          ),
 
-            // ============================
-            // HERO
-            // ============================
-            HeroSection(
+          // ============================
+          // HERO
+          // ============================
+          SliverToBoxAdapter(
+            child: HeroSection(
               onCariJasa: () => _scrollToKey(_layananKey),
               onJadiMitra: () => _scrollToKey(_mitraKey),
               onSearch: _searchJob,
             ),
+          ),
 
-            // ============================
-            // SEARCH RESULT (kondisional)
-            // ============================
-            if (_searchKeyword.isNotEmpty)
-              KeyedSubtree(
+          // ============================
+          // SEARCH RESULT (kondisional)
+          // ============================
+          if (showSearchResult)
+            SliverToBoxAdapter(
+              child: Container(
                 key: _searchResultKey,
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: _buildSearchResult(),
               ),
+            ),
 
-            // ============================
-            // KATEGORI
-            // ============================
-            KeyedSubtree(
+          // ============================
+          // KATEGORI
+          // ============================
+          SliverToBoxAdapter(
+            child: KeyedSubtree(
               key: _layananKey,
               child: const CategorySection(),
             ),
+          ),
 
-            // ============================
-            // CARA KERJA
-            // ============================
-            KeyedSubtree(
+          // ============================
+          // CARA KERJA
+          // ============================
+          SliverToBoxAdapter(
+            child: KeyedSubtree(
               key: _caraKerjaKey,
               child: const HowItWorksSection(),
             ),
+          ),
 
-            // ============================
-            // STATS
-            // ============================
-            const StatsSection(),
+          // ============================
+          // STATS
+          // ============================
+          const SliverToBoxAdapter(child: StatsSection()),
 
-            // ============================
-            // WHY
-            // ============================
-            const WhySection(),
+          // ============================
+          // WHY
+          // ============================
+          const SliverToBoxAdapter(child: WhySection()),
 
-            // ============================
-            // TESTIMONI
-            // ============================
-            const TestimonialSection(),
+          // ============================
+          // TESTIMONI
+          // ============================
+          const SliverToBoxAdapter(child: TestimonialSection()),
 
-            // ============================
-            // PARTNER CTA (Jadi Mitra)
-            // ============================
-            KeyedSubtree(
+          // ============================
+          // PARTNER CTA (Jadi Mitra)
+          // ============================
+          SliverToBoxAdapter(
+            child: KeyedSubtree(
               key: _mitraKey,
               child: PartnerCTASection(
                 onDaftarMitra: () => _scrollToKey(_mitraKey),
                 onPelajari: () => _scrollToKey(_caraKerjaKey),
               ),
             ),
+          ),
 
-            // ============================
-            // TENTANG KAMI (BARU)
-            // ============================
-            KeyedSubtree(
+          // ============================
+          // TENTANG KAMI
+          // ============================
+          SliverToBoxAdapter(
+            child: KeyedSubtree(
               key: _tentangKey,
               child: const AboutSection(),
             ),
+          ),
 
-            // ============================
-            // FOOTER
-            // ============================
-            const FooterSection(),
-          ],
-        ),
+          // ============================
+          // FOOTER
+          // ============================
+          const SliverToBoxAdapter(child: FooterSection()),
+        ],
       ),
     );
   }
@@ -258,19 +297,27 @@ class _LandingPageState extends State<LandingPage> {
 
     if (_errorMessage != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Center(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(
+                Icons.cloud_off_rounded,
+                size: 48,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 12),
               Text(
                 _errorMessage!,
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
-              ElevatedButton(
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
                 onPressed: _fetchJobsFromApi,
-                child: const Text('Coba Lagi'),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
               ),
             ],
           ),

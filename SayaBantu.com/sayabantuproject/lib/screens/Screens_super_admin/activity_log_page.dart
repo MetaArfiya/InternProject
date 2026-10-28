@@ -256,7 +256,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // PAGINATION
+  // PAGINATION (DISAMAKAN DENGAN LAPORAN HARIAN — pakai Wrap)
   // ============================================================
 
   Widget _buildPaginationFullWidth(bool isMobile, AdminTheme t) {
@@ -267,29 +267,29 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: t.border),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
-            child: Text(
-              'Menampilkan $startItem–$endItem dari $total aktivitas',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: t.headerText,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
+          Text(
+            'Menampilkan $startItem–$endItem dari $total aktivitas',
+            style: TextStyle(
+              fontSize: 12,
+              color: t.headerText,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 16),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Container(
                 height: 32,
@@ -332,39 +332,43 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              _paginationIconButton(
-                icon: Icons.chevron_left,
-                onTap: _currentPage > 1
-                    ? () => setState(() => _currentPage--)
-                    : null,
-                t: t,
-              ),
-              const SizedBox(width: 8),
-              Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: t.accent.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Hal $_currentPage / $totalPages',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: t.accent,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _paginationIconButton(
+                    icon: Icons.chevron_left,
+                    onTap: _currentPage > 1
+                        ? () => setState(() => _currentPage--)
+                        : null,
+                    t: t,
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _paginationIconButton(
-                icon: Icons.chevron_right,
-                onTap: _currentPage < totalPages
-                    ? () => setState(() => _currentPage++)
-                    : null,
-                t: t,
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: t.accent.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$_currentPage / $totalPages',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.accent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _paginationIconButton(
+                    icon: Icons.chevron_right,
+                    onTap: _currentPage < totalPages
+                        ? () => setState(() => _currentPage++)
+                        : null,
+                    t: t,
+                  ),
+                ],
               ),
             ],
           ),
@@ -407,7 +411,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   }
 
   // ============================================================
-  // HEADER  ← tanpa top padding, font konsisten
+  // HEADER
   // ============================================================
 
   Widget _buildHeader(bool isMobile, AdminTheme t) {
@@ -450,19 +454,22 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   // ============================================================
 
   Widget _buildDeleteButton(AdminTheme t) {
-    return OutlinedButton.icon(
-      onPressed: _isDeleting ? null : () => _showDeleteRangeDialog(t),
-      icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-      label: const Text(
-        'Hapus Log',
-        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-      ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: t.danger,
-        side: BorderSide(color: t.danger),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+    return SizedBox(
+      height: 46,
+      child: OutlinedButton.icon(
+        onPressed: _isDeleting ? null : () => _showDeleteRangeDialog(t),
+        icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+        label: const Text(
+          'Hapus Log',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: t.danger,
+          side: BorderSide(color: t.danger),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
     );
@@ -1091,136 +1098,132 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
                         ),
                         const SizedBox(height: 12),
 
-                        RadioGroup<String>(
+                        // Radio "Rentang waktu"
+                        RadioListTile<String>(
+                          value: 'range',
                           groupValue: scope,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          activeColor: t.accent,
                           onChanged: (v) {
                             if (v == null) return;
                             setDialogState(() => scope = v);
                           },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          title: Text(
+                            'Berdasarkan rentang waktu',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: t.cellText,
+                            ),
+                          ),
+                        ),
+
+                        if (scope == 'range') ...[
+                          const SizedBox(height: 4),
+                          _buildDatePickerTile(
+                            label: 'Dari Tanggal',
+                            value: startDate,
+                            onPick: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: startDate ??
+                                    DateTime.now().subtract(
+                                        const Duration(days: 30)),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
+                              if (picked != null) {
+                                setDialogState(
+                                    () => startDate = picked);
+                              }
+                            },
+                            t: t,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildDatePickerTile(
+                            label: 'Sampai Tanggal',
+                            value: endDate,
+                            onPick: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: endDate ?? DateTime.now(),
+                                firstDate: startDate ?? DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
+                              if (picked != null) {
+                                setDialogState(() => endDate = picked);
+                              }
+                            },
+                            t: t,
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
-                              RadioListTile<String>(
-                                value: 'range',
-                                contentPadding: EdgeInsets.zero,
-                                dense: true,
-                                activeColor: t.accent,
-                                title: Text(
-                                  'Berdasarkan rentang waktu',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                    color: t.cellText,
-                                  ),
-                                ),
+                              _quickRangeChip(
+                                '7 hari terakhir',
+                                7,
+                                (s, e) {
+                                  setDialogState(() {
+                                    startDate = s;
+                                    endDate = e;
+                                  });
+                                },
+                                t,
                               ),
-
-                              if (scope == 'range') ...[
-                                const SizedBox(height: 4),
-                                _buildDatePickerTile(
-                                  label: 'Dari Tanggal',
-                                  value: startDate,
-                                  onPick: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: startDate ??
-                                          DateTime.now().subtract(
-                                              const Duration(days: 30)),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime.now(),
-                                    );
-                                    if (picked != null) {
-                                      setDialogState(
-                                          () => startDate = picked);
-                                    }
-                                  },
-                                  t: t,
-                                ),
-                                const SizedBox(height: 10),
-                                _buildDatePickerTile(
-                                  label: 'Sampai Tanggal',
-                                  value: endDate,
-                                  onPick: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate:
-                                          endDate ?? DateTime.now(),
-                                      firstDate:
-                                          startDate ?? DateTime(2020),
-                                      lastDate: DateTime.now(),
-                                    );
-                                    if (picked != null) {
-                                      setDialogState(
-                                          () => endDate = picked);
-                                    }
-                                  },
-                                  t: t,
-                                ),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    _quickRangeChip(
-                                      '7 hari terakhir',
-                                      7,
-                                      (s, e) {
-                                        setDialogState(() {
-                                          startDate = s;
-                                          endDate = e;
-                                        });
-                                      },
-                                      t,
-                                    ),
-                                    _quickRangeChip(
-                                      '30 hari terakhir',
-                                      30,
-                                      (s, e) {
-                                        setDialogState(() {
-                                          startDate = s;
-                                          endDate = e;
-                                        });
-                                      },
-                                      t,
-                                    ),
-                                    _quickRangeChip(
-                                      '90 hari terakhir',
-                                      90,
-                                      (s, e) {
-                                        setDialogState(() {
-                                          startDate = s;
-                                          endDate = e;
-                                        });
-                                      },
-                                      t,
-                                    ),
-                                  ],
-                                ),
-                              ],
-
-                              RadioListTile<String>(
-                                value: 'all',
-                                contentPadding: EdgeInsets.zero,
-                                dense: true,
-                                activeColor: t.danger,
-                                title: Text(
-                                  'Semua log',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                    color: t.cellText,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  'Menghapus seluruh riwayat aktivitas',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: t.mutedText,
-                                  ),
-                                ),
+                              _quickRangeChip(
+                                '30 hari terakhir',
+                                30,
+                                (s, e) {
+                                  setDialogState(() {
+                                    startDate = s;
+                                    endDate = e;
+                                  });
+                                },
+                                t,
+                              ),
+                              _quickRangeChip(
+                                '90 hari terakhir',
+                                90,
+                                (s, e) {
+                                  setDialogState(() {
+                                    startDate = s;
+                                    endDate = e;
+                                  });
+                                },
+                                t,
                               ),
                             ],
+                          ),
+                        ],
+
+                        // Radio "Semua log"
+                        RadioListTile<String>(
+                          value: 'all',
+                          groupValue: scope,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          activeColor: t.danger,
+                          onChanged: (v) {
+                            if (v == null) return;
+                            setDialogState(() => scope = v);
+                          },
+                          title: Text(
+                            'Semua log',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: t.cellText,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Menghapus seluruh riwayat aktivitas',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: t.mutedText,
+                            ),
                           ),
                         ),
 

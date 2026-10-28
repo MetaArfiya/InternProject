@@ -130,7 +130,6 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   String? _validatePhone(String? value) {
     final v = (value ?? '').trim();
 
-    // Opsional
     if (v.isEmpty) return null;
 
     if (!RegExp(r'^[0-9]+$').hasMatch(v)) {
@@ -154,6 +153,14 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     }
     if (v.length > _passwordMax) {
       return 'Password maksimal $_passwordMax karakter.';
+    }
+    return null;
+  }
+
+  String? _validateRegion(String? value) {
+    final parts = (value ?? '').split(',').map((part) => part.trim()).toList();
+    if (parts.length != 2 || parts.any((part) => part.isEmpty)) {
+      return 'Gunakan format Kota/Kabupaten, Provinsi.';
     }
     return null;
   }
@@ -275,30 +282,25 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(isMobile, t),
-                      const SizedBox(height: 16),
-                      _buildSearchAndAction(isMobile, t),
-                      const SizedBox(height: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(isMobile, t),
+                  const SizedBox(height: 16),
+                  _buildSearchAndAction(isMobile, t),
+                  const SizedBox(height: 16),
 
-                      if (_isLoading)
-                        _buildLoading(t)
-                      else if (_errorMessage != null)
-                        _buildError(t)
-                      else if (_filteredAdmins.isEmpty)
-                        _buildEmptyState(t)
-                      else if (isMobile)
-                        _buildMobileList(t)
-                      else
-                        _buildDesktopTable(t),
-                    ],
-                  ),
-                ),
+                  if (_isLoading)
+                    _buildLoading(t)
+                  else if (_errorMessage != null)
+                    _buildError(t)
+                  else if (_filteredAdmins.isEmpty)
+                    _buildEmptyState(t)
+                  else if (isMobile)
+                    _buildMobileList(t)
+                  else
+                    _buildDesktopTable(t),
+                ],
               ),
             ),
           ),
@@ -312,26 +314,21 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   // ============================================================
 
   Widget _buildHeader(bool isMobile, AdminTheme t) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Kelola Admin',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
             color: t.cellText,
-            height: 1.2,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Kelola akun dan akses administrator platform.',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: t.mutedText,
-            height: 1.4,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -602,6 +599,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     final name = (admin['name'] ?? '-').toString();
     final email = (admin['email'] ?? '-').toString();
     final phone = (admin['phone'] ?? '-').toString();
+    final region = (admin['region'] ?? 'Belum ditetapkan').toString();
     final status = _getStatus(admin);
     final lastLogin = _formatDate(admin['last_login_at']);
 
@@ -670,6 +668,13 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     fontSize: 11.5,
                     color: AppColors.grey400,
                   ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  region,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11.5, color: t.accent),
                 ),
               ],
             ),
@@ -772,6 +777,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     final name = (admin['name'] ?? '-').toString();
     final email = (admin['email'] ?? '-').toString();
     final phone = (admin['phone'] ?? '-').toString();
+    final region = (admin['region'] ?? 'Belum ditetapkan').toString();
     final status = _getStatus(admin);
     final lastLogin = _formatDate(admin['last_login_at']);
 
@@ -829,6 +835,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
           _mobileInfo(Icons.email_outlined, email, t),
           const SizedBox(height: 8),
           _mobileInfo(Icons.phone_outlined, phone, t),
+          const SizedBox(height: 8),
+          _mobileInfo(Icons.location_city_outlined, region, t),
           const SizedBox(height: 8),
           _mobileInfo(Icons.access_time_outlined, lastLogin, t),
 
@@ -910,50 +918,50 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   // AVATAR
   // ============================================================
 
-    Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
-      final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+  Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-      return Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: t.accent.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: ClipOval(
-          child: (photoUrl != null && photoUrl.isNotEmpty)
-              ? Image.network(
-                  photoUrl,
-                  width: 42,
-                  height: 42,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Text(
-                        initial,
-                        style: TextStyle(
-                          color: t.accent,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: t.accent.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: ClipOval(
+        child: (photoUrl != null && photoUrl.isNotEmpty)
+            ? Image.network(
+                photoUrl,
+                width: 42,
+                height: 42,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Text(
+                      initial,
+                      style: TextStyle(
+                        color: t.accent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
                       ),
-                    );
-                  },
-                )
-              : Center(
-                  child: Text(
-                    initial,
-                    style: TextStyle(
-                      color: t.accent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
                     ),
+                  );
+                },
+              )
+            : Center(
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    color: t.accent,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
                 ),
-        ),
-      );
-    }
+              ),
+      ),
+    );
+  }
 
   // ============================================================
   // STATUS
@@ -1048,6 +1056,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     final emailController = TextEditingController();
     final phoneController = TextEditingController();
     final passwordController = TextEditingController();
+    final regionController = TextEditingController();
 
     bool isSubmitting = false;
     bool obscurePassword = true;
@@ -1180,6 +1189,18 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                   const SizedBox(height: 12),
                                   _dialogField(
                                     t: t,
+                                    controller: regionController,
+                                    label: 'Wilayah Tugas (Kota/Kabupaten, Provinsi)',
+                                    hint: 'Kota Kediri, Jawa Timur',
+                                    helper: 'Gunakan format ini agar cocok dengan wilayah profil dan lokasi pekerjaan.',
+                                    icon: Icons.location_city_outlined,
+                                    enabled: !isSubmitting,
+                                    maxLength: 150,
+                                    validator: _validateRegion,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
                                     controller: passwordController,
                                     label: 'Password',
                                     hint: 'Min $_passwordMin karakter',
@@ -1282,6 +1303,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                               'name': name,
                                               'email': email,
                                               'phone': phone,
+                                              'region': regionController.text.trim(),
                                               'password': password,
                                             },
                                           );
@@ -1432,6 +1454,9 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
     final phoneController = TextEditingController(
       text: (admin['phone'] ?? '').toString(),
     );
+    final regionController = TextEditingController(
+      text: (admin['region'] ?? '').toString(),
+    );
 
     bool isActive = admin['is_active'] == true ||
         admin['is_active'] == 1 ||
@@ -1565,6 +1590,18 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                     inputFormatters: _phoneFormatters,
                                     validator: _validatePhone,
                                   ),
+                                  const SizedBox(height: 12),
+                                  _dialogField(
+                                    t: t,
+                                    controller: regionController,
+                                    label: 'Wilayah Tugas (Kota/Kabupaten, Provinsi)',
+                                    hint: 'Kota Kediri, Jawa Timur',
+                                    helper: 'Gunakan format ini agar cocok dengan wilayah profil dan lokasi pekerjaan.',
+                                    icon: Icons.location_city_outlined,
+                                    enabled: !isSubmitting,
+                                    maxLength: 150,
+                                    validator: _validateRegion,
+                                  ),
                                   const SizedBox(height: 8),
 
                                   // SWITCH STATUS
@@ -1686,6 +1723,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                                               'name': name,
                                               'email': email,
                                               'phone': phone,
+                                              'region': regionController.text.trim(),
                                               'is_active': isActive,
                                             },
                                           );

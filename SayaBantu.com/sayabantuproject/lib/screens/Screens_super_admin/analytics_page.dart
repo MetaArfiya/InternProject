@@ -278,11 +278,131 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: _buildContent(width, isMobile, t),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(isMobile, t),
+                  const SizedBox(height: 16),
+                  if (_isLoading)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 100),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: t.accent),
+                      ),
+                    )
+                  else if (_errorMessage != null)
+                    _buildErrorState(t)
+                  else ...[
+                    _buildSectionLabel(
+                        'Ringkasan Platform', isMobile, t),
+                    const SizedBox(height: 12),
+                    _buildStatGrid(
+                      isMobile: isMobile,
+                      cards: [
+                        _StatData(
+                          title: 'TOTAL TRANSAKSI',
+                          value: _formatRupiah(_totalTransaksi),
+                          description: '7 hari terakhir',
+                          icon: Icons.payments_rounded,
+                          color: t.accent,
+                        ),
+                        _StatData(
+                          title: 'JOB SELESAI',
+                          value: '$_jobSelesai',
+                          description: '7 hari terakhir',
+                          icon: Icons.check_circle_rounded,
+                          color: t.accent,
+                        ),
+                        _StatData(
+                          title: 'PENGGUNA BARU',
+                          value: '$_penggunaBaru',
+                          description:
+                              '$_pelangganBaru pelanggan · $_mitraBaru mitra',
+                          icon: Icons.people_alt_rounded,
+                          color: t.accent,
+                        ),
+                        _StatData(
+                          title: 'MITRA AKTIF',
+                          value: '$_mitraAktif',
+                          description:
+                              '$_mitraMenunggu menunggu verifikasi',
+                          icon: Icons.handyman_rounded,
+                          color: t.accent,
+                        ),
+                      ],
+                      t: t,
+                    ),
+                    const SizedBox(height: 16),
+                    _JobChartCard(data: _jobSelesaiPerHari, t: t),
+                    const SizedBox(height: 16),
+                    _buildSectionLabel(
+                        'Analytics Pembayaran', isMobile, t),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ringkasan transaksi dan pencairan dana platform',
+                      style: TextStyle(
+                          fontSize: 12, color: t.mutedText),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildStatGrid(
+                      isMobile: isMobile,
+                      cards: [
+                        _StatData(
+                          title: 'TOTAL PEMBAYARAN',
+                          value:
+                              _formatRupiah(_paymentTotalPembayaran),
+                          description:
+                              '$_paymentTotalTransaksi transaksi',
+                          icon: Icons.account_balance_wallet_rounded,
+                          color: t.accent,
+                        ),
+                        _StatData(
+                          title: 'KOMISI PLATFORM',
+                          value: _formatRupiah(_paymentTotalKomisi),
+                          description: 'Pendapatan aplikasi',
+                          icon: Icons.percent_rounded,
+                          color: t.accent,
+                        ),
+                        _StatData(
+                          title: 'TOTAL KE MITRA',
+                          value: _formatRupiah(
+                              _paymentTotalMitraEarning),
+                          description: 'Sudah dibayarkan',
+                          icon: Icons.handshake_rounded,
+                          color: t.accent,
+                        ),
+                        _StatData(
+                          title: 'PENDING CAIR',
+                          value:
+                              _formatRupiah(_paymentPendingAmount),
+                          description: 'Belum ditransfer',
+                          icon: Icons.hourglass_top_rounded,
+                          color: t.accent,
+                        ),
+                      ],
+                      t: t,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTwoColumnRow(
+                      isMobile: isMobile,
+                      left: _PaymentChartCard(
+                          data: _paymentChart, t: t),
+                      right: _TopMitraCard(
+                          data: _paymentTopMitra, t: t),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildThreeColumnRow(
+                      isMobile: isMobile,
+                      first: _DailyIncomeCard(
+                          data: _pendapatanHarian, t: t),
+                      second: _UserGrowthCard(
+                          data: _pertumbuhanPengguna, t: t),
+                      third: _PaymentStatusCard(
+                          data: _paymentPerStatus, t: t),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -291,164 +411,26 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
     );
   }
 
-  Widget _buildContent(double width, bool isMobile, AdminTheme t) {
-    if (_isLoading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 100),
-        child: Center(
-          child: CircularProgressIndicator(color: t.accent),
-        ),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return _buildErrorState(t);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // HEADER
-        _buildHeader(isMobile, t),
-        const SizedBox(height: 16),
-
-        // GENERAL STATS
-        _buildSectionLabel('Ringkasan Platform', isMobile, t),
-        const SizedBox(height: 12),
-        _buildStatGrid(
-          isMobile: isMobile,
-          cards: [
-            _StatData(
-              title: 'TOTAL TRANSAKSI',
-              value: _formatRupiah(_totalTransaksi),
-              description: '7 hari terakhir',
-              icon: Icons.payments_rounded,
-              color: t.accent,
-            ),
-            _StatData(
-              title: 'JOB SELESAI',
-              value: '$_jobSelesai',
-              description: '7 hari terakhir',
-              icon: Icons.check_circle_rounded,
-              color: t.accent,
-            ),
-            _StatData(
-              title: 'PENGGUNA BARU',
-              value: '$_penggunaBaru',
-              description:
-                  '$_pelangganBaru pelanggan · $_mitraBaru mitra',
-              icon: Icons.people_alt_rounded,
-              color: t.accent,
-            ),
-            _StatData(
-              title: 'MITRA AKTIF',
-              value: '$_mitraAktif',
-              description: '$_mitraMenunggu menunggu verifikasi',
-              icon: Icons.handyman_rounded,
-              color: t.accent,
-            ),
-          ],
-          t: t,
-        ),
-
-        const SizedBox(height: 16),
-
-        // JOB CHART
-        _JobChartCard(data: _jobSelesaiPerHari, t: t),
-
-        const SizedBox(height: 16),
-
-        // PEMBAYARAN
-        _buildSectionLabel('Analytics Pembayaran', isMobile, t),
-        const SizedBox(height: 4),
-        Text(
-          'Ringkasan transaksi dan pencairan dana platform',
-          style: TextStyle(fontSize: 12, color: t.mutedText),
-        ),
-        const SizedBox(height: 12),
-
-        _buildStatGrid(
-          isMobile: isMobile,
-          cards: [
-            _StatData(
-              title: 'TOTAL PEMBAYARAN',
-              value: _formatRupiah(_paymentTotalPembayaran),
-              description: '$_paymentTotalTransaksi transaksi',
-              icon: Icons.account_balance_wallet_rounded,
-              color: t.accent,
-            ),
-            _StatData(
-              title: 'KOMISI PLATFORM',
-              value: _formatRupiah(_paymentTotalKomisi),
-              description: 'Pendapatan aplikasi',
-              icon: Icons.percent_rounded,
-              color: t.accent,
-            ),
-            _StatData(
-              title: 'TOTAL KE MITRA',
-              value: _formatRupiah(_paymentTotalMitraEarning),
-              description: 'Sudah dibayarkan',
-              icon: Icons.handshake_rounded,
-              color: t.accent,
-            ),
-            _StatData(
-              title: 'PENDING CAIR',
-              value: _formatRupiah(_paymentPendingAmount),
-              description: 'Belum ditransfer',
-              icon: Icons.hourglass_top_rounded,
-              color: t.accent,
-            ),
-          ],
-          t: t,
-        ),
-
-        const SizedBox(height: 16),
-
-        // PAYMENT CHART + TOP MITRA
-        _buildTwoColumnRow(
-          isMobile: isMobile,
-          left: _PaymentChartCard(data: _paymentChart, t: t),
-          right: _TopMitraCard(data: _paymentTopMitra, t: t),
-        ),
-
-        const SizedBox(height: 16),
-
-        // BOTTOM ROW (hanya SEKALI, duplikat dihapus)
-        _buildThreeColumnRow(
-          isMobile: isMobile,
-          first: _DailyIncomeCard(data: _pendapatanHarian, t: t),
-          second: _UserGrowthCard(data: _pertumbuhanPengguna, t: t),
-          third: _PaymentStatusCard(data: _paymentPerStatus, t: t),
-        ),
-      ],
-    );
-  }
-
   // ================================================================
-  // HEADER
+  // HEADER (FONT DISAMAKAN)
   // ================================================================
 
   Widget _buildHeader(bool isMobile, AdminTheme t) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Analytics Platform',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
             color: t.cellText,
-            height: 1.2,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Ringkasan performa SiapBantu.com — $_periode',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: t.mutedText,
-            height: 1.4,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );
@@ -565,7 +547,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 16, // DISAMAKAN
                     fontWeight: FontWeight.w700,
                     color: t.cellText,
                     height: 1.1,

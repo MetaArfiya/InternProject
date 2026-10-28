@@ -21,9 +21,11 @@ class users extends Authenticatable
         'is_notification_enabled',
         'phone',
         'address',
+        'admin_region',
         'bank_name',
         'bank_account_number',
         'bank_account_name',
+        'balance',
         'is_active',
         'last_login_at',
     ];
@@ -35,6 +37,7 @@ class users extends Authenticatable
         'is_notification_enabled' => 'boolean',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
+        'balance' => 'integer',
     ];
 
     // ==================== RELASI ====================

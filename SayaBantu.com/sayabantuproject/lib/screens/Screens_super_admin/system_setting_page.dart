@@ -324,30 +324,25 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPageHeader(isMobile, t),
-                      const SizedBox(height: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPageHeader(isMobile, t),
+                  const SizedBox(height: 16),
 
-                      if (_isLoading)
-                        _buildLoading(t)
-                      else if (_errorMessage != null)
-                        _buildError(t)
-                      else ...[
-                        _buildMainContent(
-                          isMobile: isMobile,
-                          t: t,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildActionButtons(isMobile, t),
-                      ],
-                    ],
-                  ),
-                ),
+                  if (_isLoading)
+                    _buildLoading(t)
+                  else if (_errorMessage != null)
+                    _buildError(t)
+                  else ...[
+                    _buildMainContent(
+                      isMobile: isMobile,
+                      t: t,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildActionButtons(isMobile, t),
+                  ],
+                ],
               ),
             ),
           ),
@@ -386,30 +381,25 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   }
 
   // ============================================================
-  // HEADER  ← tanpa ikon
+  // HEADER (FONT DISAMAKAN)
   // ============================================================
 
   Widget _buildPageHeader(bool isMobile, AdminTheme t) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pengaturan Sistem',
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: FontWeight.w700,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
             color: t.cellText,
-            height: 1.2,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Konfigurasi aturan poin dan komisi platform',
-          style: TextStyle(
-            fontSize: isMobile ? 12.5 : 13,
-            color: t.mutedText,
-            height: 1.4,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: t.mutedText),
         ),
       ],
     );

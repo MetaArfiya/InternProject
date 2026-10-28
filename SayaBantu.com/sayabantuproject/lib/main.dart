@@ -19,7 +19,6 @@ Future<void> main() async {
     final role = (AuthStorage.getString('role') ?? '').trim();
 
     debugPrint('====== MAIN DEBUG ======');
-    debugPrint('TOKEN : "$token"');
     debugPrint('ROLE  : "$role"');
     debugPrint('========================');
 

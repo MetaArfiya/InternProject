@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\users;
 use App\Notifications\NewMitraRegistered;
+use App\Helpers\AdminTerritory;
+use App\Helpers\RegionFormat;
 
 class MitraProfileController extends Controller
 {
@@ -305,6 +307,9 @@ class MitraProfileController extends Controller
     public function updateProfile(Request $request)
     {
         try {
+            if ($request->has('city')) {
+                $request->merge(['city' => RegionFormat::normalize($request->input('city'))]);
+            }
             $user = auth()->user();
             $profile = mitra_profiles::where('user_id', $user->id)->first();
 
@@ -318,7 +323,7 @@ class MitraProfileController extends Controller
             $request->validate([
                 'gender'              => 'nullable|string|max:50',
                 'birth_date'          => 'nullable|date',
-                'city'                => 'nullable|string|max:100',
+                'city'                => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[^,]+,\s*[^,]+$/u'],
                 'bio'                 => 'nullable|string',
                 'skills'              => 'nullable|string|max:255',
                 'bank_name'           => 'nullable|string|max:100',
@@ -683,11 +688,12 @@ class MitraProfileController extends Controller
     public function pendingSkills(Request $request)
     {
         try {
-            $list = mitra_profiles::whereNotNull('pending_skills')
+            $query = mitra_profiles::whereNotNull('pending_skills')
                 ->where('pending_skills', '!=', '')
                 ->with('user:id,name,email,phone,photo_profile')
-                ->orderBy('skills_updated_at', 'desc')
-                ->get()
+                ->orderBy('skills_updated_at', 'desc');
+            AdminTerritory::constrainMitraProfiles($query);
+            $list = $query->get()
                 ->map(function ($profile) {
                     // Decode skill_photos
                     $skillPhotos = [];
@@ -756,6 +762,10 @@ class MitraProfileController extends Controller
                 ], 404);
             }
 
+            if (!AdminTerritory::allowsMitraProfile($profile)) {
+                return response()->json(['status' => 'error', 'message' => 'Mitra berada di luar wilayah tugas Anda.'], 403);
+            }
+
             if (empty($profile->pending_skills)) {
                 return response()->json([
                     'status'  => 'error',
@@ -815,6 +825,10 @@ class MitraProfileController extends Controller
                     'status'  => 'error',
                     'message' => 'Profil mitra tidak ditemukan.',
                 ], 404);
+            }
+
+            if (!AdminTerritory::allowsMitraProfile($profile)) {
+                return response()->json(['status' => 'error', 'message' => 'Mitra berada di luar wilayah tugas Anda.'], 403);
             }
 
             if (empty($profile->pending_skills)) {

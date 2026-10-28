@@ -189,6 +189,7 @@ class JobController extends Controller
             'tittle'          => 'required|string',
             'description'     => 'required|string',
             'location'        => 'required|string',
+            'region'          => ['required', 'string', 'max:150', 'regex:/^[^,]+,\s*[^,]+$/u'],
             'address_detail'  => 'nullable|string',
             'latitude'        => 'nullable|numeric',
             'longitude'       => 'nullable|numeric',
@@ -241,6 +242,10 @@ class JobController extends Controller
         if (isset($validated['address_detail'])) {
             $validated['location_description'] = $validated['address_detail'];
             unset($validated['address_detail']);
+        }
+
+        if (!empty($validated['region'])) {
+            $validated['region'] = \App\Helpers\RegionFormat::normalize($validated['region']);
         }
 
         $job = jobs::create($validated);

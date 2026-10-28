@@ -42,10 +42,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
   final List<String> _categories = [
     'Mitra Bermasalah',
-    'Kualitas Pekerjaan',
+    'Pekerjaan',
     'Pembayaran',
     'Aplikasi',
-    'Lainnya',
+    'Pelanggan Bermasalah',
   ];
 
   final ImagePicker _imagePicker = ImagePicker();
@@ -88,7 +88,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
       case 'Aplikasi':
         return _JobFieldMode.hidden;
       case 'Pembayaran':
-      case 'Kualitas Pekerjaan':
+      case 'Pekerjaan':
       case 'Mitra Bermasalah':
         return _JobFieldMode.required;
       case 'Lainnya':

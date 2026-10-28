@@ -227,10 +227,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return isWaitingConfirm && hasProof;
   }
 
-  // ============================================================
-  // ✅ CEK APAKAH TOMBOL "BATALKAN" HARUS MUNCUL
-  // ============================================================
-
   bool _canCancel(JobModel job) {
     final s = job.status.toLowerCase().trim();
 
@@ -258,20 +254,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         s == 'diposting';
   }
 
-  // ============================================================
-  // ✅ NEW: CEK APAKAH TOMBOL "LACAK MITRA" HARUS MUNCUL
-  // ============================================================
-
   bool _canTrack(JobModel job) {
     final s = job.status.toLowerCase().trim();
     return s == 'sedang dikerjakan' ||
         s.contains('dikerjakan') ||
         s == 'dalam pengerjaan';
   }
-
-  // ============================================================
-  // ✅ NEW: BUKA HALAMAN TRACKING
-  // ============================================================
 
   void _openTracking(JobModel job) {
     Navigator.push(
@@ -526,7 +514,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                _buildStatusFilterDropdown(context, isMobile),
+                Flexible(
+                  child: _buildStatusFilterDropdown(context, isMobile),
+                ),
               ],
             ),
           ),
@@ -732,12 +722,45 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 4, child: _headerCell(context, 'Pekerjaan')),
-          Expanded(flex: 2, child: _headerCell(context, 'Mitra')),
-          Expanded(flex: 2, child: _headerCell(context, 'Kategori')),
-          Expanded(flex: 3, child: _headerCell(context, 'Lokasi')),
-          Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
-          Expanded(flex: 4, child: _headerCell(context, 'Aksi')),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: _headerCell(context, 'Pekerjaan'),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: _headerCell(context, 'Mitra'),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: _headerCell(context, 'Kategori'),
+            ),
+          ),
+          Expanded(
+            flex: 5, // LOKASI DIPERBESAR
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: _headerCell(context, 'Lokasi'),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: _headerCell(context, 'Tanggal'),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: _headerCell(context, 'Aksi'),
+          ),
         ],
       ),
     );
@@ -746,102 +769,135 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   Widget _headerCell(BuildContext context, String text) {
     return Text(
       text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: _headerText,
           ),
     );
   }
 
   // ============================================================
-  // DATA ROW
+  // DATA ROW (DIPERBAIKI)
   // ============================================================
 
   Widget _buildTableDataRow(BuildContext context, JobModel job) {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // PEKERJAAN
           Expanded(
             flex: 4,
-            child: Row(
-              children: [
-                _jobThumbnail(job),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        job.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: _cellText,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Row(
+                children: [
+                  _jobThumbnail(job),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          job.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: _cellText,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      _buildStatusBadge(context, job.status),
-                    ],
+                        const SizedBox(height: 6),
+                        _buildStatusBadge(context, job.status),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+
+          // MITRA
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(
+                job.partnerName ?? '-',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: job.partnerName != null
+                      ? _cellText
+                      : AppColors.grey400,
+                  height: 1.3,
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              job.partnerName ?? '-',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
-                color: job.partnerName != null
-                    ? _cellText
-                    : AppColors.grey400,
-                height: 1.3,
               ),
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              job.category,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
-                color: _cellText,
-                height: 1.3,
-              ),
-            ),
-          ),
+
+          // KATEGORI
           Expanded(
             flex: 3,
-            child: Text(
-              job.location ?? '-',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
-                color: _cellText,
-                height: 1.3,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(
+                job.category,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: _cellText,
+                  height: 1.3,
+                ),
               ),
             ),
           ),
+
+          // LOKASI
           Expanded(
-            flex: 2,
-            child: Text(
-              _formatDate(job.createdAt),
-              style: textTheme.bodyMedium?.copyWith(color: _cellText),
+            flex: 5, // DIPERBESAR
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(
+                job.location ?? '-',
+                maxLines: 3, // DITINGKATKAN DARI 2
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: _cellText,
+                  height: 1.4,
+                ),
+              ),
             ),
           ),
+
+          // TANGGAL
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(
+                _formatDate(job.createdAt),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: _cellText,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ),
+
+          // AKSI
           Expanded(
             flex: 4,
             child: Wrap(
-              spacing: 8,
+              spacing: 6,
               runSpacing: 6,
               children: [
                 _pillButton(
@@ -860,9 +916,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   fgColor: AppColors.primaryTeal,
                   onTap: () => widget.onOpenOffer(job),
                 ),
-
-                // ✅ NEW: TOMBOL LACAK MITRA
-                // Muncul hanya saat status "Sedang Dikerjakan"
                 if (_canTrack(job))
                   _pillButton(
                     context: context,
@@ -872,7 +925,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     fgColor: Colors.white,
                     onTap: () => _openTracking(job),
                   ),
-
                 if (_canConfirm(job))
                   _pillButton(
                     context: context,
@@ -982,13 +1034,15 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         status,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: fg,
@@ -1022,12 +1076,16 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             children: [
               Icon(icon, size: 13, color: fgColor),
               const SizedBox(width: 5),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: fgColor,
-                    ),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: fgColor,
+                      ),
+                ),
               ),
             ],
           ),
@@ -1057,18 +1115,18 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             style: textTheme.bodySmall?.copyWith(color: _headerText),
           ),
           const Spacer(),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _buildRowsPerPageDropdown(context),
-              const SizedBox(width: 12),
               _navButton(
                 icon: Icons.chevron_left,
                 enabled: canPrev,
                 onTap: () => _goToPage(_currentPage - 1),
               ),
-              const SizedBox(width: 8),
               _pageIndicator(context),
-              const SizedBox(width: 8),
               _navButton(
                 icon: Icons.chevron_right,
                 enabled: canNext,
@@ -1450,7 +1508,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.attach_money, size: 14, color: AppColors.grey500),
+        Icon(icon, size: 14, color: AppColors.grey500),
         const SizedBox(width: 5),
         Text(
           text,

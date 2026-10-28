@@ -21,6 +21,7 @@ class AdminActivityController extends Controller
             // =====================================================
 
             $activities = ActivityLog::with('user')
+                ->where('user_id', auth()->id())
                 ->whereDate('created_at', today())
                 ->whereHas('user', function ($query) {
                     $query->where('role_id', 2);
@@ -38,6 +39,7 @@ class AdminActivityController extends Controller
                     'created_at',
                     today()
                 )
+                ->where('user_id', auth()->id())
                 ->where('icon', 'verified')
                 ->whereHas('user', function ($query) {
                     $query->where('role_id', 2);
@@ -49,6 +51,7 @@ class AdminActivityController extends Controller
                     'created_at',
                     today()
                 )
+                ->where('user_id', auth()->id())
                 ->where('icon', 'flag')
                 ->whereHas('user', function ($query) {
                     $query->where('role_id', 2);
@@ -60,6 +63,7 @@ class AdminActivityController extends Controller
                     'created_at',
                     today()
                 )
+                ->where('user_id', auth()->id())
                 ->where('icon', 'cancel')
                 ->whereHas('user', function ($query) {
                     $query->where('role_id', 2);
@@ -71,6 +75,7 @@ class AdminActivityController extends Controller
                     'created_at',
                     today()
                 )
+                ->where('user_id', auth()->id())
                 ->where('icon', 'report')
                 ->whereHas('user', function ($query) {
                     $query->where('role_id', 2);

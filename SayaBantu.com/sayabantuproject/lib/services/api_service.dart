@@ -282,8 +282,6 @@ class ApiService {
   static Future<Map<String, String>> _headers() async {
     final token = await _getToken();
 
-    debugPrint("🔑 TOKEN DI API_SERVICE: '$token'");
-
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

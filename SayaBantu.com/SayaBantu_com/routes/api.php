@@ -16,6 +16,8 @@ use App\Http\Controllers\AdminActivityController;
 use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\BalanceRequestController;
+use App\Http\Controllers\WarningLetterController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TrackingController;
@@ -327,6 +329,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ADMIN
     // =====================================================
     Route::middleware('role:Admin')->group(function () {
+        Route::get('/admin/warning-letters', [WarningLetterController::class, 'index']);
+        Route::get('/admin/warning-letters/recipients', [WarningLetterController::class, 'recipients']);
+        Route::post('/admin/warning-letters', [WarningLetterController::class, 'store']);
+        Route::get('/admin/balance-requests', [BalanceRequestController::class, 'adminIndex']);
+        Route::put('/admin/balance-requests/{id}/review', [BalanceRequestController::class, 'review']);
         Route::get('/admin/unverified-mitra', [AdminController::class, 'unverifiedMitra']);
         Route::post('/admin/verify-mitra/{id}', [AdminController::class, 'verifyMitra']);
         Route::get('/admin/jobs-moderation', [AdminController::class, 'contentModeration']);
@@ -401,6 +408,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // PELANGGAN
     // =====================================================
     Route::middleware('role:Pelanggan')->group(function () {
+        Route::get('/pelanggan/balance-requests', [BalanceRequestController::class, 'customerIndex']);
+        Route::post('/pelanggan/balance-requests', [BalanceRequestController::class, 'store']);
         Route::post('/jobs', [JobController::class, 'store']);
         Route::get('/pelanggan/my-jobs', [JobController::class, 'myJobs']);
 
