@@ -23,16 +23,15 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   AdminTheme get theme => AdminThemeProvider.of(context);
 
   // ============================================================
-  // TOKENS — disamakan dengan CustomerSettingScreen
+  // TOKENS
   // ============================================================
 
   static const double _gapAfterHeader = 16;
-  static const double _gapBetweenSections = 20; // was 14
-  static const double _cardRadius = 16;         // was 14
-  static const double _radius = 12;             // was 10
+  static const double _gapBetweenSections = 20;
+  static const double _cardRadius = 16;
+  static const double _radius = 12;
   static const double _mobileBreakpoint = 700;
-  static const double _tabletBreakpoint = 1100; // NEW
-  static const double _cardMaxWidth = 800;      // NEW — constrain card di tablet
+  static const double _tabletBreakpoint = 1100;
 
   // ============================================================
   // DATA STATE
@@ -2198,7 +2197,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               final isTablet = width >= _mobileBreakpoint &&
                   width < _tabletBreakpoint;
 
-              // ✅ FIX: tablet + mobile → pakai card (table hanya di desktop)
               final useCards = isMobile || isTablet;
 
               final horizontalPadding =
@@ -2211,73 +2209,72 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   horizontal: horizontalPadding,
                   vertical: verticalPadding,
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1300),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(context, isMobile),
-                        const SizedBox(height: _gapAfterHeader),
+                // HAPUS: child: Center(
+                // HAPUS:   child: ConstrainedBox(
+                // HAPUS:     constraints: const BoxConstraints(maxWidth: 1300),
+                // LANGSUNG KE COLUMN:
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context, isMobile),
+                    const SizedBox(height: _gapAfterHeader),
 
-                        if (isLoading)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 60),
-                            child: Center(
-                              child: CircularProgressIndicator(color: t.accent),
-                            ),
-                          )
-                        else ...[
-                          _buildTabSelector(isMobile),
-                          const SizedBox(height: _gapBetweenSections),
+                    if (isLoading)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 60),
+                        child: Center(
+                          child: CircularProgressIndicator(color: t.accent),
+                        ),
+                      )
+                    else ...[
+                      _buildTabSelector(isMobile),
+                      const SizedBox(height: _gapBetweenSections),
 
-                          if (_selectedTab == 'pending') ...[
-                            _summary(isMobile),
-                            const SizedBox(height: _gapBetweenSections),
-                            partners.isEmpty
-                                ? _empty()
-                                : _table(useCards),
-                          ] else if (_selectedTab == 'verified') ...[
-                            _buildVerifiedList(useCards),
-                          ] else ...[
-                            _buildPendingSkillsList(useCards),
-                          ],
-
-                          if (_selectedTab == 'pending' &&
-                              partners.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: partners.length,
-                              currentPage: _pendingPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _pendingPage = p),
-                              label: 'mitra',
-                            ),
-                          ] else if (_selectedTab == 'verified' &&
-                              verifiedPartners.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: verifiedPartners.length,
-                              currentPage: _verifiedPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _verifiedPage = p),
-                              label: 'mitra',
-                            ),
-                          ] else if (_selectedTab == 'pendingSkills' &&
-                              pendingSkillsList.isNotEmpty) ...[
-                            const SizedBox(height: _gapBetweenSections),
-                            _buildPaginationFullWidth(
-                              total: pendingSkillsList.length,
-                              currentPage: _skillsPage,
-                              onPageChanged: (p) =>
-                                  setState(() => _skillsPage = p),
-                              label: 'pengajuan',
-                            ),
-                          ],
-                        ],
+                      if (_selectedTab == 'pending') ...[
+                        _summary(isMobile),
+                        const SizedBox(height: _gapBetweenSections),
+                        partners.isEmpty
+                            ? _empty()
+                            : _table(useCards),
+                      ] else if (_selectedTab == 'verified') ...[
+                        _buildVerifiedList(useCards),
+                      ] else ...[
+                        _buildPendingSkillsList(useCards),
                       ],
-                    ),
-                  ),
+
+                      if (_selectedTab == 'pending' &&
+                          partners.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: partners.length,
+                          currentPage: _pendingPage,
+                          onPageChanged: (p) =>
+                              setState(() => _pendingPage = p),
+                          label: 'mitra',
+                        ),
+                      ] else if (_selectedTab == 'verified' &&
+                          verifiedPartners.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: verifiedPartners.length,
+                          currentPage: _verifiedPage,
+                          onPageChanged: (p) =>
+                              setState(() => _verifiedPage = p),
+                          label: 'mitra',
+                        ),
+                      ] else if (_selectedTab == 'pendingSkills' &&
+                          pendingSkillsList.isNotEmpty) ...[
+                        const SizedBox(height: _gapBetweenSections),
+                        _buildPaginationFullWidth(
+                          total: pendingSkillsList.length,
+                          currentPage: _skillsPage,
+                          onPageChanged: (p) =>
+                              setState(() => _skillsPage = p),
+                          label: 'pengajuan',
+                        ),
+                      ],
+                    ],
+                  ],
                 ),
               );
             },
@@ -2371,7 +2368,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   Widget _buildTabSelector(bool isMobile) {
     final t = theme;
 
-    // Mobile: chips horizontal scroll
     if (isMobile) {
       return SizedBox(
         height: 48,
@@ -2407,7 +2403,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
     }
 
-    // Tablet & Desktop: 3 tab buttons (flexible, tidak overflow)
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -2583,7 +2578,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // PAGINATION
   // ============================================================
 
-    Widget _buildPaginationFullWidth({
+  Widget _buildPaginationFullWidth({
     required int total,
     required int currentPage,
     required ValueChanged<int> onPageChanged,
@@ -2606,7 +2601,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       ),
       child: Row(
         children: [
-          // 1. TEKS INFORMASI (KIRI)
           Text(
             'Menampilkan $startItem–$endItem dari $total $label',
             style: TextStyle(
@@ -2618,11 +2612,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           
           const Spacer(),
 
-          // 2. KONTROL PAGINATION (KANAN)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Dropdown Jumlah Baris
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -2669,7 +2661,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               
               const SizedBox(width: 10),
 
-              // Tombol Prev
               _paginationIconButton(
                 icon: Icons.chevron_left,
                 onTap: currentPage > 1
@@ -2680,7 +2671,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               
               const SizedBox(width: 8),
 
-              // Indikator Halaman
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -2701,7 +2691,6 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               
               const SizedBox(width: 8),
 
-              // Tombol Next
               _paginationIconButton(
                 icon: Icons.chevron_right,
                 onTap: currentPage < totalPages
@@ -2897,16 +2886,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final baseIndex = (_pendingPage - 1) * _itemsPerPage;
 
     if (useCards) {
-      // ✅ constrain max width agar card tidak stretching di tablet
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
-          child: Column(
-            children: List.generate(
-              pageItems.length,
-              (i) => _mobileCard(pageItems[i], baseIndex + i),
-            ),
-          ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: List.generate(
+          pageItems.length,
+          (i) => _mobileCard(pageItems[i], baseIndex + i),
         ),
       );
     }
@@ -3375,15 +3359,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final pageItems = _paginatedVerified;
 
     if (useCards) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
-          child: Column(
-            children: List.generate(
-              pageItems.length,
-              (i) => _verifiedMobileCard(pageItems[i]),
-            ),
-          ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: List.generate(
+          pageItems.length,
+          (i) => _verifiedMobileCard(pageItems[i]),
         ),
       );
     }
@@ -3809,15 +3789,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final baseIndex = (_skillsPage - 1) * _itemsPerPage;
 
     if (useCards) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
-          child: Column(
-            children: List.generate(
-              pageItems.length,
-              (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
-            ),
-          ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: List.generate(
+          pageItems.length,
+          (i) => _pendingSkillMobileCard(pageItems[i], baseIndex + i),
         ),
       );
     }
