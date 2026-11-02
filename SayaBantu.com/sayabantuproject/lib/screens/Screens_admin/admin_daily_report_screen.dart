@@ -1,11 +1,16 @@
+
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'package:file_saver/file_saver.dart';
 
 import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import 'package:intl/intl.dart';
 
 class AdminDailyReportScreen extends StatefulWidget {
   const AdminDailyReportScreen({super.key});
@@ -32,10 +37,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   // STATE
   // ============================================================
 
-  String _periodKey = 'week'; // today | week | month
-  String _chartKey = 'transactions'; // transactions | income | jobs
+  String _periodKey = 'week';
+  String _chartKey = 'transactions';
+
+  DateTimeRange? _selectedDateRange;
 
   bool _isLoading = true;
+  bool _isExporting = false;
   String? _errorMessage;
 
   List<Map<String, dynamic>> _dailyData = [];
@@ -45,14 +53,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   double _totalIncome = 0;
   double _averageIncome = 0;
 
-  final List<Map<String, String>> _periodOptions = [
-    {'label': 'Hari Ini', 'value': 'today'},
-    {'label': 'Minggu Ini', 'value': 'week'},
-    {'label': 'Bulan Ini', 'value': 'month'},
-  ];
-
   int _currentPage = 1;
   int _itemsPerPage = 10;
+
   static const List<int> _itemsPerPageOptions = [5, 10, 25, 50];
 
   // ============================================================
@@ -78,15 +81,21 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     });
 
     try {
+      final query = _selectedDateRange == null
+          ? 'period=$_periodKey'
+          : 'start_date=${_formatDateForApi(_selectedDateRange!.start)}'
+              '&end_date=${_formatDateForApi(_selectedDateRange!.end)}';
+
       final response = await ApiService.get(
-        '/admin/daily-report?period=$_periodKey',
+        '/admin/daily-report?$query',
       );
 
-      debugPrint('📊 DAILY REPORT: ${response.statusCode}');
-      debugPrint('📊 BODY: ${response.body}');
+      debugPrint('DAILY REPORT: ${response.statusCode}');
+      debugPrint('BODY: ${response.body}');
 
       if (response.statusCode != 200) {
         if (!mounted) return;
+
         setState(() {
           _isLoading = false;
           _errorMessage = 'Gagal memuat (${response.statusCode})';
@@ -98,6 +107,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
       if (decoded['success'] != true) {
         if (!mounted) return;
+
         setState(() {
           _isLoading = false;
           _errorMessage =
@@ -121,10 +131,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
         _totalTransactions =
             int.tryParse(s['total_transaksi']?.toString() ?? '0') ?? 0;
+
         _totalJobs =
             int.tryParse(s['total_pekerjaan']?.toString() ?? '0') ?? 0;
+
         _totalIncome =
             double.tryParse(s['total_komisi']?.toString() ?? '0') ?? 0;
+
         _averageIncome =
             double.tryParse(s['rata_harian']?.toString() ?? '0') ?? 0;
 
@@ -132,8 +145,10 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('❌ ERROR DAILY REPORT: $e');
+      debugPrint('ERROR DAILY REPORT: $e');
+
       if (!mounted) return;
+
       setState(() {
         _isLoading = false;
         _errorMessage = 'Terjadi kesalahan saat memuat laporan.';
@@ -148,6 +163,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   String _formatRupiah(dynamic amount) {
     final num value =
         amount is num ? amount : (num.tryParse(amount.toString()) ?? 0);
+
     final intValue = value.toInt();
 
     final reversed = intValue.toString().split('').reversed.toList();
@@ -162,27 +178,26 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   // ============================================================
-  // PAGINATION
+  // DATA HELPERS
   // ============================================================
 
-  int get _totalPages {
-    final total = _dailyData.length;
-    if (total == 0) return 1;
-    return ((total - 1) ~/ _itemsPerPage) + 1;
+  int _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '0') ?? 0;
   }
 
-  List<Map<String, dynamic>> get _paginatedData {
-    final start = (_currentPage - 1) * _itemsPerPage;
-    if (start >= _dailyData.length) return [];
-    final end = (start + _itemsPerPage).clamp(0, _dailyData.length);
-    return _dailyData.sublist(start, end);
+  double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '0') ?? 0;
   }
 
   List<Map<String, dynamic>> _getTransactionDetails(
     Map<String, dynamic> d,
   ) {
     final raw = d['transaction_details'];
+
     if (raw is! List) return [];
+
     return raw
         .whereType<Map>()
         .map<Map<String, dynamic>>(
@@ -191,15 +206,604 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         .toList();
   }
 
-  List<Map<String, dynamic>> _getJobDetails(Map<String, dynamic> d) {
+  List<Map<String, dynamic>> _getJobDetails(
+    Map<String, dynamic> d,
+  ) {
     final raw = d['job_details'];
+
     if (raw is! List) return [];
+
     return raw
         .whereType<Map>()
         .map<Map<String, dynamic>>(
           (item) => Map<String, dynamic>.from(item),
         )
         .toList();
+  }
+
+  // ============================================================
+  // EXPORT EXCEL
+  // ============================================================
+
+  Future<void> _exportExcel() async {
+    if (_dailyData.isEmpty || _isExporting) return;
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      final excel = Excel.createExcel();
+
+      // ============================================================
+      // SHEET 1: RINGKASAN
+      // ============================================================
+
+      final summarySheet = excel['Ringkasan'];
+
+      summarySheet.appendRow([
+        TextCellValue('LAPORAN HARIAN SAYABANTU'),
+      ]);
+
+      summarySheet.appendRow([
+        TextCellValue('Periode'),
+        TextCellValue(_getPeriodLabel()),
+      ]);
+
+      summarySheet.appendRow([
+        TextCellValue('Total Transaksi'),
+        IntCellValue(_totalTransactions),
+      ]);
+
+      summarySheet.appendRow([
+        TextCellValue('Total Pekerjaan'),
+        IntCellValue(_totalJobs),
+      ]);
+
+      summarySheet.appendRow([
+        TextCellValue('Total Komisi Admin'),
+        DoubleCellValue(_totalIncome),
+      ]);
+
+      summarySheet.appendRow([
+        TextCellValue('Rata-rata Harian'),
+        DoubleCellValue(_averageIncome),
+      ]);
+
+      summarySheet.appendRow([
+        TextCellValue('Tanggal Export'),
+        TextCellValue(_formatDate(DateTime.now())),
+      ]);
+
+      // ============================================================
+      // SHEET 2: RINCIAN HARIAN
+      // ============================================================
+
+      final dailySheet = excel['Rincian Harian'];
+
+      dailySheet.appendRow([
+        TextCellValue('Hari'),
+        TextCellValue('Jumlah Transaksi'),
+        TextCellValue('Jumlah Pekerjaan'),
+        TextCellValue('Komisi Admin'),
+      ]);
+
+      for (final d in _dailyData) {
+        dailySheet.appendRow([
+          TextCellValue(d['day']?.toString() ?? '-'),
+          IntCellValue(_toInt(d['transactions'])),
+          IntCellValue(_toInt(d['jobs'])),
+          DoubleCellValue(_toDouble(d['income'])),
+        ]);
+      }
+
+      // ============================================================
+      // SHEET 3: DETAIL TRANSAKSI
+      // ============================================================
+
+      final transactionSheet = excel['Detail Transaksi'];
+
+      transactionSheet.appendRow([
+        TextCellValue('Hari'),
+        TextCellValue('ID Transaksi'),
+      ]);
+
+      for (final d in _dailyData) {
+        final details = _getTransactionDetails(d);
+
+        for (final item in details) {
+          final reference = item['reference_code']?.toString();
+          final id = item['id']?.toString();
+
+          final displayReference =
+              reference != null && reference.isNotEmpty
+                  ? reference
+                  : id != null
+                      ? 'PAY-$id'
+                      : 'Transaksi';
+
+          transactionSheet.appendRow([
+            TextCellValue(d['day']?.toString() ?? '-'),
+            TextCellValue(displayReference),
+          ]);
+        }
+      }
+
+      // ============================================================
+      // SHEET 4: DETAIL PEKERJAAN
+      // ============================================================
+
+      final jobSheet = excel['Detail Pekerjaan'];
+
+      jobSheet.appendRow([
+        TextCellValue('Hari'),
+        TextCellValue('Kode Pekerjaan'),
+        TextCellValue('Nama Pekerjaan'),
+      ]);
+
+      for (final d in _dailyData) {
+        final details = _getJobDetails(d);
+
+        for (final item in details) {
+          jobSheet.appendRow([
+            TextCellValue(d['day']?.toString() ?? '-'),
+            TextCellValue(item['code']?.toString() ?? '-'),
+            TextCellValue(
+              item['title']?.toString() ??
+                  item['tittle']?.toString() ??
+                  'Pekerjaan tanpa judul',
+            ),
+          ]);
+        }
+      }
+
+      // ============================================================
+      // ENCODE SAJA — JANGAN PAKAI excel.save()
+      //
+      // excel.save() pada Web juga menjalankan download sendiri
+      // dengan nama default FlutterExcel.xlsx.
+      // Karena download ditangani FileSaver, gunakan encode()
+      // agar hanya ada SATU proses download.
+      // ============================================================
+
+      excel.delete('Sheet1');
+
+      final bytes = excel.encode();
+
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('Gagal membuat file Excel.');
+      }
+
+      final fileName = _buildExcelFileName();
+
+      await FileSaver.instance.saveFile(
+        name: fileName,
+        bytes: Uint8List.fromList(bytes),
+        fileExtension: 'xlsx',
+        mimeType: MimeType.microsoftExcel,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Laporan Excel berhasil diekspor: $fileName.xlsx'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('ERROR EXPORT EXCEL: $e');
+      debugPrint('$stackTrace');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengekspor Excel: $e'),
+          backgroundColor: theme.danger,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  String _getPeriodLabel() {
+    if (_selectedDateRange != null) {
+      return '${_formatDate(_selectedDateRange!.start)} - '
+          '${_formatDate(_selectedDateRange!.end)}';
+    }
+
+    switch (_periodKey) {
+      case 'today':
+        return 'Hari Ini';
+      case 'month':
+        return 'Bulan Ini';
+      default:
+        return 'Minggu Ini';
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
+  String _formatDateForApi(DateTime date) {
+    return '${date.year}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _buildExcelFileName() {
+    if (_selectedDateRange != null) {
+      final start = _formatDateForApi(_selectedDateRange!.start);
+      final end = _formatDateForApi(_selectedDateRange!.end);
+
+      return 'Laporan_Harian_${start}_sampai_${end}';
+    }
+
+    final now = DateTime.now();
+
+    return 'Laporan_Harian_${_periodKey}_'
+        '${now.year}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _pickDateRange() async {
+    DateTime startDate = _selectedDateRange?.start ?? DateTime.now();
+    DateTime endDate = _selectedDateRange?.end ?? DateTime.now();
+
+    final result = await showDialog<DateTimeRange>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 470),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pilih Rentang Tanggal',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF292524),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _dateInput(
+                              label: 'Mulai',
+                              date: startDate,
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: dialogContext,
+                                  initialDate: startDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2100),
+                                );
+
+                                if (picked != null) {
+                                  setDialogState(() {
+                                    startDate = picked;
+
+                                    if (endDate.isBefore(startDate)) {
+                                      endDate = startDate;
+                                    }
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _dateInput(
+                              label: 'Selesai',
+                              date: endDate,
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: dialogContext,
+                                  initialDate: endDate,
+                                  firstDate: startDate,
+                                  lastDate: DateTime(2100),
+                                );
+
+                                if (picked != null) {
+                                  setDialogState(() {
+                                    endDate = picked;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(dialogContext);
+                            },
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(
+                                color: Color(0xFF475569),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF087F73),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 22,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(
+                                dialogContext,
+                                DateTimeRange(
+                                  start: startDate,
+                                  end: endDate,
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Terapkan',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedDateRange = result;
+      });
+
+      await _loadReport();
+    }
+  }
+
+  void _clearDateRange() {
+    setState(() {
+      _selectedDateRange = null;
+      _currentPage = 1;
+    });
+
+    _loadReport();
+  }
+
+  Widget _dateInput({
+    required String label,
+    required DateTime date,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 13,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          border: Border.all(
+            color: const Color(0xFFCBD5E1),
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              DateFormat('dd/MM/yyyy').format(date),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeButton({
+    bool fullWidth = false,
+  }) {
+    final t = theme;
+    final hasRange = _selectedDateRange != null;
+
+    final label = hasRange
+        ? '${_formatDate(_selectedDateRange!.start)} - '
+            '${_formatDate(_selectedDateRange!.end)}'
+        : 'Pilih Tanggal';
+
+    return Row(
+      mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        Expanded(
+          flex: fullWidth ? 1 : 0,
+          child: InkWell(
+            onTap: _isLoading ? null : _pickDateRange,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: t.border),
+              ),
+              child: Row(
+                mainAxisSize: fullWidth
+                    ? MainAxisSize.max
+                    : MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: AppColors.grey600,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (hasRange) ...[
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: _isLoading ? null : _clearDateRange,
+            icon: const Icon(
+              Icons.close,
+              size: 16,
+              color: Colors.red,
+            ),
+            tooltip: 'Hapus Filter Tanggal',
+            constraints: const BoxConstraints(
+              minWidth: 30,
+              minHeight: 30,
+            ),
+            padding: const EdgeInsets.all(6),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // EXPORT BUTTON
+  // ============================================================
+
+  Widget _buildExportButton({bool fullWidth = false}) {
+    final t = theme;
+
+    return SizedBox(
+      width: fullWidth ? double.infinity : null,
+      height: 42,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading || _isExporting || _dailyData.isEmpty
+            ? null
+            : _exportExcel,
+        icon: _isExporting
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.white,
+                ),
+              )
+            : const Icon(
+                Icons.file_download_outlined,
+                size: 18,
+              ),
+        label: Text(
+          _isExporting ? 'Mengekspor...' : 'Export Excel',
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: t.success,
+          foregroundColor: AppColors.white,
+          disabledBackgroundColor: AppColors.grey300,
+          disabledForegroundColor: AppColors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+
+  int get _totalPages {
+    final total = _dailyData.length;
+
+    if (total == 0) return 1;
+
+    return ((total - 1) ~/ _itemsPerPage) + 1;
+  }
+
+  List<Map<String, dynamic>> get _paginatedData {
+    final start = (_currentPage - 1) * _itemsPerPage;
+
+    if (start >= _dailyData.length) return [];
+
+    final end = (start + _itemsPerPage).clamp(0, _dailyData.length);
+
+    return _dailyData.sublist(start, end);
   }
 
   // ============================================================
@@ -209,6 +813,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   @override
   Widget build(BuildContext context) {
     final t = theme;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -224,6 +829,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
             final horizontalPadding =
                 isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+
             final verticalPadding = isMobile ? 16.0 : 28.0;
 
             return SingleChildScrollView(
@@ -250,14 +856,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   else ...[
                     _buildSummarySection(isMobile),
                     const SizedBox(height: _gapBetweenSections),
+
                     _buildPeriodFilter(isMobile),
                     const SizedBox(height: _gapBetweenSections),
 
                     if (_dailyData.isEmpty)
                       _buildEmptyState()
                     else ...[
-                      // ── Mobile: 1 chart dengan selector
-                      // ── Desktop: 3 chart sekaligus
                       if (isMobile)
                         _buildMobileChartSection()
                       else ...[
@@ -266,43 +871,52 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                           title: 'Grafik Transaksi',
                           subtitle: 'Jumlah transaksi berdasarkan hari',
                           values: _dailyData
-                              .map<double>((d) =>
-                                  (d['transactions'] as num?)?.toDouble() ??
-                                  0)
+                              .map<double>(
+                                (d) => _toDouble(d['transactions']),
+                              )
                               .toList(),
                           labels: _dailyData
-                              .map<String>((d) => d['day'].toString())
+                              .map<String>(
+                                (d) => d['day']?.toString() ?? '-',
+                              )
                               .toList(),
                           valueSuffix: 'transaksi',
                           barColor: AppColors.infoBlue,
                         ),
                         const SizedBox(height: _gapBetweenSections),
+
                         _buildBarChart(
                           isMobile: false,
                           title: 'Grafik Komisi Admin',
                           subtitle: 'Total komisi admin sebesar 15%',
                           values: _dailyData
-                              .map<double>((d) =>
-                                  (d['income'] as num?)?.toDouble() ?? 0)
+                              .map<double>(
+                                (d) => _toDouble(d['income']),
+                              )
                               .toList(),
                           labels: _dailyData
-                              .map<String>((d) => d['day'].toString())
+                              .map<String>(
+                                (d) => d['day']?.toString() ?? '-',
+                              )
                               .toList(),
                           valueSuffix: 'Rp',
                           barColor: t.success,
                         ),
                         const SizedBox(height: _gapBetweenSections),
+
                         _buildBarChart(
                           isMobile: false,
                           title: 'Grafik Pekerjaan',
-                          subtitle:
-                              'Jumlah pekerjaan yang diselesaikan',
+                          subtitle: 'Jumlah pekerjaan yang diselesaikan',
                           values: _dailyData
-                              .map<double>((d) =>
-                                  (d['jobs'] as num?)?.toDouble() ?? 0)
+                              .map<double>(
+                                (d) => _toDouble(d['jobs']),
+                              )
                               .toList(),
                           labels: _dailyData
-                              .map<String>((d) => d['day'].toString())
+                              .map<String>(
+                                (d) => d['day']?.toString() ?? '-',
+                              )
                               .toList(),
                           valueSuffix: 'pekerjaan',
                           barColor: t.warning,
@@ -312,6 +926,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
                       _buildReportTable(isMobile),
                       const SizedBox(height: _gapBetweenSections),
+
                       _buildPagination(isMobile),
                     ],
                   ],
@@ -352,11 +967,12 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   // ============================================================
-  // SUMMARY (Mobile: 2x2, Desktop: 1x4)
+  // SUMMARY
   // ============================================================
 
   Widget _buildSummarySection(bool isMobile) {
     final t = theme;
+
     final cards = [
       _summaryCard(
         title: 'Total Transaksi',
@@ -423,6 +1039,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required Color color,
   }) {
     final t = theme;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -485,14 +1102,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   // ============================================================
-  // PERIOD FILTER (Mobile: vertikal, Desktop: horizontal)
+  // PERIOD FILTER
   // ============================================================
 
   Widget _buildPeriodFilter(bool isMobile) {
     final t = theme;
 
+    // ============================================================
+    // MOBILE
+    // ============================================================
     if (isMobile) {
-      // ── Mobile: label di atas, dropdown full-width
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
@@ -513,7 +1132,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Filter Periode',
+                  'Filter Tanggal',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -521,34 +1140,26 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   ),
                 ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.infoBlue.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${_dailyData.length} hari',
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.infoBlue,
-                    ),
-                  ),
-                ),
+                _buildDayCount(),
               ],
             ),
             const SizedBox(height: 10),
-            _buildPeriodDropdown(fullWidth: true),
+
+            // Pilih Tanggal
+            _buildDateRangeButton(fullWidth: true),
+
+            const SizedBox(height: 10),
+
+            // Export Excel
+            _buildExportButton(fullWidth: true),
           ],
         ),
       );
     }
 
-    // ── Desktop/Tablet: horizontal
+    // ============================================================
+    // DESKTOP / TABLET
+    // ============================================================
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -560,106 +1171,76 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Icon Filter
           Icon(
             Icons.filter_list_rounded,
             size: 18,
             color: t.headerText,
           ),
+
           const SizedBox(width: 8),
+
+          // Label Filter
           Text(
-            'Filter Periode:',
+            'Filter Tanggal:',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: t.mutedText,
             ),
           ),
+
           const SizedBox(width: 10),
-          SizedBox(
-            width: 160,
-            child: _buildPeriodDropdown(),
-          ),
+
+          // Tombol Pilih Tanggal
+          _buildDateRangeButton(),
+
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.infoBlue.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${_dailyData.length} hari',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.infoBlue,
-              ),
-            ),
-          ),
+
+          // Tombol Export Excel
+          _buildExportButton(),
+
+          const SizedBox(width: 12),
+
+          // Jumlah Data - PALING KANAN
+          _buildDayCount(),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodDropdown({bool fullWidth = false}) {
-    final t = theme;
-
-    final dropdown = DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: _periodKey,
-        isExpanded: true,
-        borderRadius: BorderRadius.circular(_radius),
-        icon: Icon(
-          Icons.keyboard_arrow_down_rounded,
-          color: t.headerText,
-          size: 18,
-        ),
-        style: TextStyle(
-          fontSize: 13,
-          color: t.cellText,
-          fontWeight: FontWeight.w500,
-        ),
-        items: _periodOptions.map((p) {
-          return DropdownMenuItem<String>(
-            value: p['value'],
-            child: Text(p['label']!),
-          );
-        }).toList(),
-        onChanged: (value) {
-          if (value == null) return;
-          setState(() {
-            _periodKey = value;
-            _currentPage = 1;
-          });
-          _loadReport();
-        },
-      ),
-    );
+    Widget _buildDayCount() {
+    final dayCount = _selectedDateRange != null
+        ? _selectedDateRange!.end.difference(_selectedDateRange!.start).inDays + 1
+        : _dailyData.length;
 
     return Container(
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.grey50,
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: t.border),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
       ),
-      child: fullWidth
-          ? dropdown
-          : Align(alignment: Alignment.centerLeft, child: dropdown),
+      decoration: BoxDecoration(
+        color: AppColors.infoBlue.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$dayCount hari',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: AppColors.infoBlue,
+        ),
+      ),
     );
   }
 
   // ============================================================
-  // MOBILE CHART — 1 chart dengan selector
+  // MOBILE CHART
   // ============================================================
 
   Widget _buildMobileChartSection() {
     final t = theme;
 
-    // Map chart key → data
     List<double> values;
     List<String> labels;
     String valueSuffix;
@@ -672,40 +1253,43 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
         title = 'Komisi Admin';
         subtitle = 'Total komisi admin 15%';
         values = _dailyData
-            .map<double>((d) => (d['income'] as num?)?.toDouble() ?? 0)
+            .map<double>((d) => _toDouble(d['income']))
             .toList();
-        labels =
-            _dailyData.map<String>((d) => d['day'].toString()).toList();
+        labels = _dailyData
+            .map<String>((d) => d['day']?.toString() ?? '-')
+            .toList();
         valueSuffix = 'Rp';
         barColor = t.success;
         break;
+
       case 'jobs':
         title = 'Pekerjaan';
         subtitle = 'Jumlah pekerjaan selesai';
         values = _dailyData
-            .map<double>((d) => (d['jobs'] as num?)?.toDouble() ?? 0)
+            .map<double>((d) => _toDouble(d['jobs']))
             .toList();
-        labels =
-            _dailyData.map<String>((d) => d['day'].toString()).toList();
+        labels = _dailyData
+            .map<String>((d) => d['day']?.toString() ?? '-')
+            .toList();
         valueSuffix = 'pekerjaan';
         barColor = t.warning;
         break;
+
       default:
         title = 'Transaksi';
         subtitle = 'Jumlah transaksi berdasarkan hari';
         values = _dailyData
-            .map<double>(
-                (d) => (d['transactions'] as num?)?.toDouble() ?? 0)
+            .map<double>((d) => _toDouble(d['transactions']))
             .toList();
-        labels =
-            _dailyData.map<String>((d) => d['day'].toString()).toList();
+        labels = _dailyData
+            .map<String>((d) => d['day']?.toString() ?? '-')
+            .toList();
         valueSuffix = 'transaksi';
         barColor = AppColors.infoBlue;
     }
 
     return Column(
       children: [
-        // ── Chart selector chips
         SizedBox(
           height: 40,
           child: ListView(
@@ -717,7 +1301,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 icon: Icons.receipt_long_outlined,
                 color: AppColors.infoBlue,
                 isActive: _chartKey == 'transactions',
-                onTap: () => setState(() => _chartKey = 'transactions'),
+                onTap: () {
+                  setState(() => _chartKey = 'transactions');
+                },
               ),
               const SizedBox(width: 8),
               _chartChip(
@@ -725,7 +1311,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 icon: Icons.account_balance_wallet_outlined,
                 color: t.success,
                 isActive: _chartKey == 'income',
-                onTap: () => setState(() => _chartKey = 'income'),
+                onTap: () {
+                  setState(() => _chartKey = 'income');
+                },
               ),
               const SizedBox(width: 8),
               _chartChip(
@@ -733,14 +1321,14 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 icon: Icons.work_outline,
                 color: t.warning,
                 isActive: _chartKey == 'jobs',
-                onTap: () => setState(() => _chartKey = 'jobs'),
+                onTap: () {
+                  setState(() => _chartKey = 'jobs');
+                },
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-
-        // ── Chart
         _buildBarChart(
           isMobile: true,
           title: title,
@@ -762,11 +1350,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required VoidCallback onTap,
   }) {
     final t = theme;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
         decoration: BoxDecoration(
           color: isActive ? color : AppColors.white,
           borderRadius: BorderRadius.circular(24),
@@ -796,7 +1388,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               label,
               style: TextStyle(
                 fontSize: 12.5,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                fontWeight:
+                    isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? AppColors.white : t.cellText,
               ),
             ),
@@ -820,6 +1413,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required Color barColor,
   }) {
     final t = theme;
+
     if (values.isEmpty) return const SizedBox.shrink();
 
     final maxValue = values.reduce((a, b) => a > b ? a : b);
@@ -852,7 +1446,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 ),
           ),
           const SizedBox(height: 16),
-
           LayoutBuilder(
             builder: (context, constraints) {
               final availableWidth = constraints.maxWidth > 36
@@ -863,21 +1456,25 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: availableWidth),
+                  constraints: BoxConstraints(
+                    minWidth: availableWidth,
+                  ),
                   child: SizedBox(
                     height: chartHeight,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: List.generate(values.length, (index) {
                         final value = values[index];
+
                         final height = maxValue == 0
                             ? 0.0
                             : (value / maxValue) * maxBarHeight;
 
                         return Container(
                           width: barWidth,
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                          ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -945,6 +1542,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   Widget _buildReportTable(bool isMobile) {
     final t = theme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -976,7 +1574,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   children: _paginatedData.asMap().entries.map((entry) {
                     final isLast =
                         entry.key == _paginatedData.length - 1;
-                    return _buildMobileReportCard(entry.value, isLast);
+
+                    return _buildMobileReportCard(
+                      entry.value,
+                      isLast,
+                    );
                   }).toList(),
                 )
               : _buildDesktopReportTable(),
@@ -991,12 +1593,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   Widget _buildDesktopReportTable() {
     final t = theme;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            constraints: BoxConstraints(
+              minWidth: constraints.maxWidth,
+            ),
             child: DataTable(
               headingRowColor:
                   WidgetStateProperty.all(AppColors.grey50),
@@ -1019,7 +1624,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 DataColumn(label: _TableHeader('KOMISI ADMIN')),
               ],
               rows: _paginatedData.map((d) {
-                final transactionDetails = _getTransactionDetails(d);
+                final transactionDetails =
+                    _getTransactionDetails(d);
+
                 final jobDetails = _getJobDetails(d);
 
                 return DataRow(
@@ -1071,6 +1678,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required dynamic fallbackCount,
   }) {
     final t = theme;
+
     if (details.isEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -1112,6 +1720,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final item = details[index];
+
                 final reference = item['reference_code']?.toString();
                 final id = item['id']?.toString();
 
@@ -1145,6 +1754,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required dynamic fallbackCount,
   }) {
     final t = theme;
+
     if (details.isEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -1186,7 +1796,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final item = details[index];
+
                 final code = item['code']?.toString() ?? '';
+
                 final title = item['title']?.toString() ??
                     item['tittle']?.toString() ??
                     'Pekerjaan tanpa judul';
@@ -1230,7 +1842,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
   }
 
   // ============================================================
-  // MOBILE REPORT CARD (dipadatkan)
+  // MOBILE REPORT CARD
   // ============================================================
 
   Widget _buildMobileReportCard(
@@ -1238,6 +1850,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     bool isLast,
   ) {
     final t = theme;
+
     final transactionDetails = _getTransactionDetails(d);
     final jobDetails = _getJobDetails(d);
 
@@ -1256,7 +1869,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tanggal + komisi
           Row(
             children: [
               Container(
@@ -1290,7 +1902,6 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Transaksi
           _buildMobileInfoRow(
             icon: Icons.receipt_long_outlined,
             iconColor: AppColors.infoBlue,
@@ -1307,6 +1918,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               (item) {
                 final reference = item['reference_code']?.toString();
                 final id = item['id']?.toString();
+
                 return reference != null && reference.isNotEmpty
                     ? reference
                     : id != null
@@ -1318,12 +1930,13 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
           const SizedBox(height: 8),
 
-          // Pekerjaan
           _buildMobileInfoRow(
             icon: Icons.work_outline,
             iconColor: t.warning,
             label: 'Pekerjaan',
-            value: jobDetails.isEmpty ? '$jobs' : '${jobDetails.length}',
+            value: jobDetails.isEmpty
+                ? '$jobs'
+                : '${jobDetails.length}',
             valueColor: t.warning,
           ),
 
@@ -1332,9 +1945,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               jobDetails,
               (item) {
                 final code = item['code']?.toString() ?? '';
+
                 final title = item['title']?.toString() ??
                     item['tittle']?.toString() ??
                     'Pekerjaan';
+
                 return code.isNotEmpty ? '$code • $title' : title;
               },
               t.warning,
@@ -1352,6 +1967,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required Color valueColor,
   }) {
     final t = theme;
+
     return Row(
       children: [
         Container(
@@ -1443,12 +2059,15 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   Widget _buildPagination(bool isMobile) {
     final t = theme;
+
     final total = _dailyData.length;
     final totalPages = _totalPages;
 
     final startItem =
         total == 0 ? 0 : (_currentPage - 1) * _itemsPerPage + 1;
-    final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
+
+    final endItem =
+        (startItem + _itemsPerPage - 1).clamp(0, total);
 
     return Container(
       width: double.infinity,
@@ -1476,11 +2095,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    // Rows per page
                     Container(
                       height: 34,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(8),
@@ -1511,6 +2130,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                               .toList(),
                           onChanged: (v) {
                             if (v == null) return;
+
                             setState(() {
                               _itemsPerPage = v;
                               _currentPage = 1;
@@ -1529,8 +2149,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     const SizedBox(width: 8),
                     Container(
                       height: 32,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: t.accent.withValues(alpha: 0.10),
@@ -1577,8 +2198,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                   children: [
                     Container(
                       height: 34,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(8),
@@ -1609,6 +2231,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                               .toList(),
                           onChanged: (v) {
                             if (v == null) return;
+
                             setState(() {
                               _itemsPerPage = v;
                               _currentPage = 1;
@@ -1627,8 +2250,9 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
                     const SizedBox(width: 8),
                     Container(
                       height: 32,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: t.accent.withValues(alpha: 0.10),
@@ -1662,6 +2286,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
     required VoidCallback? onTap,
   }) {
     final t = theme;
+
     return Material(
       color: AppColors.white,
       borderRadius: BorderRadius.circular(8),
@@ -1681,7 +2306,8 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
           child: Icon(
             icon,
             size: 18,
-            color: onTap == null ? AppColors.grey300 : AppColors.grey700,
+            color:
+                onTap == null ? AppColors.grey300 : AppColors.grey700,
           ),
         ),
       ),
@@ -1694,17 +2320,24 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   Widget _buildError() {
     final t = theme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: t.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: t.danger.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: [
-          Icon(Icons.error_outline, color: t.danger, size: 48),
+          Icon(
+            Icons.error_outline,
+            color: t.danger,
+            size: 48,
+          ),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
@@ -1740,6 +2373,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
   Widget _buildEmptyState() {
     final t = theme;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -1784,7 +2418,7 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 }
 
 // ============================================================
-// HELPER
+// TABLE HEADER
 // ============================================================
 
 class _TableHeader extends StatelessWidget {
@@ -1795,6 +2429,7 @@ class _TableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AdminThemeProvider.of(context);
+
     return Text(
       text,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(

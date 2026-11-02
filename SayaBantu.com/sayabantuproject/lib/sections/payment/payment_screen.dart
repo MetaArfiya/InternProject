@@ -1,5 +1,15 @@
 import 'dart:convert';
+import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/material.dart';
+import 'package:excel/excel.dart' as xl;
+import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../../../models/payment_model.dart';
 import '../../../models/payment_summary_model.dart';
@@ -8,16 +18,12 @@ import '../../../services/api_service.dart';
 import '../../../services/payment_service.dart';
 import '../../../sections/customer/payment_detail_dialog.dart' as customer;
 import '../../../sections/partner/payment_detail_dialog.dart' as partner;
-import '../../../sections/customer/rating_dialog.dart';
 import '../../../theme/app_colors.dart';
 
 class PaymentScreen extends StatefulWidget {
-  final String role; // 'mitra' atau 'pelanggan'
+  final String role;
 
-  const PaymentScreen({
-    super.key,
-    required this.role,
-  });
+  const PaymentScreen({super.key, required this.role});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -31,9 +37,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   PaymentSummary? _summary;
 
   String _selectedStatus = 'Semua';
-  final Map<int, Map<String, dynamic>?> _ratingCache = {};
+  DateTimeRange? _dateRange;
 
-  // Pagination (web tabel)
+  bool _isExporting = false;
+
   int _currentPage = 1;
   int _rowsPerPage = 10;
   static const List<int> _rowsPerPageOptions = [10, 25, 50, 100];
@@ -41,14 +48,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // DESIGN TOKENS
   // ============================================================
-
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = Color(0xFFE5E7EB);
   static const Color _tableDivider = Color(0xFFF3F4F6);
   static const Color _headerText = AppColors.grey500;
   static const Color _cellText = AppColors.grey900;
-  static const double _buttonRadius = 12;
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
@@ -56,12 +60,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   bool get _isMitra => widget.role.toLowerCase() == 'mitra';
 
-  List<String> get _filterOptions {
-    if (_isMitra) {
-      return ['Semua', 'Menunggu Bayar', 'Diverifikasi', 'Selesai'];
-    }
-    return ['Semua', 'Menunggu Bayar', 'Menunggu Verifikasi', 'Selesai'];
-  }
+  List<String> get _filterOptions => [
+    'Semua',
+    'Menunggu Pembayaran',
+    'Ditahan (Escrow)',
+    'Selesai',
+  ];
 
   @override
   void initState() {
@@ -70,31 +74,41 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // FILTER
+  // FILTER & PAGINATION LOGIC
   // ============================================================
-
   List<PaymentModel> get _filteredPayments {
-    if (_selectedStatus == 'Semua') return _payments;
-
     return _payments.where((p) {
-      switch (_selectedStatus) {
-        case 'Menunggu Bayar':
-          return p.status == 'pending';
-        case 'Menunggu Verifikasi':
-          return p.status == 'waiting_verification';
-        case 'Diverifikasi':
-          return p.status == 'paid';
-        case 'Selesai':
-          return p.status == 'settled';
-        default:
-          return true;
+      bool statusMatch = true;
+      if (_selectedStatus == 'Menunggu Pembayaran') {
+        statusMatch = p.status == 'pending';
+      } else if (_selectedStatus == 'Ditahan (Escrow)') {
+        statusMatch = p.status == 'held';
+      } else if (_selectedStatus == 'Selesai') {
+        statusMatch = p.status == 'released' || p.status == 'settled';
       }
+
+      bool dateMatch = true;
+      if (_dateRange != null && p.createdAt != null) {
+        final paymentDate = p.createdAt!;
+        final start = DateTime(
+          _dateRange!.start.year,
+          _dateRange!.start.month,
+          _dateRange!.start.day,
+        );
+        final end = DateTime(
+          _dateRange!.end.year,
+          _dateRange!.end.month,
+          _dateRange!.end.day,
+          23,
+          59,
+          59,
+        );
+        dateMatch = paymentDate.isAfter(start) && paymentDate.isBefore(end);
+      }
+
+      return statusMatch && dateMatch;
     }).toList();
   }
-
-  // ============================================================
-  // PAGINATION
-  // ============================================================
 
   int get _totalPages {
     if (_filteredPayments.isEmpty) return 1;
@@ -122,14 +136,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // LOAD
+  // HELPER LABEL STATUS
   // ============================================================
+  String _getCleanStatusLabel(PaymentModel p) {
+    if (p.status == 'pending') return 'Menunggu Pembayaran';
+    if (p.status == 'held') {
+      return 'Ditahan (Escrow)';
+    }
+    if (p.status == 'released' || p.status == 'settled') return 'Selesai';
+    if (p.status == 'refunded') return 'Dikembalikan';
+    if (p.status == 'failed') return 'Gagal';
+    return p.statusLabel.isNotEmpty ? p.statusLabel : p.status;
+  }
 
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
   Future<void> _loadPayments() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _ratingCache.clear();
       _currentPage = 1;
     });
 
@@ -163,8 +189,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             : null;
         _payments = (decoded['data'] is List)
             ? (decoded['data'] as List)
-                .map((e) => PaymentModel.fromJson(e))
-                .toList()
+                  .map((e) => PaymentModel.fromJson(e))
+                  .toList()
             : [];
         _isLoading = false;
       });
@@ -178,9 +204,409 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
+  // DATE PICKER OVERLAY
+  // ============================================================
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+
+    DateTime tempStart =
+        _dateRange?.start ?? now.subtract(const Duration(days: 7));
+    DateTime tempEnd = _dateRange?.end ?? now;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Pilih Rentang Tanggal',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              contentPadding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              content: SizedBox(
+                width: 380,
+                child: Row(
+                  mainAxisSize:
+                      MainAxisSize.min, // <-- KUNCI AGAR TIDAK MEMANJANG
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tanggal Mulai
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: tempStart,
+                            firstDate: DateTime(now.year - 5),
+                            lastDate: tempEnd,
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.light(
+                                    primary: AppColors.primaryTeal,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setDialogState(() => tempStart = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.grey300),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize
+                                .min, // <-- KUNCI AGAR TIDAK MEMANJANG
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Mulai',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.grey500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${tempStart.day.toString().padLeft(2, '0')}/${tempStart.month.toString().padLeft(2, '0')}/${tempStart.year}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.grey900,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Tanggal Selesai
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: tempEnd,
+                            firstDate: tempStart,
+                            lastDate: now,
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.light(
+                                    primary: AppColors.primaryTeal,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setDialogState(() => tempEnd = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.grey300),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize
+                                .min, // <-- KUNCI AGAR TIDAK MEMANJANG
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Selesai',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.grey500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${tempEnd.day.toString().padLeft(2, '0')}/${tempEnd.month.toString().padLeft(2, '0')}/${tempEnd.year}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.grey900,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(
+                      color: AppColors.grey600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _dateRange = DateTimeRange(
+                        start: tempStart,
+                        end: tempEnd,
+                      );
+                      _currentPage = 1;
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text(
+                    'Terapkan',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _clearDateRange() {
+    setState(() {
+      _dateRange = null;
+      _currentPage = 1;
+    });
+  }
+
+  // ============================================================
+  // EXPORT EXCEL (MITRA)
+  // ============================================================
+  Future<void> _exportMitraExcel() async {
+    if (_filteredPayments.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tidak ada data untuk diexport pada rentang tanggal ini.',
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+
+    try {
+      final excel = xl.Excel.createExcel();
+
+      // Gunakan sheet default agar data langsung muncul
+      // ketika file Excel dibuka.
+      final sheetObject = excel['Riwayat_Pendapatan'];
+
+      // Isi header
+      sheetObject.appendRow([
+        xl.TextCellValue('ID'),
+        xl.TextCellValue('Tanggal'),
+        xl.TextCellValue('Pekerjaan'),
+        xl.TextCellValue('Pelanggan'),
+        xl.TextCellValue('Pendapatan Bersih (Rp)'),
+        xl.TextCellValue('Status'),
+      ]);
+
+      // Isi data transaksi
+      for (final p in _filteredPayments) {
+        sheetObject.appendRow([
+          xl.TextCellValue('#PAY-${p.id}'),
+          xl.TextCellValue(p.formattedDate),
+          xl.TextCellValue(p.jobTitle ?? '-'),
+          xl.TextCellValue(p.pelangganName ?? '-'),
+          xl.DoubleCellValue(p.mitraEarning.toDouble()),
+          xl.TextCellValue(_getCleanStatusLabel(p)),
+        ]);
+      }
+
+      // Jadikan sheet laporan sebagai sheet default
+      excel.setDefaultSheet('Riwayat_Pendapatan');
+
+      final fileName =
+          'Laporan_Pendapatan_Mitra_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
+      if (kIsWeb) {
+        excel.save(fileName: fileName);
+      } else {
+        final bytes = excel.save();
+
+        if (bytes == null) {
+          throw Exception('Gagal membuat file Excel.');
+        }
+
+        final fileBytes = Uint8List.fromList(bytes);
+
+        final params = ShareParams(
+          files: [
+            XFile.fromData(
+              fileBytes,
+              mimeType:
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ),
+          ],
+          fileNameOverrides: [fileName],
+          text: 'Laporan Pendapatan Mitra',
+        );
+
+        await SharePlus.instance.share(params);
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Laporan Excel berhasil dibuat.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal export Excel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  // ============================================================
+  // EXPORT PDF (PELANGGAN)
+  // ============================================================
+  Future<void> _exportPelangganPdf() async {
+    if (_filteredPayments.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tidak ada data untuk diexport pada rentang tanggal ini.',
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) => [
+            pw.Header(level: 0, text: 'Riwayat Pembayaran - Sayabantu'),
+            pw.SizedBox(height: 20),
+            pw.Table.fromTextArray(
+              headers: [
+                'Tanggal',
+                'Pekerjaan',
+                'Mitra',
+                'Total (Rp)',
+                'Status',
+              ],
+              data: _filteredPayments
+                  .map(
+                    (p) => [
+                      p.formattedDate,
+                      p.jobTitle ?? '-',
+                      p.mitraName ?? '-',
+                      p.totalPaid.toStringAsFixed(0),
+                      _getCleanStatusLabel(p),
+                    ],
+                  )
+                  .toList(),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerDecoration: const pw.BoxDecoration(
+                color: PdfColors.grey300,
+              ),
+              cellAlignment: pw.Alignment.centerLeft,
+              cellPadding: const pw.EdgeInsets.all(8),
+            ),
+          ],
+        ),
+      );
+
+      final bytes = await pdf.save();
+      final fileName =
+          'Riwayat_Pembayaran_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+      // ============================================================
+      // PRINT PREVIEW DULU (semua platform)
+      // Di dialog print, user bisa pilih "Save as PDF" untuk download.
+      // ============================================================
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => bytes,
+        name: fileName,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal export PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  // ============================================================
   // OPEN DETAIL
   // ============================================================
-
   Future<void> _openPaymentDetail(PaymentModel p) async {
     if (_isMitra) {
       await showDialog<bool>(
@@ -194,9 +620,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: _accent),
-      ),
+      builder: (_) =>
+          const Center(child: CircularProgressIndicator(color: _accent)),
     );
 
     final detailData = await PaymentService.getPelangganPaymentDetail(p.id);
@@ -216,60 +641,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     final detail = PaymentDetailModel.fromJson(detailData);
 
-    final result = await showDialog<bool>(
+    await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (_) => customer.PaymentDetailDialog(detail: detail),
     );
-
-    if (result == true && mounted) {
-      _loadPayments();
-    }
-  }
-
-  // ============================================================
-  // RATING
-  // ============================================================
-
-  Future<Map<String, dynamic>?> _checkRating(int jobId) async {
-    if (_ratingCache.containsKey(jobId)) return _ratingCache[jobId];
-    final result = await PaymentService.checkJobRating(jobId);
-    _ratingCache[jobId] = result;
-    return result;
-  }
-
-  Future<void> _showRatingDialog(PaymentModel p) async {
-    final submitted = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => RatingDialog(
-        jobId: p.jobId,
-        jobTitle: p.jobTitle ?? 'Pekerjaan',
-        mitraName: p.mitraName ?? 'Mitra',
-      ),
-    );
-
-    if (submitted == true && mounted) {
-      _ratingCache.clear();
-      _loadPayments();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Terima kasih! Rating berhasil dikirim.'),
-          backgroundColor: AppColors.primaryTeal, // ← teal
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   // ============================================================
   // BUILD
   // ============================================================
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.sectionAltLight, // ← mint muda
+      backgroundColor: AppColors.sectionAltLight,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadPayments,
@@ -280,8 +665,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
               final isMobile = width < 700;
               final isTablet = width >= 700 && width < 1100;
 
-              final horizontalPadding =
-                  isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+              final horizontalPadding = isMobile
+                  ? 16.0
+                  : (isTablet ? 24.0 : 28.0);
               final verticalPadding = isMobile ? 16.0 : 28.0;
 
               return SingleChildScrollView(
@@ -294,7 +680,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(context),
-
                     const SizedBox(height: _gapAfterHeader),
 
                     if (_isLoading)
@@ -334,7 +719,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // HEADER
   // ============================================================
-
   Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,11 +735,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         Text(
           _isMitra
               ? 'Lihat riwayat pendapatan dari pekerjaan yang telah selesai.'
-              : 'Lihat riwayat transaksi dan pembayaran pekerjaan.',
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.grey500,
-          ),
+              : 'Lihat riwayat transaksi dan status escrow pekerjaan Anda.',
+          style: const TextStyle(fontSize: 13, color: AppColors.grey500),
         ),
       ],
     );
@@ -364,7 +745,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // SUMMARY
   // ============================================================
-
   Widget _buildSummary(bool isMobile) {
     final s = _summary;
     if (s == null) return const SizedBox.shrink();
@@ -372,49 +752,61 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final cards = <_SummaryData>[];
 
     if (_isMitra) {
-      cards.add(_SummaryData(
-        title: 'Total Pendapatan',
-        shortTitle: 'Pendapatan',
-        value: PaymentModel.formatRupiah(s.totalMitraEarning),
-        icon: Icons.account_balance_wallet_outlined,
-        color: const Color(0xFF16A34A),
-      ));
-      cards.add(_SummaryData(
-        title: 'Menunggu Cair',
-        shortTitle: 'Pending',
-        value: PaymentModel.formatRupiah(s.totalPending),
-        icon: Icons.hourglass_top,
-        color: _accent, // teal
-      ));
-      cards.add(_SummaryData(
-        title: 'Transaksi',
-        shortTitle: 'Transaksi',
-        value: '${s.totalTransaksi}',
-        icon: Icons.receipt_long_outlined,
-        color: const Color(0xFF2563EB),
-      ));
+      cards.add(
+        _SummaryData(
+          title: 'Total Pendapatan',
+          shortTitle: 'Pendapatan',
+          value: PaymentModel.formatRupiah(s.totalMitraEarning),
+          icon: Icons.account_balance_wallet_outlined,
+          color: const Color(0xFF16A34A),
+        ),
+      );
+      cards.add(
+        _SummaryData(
+          title: 'Sedang Ditahan',
+          shortTitle: 'Escrow',
+          value: PaymentModel.formatRupiah(s.totalPending),
+          icon: Icons.hourglass_top,
+          color: _accent,
+        ),
+      );
+      cards.add(
+        _SummaryData(
+          title: 'Transaksi',
+          shortTitle: 'Transaksi',
+          value: '${s.totalTransaksi}',
+          icon: Icons.receipt_long_outlined,
+          color: const Color(0xFF2563EB),
+        ),
+      );
     } else {
-      cards.add(_SummaryData(
-        title: 'Total Pembayaran',
-        shortTitle: 'Total',
-        value: PaymentModel.formatRupiah(s.totalPembayaran),
-        icon: Icons.account_balance_wallet_outlined,
-        color: const Color(0xFF2563EB),
-      ));
-      cards.add(_SummaryData(
-        title: 'Transaksi',
-        shortTitle: 'Transaksi',
-        value: '${s.totalTransaksi}',
-        icon: Icons.receipt_long_outlined,
-        color: _accent, // teal
-      ));
-      cards.add(_SummaryData(
-        title: 'Komisi Aplikasi',
-        shortTitle: 'Komisi',
-        value: PaymentModel.formatRupiah(s.totalKomisi),
-        icon: Icons.percent,
-        color: const Color(0xFF16A34A),
-      ));
+      cards.add(
+        _SummaryData(
+          title: 'Total Pembayaran',
+          shortTitle: 'Total',
+          value: PaymentModel.formatRupiah(s.totalPembayaran),
+          icon: Icons.account_balance_wallet_outlined,
+          color: const Color(0xFF2563EB),
+        ),
+      );
+      cards.add(
+        _SummaryData(
+          title: 'Transaksi',
+          shortTitle: 'Transaksi',
+          value: '${s.totalTransaksi}',
+          icon: Icons.receipt_long_outlined,
+          color: _accent,
+        ),
+      );
+      cards.add(
+        _SummaryData(
+          title: 'Saldo Ditahan',
+          shortTitle: 'Escrow',
+          value: PaymentModel.formatRupiah(s.totalKomisi),
+          icon: Icons.lock_outline,
+          color: const Color(0xFF16A34A),
+        ),
+      );
     }
 
     final gap = isMobile ? 8.0 : 16.0;
@@ -424,12 +816,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       child: Row(
         children: [
           for (int i = 0; i < cards.length; i++) ...[
-            Expanded(
-              child: _buildSummaryCard(
-                cards[i],
-                isCompact: isMobile,
-              ),
-            ),
+            Expanded(child: _buildSummaryCard(cards[i], isCompact: isMobile)),
             if (i != cards.length - 1) SizedBox(width: gap),
           ],
         ],
@@ -444,7 +831,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -456,7 +843,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             width: isCompact ? 30 : 36,
             height: isCompact ? 30 : 36,
             decoration: BoxDecoration(
-              color: data.color.withValues(alpha:0.12),
+              color: data.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(isCompact ? 8 : 10),
             ),
             child: Icon(
@@ -497,31 +884,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // FILTER BAR
   // ============================================================
-
   Widget _buildFilterBar(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(_buttonRadius),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _tableBorder),
       ),
       child: Row(
         children: [
           const Icon(Icons.filter_list, size: 18, color: AppColors.grey500),
           const SizedBox(width: 8),
-          if (!isMobile) ...[
-            const Text(
-              'Filter Status:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: AppColors.grey700,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
           Container(
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -564,14 +939,106 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           const Spacer(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: _pickDateRange,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _tableBorder),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 16,
+                        color: AppColors.grey600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _dateRange == null
+                            ? 'Pilih Tanggal'
+                            : '${_dateRange!.start.day}/${_dateRange!.start.month}/${_dateRange!.start.year} - ${_dateRange!.end.day}/${_dateRange!.end.month}/${_dateRange!.end.year}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.grey900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_dateRange != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: _clearDateRange,
+                  icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                  tooltip: 'Hapus Filter Tanggal',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(width: 12),
+          if (_isExporting)
+            const SizedBox(
+              width: 80,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (_isMitra)
+            ElevatedButton.icon(
+              onPressed: _exportMitraExcel,
+              icon: const Icon(Icons.file_download_outlined, size: 16),
+              label: const Text('Excel', style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+              ),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: _exportPelangganPdf,
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+              label: const Text('PDF', style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+              ),
+            ),
+          const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha:0.1),
+              color: _accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${_filteredPayments.length}',
+              '${_filteredPayments.length} Data',
               style: const TextStyle(
                 color: _accent,
                 fontWeight: FontWeight.w700,
@@ -585,9 +1052,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // LIST TITLE
+  // LIST & TABEL WIDGETS
   // ============================================================
-
   Widget _buildListTitle(BuildContext context) {
     return Text(
       _isMitra ? 'Riwayat Pendapatan' : 'Riwayat Pembayaran',
@@ -598,10 +1064,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
     );
   }
-
-  // ============================================================
-  // MOBILE — LIST CARD
-  // ============================================================
 
   Widget _buildMobileList(BuildContext context) {
     return Column(
@@ -621,7 +1083,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
       child: Column(
@@ -634,14 +1096,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha:0.12),
+                  color: _accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.receipt_long,
-                  color: _accent,
-                  size: 20,
-                ),
+                child: const Icon(Icons.receipt_long, color: _accent, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -687,13 +1145,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 14),
           const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 12),
-
-          _detailRow(
-            'Nilai pekerjaan',
-            PaymentModel.formatRupiah(p.jobAmount),
-          ),
+          _detailRow('Nilai pekerjaan', PaymentModel.formatRupiah(p.jobAmount)),
           const SizedBox(height: 8),
-
           if (_isMitra) ...[
             _detailRow(
               'Komisi (${p.commissionPercent.toStringAsFixed(0)}%)',
@@ -719,115 +1172,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
               valueColor: _accent,
             ),
           ],
-
-          if (p.customerProofUploadedAt != null) ...[
-            const SizedBox(height: 12),
-            _buildUploadInfo(
-              icon: Icons.upload_file,
-              color: const Color(0xFF2563EB),
-              label: 'Bukti diupload',
-              date: p.customerProofUploadedAt!,
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openPaymentDetail(p),
+              icon: const Icon(Icons.visibility_outlined, size: 16),
+              label: const Text(
+                'Lihat Detail',
+                style: TextStyle(fontSize: 12.5),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _accent,
+                side: BorderSide(color: _accent.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
             ),
-          ],
-          if (p.mitraProofUploadedAt != null) ...[
-            const SizedBox(height: 8),
-            _buildUploadInfo(
-              icon: Icons.check_circle_outline,
-              color: const Color(0xFF16A34A),
-              label: 'Dana ditransfer',
-              date: p.mitraProofUploadedAt!,
-            ),
-          ],
-
-          ..._buildActionButtonsMobile(context, p),
+          ),
         ],
       ),
     );
   }
-
-  List<Widget> _buildActionButtonsMobile(
-    BuildContext context,
-    PaymentModel p,
-  ) {
-    final widgets = <Widget>[];
-
-    if (!_isMitra && p.canUploadCustomerProof) {
-      widgets.add(const SizedBox(height: 14));
-      widgets.add(
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _openPaymentDetail(p),
-            icon: const Icon(Icons.upload_file, size: 16),
-            label: const Text(
-              'Bayar & Upload Bukti',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accent, // ← teal
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, 42),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    widgets.addAll(_buildStatusInfoBlock(context, p));
-
-    if (!_isMitra && p.customerProofUploadedAt != null) {
-      widgets.add(const SizedBox(height: 12));
-      widgets.add(
-        FutureBuilder<Map<String, dynamic>?>(
-          future: _checkRating(p.jobId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: _accent,
-                    ),
-                  ),
-                ),
-              );
-            }
-            return _buildRatingSection(context, p, snapshot.data);
-          },
-        ),
-      );
-    }
-
-    widgets.add(const SizedBox(height: 6));
-    widgets.add(
-      TextButton.icon(
-        onPressed: () => _openPaymentDetail(p),
-        icon: const Icon(Icons.visibility_outlined, size: 15),
-        label: const Text(
-          'Lihat Detail',
-          style: TextStyle(fontSize: 12.5),
-        ),
-        style: TextButton.styleFrom(
-          foregroundColor: _accent, // ← dari ungu
-          padding: const EdgeInsets.symmetric(vertical: 8),
-        ),
-      ),
-    );
-
-    return widgets;
-  }
-
-  // ============================================================
-  // WEB — TABEL
-  // ============================================================
 
   Widget _buildWebTable(BuildContext context) {
     final rows = _pagedPayments;
@@ -843,13 +1211,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           _buildTableHeaderRow(context),
           const Divider(height: 1, thickness: 1, color: _tableDivider),
-
           for (int i = 0; i < rows.length; i++) ...[
             _buildTableDataRow(context, rows[i]),
             if (i != rows.length - 1)
               const Divider(height: 1, thickness: 1, color: _tableDivider),
           ],
-
           const Divider(height: 1, thickness: 1, color: _tableDivider),
           _buildTableFooter(context),
         ],
@@ -858,179 +1224,231 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildTableHeaderRow(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
-        children: [
-          Expanded(flex: 4, child: _headerCell(context, 'Pekerjaan')),
-          Expanded(
-            flex: 3,
-            child: _headerCell(context, _isMitra ? 'Pelanggan' : 'Mitra'),
-          ),
-          Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
-          Expanded(
-            flex: 3,
-            child: _headerCell(context, _isMitra ? 'Pendapatan' : 'Total'),
-          ),
-          Expanded(flex: 3, child: _headerCell(context, 'Status')),
-          Expanded(flex: 4, child: _headerCell(context, 'Aksi')),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 820;
+
+        return Table(
+          columnWidths: {
+            0: const FlexColumnWidth(3.2), // Pekerjaan
+            1: const FlexColumnWidth(2.4), // Mitra/Pelanggan
+            2: const FlexColumnWidth(1.6), // Tanggal
+            3: const FlexColumnWidth(2.2), // Total/Pendapatan
+            4: const FlexColumnWidth(2.0), // Status
+            5: FixedColumnWidth(compact ? 52 : 84), // Aksi
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            TableRow(
+              children: [
+                _headerCell(context, 'Pekerjaan', compact),
+                _headerCell(context, _isMitra ? 'Pelanggan' : 'Mitra', compact),
+                _headerCell(context, 'Tanggal', compact),
+                _headerCell(
+                  context,
+                  _isMitra ? 'Pendapatan' : 'Total',
+                  compact,
+                ),
+                _headerCell(context, 'Status', compact),
+                _headerCell(context, 'Aksi', compact),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _headerCell(BuildContext context, String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.w500,
-        color: _headerText,
-        fontSize: 13,
+  Widget _headerCell(BuildContext context, String text, bool compact) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: _headerText,
+          fontSize: compact ? 11.5 : 13,
+        ),
       ),
     );
   }
 
   Widget _buildTableDataRow(BuildContext context, PaymentModel p) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 4,
-            child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 820;
+
+        return Table(
+          columnWidths: {
+            0: const FlexColumnWidth(3.2),
+            1: const FlexColumnWidth(2.4),
+            2: const FlexColumnWidth(1.6),
+            3: const FlexColumnWidth(2.2),
+            4: const FlexColumnWidth(2.0),
+            5: FixedColumnWidth(compact ? 52 : 84),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            TableRow(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _accent.withValues(alpha:0.12),
-                    borderRadius: BorderRadius.circular(10),
+                // Pekerjaan + ID
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
                   ),
-                  child: const Icon(
-                    Icons.receipt_long,
-                    color: _accent,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     children: [
-                      Text(
-                        p.jobTitle ?? 'Pekerjaan',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: _cellText,
-                          fontSize: 13,
+                      Container(
+                        width: compact ? 32 : 38,
+                        height: compact ? 32 : 38,
+                        decoration: BoxDecoration(
+                          color: _accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.receipt_long,
+                          color: _accent,
+                          size: compact ? 15 : 18,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '#PAY-${p.id.toString().padLeft(3, '0')}',
-                        style: const TextStyle(
-                          color: AppColors.grey400,
-                          fontSize: 11,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              p.jobTitle ?? 'Pekerjaan',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _cellText,
+                                fontSize: compact ? 12 : 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '#PAY-${p.id.toString().padLeft(3, '0')}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.grey400,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            flex: 3,
-            child: Text(
-              _isMitra
-                  ? (p.pelangganName ?? '-')
-                  : (p.mitraName ?? '-'),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _cellText,
-                height: 1.3,
-                fontSize: 13,
-              ),
-            ),
-          ),
-
-          Expanded(
-            flex: 2,
-            child: Text(
-              p.formattedDate,
-              style: const TextStyle(color: _cellText, fontSize: 13),
-            ),
-          ),
-
-          Expanded(
-            flex: 3,
-            child: Text(
-              PaymentModel.formatRupiah(
-                _isMitra ? p.mitraEarning : p.totalPaid,
-              ),
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: _isMitra ? const Color(0xFF16A34A) : _accent,
-                fontSize: 13,
-              ),
-            ),
-          ),
-
-          Expanded(
-            flex: 3,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _statusBadge(context, p),
-            ),
-          ),
-
-          Expanded(
-            flex: 4,
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _pillButton(
-                  context: context,
-                  icon: Icons.visibility_outlined,
-                  label: 'Detail',
-                  bgColor: AppColors.grey100,
-                  fgColor: AppColors.grey700,
-                  onTap: () => _openPaymentDetail(p),
+                // Nama
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    _isMitra ? (p.pelangganName ?? '-') : (p.mitraName ?? '-'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _cellText,
+                      height: 1.25,
+                      fontSize: compact ? 12 : 13,
+                    ),
+                  ),
                 ),
-
-                if (!_isMitra && p.canUploadCustomerProof)
-                  _pillButton(
-                    context: context,
-                    icon: Icons.upload_file,
-                    label: 'Upload Bukti',
-                    bgColor: _accent, // ← teal
-                    fgColor: Colors.white,
-                    onTap: () => _openPaymentDetail(p),
+                // Tanggal
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
                   ),
-
-                if (!_isMitra &&
-                    p.customerProofUploadedAt != null &&
-                    p.isSettled)
-                  _pillButton(
-                    context: context,
-                    icon: Icons.star_rate_rounded,
-                    label: 'Beri Rating',
-                    bgColor: const Color(0xFFD97706), // tetap amber
-                    fgColor: Colors.white,
-                    onTap: () => _showRatingDialog(p),
+                  child: Text(
+                    p.formattedDate,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _cellText,
+                      fontSize: compact ? 11.5 : 13,
+                    ),
                   ),
+                ),
+                // Total
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    PaymentModel.formatRupiah(
+                      _isMitra ? p.mitraEarning : p.totalPaid,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: _isMitra ? const Color(0xFF16A34A) : _accent,
+                      fontSize: compact ? 12 : 13,
+                    ),
+                  ),
+                ),
+                // Status
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _statusBadge(context, p),
+                  ),
+                ),
+                // Aksi
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: compact
+                        ? Material(
+                            color: AppColors.grey100,
+                            borderRadius: BorderRadius.circular(20),
+                            child: InkWell(
+                              onTap: () => _openPaymentDetail(p),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Padding(
+                                padding: const EdgeInsets.all(7),
+                                child: Icon(
+                                  Icons.visibility_outlined,
+                                  size: 15,
+                                  color: AppColors.grey700,
+                                ),
+                              ),
+                            ),
+                          )
+                        : _pillButton(
+                            context: context,
+                            icon: Icons.visibility_outlined,
+                            label: 'Detail',
+                            bgColor: AppColors.grey100,
+                            fgColor: AppColors.grey700,
+                            onTap: () => _openPaymentDetail(p),
+                          ),
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
@@ -1073,7 +1491,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // TABLE FOOTER
   // ============================================================
-
   Widget _buildTableFooter(BuildContext context) {
     final total = _filteredPayments.length;
     final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
@@ -1087,10 +1504,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           Text(
             'Menampilkan $start–$end dari $total pembayaran',
-            style: const TextStyle(
-              color: _headerText,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: _headerText, fontSize: 12),
           ),
           const Spacer(),
           Row(
@@ -1143,12 +1557,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
             color: AppColors.grey900,
             fontSize: 12,
           ),
-          items: _rowsPerPageOptions.map((value) {
-            return DropdownMenuItem<int>(
-              value: value,
-              child: Text('$value / hal'),
-            );
-          }).toList(),
+          items: _rowsPerPageOptions
+              .map(
+                (value) => DropdownMenuItem<int>(
+                  value: value,
+                  child: Text('$value / hal'),
+                ),
+              )
+              .toList(),
           onChanged: (value) {
             if (value != null) _changeRowsPerPage(value);
           },
@@ -1193,231 +1609,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.mint.withValues(alpha:0.20), // ← dari ungu
+        color: AppColors.mint.withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         'Hal $_currentPage / $_totalPages',
         style: const TextStyle(
           fontWeight: FontWeight.w600,
-          color: AppColors.primaryTeal, // ← teal
+          color: AppColors.primaryTeal,
           fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // STATUS INFO BLOCK
-  // ============================================================
-
-  List<Widget> _buildStatusInfoBlock(
-    BuildContext context,
-    PaymentModel p,
-  ) {
-    if (!_isMitra) {
-      if (p.isWaitingVerification) {
-        return [
-          const SizedBox(height: 12),
-          _buildStatusInfo(
-            icon: Icons.hourglass_top,
-            color: AppColors.primaryTeal, // ← dari ungu
-            message: 'Bukti transfer sedang diverifikasi admin.',
-          ),
-        ];
-      }
-      if (p.isPaid) {
-        return [
-          const SizedBox(height: 12),
-          _buildStatusInfo(
-            icon: Icons.sync,
-            color: const Color(0xFF2563EB),
-            message:
-                'Pembayaran terverifikasi. Menunggu admin transfer ke mitra.',
-          ),
-        ];
-      }
-      if (p.isSettled) {
-        return [
-          const SizedBox(height: 12),
-          _buildStatusInfo(
-            icon: Icons.check_circle,
-            color: const Color(0xFF16A34A),
-            message: 'Pembayaran selesai. Dana sudah diteruskan ke mitra.',
-          ),
-        ];
-      }
-    } else {
-      if (p.isPending || p.isWaitingVerification) {
-        return [
-          const SizedBox(height: 12),
-          _buildStatusInfo(
-            icon: Icons.hourglass_top,
-            color: _accent,
-            message: 'Menunggu pelanggan menyelesaikan pembayaran.',
-          ),
-        ];
-      }
-      if (p.isPaid) {
-        return [
-          const SizedBox(height: 12),
-          _buildStatusInfo(
-            icon: Icons.sync,
-            color: const Color(0xFF2563EB),
-            message:
-                'Pembayaran sudah diverifikasi. Menunggu admin transfer ke rekening Anda.',
-          ),
-        ];
-      }
-      if (p.isSettled) {
-        return [
-          const SizedBox(height: 12),
-          _buildStatusInfo(
-            icon: Icons.check_circle,
-            color: const Color(0xFF16A34A),
-            message: 'Dana sudah ditransfer ke rekening Anda.',
-          ),
-        ];
-      }
-    }
-    return [];
-  }
-
-  // ============================================================
-  // UPLOAD INFO
-  // ============================================================
-
-  Widget _buildUploadInfo({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required DateTime date,
-  }) {
-    final local = date.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
-    ];
-    final formatted =
-        '${local.day.toString().padLeft(2, '0')} '
-        '${months[local.month - 1]} ${local.year}, '
-        '${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')}';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha:0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha:0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$label: $formatted',
-              style: TextStyle(
-                fontSize: 11.5,
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // RATING SECTION
-  // ============================================================
-
-  Widget _buildRatingSection(
-    BuildContext context,
-    PaymentModel p,
-    Map<String, dynamic>? ratingStatus,
-  ) {
-    final hasRated = ratingStatus?['has_rating'] == true;
-    final existingRating = ratingStatus?['data'];
-
-    if (hasRated && existingRating is Map) {
-      final stars = (existingRating['stars'] ?? 0).toInt();
-      final comment = existingRating['comment']?.toString() ?? '';
-
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFDE68A)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.check_circle,
-                    color: Color(0xFF16A34A), size: 16),
-                SizedBox(width: 6),
-                Text(
-                  'Anda sudah memberi rating',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF16A34A),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: List.generate(5, (i) {
-                return Icon(
-                  i < stars
-                      ? Icons.star_rounded
-                      : Icons.star_border_rounded,
-                  color: const Color(0xFFF59E0B),
-                  size: 20,
-                );
-              }),
-            ),
-            if (comment.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                '"$comment"',
-                style: const TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: Color(0xFF92400E),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _showRatingDialog(p),
-        icon: const Icon(Icons.star_rate_rounded, size: 16),
-        label: const Text(
-          'Beri Rating Mitra',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD97706), // tetap amber
-          foregroundColor: Colors.white,
-          minimumSize: const Size(0, 42),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
         ),
       ),
     );
@@ -1426,17 +1626,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
   // STATUS BADGE
   // ============================================================
-
   Widget _statusBadge(BuildContext context, PaymentModel p) {
     final color = _statusColor(p.status);
+    final label = _getCleanStatusLabel(p);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        p.statusLabel,
+        label,
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w600,
@@ -1448,14 +1649,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
+      case 'released':
       case 'settled':
         return const Color(0xFF16A34A);
-      case 'paid':
+      case 'held':
         return const Color(0xFF2563EB);
-      case 'waiting_verification':
-        return AppColors.primaryTeal; // ← dari ungu
       case 'pending':
-        return _accent; // teal
+        return _accent;
       case 'refunded':
       case 'failed':
         return const Color(0xFFDC2626);
@@ -1465,46 +1665,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // STATUS INFO WIDGET
-  // ============================================================
-
-  Widget _buildStatusInfo({
-    required IconData icon,
-    required Color color,
-    required String message,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha:0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha:0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
   // DETAIL ROW
   // ============================================================
-
   Widget _detailRow(
     String title,
     String value, {
@@ -1516,10 +1678,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: AppColors.grey600,
-            fontSize: 12.5,
-          ),
+          style: const TextStyle(color: AppColors.grey600, fontSize: 12.5),
         ),
         const SizedBox(width: 16),
         Flexible(
@@ -1538,9 +1697,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   // ============================================================
-  // ERROR & EMPTY
+  // ERROR & EMPTY STATE
   // ============================================================
-
   Widget _buildErrorState(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -1552,16 +1710,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline,
-              color: Color(0xFFDC2626), size: 48),
+          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 48),
           const SizedBox(height: 12),
           Text(
             _errorMessage ?? 'Terjadi kesalahan.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFFDC2626),
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -1583,7 +1737,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isFiltered = _selectedStatus != 'Semua';
+    final isFiltered = _selectedStatus != 'Semua' || _dateRange != null;
 
     return Container(
       width: double.infinity,
@@ -1594,27 +1748,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha:0.1),
+              color: _accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               isFiltered ? Icons.filter_alt_off : Icons.receipt_long_outlined,
               size: 34,
-              color: _accent.withValues(alpha:0.7),
+              color: _accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
           Text(
             isFiltered
-                ? 'Tidak ada pembayaran dengan status "$_selectedStatus".'
+                ? 'Tidak ada pembayaran dengan filter yang dipilih.'
                 : (_isMitra
-                    ? 'Belum ada pendapatan.'
-                    : 'Belum ada transaksi pembayaran.'),
+                      ? 'Belum ada pendapatan.'
+                      : 'Belum ada transaksi pembayaran.'),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.grey600,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: AppColors.grey600, fontSize: 13),
           ),
         ],
       ),
@@ -1625,7 +1776,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 // ============================================================
 // DATA HELPER
 // ============================================================
-
 class _SummaryData {
   final String title;
   final String shortTitle;

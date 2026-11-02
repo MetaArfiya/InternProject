@@ -18,62 +18,93 @@ class AdminController extends Controller
 
     public function unverifiedMitra()
     {
-        // Ambil profil mitra + data user (untuk foto_profil & nama)
-        $mitras = mitra_profiles::with([
-            'user:id,name,email,phone,address,photo_profile',
-        ])
-            ->where('is_verified', 0)
-            ->latest()
-            ->get();
+        try {
+            $admin = auth()->user();
 
-        // =====================================================
-        // STATISTIK
-        // =====================================================
+            if (!$admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin belum terautentikasi.',
+                ], 401);
+            }
 
-        $menungguCount = mitra_profiles::where('is_verified', 0)->count();
+            // Admin Daerah wajib memiliki wilayah
+            if ($admin->role_id == 2 && !$admin->city_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Admin Daerah belum memiliki wilayah.',
+                ], 403);
+            }
 
-        $disetujuiHariIni = mitra_profiles::where('is_verified', 1)
-            ->whereDate('verified_at', today())
-            ->count();
+            // Query dasar untuk semua statistik dan daftar mitra
+            $baseQuery = mitra_profiles::query();
 
-        $ditolakCount = mitra_profiles::where('is_verified', 2)->count();
+            // Batasi data berdasarkan kota Admin Daerah
+            if ($admin->role_id == 2) {
+                $baseQuery->whereHas('user', function ($q) use ($admin) {
+                    $q->where('city_id', $admin->city_id);
+                });
+            }
 
-        // =====================================================
-        // PASTIKAN SEMUA FIELD GAMBAR ADA DI RESPONSE
-        // =====================================================
+            // Daftar mitra yang menunggu verifikasi
+            $mitras = (clone $baseQuery)
+                ->with([
+                    'user:id,name,email,phone,address,photo_profile',
+                ])
+                ->where('is_verified', 0)
+                ->latest()
+                ->get();
 
-        $mitras->transform(function ($mitra) {
-            $arr = $mitra->toArray();
+            // Statistik sesuai wilayah admin
+            $menungguCount = (clone $baseQuery)
+                ->where('is_verified', 0)
+                ->count();
 
-            // Field dokumen yang wajib ada
-            $arr['verification_image'] = $mitra->verification_image;
-            $arr['selfie_image']       = $mitra->selfie_image;
-            $arr['certificate']        = $mitra->certificate;
-            $arr['skill_photos']       = $mitra->skill_photos;
+            $disetujuiHariIni = (clone $baseQuery)
+                ->where('is_verified', 1)
+                ->whereDate('verified_at', today())
+                ->count();
 
-            // Field tambahan
-            $arr['gender']    = $mitra->gender;
-            $arr['birth_date'] = $mitra->birth_date;
-            $arr['city']      = $mitra->city;
-            $arr['bio']       = $mitra->bio;
-            $arr['skills']    = $mitra->skills;
+            $ditolakCount = (clone $baseQuery)
+                ->where('is_verified', 2)
+                ->count();
 
-            return $arr;
-        });
+            // Pastikan seluruh field dokumen tersedia
+            $mitras->transform(function ($mitra) {
+                $arr = $mitra->toArray();
 
-        return response()->json([
-            'success' => true,
+                $arr['verification_image'] = $mitra->verification_image;
+                $arr['selfie_image']       = $mitra->selfie_image;
+                $arr['certificate']        = $mitra->certificate;
+                $arr['skill_photos']       = $mitra->skill_photos;
 
-            'message' => 'Daftar Mitra yang menunggu verifikasi.',
+                $arr['gender']     = $mitra->gender;
+                $arr['birth_date'] = $mitra->birth_date;
+                $arr['city']       = $mitra->city;
+                $arr['bio']        = $mitra->bio;
+                $arr['skills']     = $mitra->skills;
 
-            'statistics' => [
-                'menunggu'            => $menungguCount,
-                'disetujui_hari_ini'  => $disetujuiHariIni,
-                'ditolak'             => $ditolakCount,
-            ],
+                return $arr;
+            });
 
-            'data' => $mitras,
-        ], 200);
+            return response()->json([
+                'success' => true,
+                'message' => 'Daftar Mitra yang menunggu verifikasi.',
+                'statistics' => [
+                    'menunggu'           => $menungguCount,
+                    'disetujui_hari_ini' => $disetujuiHariIni,
+                    'ditolak'            => $ditolakCount,
+                ],
+                'data' => $mitras,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('AdminController@unverifiedMitra: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat daftar mitra.',
+            ], 500);
+        }
     }
 
 
@@ -83,23 +114,27 @@ class AdminController extends Controller
 
     public function verifyMitra(Request $request, $id)
     {
-        // VALIDASI
         $request->validate([
             'action' => 'required|string|in:approve,reject',
         ]);
 
-        // ADMIN YANG LOGIN
-        $adminId = auth()->id();
+        $admin = auth()->user();
 
-        if (!$adminId) {
+        if (!$admin) {
             return response()->json([
                 'success' => false,
                 'message' => 'Admin belum terautentikasi.',
             ], 401);
         }
 
-        // CARI PROFIL MITRA
-        $mitraProfile = mitra_profiles::find($id);
+        if ($admin->role_id == 2 && !$admin->city_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Admin Daerah belum memiliki wilayah.',
+            ], 403);
+        }
+
+        $mitraProfile = mitra_profiles::with('user')->find($id);
 
         if (!$mitraProfile) {
             return response()->json([
@@ -108,11 +143,30 @@ class AdminController extends Controller
             ], 404);
         }
 
-        // AMBIL DATA USER MITRA
-        $mitraUser = users::find($mitraProfile->user_id);
-        $mitraName = $mitraUser?->name ?? 'Mitra';
+        // Validasi wilayah Admin Daerah
+        if ($admin->role_id == 2) {
+            if (
+                !$mitraProfile->user ||
+                $mitraProfile->user->city_id != $admin->city_id
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akses ditolak. Mitra ini bukan dari wilayah Anda.',
+                ], 403);
+            }
+        }
 
-        // APPROVE
+        // Cegah verifikasi ulang
+        if ($mitraProfile->is_verified != 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pendaftaran mitra ini sudah diproses sebelumnya.',
+            ], 400);
+        }
+
+        $adminId = $admin->id;
+        $mitraName = $mitraProfile->user->name ?? 'Mitra';
+
         if ($request->action === 'approve') {
             $mitraProfile->update([
                 'is_verified' => 1,
@@ -129,10 +183,7 @@ class AdminController extends Controller
             );
 
             $message = 'Akun Mitra berhasil diverifikasi dan sekarang sudah aktif!';
-        }
-
-        // REJECT
-        else {
+        } else {
             $mitraProfile->update([
                 'is_verified' => 2,
                 'verified_by' => $adminId,
@@ -153,27 +204,7 @@ class AdminController extends Controller
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data'    => $mitraProfile,
-        ], 200);
-    }
-
-
-    // =========================================================
-    // MODERASI KONTEN
-    // =========================================================
-
-    public function contentModeration()
-    {
-        $jobs = jobs::with('pelanggan')->latest()->get();
-
-        $reportedCount = jobs::where('status', 'Dibatalkan')->count();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil mengambil daftar moderasi konten.',
-            'reported_alert' => $reportedCount
-                . ' postingan telah ditangguhkan/dibatalkan oleh sistem.',
-            'data' => $jobs,
+            'data'    => $mitraProfile->fresh('user'),
         ], 200);
     }
 
@@ -272,313 +303,157 @@ class AdminController extends Controller
     public function dailyReport(Request $request)
     {
         try {
-            $period = $request->query('period', 'week');
+            // ============================================================
+            // 1. VALIDASI ADMIN
+            // ============================================================
+            $admin = auth()->user();
 
-            // =====================================================
-            // TENTUKAN TANGGAL MULAI
-            // =====================================================
+            if (!$admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized.',
+                ], 401);
+            }
 
-            $start = match ($period) {
-                'today' => now()->startOfDay(),
-                'month' => now()->startOfMonth(),
-                default => now()->startOfWeek(),
-            };
+            // Admin Daerah wajib memiliki city_id
+            if ((int) $admin->role_id === 2 && !$admin->city_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin Daerah belum memiliki wilayah kota.',
+                ], 403);
+            }
 
-            // =====================================================
-            // AMBIL DATA PAYMENT + JOB
-            // =====================================================
-            //
-            // payments = sumber transaksi
-            // jobs     = sumber nama pekerjaan
-            // job_id   = penghubung payment dengan pekerjaan
-            //
+            // ============================================================
+            // 2. VALIDASI RENTANG TANGGAL
+            // ============================================================
+            $validated = $request->validate([
+                'start_date' => 'nullable|date',
+                'end_date'   => 'nullable|date|after_or_equal:start_date',
+            ]);
 
-            $payments = DB::table('payments')
-                ->leftJoin(
-                    'jobs',
-                    'payments.job_id',
-                    '=',
-                    'jobs.id'
-                )
+            $startDate = $validated['start_date']
+                ?? now()->startOfMonth()->toDateString();
+
+            $endDate = $validated['end_date']
+                ?? now()->endOfMonth()->toDateString();
+
+            // ============================================================
+            // 3. QUERY DATA PEMBAYARAN
+            // ============================================================
+            $paymentsQuery = DB::table('payments')
+                ->join('jobs', 'payments.job_id', '=', 'jobs.id')
                 ->select(
-                    'payments.id as payment_id',
+                    'payments.id',
                     'payments.reference_code',
                     'payments.job_id',
-                    'jobs.tittle as job_title',
+                    'jobs.tittle',
                     'payments.commission_amount',
                     'payments.created_at'
                 )
-                ->where('payments.created_at', '>=', $start)
+                ->whereBetween('payments.created_at', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ]);
+
+            // ============================================================
+            // 4. PEMBATASAN DATA BERDASARKAN KOTA ADMIN
+            // ============================================================
+            if ((int) $admin->role_id === 2) {
+                $paymentsQuery
+                    ->join('users as mitra_users', 'jobs.mitra_id', '=', 'mitra_users.id')
+                    ->where('mitra_users.city_id', $admin->city_id);
+            }
+
+            // ============================================================
+            // 5. AMBIL DATA PEMBAYARAN
+            // ============================================================
+            $payments = $paymentsQuery
                 ->orderBy('payments.created_at', 'asc')
                 ->get();
 
-            // =====================================================
-            // GROUP BERDASARKAN TANGGAL
-            // =====================================================
-
-            $grouped = $payments->groupBy(function ($payment) {
-                return date(
-                    'Y-m-d',
-                    strtotime($payment->created_at)
-                );
+            // ============================================================
+            // 6. KELOMPOKKAN DATA BERDASARKAN TANGGAL
+            // ============================================================
+            $groupedPayments = $payments->groupBy(function ($payment) {
+                return \Carbon\Carbon::parse(
+                    $payment->created_at
+                )->format('Y-m-d');
             });
 
-            // =====================================================
-            // MAPPING HARI
-            // =====================================================
+            $dailyReports = $groupedPayments->map(function ($items, $date) {
+                $carbonDate = \Carbon\Carbon::parse($date);
 
-            $hariMap = [
-                'Mon' => 'Sen',
-                'Tue' => 'Sel',
-                'Wed' => 'Rab',
-                'Thu' => 'Kam',
-                'Fri' => 'Jum',
-                'Sat' => 'Sab',
-                'Sun' => 'Min',
-            ];
+                return [
+                    'date' => $date,
 
-            // =====================================================
-            // MAPPING BULAN
-            // =====================================================
+                    'day' => [
+                        'Mon' => 'Senin',
+                        'Tue' => 'Selasa',
+                        'Wed' => 'Rabu',
+                        'Thu' => 'Kamis',
+                        'Fri' => 'Jumat',
+                        'Sat' => 'Sabtu',
+                        'Sun' => 'Minggu',
+                    ][$carbonDate->format('D')],
 
-            $bulanMap = [
-                '01' => 'Januari',
-                '02' => 'Februari',
-                '03' => 'Maret',
-                '04' => 'April',
-                '05' => 'Mei',
-                '06' => 'Juni',
-                '07' => 'Juli',
-                '08' => 'Agustus',
-                '09' => 'September',
-                '10' => 'Oktober',
-                '11' => 'November',
-                '12' => 'Desember',
-            ];
+                    'total_transactions' => $items->count(),
 
-            // =====================================================
-            // FORMAT DATA HARIAN
-            // =====================================================
+                    'total_commission' => $items->sum(
+                        'commission_amount'
+                    ),
 
-            $formatted = $grouped->map(
-                function ($dayPayments, $tanggal)
-                use ($hariMap, $bulanMap) {
+                    'transactions' => $items->values()->map(function ($payment) {
+                        return [
+                            'id' => $payment->id,
+                            'reference_code' => $payment->reference_code,
+                            'job_id' => $payment->job_id,
+                            'job_title' => $payment->tittle,
+                            'commission_amount' => $payment->commission_amount,
+                            'created_at' => $payment->created_at,
+                        ];
+                    }),
+                ];
+            })->values();
 
-                    $firstPayment = $dayPayments->first();
+            // ============================================================
+            // 7. HITUNG RINGKASAN LAPORAN
+            // ============================================================
+            $totalTransactions = $payments->count();
 
-                    // -------------------------------------------------
-                    // HARI + TANGGAL LENGKAP
-                    // Contoh:
-                    // Sab, 26 September 2026
-                    // -------------------------------------------------
-
-                    $timestamp = strtotime($firstPayment->created_at);
-
-                    $hariInggris = date('D', $timestamp);
-                    $hariIndonesia = $hariMap[$hariInggris]
-                        ?? $hariInggris;
-
-                    $bulanAngka = date('m', $timestamp);
-                    $bulanIndonesia = $bulanMap[$bulanAngka]
-                        ?? $bulanAngka;
-
-                    $tanggalLengkap =
-                        $hariIndonesia
-                        . ', '
-                        . date('d', $timestamp)
-                        . ' '
-                        . $bulanIndonesia
-                        . ' '
-                        . date('Y', $timestamp);
-
-                    // =================================================
-                    // DETAIL TRANSAKSI
-                    // =================================================
-                    //
-                    // Satu payment = satu transaksi.
-                    //
-                    // Contoh:
-                    // 2 transaksi
-                    // PAY-ABC123
-                    // PAY-DEF456
-                    //
-
-                    $transactionDetails = $dayPayments
-                        ->map(function ($payment) {
-
-                            return [
-                                'id' => (int) $payment->payment_id,
-
-                                'reference_code' =>
-                                !empty($payment->reference_code)
-                                    ? $payment->reference_code
-                                    : 'PAY-' . str_pad(
-                                        (string) $payment->payment_id,
-                                        4,
-                                        '0',
-                                        STR_PAD_LEFT
-                                    ),
-                            ];
-                        })
-                        ->values();
-
-                    // =================================================
-                    // DETAIL PEKERJAAN
-                    // =================================================
-                    //
-                    // Job dihitung berdasarkan job_id unik.
-                    //
-                    // Contoh:
-                    //
-                    // PAY-001 -> JOB-001
-                    // PAY-002 -> JOB-001
-                    // PAY-003 -> JOB-002
-                    //
-                    // Hasil:
-                    // 3 transaksi
-                    // 2 pekerjaan
-                    //
-                    // JOB-001 hanya muncul satu kali.
-                    //
-
-                    $jobDetails = $dayPayments
-                        ->filter(function ($payment) {
-                            return !empty($payment->job_id);
-                        })
-                        ->unique('job_id')
-                        ->map(function ($payment) {
-
-                            return [
-                                'id' => (int) $payment->job_id,
-
-                                'code' =>
-                                '#JOB-' . str_pad(
-                                    (string) $payment->job_id,
-                                    4,
-                                    '0',
-                                    STR_PAD_LEFT
-                                ),
-
-                                'title' =>
-                                !empty($payment->job_title)
-                                    ? $payment->job_title
-                                    : 'Pekerjaan tanpa judul',
-                            ];
-                        })
-                        ->values();
-
-                    // =================================================
-                    // DATA SATU BARIS
-                    // =================================================
-
-                    return [
-
-                        // Tanggal database
-                        'tanggal' => $tanggal,
-
-                        // Hari + tanggal lengkap
-                        'day' => $tanggalLengkap,
-
-                        // -------------------------------------------------
-                        // JUMLAH TRANSAKSI
-                        // -------------------------------------------------
-
-                        'transactions' =>
-                        $transactionDetails->count(),
-
-                        // Detail ID transaksi
-                        'transaction_details' =>
-                        $transactionDetails,
-
-                        // -------------------------------------------------
-                        // JUMLAH PEKERJAAN UNIK
-                        // -------------------------------------------------
-
-                        'jobs' =>
-                        $jobDetails->count(),
-
-                        // Detail pekerjaan
-                        'job_details' =>
-                        $jobDetails,
-
-                        // -------------------------------------------------
-                        // TOTAL KOMISI PADA TANGGAL TERSEBUT
-                        // -------------------------------------------------
-
-                        'income' =>
-                        (float) $dayPayments->sum(
-                            'commission_amount'
-                        ),
-                    ];
-                }
-            )->values();
-
-            // =====================================================
-            // SUMMARY KESELURUHAN
-            // =====================================================
-
-            $totalTransaksi =
-                $formatted->sum('transactions');
-
-            $totalPekerjaan =
-                $formatted->sum('jobs');
-
-            $totalKomisi =
-                $formatted->sum('income');
-
-            // Rata-rata komisi per hari yang memiliki transaksi
-            $rataHarian =
-                $formatted->count() > 0
-                ? $totalKomisi / $formatted->count()
-                : 0;
-
-            // =====================================================
-            // RESPONSE
-            // =====================================================
-
-            return response()->json([
-
-                'success' => true,
-
-                'message' =>
-                'Berhasil memuat laporan harian.',
-
-                'period' => $period,
-
-                'summary' => [
-
-                    'total_transaksi' =>
-                    $totalTransaksi,
-
-                    'total_pekerjaan' =>
-                    $totalPekerjaan,
-
-                    'total_komisi' =>
-                    $totalKomisi,
-
-                    'rata_harian' =>
-                    $rataHarian,
-                ],
-
-                'data' =>
-                $formatted,
-
-            ], 200);
-        } catch (\Exception $e) {
-
-            Log::error(
-                'AdminController@dailyReport: '
-                    . $e->getMessage()
+            $totalCommission = $payments->sum(
+                'commission_amount'
             );
 
+            // ============================================================
+            // 8. RESPONSE
+            // ============================================================
             return response()->json([
+                'success' => true,
+                'message' => 'Laporan harian berhasil diambil.',
 
+                'summary' => [
+                    'total_transactions' => $totalTransactions,
+                    'total_commission' => $totalCommission,
+                ],
+
+                'period' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                ],
+
+                'daily_reports' => $dailyReports,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Daily Report Error: ' . $e->getMessage());
+
+            return response()->json([
                 'success' => false,
-
-                'message' =>
-                'Gagal memuat laporan: '
-                    . $e->getMessage(),
-
+                'message' => 'Gagal mengambil laporan harian.',
+                'error' => config('app.debug')
+                    ? $e->getMessage()
+                    : null,
             ], 500);
         }
     }
@@ -594,26 +469,42 @@ class AdminController extends Controller
      * GET /admin/verified-mitra
      * =============================================================
      */
-    public function verifiedMitra()
+        public function verifiedMitra()
     {
         try {
-            $mitras = mitra_profiles::with([
-                'user:id,name,email,phone,address,photo_profile',
-            ])
-                ->where('is_verified', 1)
+            $admin = auth()->user();
+
+            if (!$admin) {
+                return response()->json(['success' => false, 'message' => 'Admin belum terautentikasi.'], 401);
+            }
+
+            if ($admin->role_id == 2 && !$admin->city_id) {
+                return response()->json(['success' => false, 'message' => 'Akun Admin Daerah belum memiliki wilayah.'], 403);
+            }
+
+            // TAMBAHKAN 'city_id' di user, dan tambahkan relasi 'user.city'
+            $query = mitra_profiles::with([
+                'user:id,name,email,phone,address,photo_profile,city_id',
+                'user.city:id,name' // <-- Memuat nama kota
+            ])->where('is_verified', 1);
+
+            if ($admin->role_id == 2) {
+                $query->whereHas('user', function ($q) use ($admin) {
+                    $q->where('city_id', $admin->city_id);
+                });
+            }
+
+            $mitras = $query
                 ->orderBy('verified_at', 'desc')
                 ->get()
                 ->map(function ($mitra) {
                     $user = $mitra->user;
 
-                    // skill_photos disimpan sebagai JSON di DB
                     $skillPhotos = [];
                     if (!empty($mitra->skill_photos)) {
                         if (is_string($mitra->skill_photos)) {
                             $decoded = json_decode($mitra->skill_photos, true);
-                            if (is_array($decoded)) {
-                                $skillPhotos = $decoded;
-                            }
+                            if (is_array($decoded)) $skillPhotos = $decoded;
                         } elseif (is_array($mitra->skill_photos)) {
                             $skillPhotos = $mitra->skill_photos;
                         }
@@ -622,45 +513,38 @@ class AdminController extends Controller
                     return [
                         'id'                  => $mitra->id,
                         'user_id'             => $mitra->user_id,
-
-                        // Data user
                         'name'                => $user->name ?? 'Tanpa Nama',
                         'email'               => $user->email ?? 'Tanpa Email',
                         'phone'               => $user->phone ?? '-',
                         'address'             => $user->address ?? '-',
                         'profile_photo'       => $user->photo_profile ?? null,
 
-                        // Identitas mitra
                         'gender'              => $mitra->gender,
                         'birth_date'          => $mitra->birth_date,
-                        'city'                => $mitra->city,
+                        // TAMBAHKAN INI: Ambil nama kota dari relasi user.city
+                        'city'                => $user->city ? $user->city->name : '-', 
                         'bio'                 => $mitra->bio,
                         'skills'              => $mitra->skills,
-                        'category'            => $mitra->skills, // alias untuk frontend
+                        'category'            => $mitra->skills,
 
-                        // Berkas
                         'certificate'         => $mitra->certificate,
                         'skill_photos'        => $skillPhotos,
                         'verification_image'  => $mitra->verification_image,
                         'selfie_image'        => $mitra->selfie_image,
 
-                        // Rekening bank
                         'bank_name'           => $mitra->bank_name,
                         'bank_account_number' => $mitra->bank_account_number,
                         'bank_account_name'   => $mitra->bank_account_name,
 
-                        // Statistik
                         'point'               => (int) ($mitra->point ?? 0),
                         'rating'              => (float) ($mitra->rating ?? 0),
                         'jobs_completed'      => (int) ($mitra->jobs_completed ?? 0),
 
-                        // Status verifikasi
                         'is_verified'         => (bool) $mitra->is_verified,
                         'verified_by'         => $mitra->verified_by,
                         'verified_at'         => $mitra->verified_at,
                         'created_at'          => $mitra->created_at,
 
-                        // User lengkap (untuk kompatibilitas frontend)
                         'user'                => $user,
                     ];
                 });
@@ -672,10 +556,36 @@ class AdminController extends Controller
             ], 200);
         } catch (\Exception $e) {
             Log::error('AdminController@verifiedMitra: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal memuat mitra terverifikasi.'], 500);
+        }
+    }
+
+    // ADMIN — Reset PIN User
+    public function resetUserPin($id)
+    {
+        $user = \App\Models\users::find($id);
+
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat mitra terverifikasi.',
-            ], 500);
+                'message' => 'User tidak ditemukan.'
+            ], 404);
         }
+
+        // Hapus PIN lama
+        $user->update(['pin' => null]);
+
+        ActivityLogger::log(
+            auth()->id(),
+            'Reset PIN User',
+            'Admin mereset PIN user ' . $user->name,
+            'lock_open',
+            'Admin'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'PIN user berhasil direset. User dapat membuat PIN baru.',
+        ], 200);
     }
 }

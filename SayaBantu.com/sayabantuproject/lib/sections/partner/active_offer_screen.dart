@@ -15,7 +15,7 @@ class ActiveOfferScreen extends StatefulWidget {
   State<ActiveOfferScreen> createState() => _ActiveOfferScreenState();
 }
 
-// Tambahkan WidgetsBindingObserver untuk mendeteksi jika aplikasi di-minimize
+// WidgetsBindingObserver untuk mendeteksi jika aplikasi di-minimize
 class _ActiveOfferScreenState extends State<ActiveOfferScreen>
     with WidgetsBindingObserver {
   List<ActiveOfferModel> _offers = [];
@@ -29,7 +29,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // DESIGN TOKENS
   // ============================================================
-
   static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = AppColors.grey200;
   static const Color _tableDivider = AppColors.grey100;
@@ -58,11 +57,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // AUTO REFRESH & LIFECYCLE
   // ============================================================
-
   void _startAutoRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      // Hanya fetch jika aplikasi sedang dibuka di layar
       if (_isAppInForeground && mounted) {
         _fetchMyOffers(silent: true);
       }
@@ -73,7 +70,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _isAppInForeground = true;
-      // Fetch langsung saat aplikasi dibuka kembali dari background
       _fetchMyOffers(silent: true); 
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -84,11 +80,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // FETCH DATA
   // ============================================================
-
   Future<void> _fetchMyOffers({bool silent = false}) async {
     if (!mounted) return;
 
-    // Jika bukan silent, tampilkan loading screen
     if (!silent) {
       setState(() {
         _isLoading = true;
@@ -154,7 +148,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // BUILD
   // ============================================================
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -201,7 +194,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // HEADER
   // ============================================================
-
   Widget _buildHeader(BuildContext context) {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,7 +221,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // CONTENT
   // ============================================================
-
   Widget _buildContent({
     required bool isMobile,
     required bool isTablet,
@@ -251,9 +242,102 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   }
 
   // ============================================================
+  // WIDGET BUKTI (KOSONG JIKA TIDAK ADA)
+  // ============================================================
+  Widget _buildProofImage(String? proofUrl) {
+    if (proofUrl == null || proofUrl.isEmpty || proofUrl == 'null') {
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: AppColors.grey100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _tableBorder),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.image_not_supported_outlined, size: 20, color: AppColors.grey400),
+              SizedBox(height: 4),
+              Text(
+                'Tidak ada',
+                style: TextStyle(fontSize: 9, color: AppColors.grey500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final fullUrl = proofUrl.startsWith('http')
+        ? proofUrl
+        : '${ApiService.baseUrl}$proofUrl'; // Pastikan pakai baseUrl ApiService
+
+    return GestureDetector(
+      onTap: () {
+        // Tampilkan dialog gambar (implementasi dialog Anda di sini)
+        showDialog(
+          context: context,
+          builder: (_) => Dialog(
+            child: Image.network(fullUrl, fit: BoxFit.contain),
+          ),
+        );
+      },
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _tableBorder),
+          image: DecorationImage(
+            image: NetworkImage(fullUrl),
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // WIDGET TOMBOL DETAIL (HANYA 1 AKSI)
+  // ============================================================
+  Widget _buildDetailButton(BuildContext context, ActiveOfferModel offer) {
+    return Material(
+      color: AppColors.grey100,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: () {
+          // Panggil dialog detail dari widget/package yang sudah Anda buat
+          // Contoh: showActiveOfferDetailDialog(context, offer);
+          debugPrint('Klik detail untuk Job ID: ${offer.jobId}');
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.visibility_outlined, size: 14, color: AppColors.grey700),
+              SizedBox(width: 6),
+              Text(
+                'Detail',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.grey700,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // MOBILE — RECEIPT STYLE
   // ============================================================
-
   Widget _buildMobileList() {
     return Column(
       children: _offers.asMap().entries.map((entry) {
@@ -271,6 +355,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   }
 
   Widget _buildMobileOfferCard(ActiveOfferModel offer, int number) {
+    // Gunakan widget baris dari active_offer_card.dart
     final existingRow = buildActiveOfferRow(context, offer, number);
     final cells = existingRow.children;
 
@@ -352,7 +437,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // RECEIPT ROW
   // ============================================================
-
   Widget _buildReceiptRow({
     required String label,
     required Widget value,
@@ -394,7 +478,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // WEB — TABEL
   // ============================================================
-
   Widget _buildDesktopTable({required bool isTablet}) {
     if (isTablet) {
       return Container(
@@ -496,7 +579,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // ERROR & EMPTY
   // ============================================================
-
   Widget _buildErrorState() {
     return Container(
       width: double.infinity,

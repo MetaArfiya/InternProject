@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\users;
+use App\Models\City;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        $banguntapan = City::firstOrCreate([
+            'name' => 'Banguntapan',
+        ]);
+
         // Super Admin
         users::create([
             'role_id' => 1,
@@ -70,7 +75,7 @@ class UserSeeder extends Seeder
 
         // Mitra
         $mitras = [
-            ['Pak Budi Setyawan', 'Budi@sayabantu.com', '081355555555', 'Jl. Kebon Jeruk No. 5, Jakarta Barat', 'BCA', '5555555555'],
+            ['Budi', 'Budi@sayabantu.com', '081355555555', 'Banguntapan, Bantul, DI Yogyakarta', 'BCA', '5555555555', $banguntapan->id],
             ['Mas Eko Prasetyo', 'Eko@sayabantu.com', '081366666666', 'Jl. Mangga Dua No. 6, Jakarta Utara', 'Mandiri', '6666666666'],
             ['Pak Joko Wirawan', 'Joko@sayabantu.com', '081377777777', 'Jl. Tebet Raya No. 7, Jakarta Selatan', 'BRI', '7777777777'],
             ['Ahmad Fauzi', 'Ahmad@sayabantu.com', '081388888888', 'Jl. Cikini Raya No. 8, Jakarta Pusat', 'BNI', '8888888888'],
@@ -90,13 +95,14 @@ class UserSeeder extends Seeder
                 'bank_account_number' => $m[5],
                 'bank_account_name' => $m[0],
                 'is_active' => true,
+                'city_id' => $m[6] ?? null,
             ]);
         }
 
         // Pelanggan
         $pelanggans = [
             ['Anisa Nurhayati', 'pelanggan@sayabantu.com', '081811111111', 'Jl. Prapanca No. 11, Jakarta Selatan', 'BCA', '8111111111'],
-            ['Budi Santoso', 'budi@gmail.com', '081822222222', 'Jl. Kemang Raya No. 12, Jakarta Selatan', 'Mandiri', '8222222222'],
+            ['Budi Santoso', 'budi@gmail.com', '081822222222', 'Banguntapan, Bantul, DI Yogyakarta', 'Mandiri', '8222222222', $banguntapan->id],
             ['Spammer123', 'Spammer123@sayabantu.com', '081833333333', 'Jl. Antasari No. 13, Jakarta Selatan', 'BRI', '8333333333'],
             ['Sari Dewi', 'Sari@sayabantu.com', '081844444444', 'Jl. Senopati No. 14, Jakarta Selatan', 'BNI', '8444444444'],
         ];
@@ -113,6 +119,7 @@ class UserSeeder extends Seeder
                 'bank_account_number' => $p[5],
                 'bank_account_name' => $p[0],
                 'is_active' => true,
+                'city_id' => $p[6] ?? null,
             ]);
         }
     }

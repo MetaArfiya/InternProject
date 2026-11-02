@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -32,8 +33,36 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
 
+  // ============================================================
+  // STATE
+  // ============================================================
+
   int _parsedPrice = 0;
   bool _isSubmitting = false;
+
+  DateTime? _proposedStartAt;
+
+  String? _selectedEstimatedDuration;
+
+  // ============================================================
+  // ESTIMASI DURASI
+  // ============================================================
+
+  // Nilai menit menggunakan batas atas setiap rentang.
+  static const Map<String, int> _durationOptions = {
+    '1–2 Jam': 120,
+    '3–5 Jam': 300,
+    '1 Hari': 1440,
+    '2–3 Hari': 4320,
+    '1 Minggu': 10080,
+    'Lebih dari 1 Minggu': 20160,
+  };
+
+  int? get _estimatedDurationMinutes {
+    if (_selectedEstimatedDuration == null) return null;
+
+    return _durationOptions[_selectedEstimatedDuration!];
+  }
 
   // ============================================================
   // DESIGN TOKENS
@@ -45,8 +74,14 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   static const Color _cellText = AppColors.grey900;
 
   static const double _commissionPercent = 15.0;
+  static const int _maxPrice = 99999999;
+  static const int _maxMessageLength = 500;
 
   static const double _gapBetweenSections = 16;
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
 
   @override
   void dispose() {
@@ -56,22 +91,41 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   // ============================================================
-  // HELPER — FORMAT RUPIAH
+  // FORMAT RUPIAH
   // ============================================================
 
   String _formatRupiah(int amount) {
     if (amount <= 0) return 'Rp 0';
+
     final str = amount.toString();
     final buffer = StringBuffer();
+
     for (int i = 0; i < str.length; i++) {
-      if (i > 0 && (str.length - i) % 3 == 0) buffer.write('.');
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+
       buffer.write(str[i]);
     }
+
     return 'Rp $buffer';
   }
 
+  // ============================================================
+  // KOMISI PLATFORM
+  // ============================================================
+
   int get _commissionAmount {
     return (_parsedPrice * _commissionPercent / 100).round();
+  }
+
+  // ============================================================
+  // PARSE HARGA
+  // ============================================================
+
+  int _getCleanPrice(String value) {
+    final cleanDigits = value.replaceAll(RegExp(r'[^\d]'), '');
+    return int.tryParse(cleanDigits) ?? 0;
   }
 
   // ============================================================
@@ -82,111 +136,429 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     if (rawTime.isEmpty) return 'Waktu fleksibel';
 
     try {
-      final DateTime dateTime = DateTime.parse(rawTime);
-      final DateTime now = DateTime.now();
-      final Duration diff = now.difference(dateTime);
+      final dateTime = DateTime.parse(rawTime);
+      final now = DateTime.now();
+      final diff = now.difference(dateTime);
 
       if (diff.isNegative) return 'Baru saja';
       if (diff.inMinutes < 1) return 'Baru saja';
-      if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
-      if (diff.inHours < 24) return '${diff.inHours} jam lalu';
-      if (diff.inDays < 7) return '${diff.inDays} hari lalu';
+
+      if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} menit lalu';
+      }
+
+      if (diff.inHours < 24) {
+        return '${diff.inHours} jam lalu';
+      }
+
+      if (diff.inDays < 7) {
+        return '${diff.inDays} hari lalu';
+      }
 
       const bulan = [
         'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
         'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
       ];
 
-      return '${dateTime.day} ${bulan[dateTime.month - 1]} ${dateTime.year}';
+      return '${dateTime.day} '
+          '${bulan[dateTime.month - 1]} '
+          '${dateTime.year}';
     } catch (_) {
       return rawTime;
     }
   }
 
   // ============================================================
-  // PARSE HARGA
+  // FORMAT JADWAL
   // ============================================================
 
-  int _getCleanPrice(String value) {
-    final String cleanDigits = value.replaceAll(RegExp(r'[^\d]'), '');
-    return int.tryParse(cleanDigits) ?? 0;
+  String _formatStartDate(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty || rawDate == 'null') {
+      return 'Waktu fleksibel / Segera';
+    }
+
+    try {
+      final date = DateTime.parse(rawDate).toLocal();
+
+      const bulan = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      ];
+
+      final day = date.day.toString().padLeft(2, '0');
+      final month = bulan[date.month - 1];
+      final year = date.year;
+      final hour = date.hour.toString().padLeft(2, '0');
+      final minute = date.minute.toString().padLeft(2, '0');
+
+      return '$day $month $year, $hour:$minute WIB';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    const bulan = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = bulan[dateTime.month - 1];
+    final year = dateTime.year;
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+
+    return '$day $month $year, $hour:$minute';
   }
 
   // ============================================================
-  // SUBMIT
+  // PILIH WAKTU MULAI KERJA
+  // ============================================================
+
+  Future<void> _pickProposedStartAt() async {
+    final now = DateTime.now();
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: _proposedStartAt ?? now.add(const Duration(days: 1)),
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2),
+      helpText: 'Pilih tanggal mulai kerja',
+      cancelText: 'Batal',
+      confirmText: 'Lanjut',
+    );
+
+    if (selectedDate == null || !mounted) return;
+
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: _proposedStartAt != null
+          ? TimeOfDay.fromDateTime(_proposedStartAt!)
+          : const TimeOfDay(hour: 9, minute: 0),
+      helpText: 'Pilih jam mulai kerja',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+    );
+
+    if (selectedTime == null || !mounted) return;
+
+    final selectedDateTime = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    if (!selectedDateTime.isAfter(now)) {
+      _showSnack(
+        'Waktu mulai harus lebih dari waktu sekarang.',
+        warning: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _proposedStartAt = selectedDateTime;
+    });
+  }
+
+  // ============================================================
+  // PILIH ESTIMASI DURASI
+  // ============================================================
+
+  Future<void> _pickEstimatedDuration() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.grey300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Pilih Estimasi Durasi',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.grey900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Berapa lama waktu yang Anda butuhkan untuk '
+                  'menyelesaikan pekerjaan ini?',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.grey500,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ..._durationOptions.keys.map((duration) {
+                  final isSelected =
+                      _selectedEstimatedDuration == duration;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.pop(context, duration);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? _accent.withValues(alpha: 0.08)
+                              : AppColors.grey50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? _accent
+                                : _tableBorder,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 19,
+                              color: isSelected
+                                  ? _accent
+                                  : AppColors.grey500,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                duration,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: AppColors.grey900,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle,
+                                color: _accent,
+                                size: 20,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+
+    setState(() {
+      _selectedEstimatedDuration = selected;
+    });
+  }
+
+  // ============================================================
+  // SUBMIT OFFER
   // ============================================================
 
   Future<void> _submitOfferToApi() async {
-    final String rawPrice = _priceController.text.trim();
-    final String trimmedMessage = _messageController.text.trim();
+    if (_isSubmitting) return;
 
+    final rawPrice = _priceController.text.trim();
+    final trimmedMessage = _messageController.text.trim();
+
+    // VALIDASI HARGA
     if (rawPrice.isEmpty) {
-      _showSnack("Harap masukkan harga penawaran.", warning: true);
+      _showSnack(
+        'Harap masukkan harga penawaran.',
+        warning: true,
+      );
       return;
     }
 
     if (rawPrice.contains('-')) {
       _showSnack(
-        "Harga penawaran tidak boleh bernilai negatif.",
+        'Harga penawaran tidak boleh bernilai negatif.',
         error: true,
       );
       return;
     }
 
-    _parsedPrice = _getCleanPrice(rawPrice);
+    final parsedPrice = _getCleanPrice(rawPrice);
 
-    if (_parsedPrice <= 0) {
+    if (parsedPrice <= 0) {
       _showSnack(
-        "Harap masukkan harga penawaran (minimal Rp 1).",
+        'Harga penawaran minimal Rp 1.',
         warning: true,
       );
       return;
     }
 
+    if (parsedPrice > _maxPrice) {
+      _showSnack(
+        'Harga penawaran maksimal Rp99.999.999.',
+        warning: true,
+      );
+      return;
+    }
+
+    // VALIDASI PESAN
     if (trimmedMessage.isEmpty) {
       _showSnack(
-        "Harap isi pesan untuk pelanggan terlebih dahulu.",
+        'Harap isi pesan untuk pelanggan terlebih dahulu.',
         warning: true,
       );
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    if (trimmedMessage.length > _maxMessageLength) {
+      _showSnack(
+        'Pesan maksimal $_maxMessageLength karakter.',
+        warning: true,
+      );
+      return;
+    }
+
+    // VALIDASI WAKTU MULAI
+    if (_proposedStartAt == null) {
+      _showSnack(
+        'Harap tentukan usulan waktu mulai kerja.',
+        warning: true,
+      );
+      return;
+    }
+
+    // VALIDASI ESTIMASI DURASI
+    if (_selectedEstimatedDuration == null ||
+        _estimatedDurationMinutes == null) {
+      _showSnack(
+        'Harap pilih estimasi durasi pekerjaan.',
+        warning: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _parsedPrice = parsedPrice;
+    });
 
     try {
       final response = await ApiService.post(
         '/jobs/${widget.job.id}/apply',
         {
-          'offered_price': _parsedPrice,
+          'offered_price': parsedPrice,
           'message': trimmedMessage,
+          'proposed_start_at':
+              _proposedStartAt!.toUtc().toIso8601String(),
+
+          // ESTIMASI DURASI
+          'estimated_duration': _selectedEstimatedDuration,
+          'estimated_duration_minutes': _estimatedDurationMinutes,
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (!mounted) return;
+      if (!mounted) return;
 
-        _showSnack("Penawaran berhasil dikirim!", success: true);
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
+        _showSnack(
+          'Penawaran berhasil dikirim!',
+          success: true,
+        );
+
         widget.onSubmit();
-      } else {
-        if (!mounted) return;
-
-        String errorMessage = "Gagal mengirim penawaran.";
-        try {
-          final errorData = jsonDecode(response.body);
-          if (errorData is Map<String, dynamic>) {
-            errorMessage =
-                errorData['message']?.toString() ?? errorMessage;
-          }
-        } catch (_) {}
-
-        _showSnack(errorMessage, error: true);
+        return;
       }
+
+      // HANDLE ERROR RESPONSE
+      String errorMessage = 'Gagal mengirim penawaran.';
+
+      try {
+        final errorData = jsonDecode(response.body);
+
+        if (errorData is Map<String, dynamic>) {
+          errorMessage =
+              errorData['message']?.toString() ?? errorMessage;
+
+          if (errorData['errors'] is Map) {
+            final errors = errorData['errors'] as Map;
+
+            if (errors.isNotEmpty) {
+              final firstError = errors.values.first;
+
+              if (firstError is List && firstError.isNotEmpty) {
+                errorMessage = firstError.first.toString();
+              } else {
+                errorMessage = firstError.toString();
+              }
+            }
+          }
+        }
+      } catch (_) {
+        if (response.statusCode == 401) {
+          errorMessage =
+              'Sesi login berakhir. Silakan login ulang.';
+        } else if (response.statusCode == 403) {
+          errorMessage =
+              'Anda tidak memiliki akses untuk mengajukan penawaran.';
+        } else if (response.statusCode == 404) {
+          errorMessage = 'Pekerjaan tidak ditemukan.';
+        } else if (response.statusCode == 422) {
+          errorMessage = 'Data penawaran tidak valid.';
+        } else if (response.statusCode >= 500) {
+          errorMessage = 'Terjadi kesalahan pada server.';
+        }
+      }
+
+      _showSnack(errorMessage, error: true);
     } catch (e) {
       if (!mounted) return;
-      _showSnack("Terjadi kesalahan koneksi: $e", error: true);
+
+      _showSnack(
+        'Terjadi kesalahan koneksi: $e',
+        error: true,
+      );
     } finally {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
@@ -203,17 +575,22 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }) {
     if (!mounted) return;
 
-    Color bg = AppColors.primaryTeal;
-    if (success) bg = AppColors.primaryTeal;
-    if (warning) bg = AppColors.amber;
-    if (error) bg = AppColors.danger;
+    Color backgroundColor = AppColors.primaryTeal;
+
+    if (success) {
+      backgroundColor = AppColors.primaryTeal;
+    } else if (warning) {
+      backgroundColor = AppColors.amber;
+    } else if (error) {
+      backgroundColor = AppColors.danger;
+    }
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: bg,
+          backgroundColor: backgroundColor,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -230,10 +607,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: widget.onBack,
+          onPressed: _isSubmitting ? null : widget.onBack,
         ),
         title: const Text(
-          "Ambil & Nego",
+          'Ambil & Nego',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
@@ -253,6 +630,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
           final horizontalPadding =
               isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+
           final verticalPadding = isMobile ? 16.0 : 28.0;
 
           return SingleChildScrollView(
@@ -270,7 +648,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   // ============================================================
-  // MOBILE
+  // MOBILE LAYOUT
   // ============================================================
 
   Widget _buildMobileLayout() {
@@ -287,7 +665,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   // ============================================================
-  // WEB
+  // WEB LAYOUT
   // ============================================================
 
   Widget _buildWebLayout() {
@@ -315,7 +693,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   // ============================================================
-  // 3 KOTAK SEJAJAR
+  // SUMMARY BOXES
   // ============================================================
 
   Widget _buildSummaryBoxes({required bool isMobile}) {
@@ -325,7 +703,6 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       height: isMobile ? 100 : 110,
       child: Row(
         children: [
-          // KOTAK 1 — Budget Pelanggan (hijau)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.account_balance_wallet_outlined,
@@ -335,10 +712,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               isCompact: isMobile,
             ),
           ),
-
           SizedBox(width: gap),
-
-          // KOTAK 2 — Harga Anda (teal)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.local_offer_outlined,
@@ -348,16 +722,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               isCompact: isMobile,
             ),
           ),
-
           SizedBox(width: gap),
-
-          // KOTAK 3 — Komisi (teal)
           Expanded(
             child: _buildSummaryBox(
               icon: Icons.percent,
-              label: isMobile
-                  ? 'Komisi 15%'
-                  : 'Komisi Platform (15%)',
+              label: isMobile ? 'Komisi 15%' : 'Komisi Platform (15%)',
               value: _formatRupiah(_commissionAmount),
               color: AppColors.primaryTeal,
               isCompact: isMobile,
@@ -460,7 +829,6 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             ),
           ),
           const SizedBox(height: 10),
-
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: 10,
@@ -479,9 +847,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 18),
-
           Text(
             widget.job.description,
             style: const TextStyle(
@@ -490,11 +856,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               height: 1.6,
             ),
           ),
-
           const SizedBox(height: 20),
           const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 16),
-
           Wrap(
             spacing: 18,
             runSpacing: 10,
@@ -503,11 +867,15 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                 Icons.location_on_outlined,
                 widget.job.location.isNotEmpty
                     ? widget.job.location
-                    : "Lokasi tidak ditentukan",
+                    : 'Lokasi tidak ditentukan',
               ),
               _infoItem(
                 Icons.access_time,
                 _formatRelativeTime(widget.job.time),
+              ),
+              _infoItem(
+                Icons.calendar_month_outlined,
+                'Mulai: ${_formatStartDate(widget.job.preferredStartAt?.toIso8601String())}',
               ),
             ],
           ),
@@ -562,14 +930,13 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 18),
           const Divider(height: 1, color: _tableDivider),
           const SizedBox(height: 18),
 
-          // HARGA
+          // HARGA PENAWARAN
           const Text(
-            "Harga Penawaran",
+            'Harga Penawaran',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
@@ -577,7 +944,6 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             ),
           ),
           const SizedBox(height: 8),
-
           TextField(
             controller: _priceController,
             enabled: !_isSubmitting,
@@ -587,17 +953,24 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             ),
             inputFormatters: [
               CurrencyInputFormatter(
-                leadingSymbol: "Rp ",
+                leadingSymbol: 'Rp ',
                 thousandSeparator: ThousandSeparator.Period,
                 mantissaLength: 0,
               ),
               TextInputFormatter.withFunction(
                 (oldValue, newValue) {
-                  if (newValue.text.contains('-')) return oldValue;
+                  if (newValue.text.contains('-')) {
+                    return oldValue;
+                  }
 
-                  final digits =
-                      newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-                  if (digits.length > 8) return oldValue;
+                  final digits = newValue.text.replaceAll(
+                    RegExp(r'[^\d]'),
+                    '',
+                  );
+
+                  if (digits.length > 8) {
+                    return oldValue;
+                  }
 
                   return newValue;
                 },
@@ -609,7 +982,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               });
             },
             decoration: InputDecoration(
-              hintText: "Rp 0",
+              hintText: 'Rp 0',
               hintStyle: const TextStyle(
                 color: AppColors.grey400,
                 fontSize: 13,
@@ -630,16 +1003,19 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _accent, width: 1.5),
+                borderSide: const BorderSide(
+                  color: _accent,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
 
           const SizedBox(height: 18),
 
-          // PESAN
+          // PESAN UNTUK PELANGGAN
           const Text(
-            "Pesan untuk Pelanggan",
+            'Pesan untuk Pelanggan',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
@@ -647,16 +1023,19 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             ),
           ),
           const SizedBox(height: 8),
-
           TextField(
             controller: _messageController,
             enabled: !_isSubmitting,
             maxLines: 4,
-            maxLength: 500,
-            style: const TextStyle(fontSize: 13, height: 1.5),
+            maxLength: _maxMessageLength,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.5,
+            ),
             decoration: InputDecoration(
               hintText:
-                  "Contoh: Saya siap mengerjakan hari ini dengan garansi servis.",
+                  'Contoh: Saya siap mengerjakan pekerjaan ini '
+                  'sesuai jadwal yang disepakati.',
               hintStyle: const TextStyle(
                 color: AppColors.grey400,
                 fontSize: 13,
@@ -678,8 +1057,157 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _accent, width: 1.5),
+                borderSide: const BorderSide(
+                  color: _accent,
+                  width: 1.5,
+                ),
               ),
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // USULAN WAKTU MULAI KERJA
+          const Text(
+            'Usulan Waktu Mulai Kerja',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: AppColors.grey700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _isSubmitting ? null : _pickProposedStartAt,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _proposedStartAt != null
+                      ? _accent
+                      : _tableBorder,
+                  width: _proposedStartAt != null ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    color: _proposedStartAt != null
+                        ? _accent
+                        : AppColors.grey500,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _proposedStartAt != null
+                          ? _formatDateTime(_proposedStartAt!)
+                          : 'Pilih tanggal dan jam',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: _proposedStartAt != null
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: _proposedStartAt != null
+                            ? AppColors.grey900
+                            : AppColors.grey400,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.grey400,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // ESTIMASI DURASI
+          const Text(
+            'Estimasi Durasi',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: AppColors.grey700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _isSubmitting ? null : _pickEstimatedDuration,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.grey50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _selectedEstimatedDuration != null
+                      ? _accent
+                      : _tableBorder,
+                  width: _selectedEstimatedDuration != null ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.timelapse_outlined,
+                    color: _selectedEstimatedDuration != null
+                        ? _accent
+                        : AppColors.grey500,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _selectedEstimatedDuration ??
+                          'Pilih estimasi durasi pekerjaan',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: _selectedEstimatedDuration != null
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: _selectedEstimatedDuration != null
+                            ? AppColors.grey900
+                            : AppColors.grey400,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _selectedEstimatedDuration != null
+                        ? Icons.check_circle
+                        : Icons.chevron_right,
+                    color: _selectedEstimatedDuration != null
+                        ? _accent
+                        : AppColors.grey400,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+          const Text(
+            'Pilih perkiraan waktu yang Anda butuhkan untuk '
+            'menyelesaikan pekerjaan.',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.grey500,
+              height: 1.4,
             ),
           ),
 
@@ -690,7 +1218,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: _isSubmitting ? null : _submitOfferToApi,
+              onPressed:
+                  _isSubmitting ? null : _submitOfferToApi,
               icon: _isSubmitting
                   ? const SizedBox(
                       width: 18,
@@ -700,9 +1229,14 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Icon(Icons.send, size: 18),
+                  : const Icon(
+                      Icons.send,
+                      size: 18,
+                    ),
               label: Text(
-                _isSubmitting ? "Mengirim..." : "Kirim Penawaran",
+                _isSubmitting
+                    ? 'Mengirim...'
+                    : 'Kirim Penawaran',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -738,7 +1272,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         ),
         const SizedBox(width: 6),
         ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
+          constraints: const BoxConstraints(
+            maxWidth: 220,
+          ),
           child: Text(
             text,
             maxLines: 1,

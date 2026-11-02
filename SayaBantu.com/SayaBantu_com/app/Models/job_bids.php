@@ -11,7 +11,20 @@ class job_bids extends Model
 
     protected $table = 'job_bids';
 
-    protected $fillable = ['job_id', 'mitra_id', 'offered_price', 'mitras_point_at_time', 'status'];
+    protected $fillable = [
+        'job_id',
+        'mitra_id',
+        'offered_price',
+        'mitras_point_at_time',
+        'proposed_start_at',
+        'estimated_duration_minutes',
+        'status',
+    ];
+
+    protected $casts = [
+        'proposed_start_at' => 'datetime',
+        'estimated_duration_minutes' => 'integer',
+    ];
 
     // Relasi: Bid ini merujuk ke Job tertentu
     //relasi antara job_bids dan jobs adalah many to one, karena banyak bid bisa diajukan untuk satu job

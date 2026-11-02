@@ -2583,7 +2583,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   // PAGINATION
   // ============================================================
 
-  Widget _buildPaginationFullWidth({
+    Widget _buildPaginationFullWidth({
     required int total,
     required int currentPage,
     required ValueChanged<int> onPageChanged,
@@ -2598,31 +2598,31 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(color: t.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
+          // 1. TEKS INFORMASI (KIRI)
           Text(
             'Menampilkan $startItem–$endItem dari $total $label',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 12.5,
               color: t.headerText,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 10),
-          // ✅ FIX: Wrap agar tidak overflow di layar sempit
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
+          
+          const Spacer(),
+
+          // 2. KONTROL PAGINATION (KANAN)
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
+              // Dropdown Jumlah Baris
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -2666,43 +2666,48 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _paginationIconButton(
-                    icon: Icons.chevron_left,
-                    onTap: currentPage > 1
-                        ? () => onPageChanged(currentPage - 1)
-                        : null,
-                    t: t,
+              
+              const SizedBox(width: 10),
+
+              // Tombol Prev
+              _paginationIconButton(
+                icon: Icons.chevron_left,
+                onTap: currentPage > 1
+                    ? () => onPageChanged(currentPage - 1)
+                    : null,
+                t: t,
+              ),
+              
+              const SizedBox(width: 8),
+
+              // Indikator Halaman
+              Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: t.accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$currentPage / $totalPages',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.accent,
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: t.accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$currentPage / $totalPages',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.accent,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _paginationIconButton(
-                    icon: Icons.chevron_right,
-                    onTap: currentPage < totalPages
-                        ? () => onPageChanged(currentPage + 1)
-                        : null,
-                    t: t,
-                  ),
-                ],
+                ),
+              ),
+              
+              const SizedBox(width: 8),
+
+              // Tombol Next
+              _paginationIconButton(
+                icon: Icons.chevron_right,
+                onTap: currentPage < totalPages
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
+                t: t,
               ),
             ],
           ),

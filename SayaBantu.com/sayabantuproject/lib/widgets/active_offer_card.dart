@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/active_offer_model.dart';
 import '../sections/partner/completion_proof_dialog.dart';
-import '../sections/partner/partner_tracking_page.dart'; // ← NEW
+import '../sections/partner/partner_tracking_page.dart';
 import '../theme/app_colors.dart';
 
 // ================================================================
@@ -56,7 +56,7 @@ TableRow buildActiveOfferRow(
       ),
       _tableCell(_buildRanking(offer)),
       _tableCell(_buildStatus(offer)),
-      _tableCell(_buildProofButton(context, offer)),
+      _tableCell(_buildProofColumn(context, offer)),
       _tableCell(_buildApproval(offer)),
       _tableCell(_buildAction(context, offer)),
     ],
@@ -177,59 +177,31 @@ String? _buildProofImageUrl(String? rawPath) {
 }
 
 // ================================================================
-// BUKTI PEKERJAAN — Thumbnail Foto ATAU Tombol Upload
+// KOLOM BUKTI (Hanya Menampilkan Gambar / Teks "Belum Ada")
 // ================================================================
-Widget _buildProofButton(
+Widget _buildProofColumn(
   BuildContext context,
   ActiveOfferModel offer,
 ) {
   final String? rawPath = offer.completionPhotoUrl ?? offer.proofImage;
   final String? imageUrl = _buildProofImageUrl(rawPath);
 
-  if (imageUrl != null) {
-    return InkWell(
-      onTap: () => _showFullProofImage(context, imageUrl, offer.title),
-      borderRadius: BorderRadius.circular(8),
-      child: Tooltip(
-        message: 'Klik untuk lihat bukti',
-        child: Container(
-          width: 130,
-          height: 75,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: AppColors.primaryTeal.withValues(alpha: 0.15),
-            ),
-            color: AppColors.grey50,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.primaryTeal,
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Icon(
-                    Icons.broken_image_outlined,
-                    size: 24,
-                    color: AppColors.grey500,
-                  ),
-                );
-              },
-            ),
+  if (imageUrl == null) {
+    return Container(
+      width: 130,
+      height: 75,
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.grey200),
+      ),
+      child: const Center(
+        child: Text(
+          'Belum ada',
+          style: TextStyle(
+            color: AppColors.grey500,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -237,36 +209,49 @@ Widget _buildProofButton(
   }
 
   return InkWell(
-    onTap: () => _showCompletionProofDialog(context, offer),
+    onTap: () => _showFullProofImage(context, imageUrl, offer.title),
     borderRadius: BorderRadius.circular(8),
-    child: Container(
-      width: 130,
-      height: 75,
-      decoration: BoxDecoration(
-        color: AppColors.mint.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha: 0.20),
+    child: Tooltip(
+      message: 'Klik untuk lihat bukti',
+      child: Container(
+        width: 130,
+        height: 75,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppColors.primaryTeal.withValues(alpha: 0.15),
+          ),
+          color: AppColors.grey50,
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.image_outlined,
-            size: 26,
-            color: AppColors.primaryTeal,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primaryTeal,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: 24,
+                  color: AppColors.grey500,
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Upload Bukti',
-            style: TextStyle(
-              color: AppColors.primaryTeal,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     ),
   );
@@ -426,79 +411,42 @@ Widget _buildApproval(ActiveOfferModel offer) {
 }
 
 // ================================================================
-// AKSI — dengan tombol Mulai Perjalanan
+// AKSI — Hanya 1 Tombol: Mulai Perjalanan (atau Detail)
 // ================================================================
 Widget _buildAction(
   BuildContext context,
   ActiveOfferModel offer,
 ) {
   final bool isWorking = offer.status == 'Sedang Dikerjakan';
-  final String? rawPath = offer.completionPhotoUrl ?? offer.proofImage;
-  final bool hasProof = rawPath != null && rawPath.isNotEmpty;
 
-  // Sedang dikerjakan & belum ada bukti → 2 tombol: Lacak + Selesai
-  if (isWorking && !hasProof) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Tombol Mulai Perjalanan (buka peta tracking)
-        SizedBox(
-          height: 36,
-          child: ElevatedButton.icon(
-            onPressed: () => _openPartnerTracking(context, offer),
-            icon: const Icon(Icons.navigation_outlined, size: 15),
-            label: const Text(
-              'Mulai Perjalanan',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryTeal,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
+  // Jika sedang dikerjakan, tampilkan tombol Mulai Perjalanan
+  if (isWorking) {
+    return SizedBox(
+      height: 38,
+      child: ElevatedButton.icon(
+        onPressed: () => _openPartnerTracking(context, offer),
+        icon: const Icon(Icons.navigation_outlined, size: 15),
+        label: const Text(
+          'Mulai Perjalanan',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
           ),
         ),
-
-        const SizedBox(height: 6),
-
-        // Tombol Pekerjaan Selesai (upload bukti)
-        SizedBox(
-          height: 36,
-          child: OutlinedButton.icon(
-            onPressed: () => _showCompletionProofDialog(context, offer),
-            icon: const Icon(Icons.camera_alt_outlined, size: 15),
-            label: const Text(
-              'Pekerjaan Selesai',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryTeal,
-              side: BorderSide(
-                color: AppColors.primaryTeal.withValues(alpha: 0.4),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryTeal,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
-      ],
+      ),
     );
   }
 
-  // Selain itu → tombol Detail (buka timeline)
+  // Jika sudah selesai atau menunggu, tampilkan tombol Detail
   return SizedBox(
     height: 38,
     child: OutlinedButton.icon(
@@ -523,7 +471,7 @@ Widget _buildAction(
 }
 
 // ================================================================
-// BUKA HALAMAN TRACKING MITRA
+// BUKA HALAMAN TRACKING MITRA (Detail + Peta + Chat)
 // ================================================================
 void _openPartnerTracking(BuildContext context, ActiveOfferModel offer) {
   Navigator.push(
@@ -539,12 +487,15 @@ void _openPartnerTracking(BuildContext context, ActiveOfferModel offer) {
 }
 
 // ================================================================
-// DIALOG DETAIL — TIMELINE PEKERJAAN
+// DIALOG DETAIL (Untuk yang sudah selesai/menunggu)
 // ================================================================
 Future<void> _showDetailTimeline(
   BuildContext context,
   ActiveOfferModel offer,
 ) async {
+  final String? rawPath = offer.completionPhotoUrl ?? offer.proofImage;
+  final String? imageUrl = _buildProofImageUrl(rawPath);
+
   showDialog(
     context: context,
     builder: (dialogContext) => Dialog(
@@ -553,7 +504,7 @@ Future<void> _showDetailTimeline(
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 650),
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -609,19 +560,128 @@ Future<void> _showDetailTimeline(
               ),
             ),
 
-            // BODY
+            // BODY (Bisa di-scroll)
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 1. INFO HARGA & STATUS
                     _infoRow('Harga Deal', offer.price),
                     _infoRow('Status', offer.status),
                     const SizedBox(height: 16),
                     const Divider(height: 1),
                     const SizedBox(height: 20),
 
+                    // 2. FOTO BUKTI & CATATAN (SELALU MUNCUL)
+                    const Text(
+                      'Bukti Pekerjaan',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    if (imageUrl != null) ...[
+                      // JIKA GAMBAR ADA
+                      GestureDetector(
+                        onTap: () => _showFullProofImage(context, imageUrl, offer.title),
+                        child: Container(
+                          width: double.infinity,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primaryTeal.withValues(alpha: 0.20),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.broken_image_outlined, color: AppColors.grey500),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Catatan Pekerjaan (Hanya jika ada)
+                      if (offer.proofDescription != null && offer.proofDescription!.isNotEmpty) ...[
+                        const Text(
+                          'Catatan Pekerjaan',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.grey900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.grey200),
+                          ),
+                          child: Text(
+                            offer.proofDescription!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.grey700,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ] else ...[
+                      // JIKA GAMBAR BELUM ADA
+                      Container(
+                        width: double.infinity,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: AppColors.grey50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.grey200),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.image_not_supported_outlined,
+                                color: AppColors.grey400,
+                                size: 32,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Belum ada bukti yang diunggah',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.grey500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    const Divider(height: 1),
+                    const SizedBox(height: 20),
+
+                    // 3. TIMELINE PEKERJAAN
                     const Text(
                       'Timeline Pekerjaan',
                       style: TextStyle(
@@ -632,6 +692,7 @@ Future<void> _showDetailTimeline(
                     ),
                     const SizedBox(height: 16),
 
+                    // Timeline 1: Pekerjaan dimulai
                     _timelineItem(
                       icon: Icons.check_circle_outline,
                       iconColor: const Color(0xff16A34A),
@@ -641,6 +702,7 @@ Future<void> _showDetailTimeline(
                       isActive: offer.startedAt != null,
                     ),
 
+                    // Timeline 2: Sedang dikerjakan
                     _timelineItem(
                       icon: Icons.construction_outlined,
                       iconColor: const Color(0xffF59E0B),
@@ -654,6 +716,7 @@ Future<void> _showDetailTimeline(
                           offer.completionSubmittedAt == null,
                     ),
 
+                    // Timeline 3: Upload bukti
                     _timelineItem(
                       icon: Icons.upload_file_outlined,
                       iconColor: const Color(0xff2563EB),
@@ -663,6 +726,7 @@ Future<void> _showDetailTimeline(
                       isActive: offer.completionSubmittedAt != null,
                     ),
 
+                    // Timeline 4: ACC
                     _timelineItem(
                       icon: Icons.verified_outlined,
                       iconColor: AppColors.primaryTeal,
@@ -672,41 +736,6 @@ Future<void> _showDetailTimeline(
                       isActive: offer.completionVerifiedAt != null,
                       isLast: true,
                     ),
-
-                    if (offer.proofDescription != null &&
-                        offer.proofDescription!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Divider(height: 1),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Catatan',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.grey900,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primaryTeal.withValues(alpha: 0.10),
-                          ),
-                        ),
-                        child: Text(
-                          offer.proofDescription!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.grey700,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -898,7 +927,7 @@ String _formatDateTime(DateTime? dt) {
 }
 
 // ================================================================
-// DIALOG UPLOAD BUKTI PEKERJAAN
+// DIALOG UPLOAD BUKTI PEKERJAAN (Dipanggil dari PartnerTrackingPage)
 // ================================================================
 Future<void> _showCompletionProofDialog(
   BuildContext context,

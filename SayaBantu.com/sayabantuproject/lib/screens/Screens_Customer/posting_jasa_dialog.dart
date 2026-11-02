@@ -1,17 +1,19 @@
+
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
-import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../models/job_model.dart';
+import '../../screens/Screens_Customer/map_picker_screen.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
-import '../../screens/Screens_Customer/map_picker_screen.dart';
 import '../../theme/app_colors.dart';
 
 class PostingJasaDialog extends StatefulWidget {
@@ -23,7 +25,7 @@ class PostingJasaDialog extends StatefulWidget {
 
 class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
-  // CONTROLLER
+  // CONTROLLERS
   // =========================================================
 
   final _judulController = TextEditingController();
@@ -32,6 +34,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   final _kategoriLainnyaController = TextEditingController();
   final _lokasiController = TextEditingController();
   final _detailAlamatController = TextEditingController();
+  final _pinController = TextEditingController();
 
   // =========================================================
   // FOTO
@@ -40,54 +43,52 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   XFile? _pickedFile;
   Uint8List? _imageBytes;
 
-  static const int _maxImageSizeInBytes = 2097152; // 2 MB
+  static const int _maxImageSizeInBytes = 2097152;
 
   // =========================================================
   // STATE
   // =========================================================
 
   bool _isSubmitting = false;
+  bool _isLoadingCity = false;
 
-  // =========================================================
-  // KATEGORI
-  // =========================================================
+  // Kategori
+  String _kategori = 'Perbaikan & Perawatan Rumah';
 
-  String _kategori = "Perbaikan & Perawatan Rumah";
   final List<String> kategoriList = [
-    "Perbaikan & Perawatan Rumah",
-    "Kebersihan",
-    "Konstruksi & Renovasi",
-    "Instalasi & Teknisi",
-    "Jasa Rumah Tangga",
-    "Jasa Umum",
+    'Perbaikan & Perawatan Rumah',
+    'Kebersihan',
+    'Konstruksi & Renovasi',
+    'Instalasi & Teknisi',
+    'Jasa Rumah Tangga',
+    'Jasa Umum',
+    'Lainnya',
   ];
 
-  // =========================================================
-  // WAKTU PENGERJAAN
-  // =========================================================
+  // Waktu pengerjaan umum
+  String _waktuPengerjaan = '1–2 Jam';
 
-  String _waktuPengerjaan = "1–2 Jam";
   final List<String> waktuPengerjaanList = [
-    "1–2 Jam",
-    "3–5 Jam",
-    "1 Hari",
-    "2–3 Hari",
-    "1 Minggu",
-    "> 1 Minggu",
+    '1–2 Jam',
+    '3–5 Jam',
+    '1 Hari',
+    '2–3 Hari',
+    '1 Minggu',
+    '> 1 Minggu',
   ];
 
-  // =========================================================
-  // KOORDINAT
-  // =========================================================
-
+  // Lokasi
   double? _latitude;
   double? _longitude;
+  String? _selectedCityName;
+
+  // Waktu mulai yang diinginkan Pelanggan
+  DateTime? _preferredStartAt;
 
   // =========================================================
   // DESIGN TOKENS
   // =========================================================
 
-  // ✅ dari orange → teal
   static const Color _accent = AppColors.primaryTeal;
   static const double _mobileBreakpoint = 700;
 
@@ -103,6 +104,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     _kategoriLainnyaController.dispose();
     _lokasiController.dispose();
     _detailAlamatController.dispose();
+    _pinController.dispose();
+
     super.dispose();
   }
 
@@ -113,21 +116,32 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   Future<void> _pickImage() async {
     try {
       final picker = ImagePicker();
+
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
+
       if (image == null) return;
 
       final lowerName = image.name.toLowerCase();
-      final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-      final hasValidExtension =
-          allowedExtensions.any((ext) => lowerName.endsWith(ext));
+
+      const allowedExtensions = [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.webp',
+      ];
+
+      final hasValidExtension = allowedExtensions.any(
+        (extension) => lowerName.endsWith(extension),
+      );
 
       if (!hasValidExtension) {
         if (!mounted) return;
+
         _showMessage(
-          "Format foto harus JPG, JPEG, PNG, atau WEBP.",
+          'Format foto harus JPG, JPEG, PNG, atau WEBP.',
           backgroundColor: Colors.red,
         );
         return;
@@ -137,23 +151,27 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
       if (bytes.length > _maxImageSizeInBytes) {
         if (!mounted) return;
+
         final sizeMb = (bytes.length / 1024 / 1024).toStringAsFixed(2);
+
         _showMessage(
-          "Ukuran foto terlalu besar ($sizeMb MB). Maksimal 2 MB.",
+          'Ukuran foto terlalu besar ($sizeMb MB). Maksimal 2 MB.',
           backgroundColor: Colors.red,
         );
         return;
       }
 
       if (!mounted) return;
+
       setState(() {
         _pickedFile = image;
         _imageBytes = bytes;
       });
     } catch (e) {
       if (!mounted) return;
+
       _showMessage(
-        "Gagal memilih foto: $e",
+        'Gagal memilih foto: $e',
         backgroundColor: Colors.red,
       );
     }
@@ -165,25 +183,31 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
   Future<void> _pickLocation() async {
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
+
       if (!serviceEnabled) {
         if (!mounted) return;
+
         _showMessage(
-          "GPS/lokasi sedang tidak aktif. Silakan aktifkan lokasi.",
+          'GPS/lokasi sedang tidak aktif. Silakan aktifkan lokasi.',
           backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+      LocationPermission permission =
+          await Geolocator.checkPermission();
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
 
       if (permission == LocationPermission.denied) {
         if (!mounted) return;
+
         _showMessage(
-          "Izin lokasi diperlukan untuk menentukan lokasi pekerjaan.",
+          'Izin lokasi diperlukan untuk menentukan lokasi pekerjaan.',
           backgroundColor: const Color(0xFFF59E0B),
         );
         return;
@@ -191,14 +215,16 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
       if (permission == LocationPermission.deniedForever) {
         if (!mounted) return;
+
         _showMessage(
-          "Izin lokasi ditolak permanen. Silakan aktifkan izin lokasi dari pengaturan.",
+          'Izin lokasi ditolak permanen. Silakan aktifkan izin lokasi dari pengaturan.',
           backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
 
-      final Position currentPosition = await Geolocator.getCurrentPosition(
+      final Position currentPosition =
+          await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
@@ -210,6 +236,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       );
 
       if (!mounted) return;
+
       final result = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (context) {
@@ -221,32 +248,60 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
       if (result == null) return;
 
-      final dynamic positionData = result["position"];
+      final positionData = result['position'];
+
       if (positionData is! LatLng) {
         if (!mounted) return;
+
         _showMessage(
-          "Lokasi yang dipilih tidak valid.",
+          'Lokasi yang dipilih tidak valid.',
           backgroundColor: Colors.red,
         );
         return;
       }
-      final LatLng selectedPosition = positionData;
-      final String address = result["address"]?.toString() ?? "";
+
+      final selectedPosition = positionData;
+      final address = result['address']?.toString() ?? '';
+      final cityName = result['cityName']?.toString();
 
       if (!mounted) return;
+
       setState(() {
         _latitude = selectedPosition.latitude;
         _longitude = selectedPosition.longitude;
+
         _lokasiController.text = address;
+
+        _selectedCityName =
+            cityName != null && cityName.trim().isNotEmpty
+                ? cityName.trim()
+                : null;
+
+        _isLoadingCity = false;
       });
+
+      if (_selectedCityName == null) {
+        _showMessage(
+          'Kota/kabupaten belum berhasil dideteksi. Silakan pilih titik lokasi lainnya.',
+          backgroundColor: Colors.red,
+        );
+      }
     } catch (e) {
+      debugPrint('Gagal memilih lokasi: $e');
+
       if (!mounted) return;
+
       _showMessage(
-        "Gagal mendapatkan lokasi saat ini: $e",
+        'Gagal mendapatkan lokasi saat ini: $e',
         backgroundColor: Colors.red,
       );
     }
   }
+
+  // =========================================================
+  // DETEKSI KOTA
+  // =========================================================
+
 
   // =========================================================
   // RESET LOKASI
@@ -254,12 +309,118 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
   void _resetLocation() {
     if (!mounted) return;
+
     setState(() {
       _latitude = null;
       _longitude = null;
+
       _lokasiController.clear();
       _detailAlamatController.clear();
+
+      _selectedCityName = null;
+      _isLoadingCity = false;
     });
+  }
+
+  // =========================================================
+  // PILIH WAKTU MULAI
+  // =========================================================
+
+  Future<void> _pickPreferredStartAt() async {
+    final now = DateTime.now();
+
+    final existing = _preferredStartAt;
+
+    final initialDate = existing != null && existing.isAfter(now)
+        ? existing
+        : now.add(const Duration(days: 1));
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2),
+      helpText: 'Pilih tanggal mulai pekerjaan',
+      cancelText: 'Batal',
+      confirmText: 'Lanjut',
+    );
+
+    if (selectedDate == null || !mounted) return;
+
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: existing != null
+          ? TimeOfDay.fromDateTime(existing)
+          : const TimeOfDay(hour: 9, minute: 0),
+      helpText: 'Pilih jam mulai pekerjaan',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+    );
+
+    if (selectedTime == null || !mounted) return;
+
+    final selectedDateTime = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    if (!selectedDateTime.isAfter(DateTime.now())) {
+      _showMessage(
+        'Waktu mulai harus lebih dari waktu sekarang.',
+        backgroundColor: Colors.red,
+      );
+      return;
+    }
+
+    setState(() {
+      _preferredStartAt = selectedDateTime;
+    });
+  }
+
+  // =========================================================
+  // FORMAT TANGGAL DAN WAKTU
+  // =========================================================
+
+  String _formatPreferredStartAt(DateTime dateTime) {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final month = months[dateTime.month - 1];
+    final year = dateTime.year;
+
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+
+    return '$day $month $year, pukul $hour:$minute';
+  }
+
+  // =========================================================
+  // FORMAT BUDGET
+  // =========================================================
+
+  String _getRawBudget() {
+    return _budgetController.text
+        .replaceAll('Rp', '')
+        .replaceAll('.', '')
+        .replaceAll(',', '')
+        .replaceAll(' ', '')
+        .trim();
   }
 
   // =========================================================
@@ -267,51 +428,54 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   Future<void> _postingJasa() async {
+    if (_isSubmitting) return;
+
+    // ---------------------------------------------------------
     // VALIDASI JUDUL
+    // ---------------------------------------------------------
+
     if (_judulController.text.trim().isEmpty) {
-      _showMessage("Judul jasa wajib diisi.");
+      _showMessage('Judul jasa wajib diisi.');
       return;
     }
 
+    // ---------------------------------------------------------
     // VALIDASI KATEGORI
-    if (_kategori == "Lainnya" &&
+    // ---------------------------------------------------------
+
+    if (_kategori == 'Lainnya' &&
         _kategoriLainnyaController.text.trim().isEmpty) {
-      _showMessage("Kategori lainnya wajib diisi.");
+      _showMessage('Kategori lainnya wajib diisi.');
       return;
     }
 
+    // ---------------------------------------------------------
     // VALIDASI DESKRIPSI
+    // ---------------------------------------------------------
+
     if (_deskripsiController.text.trim().isEmpty) {
-      _showMessage("Deskripsi jasa wajib diisi.");
+      _showMessage('Deskripsi jasa wajib diisi.');
       return;
     }
 
+    // ---------------------------------------------------------
     // VALIDASI BUDGET
-    if (_budgetController.text.trim().isEmpty) {
-      _showMessage("Budget wajib diisi.", backgroundColor: Colors.red);
-      return;
-    }
+    // ---------------------------------------------------------
 
-    final rawBudget = _budgetController.text
-        .replaceAll('Rp', '')
-        .replaceAll('.', '')
-        .replaceAll(',', '')
-        .replaceAll(' ', '')
-        .trim();
-
+    final rawBudget = _getRawBudget();
     final int? budget = int.tryParse(rawBudget);
 
-    if (budget == null) {
+    if (rawBudget.isEmpty) {
       _showMessage(
-        "Budget harus berupa angka yang valid.",
+        'Budget wajib diisi.',
         backgroundColor: Colors.red,
       );
       return;
     }
 
-    if (budget <= 0) {
+    if (budget == null || budget <= 0) {
       _showMessage(
-        "Budget harus lebih dari Rp 0.",
+        'Budget harus berupa angka yang valid dan lebih dari Rp 0.',
         backgroundColor: Colors.red,
       );
       return;
@@ -319,25 +483,81 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
     if (rawBudget.length > 8 || budget > 99999999) {
       _showMessage(
-        "Budget maksimal Rp99.999.999.",
+        'Budget maksimal Rp99.999.999.',
         backgroundColor: Colors.red,
       );
       return;
     }
 
+    // ---------------------------------------------------------
+    // VALIDASI WAKTU MULAI
+    // ---------------------------------------------------------
+
+    if (_preferredStartAt == null) {
+      _showMessage(
+        'Silakan tentukan waktu mulai pekerjaan.',
+        backgroundColor: Colors.red,
+      );
+      return;
+    }
+
+    if (!_preferredStartAt!.isAfter(DateTime.now())) {
+      _showMessage(
+        'Waktu mulai harus lebih dari waktu sekarang.',
+        backgroundColor: Colors.red,
+      );
+      return;
+    }
+
+    // ---------------------------------------------------------
     // VALIDASI LOKASI
+    // ---------------------------------------------------------
+
     if (_latitude == null || _longitude == null) {
-      _showMessage("Silakan pilih lokasi pekerjaan pada peta.");
+      _showMessage('Silakan pilih lokasi pekerjaan pada peta.');
       return;
     }
 
     if (_lokasiController.text.trim().isEmpty) {
-      _showMessage("Alamat lokasi belum ditemukan.");
+      _showMessage('Alamat lokasi belum ditemukan.');
       return;
     }
 
     if (_detailAlamatController.text.trim().isEmpty) {
-      _showMessage("Detail alamat wajib diisi.");
+      _showMessage('Detail alamat wajib diisi.');
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // VALIDASI KOTA
+    // ---------------------------------------------------------
+
+    if (_isLoadingCity) {
+      _showMessage(
+        'Mohon tunggu sampai deteksi kota selesai.',
+        backgroundColor: const Color(0xFFF59E0B),
+      );
+      return;
+    }
+
+    if (_selectedCityName == null ||
+        _selectedCityName!.trim().isEmpty) {
+      _showMessage(
+        'Kota lokasi pekerjaan belum terdeteksi. Pastikan lokasi yang dipilih valid.',
+        backgroundColor: Colors.red,
+      );
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // VALIDASI PIN
+    // ---------------------------------------------------------
+
+    if (_pinController.text.trim().length != 6) {
+      _showMessage(
+        'PIN harus 6 digit.',
+        backgroundColor: Colors.red,
+      );
       return;
     }
 
@@ -346,42 +566,71 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     });
 
     try {
+      // -------------------------------------------------------
+      // TOKEN
+      // -------------------------------------------------------
+
       final token = AuthStorage.getString('auth_token') ??
           AuthStorage.getString('token') ??
           '';
 
       if (token.isEmpty) {
         if (!mounted) return;
+
         setState(() {
           _isSubmitting = false;
         });
+
         _showMessage(
-          "Sesi telah berakhir, silakan login kembali.",
+          'Sesi telah berakhir, silakan login kembali.',
           backgroundColor: const Color(0xFFF59E0B),
         );
         return;
       }
 
+      // -------------------------------------------------------
+      // REQUEST MULTIPART
+      // -------------------------------------------------------
+
       final uri = Uri.parse('${ApiService.baseUrl}/jobs');
 
       final request = http.MultipartRequest('POST', uri);
+
       request.headers['Accept'] = 'application/json';
       request.headers['Authorization'] = 'Bearer $token';
 
       request.fields['tittle'] = _judulController.text.trim();
       request.fields['description'] = _deskripsiController.text.trim();
       request.fields['initial_budget'] = rawBudget;
-      request.fields['category'] = _kategori == "Lainnya"
+
+      request.fields['category'] = _kategori == 'Lainnya'
           ? _kategoriLainnyaController.text.trim()
           : _kategori;
+
       request.fields['duration'] = _waktuPengerjaan;
+
+      // Waktu mulai yang diinginkan Pelanggan.
+      // Simpan sebagai UTC agar konsisten dengan backend.
+      request.fields['preferred_start_at'] =
+          _preferredStartAt!.toUtc().toIso8601String();
+
+      // Lokasi
       request.fields['location'] = _lokasiController.text.trim();
-      request.fields['address_detail'] = _detailAlamatController.text.trim();
+      request.fields['address_detail'] =
+          _detailAlamatController.text.trim();
+
       request.fields['latitude'] = _latitude!.toString();
       request.fields['longitude'] = _longitude!.toString();
+
       request.fields['location_lat'] = _latitude!.toString();
       request.fields['location_lng'] = _longitude!.toString();
 
+      request.fields['city_name'] = _selectedCityName!.trim();
+
+      // PIN
+      request.fields['pin'] = _pinController.text.trim();
+
+      // Foto opsional
       if (_pickedFile != null && _imageBytes != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
@@ -392,82 +641,117 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         );
       }
 
+      // -------------------------------------------------------
+      // KIRIM REQUEST
+      // -------------------------------------------------------
+
       final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final response = await http.Response.fromStream(
+        streamedResponse,
+      );
 
       if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-      });
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
         try {
           final resData = jsonDecode(response.body);
+
           final jobJson = resData['data'] ?? resData;
+
           final JobModel createdJob = JobModel.fromJson(jobJson);
 
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Posting jasa berhasil dibuat."),
-              backgroundColor: AppColors.primaryTeal, // ← teal
-            ),
-          );
-          Navigator.pop(context, createdJob);
-        } catch (e) {
-          if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                "Posting berhasil, tetapi data pekerjaan gagal dibaca.",
+                'Posting jasa berhasil dibuat! Saldo Anda telah ditahan.',
               ),
-              backgroundColor: Color(0xFFF59E0B), // ← amber
+              backgroundColor: AppColors.primaryTeal,
+              behavior: SnackBarBehavior.floating,
             ),
           );
+
+          Navigator.pop(context, createdJob);
+        } catch (e) {
+          debugPrint('Gagal membaca data pekerjaan: $e');
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Posting berhasil, tetapi data pekerjaan gagal dibaca.',
+              ),
+              backgroundColor: Color(0xFFF59E0B),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+
           Navigator.pop(context);
         }
+
         return;
       }
 
-      if (!mounted) return;
+      // -------------------------------------------------------
+      // HANDLE ERROR RESPONSE
+      // -------------------------------------------------------
+
       String errorMessage =
-          "Gagal membuat pekerjaan. Status: ${response.statusCode}";
+          'Gagal membuat pekerjaan. Status: ${response.statusCode}';
 
       try {
         final errorData = jsonDecode(response.body);
+
         if (errorData is Map && errorData['errors'] is Map) {
           final errors = errorData['errors'] as Map;
+
           if (errors.isNotEmpty) {
-            final firstKey = errors.keys.first;
-            if (errors[firstKey] is List &&
-                (errors[firstKey] as List).isNotEmpty) {
-              errorMessage = (errors[firstKey] as List)[0].toString();
+            final firstError = errors.values.first;
+
+            if (firstError is List && firstError.isNotEmpty) {
+              errorMessage = firstError.first.toString();
+            } else {
+              errorMessage = firstError.toString();
             }
           }
-        } else if (errorData is Map && errorData['message'] != null) {
+        } else if (errorData is Map &&
+            errorData['message'] != null) {
           errorMessage = errorData['message'].toString();
         }
       } catch (_) {
-        if (response.statusCode == 422) {
-          errorMessage = "Data yang dikirim tidak valid.";
-        } else if (response.statusCode == 401) {
-          errorMessage = "Sesi login berakhir. Silakan login ulang.";
+        if (response.statusCode == 401) {
+          errorMessage = 'Sesi login berakhir. Silakan login ulang.';
         } else if (response.statusCode == 413) {
-          errorMessage = "File terlalu besar untuk server.";
+          errorMessage = 'File terlalu besar untuk server.';
+        } else if (response.statusCode == 422) {
+          errorMessage = 'Data yang dikirim tidak valid.';
         } else if (response.statusCode == 500) {
-          errorMessage = "Terjadi kesalahan di server.";
+          errorMessage = 'Terjadi kesalahan di server.';
         }
       }
-      _showMessage(errorMessage, backgroundColor: Colors.red);
-    } catch (e) {
+
       if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-      });
+
       _showMessage(
-        "Terjadi kesalahan: $e",
+        errorMessage,
         backgroundColor: Colors.red,
       );
+    } catch (e) {
+      if (!mounted) return;
+
+      _showMessage(
+        'Terjadi kesalahan: $e',
+        backgroundColor: Colors.red,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -475,8 +759,12 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // SNACKBAR
   // =========================================================
 
-  void _showMessage(String message, {Color? backgroundColor}) {
+  void _showMessage(
+    String message, {
+    Color? backgroundColor,
+  }) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -498,14 +786,18 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
       ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 24,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final screenWidth = MediaQuery.of(context).size.width;
           final isMobile = screenWidth < _mobileBreakpoint;
 
-          final dialogWidth =
-              isMobile ? screenWidth - 32 : (screenWidth * 0.7).clamp(500.0, 750.0);
+          final dialogWidth = isMobile
+              ? screenWidth - 32
+              : (screenWidth * 0.7).clamp(500.0, 750.0);
 
           return ConstrainedBox(
             constraints: BoxConstraints(
@@ -519,6 +811,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(isMobile),
+
                     SizedBox(height: isMobile ? 22 : 28),
 
                     // SECTION 1
@@ -535,6 +828,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 16),
 
                     _buildField(
@@ -545,19 +839,21 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         decoration: _inputDecoration(
                           hint: 'Pilih kategori jasa',
                         ),
-                        items: kategoriList.map((e) {
+                        items: kategoriList.map((item) {
                           return DropdownMenuItem<String>(
-                            value: e,
-                            child: Text(e),
+                            value: item,
+                            child: Text(item),
                           );
                         }).toList(),
                         onChanged: _isSubmitting
                             ? null
                             : (value) {
                                 if (value == null) return;
+
                                 setState(() {
                                   _kategori = value;
-                                  if (value != "Lainnya") {
+
+                                  if (value != 'Lainnya') {
                                     _kategoriLainnyaController.clear();
                                   }
                                 });
@@ -565,7 +861,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                       ),
                     ),
 
-                    if (_kategori == "Lainnya") ...[
+                    if (_kategori == 'Lainnya') ...[
                       const SizedBox(height: 16),
                       _buildField(
                         label: 'Kategori Lainnya',
@@ -615,6 +911,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         ],
                       ),
 
+                    const SizedBox(height: 18),
+
+                    _buildPreferredStartField(),
+
                     const SizedBox(height: 24),
 
                     // SECTION 3
@@ -625,6 +925,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
                     if (_latitude != null) ...[
                       const SizedBox(height: 14),
+
                       _buildField(
                         label: 'Alamat',
                         child: TextField(
@@ -637,18 +938,73 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 6),
+
                       Text(
-                        "Koordinat: "
-                        "${_latitude!.toStringAsFixed(6)}, "
-                        "${_longitude!.toStringAsFixed(6)}",
+                        'Koordinat: '
+                        '${_latitude!.toStringAsFixed(6)}, '
+                        '${_longitude!.toStringAsFixed(6)}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.grey600,
                         ),
                       ),
+
+                      if (_isLoadingCity)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Mendeteksi kota...',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.grey600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      if (_selectedCityName != null &&
+                          !_isLoadingCity)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.location_city,
+                                size: 14,
+                                color: AppColors.primaryTeal,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Kota Terdeteksi: $_selectedCityName',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryTeal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       const SizedBox(height: 4),
-                      Row(
+
+                      Wrap(
+                        spacing: 4,
                         children: [
                           TextButton.icon(
                             onPressed:
@@ -657,24 +1013,28 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                               Icons.edit_location_alt_outlined,
                               size: 18,
                             ),
-                            label: const Text("Ubah lokasi"),
+                            label: const Text('Ubah lokasi'),
                             style: TextButton.styleFrom(
                               foregroundColor: _accent,
                             ),
                           ),
-                          const SizedBox(width: 4),
                           TextButton.icon(
                             onPressed:
                                 _isSubmitting ? null : _resetLocation,
-                            icon: const Icon(Icons.refresh, size: 18),
-                            label: const Text("Reset"),
+                            icon: const Icon(
+                              Icons.refresh,
+                              size: 18,
+                            ),
+                            label: const Text('Reset'),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.grey700,
                             ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 10),
+
                       _buildField(
                         label: 'Detail Alamat',
                         child: TextField(
@@ -693,8 +1053,13 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     const SizedBox(height: 24),
 
                     // SECTION 4
-                    _buildSectionLabel('Foto Kendala (Opsional)', isMobile),
+                    _buildSectionLabel(
+                      'Foto Kendala (Opsional)',
+                      isMobile,
+                    ),
+
                     const SizedBox(height: 6),
+
                     const Text(
                       'Format: JPG, PNG, WEBP. Maksimal 2 MB.',
                       style: TextStyle(
@@ -702,9 +1067,22 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         color: AppColors.grey600,
                       ),
                     ),
+
                     const SizedBox(height: 12),
 
                     _buildPhotoPicker(isMobile),
+
+                    const SizedBox(height: 24),
+
+                    // SECTION 5
+                    _buildSectionLabel(
+                      'Konfirmasi Pembayaran',
+                      isMobile,
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    _buildEscrowConfirmation(),
 
                     const SizedBox(height: 28),
 
@@ -715,6 +1093,84 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  // =========================================================
+  // PREFERRED START FIELD
+  // =========================================================
+
+  Widget _buildPreferredStartField() {
+    final hasSelectedTime = _preferredStartAt != null;
+
+    return _buildField(
+      label: 'Waktu Mulai yang Diinginkan',
+      child: InkWell(
+        onTap: _isSubmitting ? null : _pickPreferredStartAt,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 15,
+          ),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: hasSelectedTime
+                  ? AppColors.primaryTeal
+                  : AppColors.grey300,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            color: hasSelectedTime
+                ? AppColors.mint.withValues(alpha: 0.08)
+                : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.calendar_month_outlined,
+                color: hasSelectedTime
+                    ? AppColors.primaryTeal
+                    : AppColors.grey500,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasSelectedTime
+                          ? _formatPreferredStartAt(_preferredStartAt!)
+                          : 'Pilih tanggal dan jam mulai',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: hasSelectedTime
+                            ? AppColors.primaryTeal
+                            : AppColors.grey500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Tentukan kapan Mitra diharapkan mulai bekerja.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                hasSelectedTime
+                    ? Icons.edit_calendar_outlined
+                    : Icons.chevron_right,
+                color: AppColors.grey500,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -731,7 +1187,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           width: isMobile ? 42 : 48,
           height: isMobile ? 42 : 48,
           decoration: BoxDecoration(
-            color: _accent.withValues(alpha:0.12),
+            color: _accent.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -854,7 +1310,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _accent, width: 1.5),
+        borderSide: const BorderSide(
+          color: _accent,
+          width: 1.5,
+        ),
       ),
       disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -873,6 +1332,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       child: TextField(
         controller: _budgetController,
         enabled: !_isSubmitting,
+        onChanged: (_) => setState(() {}),
         keyboardType: const TextInputType.numberWithOptions(
           signed: false,
           decimal: false,
@@ -885,9 +1345,19 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           ),
           TextInputFormatter.withFunction(
             (oldValue, newValue) {
-              if (newValue.text.contains('-')) return oldValue;
-              final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-              if (digits.length > 8) return oldValue;
+              if (newValue.text.contains('-')) {
+                return oldValue;
+              }
+
+              final digits = newValue.text.replaceAll(
+                RegExp(r'[^\d]'),
+                '',
+              );
+
+              if (digits.length > 8) {
+                return oldValue;
+              }
+
               return newValue;
             },
           ),
@@ -918,7 +1388,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _accent, width: 1.5),
+            borderSide: const BorderSide(
+              color: _accent,
+              width: 1.5,
+            ),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -941,18 +1414,22 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         isExpanded: true,
         decoration: _inputDecoration(
           hint: 'Pilih perkiraan waktu',
-          prefixIcon: const Icon(Icons.schedule_outlined, size: 20),
+          prefixIcon: const Icon(
+            Icons.schedule_outlined,
+            size: 20,
+          ),
         ),
-        items: waktuPengerjaanList.map((e) {
+        items: waktuPengerjaanList.map((item) {
           return DropdownMenuItem<String>(
-            value: e,
-            child: Text(e),
+            value: item,
+            child: Text(item),
           );
         }).toList(),
         onChanged: _isSubmitting
             ? null
             : (value) {
                 if (value == null) return;
+
                 setState(() {
                   _waktuPengerjaan = value;
                 });
@@ -962,7 +1439,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
-  // LOCATION PICKER BOX
+  // LOCATION PICKER
   // =========================================================
 
   Widget _buildLocationPicker() {
@@ -979,10 +1456,12 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         ),
         decoration: BoxDecoration(
           color: hasLocation
-              ? AppColors.mint.withValues(alpha:0.10) // ← teal soft
+              ? AppColors.mint.withValues(alpha: 0.10)
               : Colors.transparent,
           border: Border.all(
-            color: hasLocation ? AppColors.primaryTeal : AppColors.grey300,
+            color: hasLocation
+                ? AppColors.primaryTeal
+                : AppColors.grey300,
             width: hasLocation ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
@@ -993,7 +1472,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
               hasLocation
                   ? Icons.check_circle_outline
                   : Icons.location_on_outlined,
-              color: hasLocation ? AppColors.primaryTeal : AppColors.grey500,
+              color: hasLocation
+                  ? AppColors.primaryTeal
+                  : AppColors.grey500,
               size: 22,
             ),
             const SizedBox(width: 12),
@@ -1003,8 +1484,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 children: [
                   Text(
                     hasLocation
-                        ? "Lokasi berhasil dipilih"
-                        : "Pilih lokasi dari peta",
+                        ? 'Lokasi berhasil dipilih'
+                        : 'Pilih lokasi dari peta',
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
@@ -1016,8 +1497,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                   const SizedBox(height: 3),
                   Text(
                     hasLocation
-                        ? "OpenStreetMap"
-                        : "Tentukan titik lokasi pekerjaan",
+                        ? 'OpenStreetMap'
+                        : 'Tentukan titik lokasi pekerjaan',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.grey600,
@@ -1053,9 +1534,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           color: AppColors.grey50,
         ),
         child: _imageBytes == null
-            ? Column(
+            ? const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Icon(
                     Icons.cloud_upload_outlined,
                     size: 40,
@@ -1063,7 +1544,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Klik untuk upload foto",
+                    'Klik untuk upload foto',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.grey600,
@@ -1088,12 +1569,14 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(20),
                         child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _pickedFile = null;
-                              _imageBytes = null;
-                            });
-                          },
+                          onTap: _isSubmitting
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _pickedFile = null;
+                                    _imageBytes = null;
+                                  });
+                                },
                           borderRadius: BorderRadius.circular(20),
                           child: const Padding(
                             padding: EdgeInsets.all(6),
@@ -1114,12 +1597,87 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   }
 
   // =========================================================
+  // ESCROW CONFIRMATION
+  // =========================================================
+
+  Widget _buildEscrowConfirmation() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.mint.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.primaryTeal.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.lock_outline,
+                color: AppColors.primaryTeal,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Dana sebesar ${_budgetController.text.isEmpty ? "Rp 0" : "Rp ${_budgetController.text}"} akan ditahan oleh sistem (Escrow).',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primaryTeal,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.only(left: 28),
+            child: Text(
+              'Catatan: Jika Mitra menawar lebih murah dari budget, sisa saldo otomatis kembali ke dompet Anda. Jika Mitra menawar lebih mahal, Anda wajib Topup sebelum ACC Mitra.',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.grey700,
+                height: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildField(
+            label: 'Masukkan PIN Anda (6 Digit)',
+            child: TextField(
+              controller: _pinController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+              enabled: !_isSubmitting,
+              decoration: _inputDecoration(
+                hint: '******',
+                prefixIcon: const Icon(Icons.password),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
   // ACTIONS
   // =========================================================
 
   Widget _buildActions(bool isMobile) {
     final cancelButton = OutlinedButton(
-      onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+      onPressed: _isSubmitting
+          ? null
+          : () => Navigator.pop(context),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 50),
         foregroundColor: AppColors.grey700,
@@ -1130,7 +1688,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       ),
       child: const Text(
         'Batal',
-        style: TextStyle(fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
 
@@ -1145,13 +1705,18 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 strokeWidth: 2,
               ),
             )
-          : const Icon(Icons.rocket_launch, size: 18),
+          : const Icon(
+              Icons.rocket_launch,
+              size: 18,
+            ),
       label: Text(
         _isSubmitting ? 'Memproses...' : 'Posting Sekarang',
-        style: const TextStyle(fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accent, // ← teal
+        backgroundColor: _accent,
         foregroundColor: Colors.white,
         minimumSize: const Size(0, 50),
         shape: RoundedRectangleBorder(
@@ -1164,9 +1729,15 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     if (isMobile) {
       return Column(
         children: [
-          SizedBox(width: double.infinity, child: submitButton),
+          SizedBox(
+            width: double.infinity,
+            child: submitButton,
+          ),
           const SizedBox(height: 10),
-          SizedBox(width: double.infinity, child: cancelButton),
+          SizedBox(
+            width: double.infinity,
+            child: cancelButton,
+          ),
         ],
       );
     }
@@ -1175,7 +1746,10 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       children: [
         Expanded(child: cancelButton),
         const SizedBox(width: 14),
-        Expanded(flex: 2, child: submitButton),
+        Expanded(
+          flex: 2,
+          child: submitButton,
+        ),
       ],
     );
   }

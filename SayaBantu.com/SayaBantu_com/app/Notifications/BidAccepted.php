@@ -26,9 +26,11 @@ class BidAccepted extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'title' => 'Penawaran Diterima',
+            'type' => 'bid_accepted',
             'job_id' => $this->job->id,
-            'tittle' => $this->job->tittle,
-            'message' => 'Penawaran Anda untuk pekerjaan "' . $this->job->title . '" telah diterima!',
+            'job_title' => $this->job->tittle, // Perbaiki ejaan
+            'message' => 'Selamat! Penawaran Anda untuk pekerjaan "' . $this->job->tittle . '" telah diterima!',
             'action_url' => '/jobs/' . $this->job->id,
         ];
     }

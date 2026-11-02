@@ -47,6 +47,48 @@ class ComplaintController extends Controller
             : self::JOB_REQUIRED_CATEGORIES_PELANGGAN;
     }
 
+    /**
+     * Membatasi pengaduan berdasarkan wilayah admin.
+     *
+     * Super Admin: seluruh wilayah.
+     * Admin: hanya wilayah yang ditugaskan kepadanya.
+     */
+    private function applyAdminCityScope($query, $admin)
+    {
+        $role = $this->roleName($admin);
+
+        // Super Admin dapat melihat seluruh wilayah.
+        if ($role === 'Super Admin') {
+            return $query;
+        }
+
+        // Admin tanpa wilayah tidak boleh melihat pengaduan apa pun.
+        if (!$admin->city_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $cityId = $admin->city_id;
+
+        return $query->where(function ($q) use ($cityId) {
+
+            // Pengaduan terkait pekerjaan: gunakan wilayah pekerjaan.
+            $q->where(function ($sub) use ($cityId) {
+                $sub->whereNotNull('job_id')
+                    ->whereHas('job', function ($job) use ($cityId) {
+                        $job->where('city_id', $cityId);
+                    });
+            })
+
+                // Pengaduan umum: gunakan wilayah pelapor.
+                ->orWhere(function ($sub) use ($cityId) {
+                    $sub->whereNull('job_id')
+                        ->whereHas('user', function ($user) use ($cityId) {
+                            $user->where('city_id', $cityId);
+                        });
+                });
+        });
+    }
+
     // =========================================================
     // LIST PENGADUAN MILIK USER (Pelanggan / Mitra / Admin)
     // GET /complaints/my
@@ -202,9 +244,12 @@ class ComplaintController extends Controller
     public function show($id)
     {
         try {
+            $user = auth()->user();
+            $role = $this->roleName($user);
+
             $complaint = Complaint::with([
-                'job:id,tittle',
-                'user:id,name,email',
+                'job:id,tittle,city_id',
+                'user:id,name,email,city_id',
                 'handler:id,name',
             ])->find($id);
 
@@ -215,25 +260,41 @@ class ComplaintController extends Controller
                 ], 404);
             }
 
-            $userId = auth()->id();
-            $role   = $this->roleName(auth()->user());
+            $isOwner = (int) $complaint->user_id === (int) $user->id;
 
-            $isOwner = (int) $complaint->user_id === (int) $userId;
-            $isAdmin = in_array($role, ['Admin', 'Super Admin'], true);
+            if ($isOwner) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $complaint,
+                ], 200);
+            }
 
-            if (!$isOwner && !$isAdmin) {
+            if (!in_array($role, ['Admin', 'Super Admin'], true)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berhak melihat pengaduan ini.',
                 ], 403);
             }
 
+            // Periksa apakah pengaduan masuk wilayah admin.
+            $accessQuery = Complaint::where('id', $id);
+
+            $this->applyAdminCityScope($accessQuery, $user);
+
+            if (!$accessQuery->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke pengaduan wilayah ini.',
+                ], 403);
+            }
+
             return response()->json([
                 'success' => true,
-                'data'    => $complaint,
+                'data' => $complaint,
             ], 200);
         } catch (\Exception $e) {
             Log::error('ComplaintController@show: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memuat detail pengaduan.',
@@ -248,9 +309,41 @@ class ComplaintController extends Controller
     public function adminIndex(Request $request)
     {
         try {
-            $query = Complaint::with([
-                'user:id,name,email',
-                'job:id,tittle',
+            $admin = auth()->user();
+            $role = $this->roleName($admin);
+
+            if (!in_array($role, ['Admin', 'Super Admin'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses.',
+                ], 403);
+            }
+
+            $baseQuery = Complaint::query();
+
+            $this->applyAdminCityScope($baseQuery, $admin);
+
+            // Summary berdasarkan wilayah admin.
+            $summary = [
+                'total' => (clone $baseQuery)->count(),
+
+                'menunggu' => (clone $baseQuery)
+                    ->where('status', 'Menunggu')->count(),
+
+                'diproses' => (clone $baseQuery)
+                    ->where('status', 'Diproses')->count(),
+
+                'selesai' => (clone $baseQuery)
+                    ->where('status', 'Selesai')->count(),
+
+                'ditolak' => (clone $baseQuery)
+                    ->where('status', 'Ditolak')->count(),
+            ];
+
+            // Daftar pengaduan.
+            $query = (clone $baseQuery)->with([
+                'user:id,name,email,city_id',
+                'job:id,tittle,city_id',
             ]);
 
             if ($request->filled('status') && $request->status !== 'all') {
@@ -259,21 +352,14 @@ class ComplaintController extends Controller
 
             $complaints = $query->latest()->get();
 
-            $summary = [
-                'total'     => Complaint::count(),
-                'menunggu'  => Complaint::where('status', 'Menunggu')->count(),
-                'diproses'  => Complaint::where('status', 'Diproses')->count(),
-                'selesai'   => Complaint::where('status', 'Selesai')->count(),
-                'ditolak'   => Complaint::where('status', 'Ditolak')->count(),
-            ];
-
             return response()->json([
                 'success' => true,
                 'summary' => $summary,
-                'data'    => $complaints,
+                'data' => $complaints,
             ], 200);
         } catch (\Exception $e) {
             Log::error('ComplaintController@adminIndex: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memuat pengaduan.',
@@ -288,27 +374,38 @@ class ComplaintController extends Controller
     public function adminRespond(Request $request, $id)
     {
         try {
-            $complaint = Complaint::find($id);
+            $admin = auth()->user();
+            $role = $this->roleName($admin);
+
+            if (!in_array($role, ['Admin', 'Super Admin'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses.',
+                ], 403);
+            }
+
+            // Cari pengaduan sesuai wilayah admin.
+            $query = Complaint::query();
+
+            $this->applyAdminCityScope($query, $admin);
+
+            $complaint = $query->find($id);
 
             if (!$complaint) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Pengaduan tidak ditemukan.',
+                    'message' => 'Pengaduan tidak ditemukan atau bukan wilayah Anda.',
                 ], 404);
             }
 
             $request->validate([
-                'status'         => 'required|in:Menunggu,Diproses,Selesai,Ditolak',
+                'status' => 'required|in:Menunggu,Diproses,Selesai,Ditolak',
                 'admin_response' => 'nullable|string|max:2000',
             ]);
 
-            // =====================================================
-            // VALIDASI TRANSISI STATUS
-            // =====================================================
             $current = $complaint->status;
-            $next    = $request->status;
+            $next = $request->status;
 
-            // Yang sudah final tidak boleh balik ke Menunggu
             if (
                 in_array($current, ['Selesai', 'Ditolak'], true)
                 && $next === 'Menunggu'
@@ -319,15 +416,14 @@ class ComplaintController extends Controller
                 ], 422);
             }
 
-            // Kalau set Selesai/Ditolak, wajib isi admin_response
             if (
                 in_array($next, ['Selesai', 'Ditolak'], true)
-                && !$request->admin_response
+                && !$request->filled('admin_response')
             ) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Tanggapan admin wajib diisi untuk status Selesai/Ditolak.',
-                    'errors'  => [
+                    'errors' => [
                         'admin_response' => [
                             'Tanggapan admin wajib diisi.',
                         ],
@@ -336,24 +432,25 @@ class ComplaintController extends Controller
             }
 
             $complaint->update([
-                'status'         => $next,
+                'status' => $next,
                 'admin_response' => $request->admin_response,
-                'handled_by'     => auth()->id(),
-                'handled_at'     => now(),
+                'handled_by' => $admin->id,
+                'handled_at' => now(),
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Pengaduan berhasil ditanggapi.',
-                'data'    => $complaint->fresh()->load([
-                    'job:id,tittle',
-                    'user:id,name,email',
+                'data' => $complaint->fresh()->load([
+                    'job:id,tittle,city_id',
+                    'user:id,name,email,city_id',
                 ]),
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
             Log::error('ComplaintController@adminRespond: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menanggapi pengaduan.',

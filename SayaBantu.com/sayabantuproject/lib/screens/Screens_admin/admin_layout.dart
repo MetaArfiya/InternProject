@@ -14,19 +14,11 @@ import 'admin_daily_report_screen.dart';
 import 'admin_rating_screen.dart';
 import 'admin_payment_screen.dart';
 import 'admin_profile_screen.dart';
+import 'admin_topup_screen.dart';     // <-- IMPORT HALAMAN TOPUP BARU
+import 'admin_withdraw_screen.dart';  // <-- IMPORT HALAMAN WITHDRAW BARU
 
 import '../../screens/Screens_Landing/landing_page.dart';
 
-/// ============================================================
-/// AdminLayout
-/// ------------------------------------------------------------
-/// Layout utama untuk role Admin & Super Admin.
-/// Tema otomatis menyesuaikan role:
-///   - Admin       → Teal
-///   - Super Admin → Teal + Gold accent
-///
-/// Semua warna diambil dari [AppColors] via [AdminTheme].
-/// ============================================================
 class AdminLayout extends StatefulWidget {
   final String activeMenu;
 
@@ -40,15 +32,7 @@ class AdminLayout extends StatefulWidget {
 }
 
 class _AdminLayoutState extends State<AdminLayout> {
-  // ============================================================
-  // THEME
-  // ============================================================
-
   AdminTheme get theme => AdminTheme.of(adminRole);
-
-  // ============================================================
-  // STATE
-  // ============================================================
 
   late String activeMenu;
   int _reportRefreshKey = 0;
@@ -58,8 +42,11 @@ class _AdminLayoutState extends State<AdminLayout> {
   String adminRole = 'Admin';
   String adminToken = '';
   String? adminPhotoUrl;
+  String? adminCityName;
 
-  /// Daftar menu utama — dipakai untuk bottom nav & sidebar.
+  // ============================================================
+  // MENU ADMIN (DITAMBAH TOPUP DAN WITHDRAW)
+  // ============================================================
   static const List<Map<String, dynamic>> _menus = [
     {
       'key': 'verification',
@@ -67,6 +54,20 @@ class _AdminLayoutState extends State<AdminLayout> {
       'icon': Icons.verified_outlined,
       'activeIcon': Icons.verified,
       'shortLabel': 'Verifikasi',
+    },
+    {
+      'key': 'topup',
+      'title': 'Verifikasi Topup',
+      'icon': Icons.account_balance_wallet_outlined,
+      'activeIcon': Icons.account_balance_wallet,
+      'shortLabel': 'Topup',
+    },
+    {
+      'key': 'withdraw',
+      'title': 'Proses Withdraw',
+      'icon': Icons.money_off_csred_outlined,
+      'activeIcon': Icons.money_off_csred,
+      'shortLabel': 'Withdraw',
     },
     {
       'key': 'complaint',
@@ -92,8 +93,8 @@ class _AdminLayoutState extends State<AdminLayout> {
     {
       'key': 'payment',
       'title': 'Pembayaran',
-      'icon': Icons.account_balance_wallet_outlined,
-      'activeIcon': Icons.account_balance_wallet,
+      'icon': Icons.payment_outlined,
+      'activeIcon': Icons.payment,
       'shortLabel': 'Bayar',
     },
     {
@@ -105,10 +106,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     },
   ];
 
-  // ============================================================
-  // LIFECYCLE
-  // ============================================================
-
   @override
   void initState() {
     super.initState();
@@ -116,10 +113,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     _restoreActiveMenu();
     _loadAdminProfile();
   }
-
-  // ============================================================
-  // RESTORE / SAVE ACTIVE MENU
-  // ============================================================
 
   void _restoreActiveMenu() {
     if (widget.activeMenu != 'verification') return;
@@ -135,16 +128,14 @@ class _AdminLayoutState extends State<AdminLayout> {
     AuthStorage.setString('admin_active_menu', menu);
   }
 
-  // ============================================================
-  // LOAD ADMIN PROFILE
-  // ============================================================
-
   Future<void> _loadAdminProfile() async {
     final savedName = AuthStorage.getString('name') ?? 'Admin Operator';
     final savedEmail =
         AuthStorage.getString('email') ?? 'admin@sayabantu.com';
     final savedRole = AuthStorage.getString('role') ?? 'Admin';
     final savedToken = AuthStorage.getString('token') ?? '';
+
+    final savedCityName = AuthStorage.getString('admin_city_name');
 
     if (!mounted) return;
 
@@ -153,6 +144,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       adminEmail = savedEmail;
       adminRole = savedRole;
       adminToken = savedToken;
+      adminCityName = savedCityName;
     });
 
     try {
@@ -199,10 +191,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     }
   }
 
-  // ============================================================
-  // HELPERS
-  // ============================================================
-
   String? _getFullPhotoUrl() {
     if (adminPhotoUrl == null ||
         adminPhotoUrl!.trim().isEmpty ||
@@ -239,10 +227,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     final idx = _menus.indexWhere((m) => m['key'] == activeMenu);
     return idx < 0 ? 0 : idx;
   }
-
-  // ============================================================
-  // PROFILE IMAGE — FIXED: SELALU BULAT
-  // ============================================================
 
   Widget _buildAdminProfileImage({double size = 40}) {
     final fullPhotoUrl = _getFullPhotoUrl();
@@ -318,10 +302,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     );
   }
 
-  // ============================================================
-  // ROLE CHIP (dipakai di mobile app bar)
-  // ============================================================
-
   Widget _roleChip({bool small = false}) {
     final t = theme;
     return Container(
@@ -344,10 +324,6 @@ class _AdminLayoutState extends State<AdminLayout> {
       ),
     );
   }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -379,14 +355,15 @@ class _AdminLayoutState extends State<AdminLayout> {
   }
 
   // ============================================================
-  // BODY (IndexedStack)
+  // BODY (IndexedStack) - DITAMBAH TOPUP & WITHDRAW
   // ============================================================
-
   Widget _buildBody() {
     return IndexedStack(
       index: _getMenuIndex(),
       children: [
         const AdminVerificationScreen(),
+        const AdminTopupScreen(),     // <-- HALAMAN BARU
+        const AdminWithdrawScreen(),  // <-- HALAMAN BARU
         const AdminComplaintScreen(),
         AdminDailyReportScreen(
           key: ValueKey('report_$_reportRefreshKey'),
@@ -400,10 +377,6 @@ class _AdminLayoutState extends State<AdminLayout> {
       ],
     );
   }
-
-  // ============================================================
-  // MOBILE APP BAR
-  // ============================================================
 
   AppBar _buildMobileAppBar(TextTheme textTheme, AdminTheme t) {
     return AppBar(
@@ -433,10 +406,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     );
   }
 
-  // ============================================================
-  // SIDEBAR
-  // ============================================================
-
   Widget _buildSidebar(BuildContext context) {
     final t = theme;
 
@@ -449,14 +418,13 @@ class _AdminLayoutState extends State<AdminLayout> {
           children: [
             const SizedBox(height: 20),
 
-            // PROFIL ADMIN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
                 children: [
                   _buildAdminProfileImage(size: 52),
                   const SizedBox(width: 12),
-                  Expanded(
+                                    Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -476,11 +444,24 @@ class _AdminLayoutState extends State<AdminLayout> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color:
-                                AppColors.white.withValues(alpha: 0.65),
+                            color: AppColors.white.withValues(alpha: 0.65),
                             fontSize: 13,
                           ),
                         ),
+                        // TAMBAHKAN INI UNTUK MENAMPILKAN KOTA
+                        if (adminCityName != null && adminCityName!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Wilayah: $adminCityName',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.amber, // Warna kuning emas
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -490,19 +471,23 @@ class _AdminLayoutState extends State<AdminLayout> {
 
             const SizedBox(height: 20),
 
-            // MENU
-            ..._menus.map(
-              (menu) => _menuItem(
-                context: context,
-                icon: menu['icon'] as IconData,
-                title: menu['title'] as String,
-                active: activeMenu == menu['key'],
-                onTap: () =>
-                    _changePage(context, menu['key'] as String),
+            // Render Menu (Scrollable jika menu terlalu banyak)
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: _menus.map(
+                    (menu) => _menuItem(
+                      context: context,
+                      icon: menu['icon'] as IconData,
+                      title: menu['title'] as String,
+                      active: activeMenu == menu['key'],
+                      onTap: () =>
+                          _changePage(context, menu['key'] as String),
+                    ),
+                  ).toList(),
+                ),
               ),
             ),
-
-            const Spacer(),
 
             // LOGOUT
             _logoutButton(context),
@@ -513,10 +498,6 @@ class _AdminLayoutState extends State<AdminLayout> {
       ),
     );
   }
-
-  // ============================================================
-  // MENU ITEM
-  // ============================================================
 
   Widget _menuItem({
     required BuildContext context,
@@ -576,10 +557,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     );
   }
 
-  // ============================================================
-  // LOGOUT BUTTON
-  // ============================================================
-
   Widget _logoutButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -624,10 +601,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     );
   }
 
-  // ============================================================
-  // BOTTOM NAVIGATION BAR
-  // ============================================================
-
   Widget _buildBottomNavigationBar() {
     final t = theme;
 
@@ -671,10 +644,6 @@ class _AdminLayoutState extends State<AdminLayout> {
     );
   }
 
-  // ============================================================
-  // CHANGE PAGE
-  // ============================================================
-
   void _changePage(BuildContext context, String menu) {
     if (activeMenu == menu) return;
 
@@ -685,10 +654,6 @@ class _AdminLayoutState extends State<AdminLayout> {
 
     _saveActiveMenu(menu);
   }
-
-  // ============================================================
-  // LOGOUT DIALOG
-  // ============================================================
 
   void _showLogoutDialog(BuildContext context) {
     final t = theme;
@@ -715,7 +680,6 @@ class _AdminLayoutState extends State<AdminLayout> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -758,7 +722,6 @@ class _AdminLayoutState extends State<AdminLayout> {
                   Divider(height: 1, color: t.divider),
                   const SizedBox(height: 16),
 
-                  // Body
                   Text(
                     'Apakah kamu yakin ingin keluar dari akun admin?',
                     style: textTheme.bodyMedium?.copyWith(
@@ -769,7 +732,6 @@ class _AdminLayoutState extends State<AdminLayout> {
 
                   const SizedBox(height: 20),
 
-                  // Actions
                   Row(
                     children: [
                       Expanded(
@@ -835,10 +797,6 @@ class _AdminLayoutState extends State<AdminLayout> {
       }
     });
   }
-
-  // ============================================================
-  // LOGOUT PROCESS
-  // ============================================================
 
   void _logout(BuildContext context) {
     AuthStorage.clear();

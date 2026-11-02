@@ -12,6 +12,7 @@ class jobs extends Model
     protected $fillable = [
         'pelanggan_id',
         'mitra_id',
+        'city_id',
         'tittle',
         'description',
         'category',
@@ -43,6 +44,17 @@ class jobs extends Model
         'tracking_started_at',
         'distance_km',
         'eta_minutes',
+        'preferred_start_at',
+        'scheduled_start_at',
+        'scheduled_end_at',
+    ];
+
+    protected $casts = [
+        'preferred_start_at' => 'datetime',
+        'scheduled_start_at' => 'datetime',
+        'scheduled_end_at' => 'datetime',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     // ============================================================
@@ -77,5 +89,18 @@ class jobs extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class, 'job_id');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id');
+    }
+
+    public function cancellationRequests()
+    {
+        return $this->hasMany(
+            \App\Models\JobCancellationRequest::class,
+            'job_id'
+        );
     }
 }

@@ -17,6 +17,7 @@ import 'notification_screen.dart';
 import 'setting_screen.dart';
 
 import '../../sections/payment/payment_screen.dart';
+import '../../sections/payment/wallet_screen.dart'; // <-- IMPORT WALLET SCREEN BARU
 
 class CustomerMainDashboard extends StatefulWidget {
   const CustomerMainDashboard({super.key});
@@ -39,7 +40,6 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   final GlobalKey<CustomerSidebarState> _sidebarKey =
       GlobalKey<CustomerSidebarState>();
 
-  // ✅ Aksen warna — konsisten dengan brand teal
   static const Color _accent = AppColors.primaryTeal;
 
   // ==========================================================
@@ -49,7 +49,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   @override
   void initState() {
     super.initState();
-    _restoreSelectedMenu(); // ✅ BARU
+    _restoreSelectedMenu();
   }
 
   // ==========================================================
@@ -79,7 +79,6 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   // ==========================================================
 
   void _saveSelectedMenu(SidebarMenu menu) {
-    // Skip halaman yang butuh state khusus
     if (menu == SidebarMenu.penawaran) return;
     if (menu == SidebarMenu.profilMitra) return;
 
@@ -103,7 +102,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       }
     });
 
-    _saveSelectedMenu(menu); // ✅ SAVE
+    _saveSelectedMenu(menu);
 
     final scaffoldState = Scaffold.maybeOf(context);
 
@@ -127,6 +126,9 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
         menu = SidebarMenu.pembayaran;
         break;
       case 2:
+        menu = SidebarMenu.dompet; // <-- UBAH INI UNTUK MOBILE
+        break;
+      case 3:
         menu = SidebarMenu.pengaturan;
         break;
       default:
@@ -139,7 +141,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
       selectedJob = null;
     });
 
-    _saveSelectedMenu(menu); // ✅ SAVE
+    _saveSelectedMenu(menu);
   }
 
   int _bottomNavCurrentIndex() {
@@ -148,8 +150,10 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
         return 0;
       case SidebarMenu.pembayaran:
         return 1;
-      case SidebarMenu.pengaturan:
+      case SidebarMenu.dompet: // <-- UBAH INI UNTUK MOBILE
         return 2;
+      case SidebarMenu.pengaturan:
+        return 3;
       case SidebarMenu.pengaduan:
       case SidebarMenu.notifikasi:
       case SidebarMenu.penawaran:
@@ -176,7 +180,10 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
         );
 
       case SidebarMenu.pembayaran:
-        return const PaymentScreen(role: 'pengguna');
+        return const PaymentScreen(role: 'pelanggan');
+
+      case SidebarMenu.dompet: // <-- ROUTING WALLET SCREEN
+        return const WalletScreen(role: 'pelanggan');
 
       case SidebarMenu.pengaduan:
         return const CustomerComplaintScreen();
@@ -262,7 +269,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.sectionAltLight, // ← mint muda
+      color: AppColors.sectionAltLight,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(28),
         child: Column(
@@ -296,7 +303,6 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: AppColors.primaryTeal.withValues(alpha: 0.10),
-
                 ),
               ),
               child: Column(
@@ -422,16 +428,12 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
             onTap: _onBottomNavTap,
             type: BottomNavigationBarType.fixed,
             backgroundColor: AppColors.white,
-            selectedItemColor: _accent, // ← teal
+            selectedItemColor: _accent,
             unselectedItemColor: AppColors.grey400,
             selectedFontSize: 11,
             unselectedFontSize: 11,
-            selectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w500,
-            ),
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
             elevation: 0,
             items: const [
               BottomNavigationBarItem(
@@ -443,6 +445,11 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                 icon: Icon(Icons.payment_outlined, size: 22),
                 activeIcon: Icon(Icons.payment, size: 22),
                 label: 'Pembayaran',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet_outlined, size: 22), // <-- Ikon Dompet
+                activeIcon: Icon(Icons.account_balance_wallet, size: 22),
+                label: 'Dompet',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.settings_outlined, size: 22),

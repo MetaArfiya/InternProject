@@ -428,6 +428,17 @@ class CustomerSidebarState extends State<CustomerSidebar> {
               title: "Pembayaran",
               menu: SidebarMenu.pembayaran,
             ),
+            
+            // =================================================
+            // TAMBAHAN MENU DOMPET
+            // =================================================
+            _menu(
+              context,
+              icon: Icons.account_balance_wallet_outlined,
+              title: "Dompet Saya",
+              menu: SidebarMenu.dompet,
+            ),
+
             _menu(
               context,
               icon: Icons.report_problem_outlined,

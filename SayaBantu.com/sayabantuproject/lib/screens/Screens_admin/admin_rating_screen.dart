@@ -15,24 +15,12 @@ class AdminRatingScreen extends StatefulWidget {
 }
 
 class _AdminRatingScreenState extends State<AdminRatingScreen> {
-  // ============================================================
-  // THEME
-  // ============================================================
-
   AdminTheme get theme => AdminThemeProvider.of(context);
-
-  // ============================================================
-  // TOKENS
-  // ============================================================
 
   static const double _gapAfterHeader = 16;
   static const double _gapBetweenSections = 16;
   static const double _cardRadius = 14;
   static const double _radius = 10;
-
-  // ============================================================
-  // STATE
-  // ============================================================
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -55,14 +43,10 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     {'label': '1 Bintang', 'value': 1},
   ];
 
-  // Pagination
+  // Pagination State
   int _currentPage = 1;
   int _itemsPerPage = 10;
   static const List<int> _itemsPerPageOptions = [5, 10, 25, 50];
-
-  // ============================================================
-  // LIFECYCLE
-  // ============================================================
 
   @override
   void initState() {
@@ -70,14 +54,11 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     _loadRatings();
   }
 
-  // ============================================================
-  // LOAD DATA
-  // ============================================================
-
   Future<void> _loadRatings() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _currentPage = 1;
     });
 
     try {
@@ -93,9 +74,6 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
       final response = await ApiService.get(endpoint);
 
-      debugPrint('⭐ RATINGS: ${response.statusCode}');
-      debugPrint('⭐ BODY: ${response.body}');
-
       if (response.statusCode != 200) {
         setState(() {
           _isLoading = false;
@@ -109,8 +87,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       if (decoded['success'] != true) {
         setState(() {
           _isLoading = false;
-          _errorMessage =
-              decoded['message']?.toString() ?? 'Gagal memuat.';
+          _errorMessage = decoded['message']?.toString() ?? 'Gagal memuat.';
         });
         return;
       }
@@ -118,17 +95,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       if (!mounted) return;
 
       final s = decoded['summary'] ?? {};
-      final list =
-          (decoded['data'] is List) ? decoded['data'] as List : [];
+      final list = (decoded['data'] is List) ? decoded['data'] as List : [];
 
       setState(() {
         _total = int.tryParse(s['total']?.toString() ?? '0') ?? 0;
-        _average =
-            double.tryParse(s['average']?.toString() ?? '0') ?? 0;
-        _highCount =
-            int.tryParse(s['high_count']?.toString() ?? '0') ?? 0;
-        _lowCount =
-            int.tryParse(s['low_count']?.toString() ?? '0') ?? 0;
+        _average = double.tryParse(s['average']?.toString() ?? '0') ?? 0;
+        _highCount = int.tryParse(s['high_count']?.toString() ?? '0') ?? 0;
+        _lowCount = int.tryParse(s['low_count']?.toString() ?? '0') ?? 0;
 
         _ratings = list
             .map<Map<String, dynamic>>(
@@ -136,7 +109,6 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             )
             .toList();
 
-        _currentPage = 1;
         _isLoading = false;
       });
     } catch (e) {
@@ -225,7 +197,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -246,7 +218,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   // ============================================================
-  // PAGINATION HELPERS
+  // PAGINATION LOGIC
   // ============================================================
 
   int get _totalPages {
@@ -262,6 +234,18 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
     return _ratings.sublist(start, end);
   }
 
+  void _goToPage(int page) {
+    if (page < 1 || page > _totalPages) return;
+    setState(() => _currentPage = page);
+  }
+
+  void _changeItemsPerPage(int value) {
+    setState(() {
+      _itemsPerPage = value;
+      _currentPage = 1;
+    });
+  }
+
   // ============================================================
   // AKSI ADMIN
   // ============================================================
@@ -269,8 +253,6 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   Future<void> _deleteRating(int id) async {
     try {
       final response = await ApiService.delete('/admin/ratings/$id');
-
-      debugPrint('⭐ DELETE RATING: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         if (!mounted) return;
@@ -365,11 +347,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
                   if (_isLoading)
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 60),
+                      padding: const EdgeInsets.symmetric(vertical: 60),
                       child: Center(
-                        child:
-                            CircularProgressIndicator(color: t.accent),
+                        child: CircularProgressIndicator(color: t.accent),
                       ),
                     )
                   else if (_errorMessage != null)
@@ -387,6 +367,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                     else
                       _buildDesktopTable(),
 
+                    // PAGINATION FOOTER
                     if (_ratings.isNotEmpty) ...[
                       const SizedBox(height: _gapBetweenSections),
                       _buildPagination(),
@@ -508,7 +489,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha:0.03),
+            color: AppColors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -520,7 +501,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha:0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(icon, color: color, size: 21),
@@ -610,8 +591,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
@@ -637,10 +617,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             SizedBox(width: 190, child: dropdown),
           const Spacer(),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: t.accent.withValues(alpha:0.10),
+              color: t.accent.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -677,11 +656,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints:
-                  BoxConstraints(minWidth: constraints.maxWidth),
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: DataTable(
-                headingRowColor:
-                    WidgetStateProperty.all(AppColors.grey50),
+                headingRowColor: WidgetStateProperty.all(AppColors.grey50),
                 headingRowHeight: 48,
                 dataRowMinHeight: 56,
                 dataRowMaxHeight: 56,
@@ -717,10 +694,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                         ),
                       ),
                       DataCell(
-                        _tableCell(
-                          _getNestedValue(r, 'mitra', ['name']),
-                          t,
-                        ),
+                        _tableCell(_getNestedValue(r, 'mitra', ['name']), t),
                       ),
                       DataCell(
                         _tableCell(
@@ -730,11 +704,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       ),
                       DataCell(
                         _tableCell(
-                          _getNestedValue(
-                            r,
-                            'job',
-                            ['tittle', 'title'],
-                          ),
+                          _getNestedValue(r, 'job', ['tittle', 'title']),
                           t,
                         ),
                       ),
@@ -757,9 +727,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       ),
                       DataCell(
                         _tableCell(
-                          _formatTanggal(
-                            r['created_at']?.toString(),
-                          ),
+                          _formatTanggal(r['created_at']?.toString()),
                           t,
                         ),
                       ),
@@ -808,8 +776,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -967,44 +934,45 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   }
 
   // ============================================================
-  // PAGINATION
+  // PAGINATION UI
   // ============================================================
 
   Widget _buildPagination() {
     final t = theme;
     final total = _ratings.length;
+    if (total == 0) return const SizedBox.shrink();
+
     final totalPages = _totalPages;
     final startItem = (_currentPage - 1) * _itemsPerPage + 1;
     final endItem = (startItem + _itemsPerPage - 1).clamp(0, total);
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(color: t.border),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Flexible(
-            child: Text(
-              'Menampilkan $startItem–$endItem dari $total ulasan',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: t.headerText,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
+          // KIRI: Info Teks
+          Text(
+            'Menampilkan $startItem–$endItem dari $total ulasan',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: t.headerText,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 16),
+          
+          const Spacer(),
+
+          // KANAN: Kontrol Pagination
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Dropdown Rows Per Page
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1017,14 +985,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   child: DropdownButton<int>(
                     value: _itemsPerPage,
                     isDense: true,
-                    borderRadius: BorderRadius.circular(8),
                     icon: Padding(
                       padding: const EdgeInsets.only(left: 4),
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: t.headerText,
-                      ),
+                      child: Icon(Icons.keyboard_arrow_down, size: 16, color: t.headerText),
                     ),
                     style: TextStyle(
                       fontSize: 12.5,
@@ -1032,37 +995,37 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                     items: _itemsPerPageOptions
-                        .map(
-                          (n) => DropdownMenuItem<int>(
-                            value: n,
-                            child: Text('$n / hal'),
-                          ),
-                        )
+                        .map((n) => DropdownMenuItem<int>(
+                              value: n,
+                              child: Text('$n / hal'),
+                            ))
                         .toList(),
                     onChanged: (v) {
-                      if (v == null) return;
-                      setState(() {
-                        _itemsPerPage = v;
-                        _currentPage = 1;
-                      });
+                      if (v != null) _changeItemsPerPage(v);
                     },
                   ),
                 ),
               ),
+              
               const SizedBox(width: 12),
+
+              // Tombol Prev
               _navButton(
                 icon: Icons.chevron_left,
                 enabled: _currentPage > 1,
-                onTap: () => setState(() => _currentPage--),
+                onTap: () => _goToPage(_currentPage - 1),
                 t: t,
               ),
+              
               const SizedBox(width: 8),
+              
+              // Indikator Halaman
               Container(
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: t.accent.withValues(alpha:0.10),
+                  color: t.accent.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1074,11 +1037,14 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                   ),
                 ),
               ),
+              
               const SizedBox(width: 8),
+
+              // Tombol Next
               _navButton(
                 icon: Icons.chevron_right,
                 enabled: _currentPage < totalPages,
-                onTap: () => setState(() => _currentPage++),
+                onTap: () => _goToPage(_currentPage + 1),
                 t: t,
               ),
             ],
@@ -1157,7 +1123,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: t.accent.withValues(alpha:0.12),
+                            color: t.accent.withValues(alpha: 0.12),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                           ),
@@ -1459,7 +1425,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: t.warning.withValues(alpha:0.12),
+                            color: t.warning.withValues(alpha: 0.12),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                           ),
@@ -1643,7 +1609,7 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: t.danger.withValues(alpha:0.12),
+                            color: t.danger.withValues(alpha: 0.12),
                             borderRadius:
                                 BorderRadius.circular(_radius),
                           ),
@@ -1770,13 +1736,13 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: t.accent.withValues(alpha:0.1),
+              color: t.accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.rate_review_outlined,
               size: 34,
-              color: t.accent.withValues(alpha:0.7),
+              color: t.accent.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 14),
@@ -1809,9 +1775,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: t.danger.withValues(alpha:0.05),
+        color: t.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: t.danger.withValues(alpha:0.3)),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [

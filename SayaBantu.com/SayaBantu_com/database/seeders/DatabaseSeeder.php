@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             NotificationSeeder::class,
             AdminActivitySeeder::class,
             SuperAdminActivitySeeder::class,
+            WalletSeeder::class,
         ]);
     }
 }

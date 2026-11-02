@@ -1,3 +1,4 @@
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 
@@ -12,11 +13,10 @@ class PartnerJobModel {
   final String status;
   final bool hasOffered;
   final String? imageUrl;
-
-  // ============================================================
-  // 🆕 FIELD BARU — Jarak dari mitra (km)
-  // ============================================================
   final double? distanceKm;
+
+  // Waktu mulai yang diinginkan Pelanggan
+  final DateTime? preferredStartAt;
 
   PartnerJobModel({
     required this.id,
@@ -29,18 +29,14 @@ class PartnerJobModel {
     this.status = "open",
     this.hasOffered = false,
     this.imageUrl,
-    this.distanceKm,   // ← baru
+    this.distanceKm,
+    this.preferredStartAt,
   });
-
-  // ============================================================
-  // BUILD IMAGE URL
-  // ============================================================
 
   static String? _buildImageUrl(dynamic value) {
     if (value == null) return null;
 
     final String url = value.toString().trim();
-
     if (url.isEmpty) return null;
 
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -61,16 +57,12 @@ class PartnerJobModel {
     return '$serverUrl/$url';
   }
 
-  // ============================================================
-  // FROM JSON
-  // ============================================================
-
   factory PartnerJobModel.fromJson(Map<String, dynamic> json) {
     final String? imageUrl = _buildImageUrl(json['image_url']);
 
-    // ---- Parse distance_km (bisa null / int / double / string) ----
     double? parsedDistance;
     final rawDistance = json['distance_km'];
+
     if (rawDistance != null) {
       if (rawDistance is num) {
         parsedDistance = rawDistance.toDouble();
@@ -79,43 +71,44 @@ class PartnerJobModel {
       }
     }
 
-    // Debug
+    DateTime? parsedPreferredStart;
+    final rawPreferredStart = json['preferred_start_at'];
+
+    if (rawPreferredStart != null &&
+        rawPreferredStart.toString().trim().isNotEmpty) {
+      parsedPreferredStart =
+          DateTime.tryParse(rawPreferredStart.toString())?.toLocal();
+    }
+
     debugPrint('🖼️ PARTNER JOB ${json['id']}');
     debugPrint('🖼️ IMAGE DARI API: ${json['image_url']}');
     debugPrint('🌐 IMAGE URL FLUTTER: $imageUrl');
     debugPrint('📏 DISTANCE: $parsedDistance km');
+    debugPrint('📅 PREFERRED START: $parsedPreferredStart');
 
     return PartnerJobModel(
       id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-
       title: json['title']?.toString() ??
           json['tittle']?.toString() ??
           '',
-
       category: json['category']?.toString() ??
           json['kategori']?.toString() ??
           '',
-
       description: json['description']?.toString() ??
           json['deskripsi']?.toString() ??
           '',
-
       location: json['location']?.toString() ??
           json['lokasi']?.toString() ??
           '',
-
       time: json['time']?.toString() ??
           json['created_at']?.toString() ??
           '',
-
       price: json['price'] != null
           ? json['price'].toString()
           : json['initial_budget'] != null
               ? "Rp ${json['initial_budget']}"
               : "Rp 0",
-
       status: json['status']?.toString() ?? 'open',
-
       hasOffered: json['has_offered'] == true ||
           json['has_offered'] == 1 ||
           json['has_offered'] == '1' ||
@@ -124,17 +117,11 @@ class PartnerJobModel {
           json['hasOffered'] == 1 ||
           json['hasOffered'] == '1' ||
           json['hasOffered'] == 'true',
-
       imageUrl: imageUrl,
-
-      // 🆕
       distanceKm: parsedDistance,
+      preferredStartAt: parsedPreferredStart,
     );
   }
-
-  // ============================================================
-  // TO JSON
-  // ============================================================
 
   Map<String, dynamic> toJson() {
     return {
@@ -149,6 +136,7 @@ class PartnerJobModel {
       'has_offered': hasOffered,
       'image_url': imageUrl,
       'distance_km': distanceKm,
+      'preferred_start_at': preferredStartAt?.toIso8601String(),
     };
   }
 }

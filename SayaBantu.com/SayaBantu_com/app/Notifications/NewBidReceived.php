@@ -28,6 +28,8 @@ class NewBidReceived extends Notification
     public function toArray($notifiable)
     {
         return [
+            'title' => 'Penawaran Baru Diterima',
+            'type' => 'new_bid_received',
             'job_id' => $this->job->id,
             'job_tittle' => $this->job->tittle,
             'bid_id' => $this->bid->id,

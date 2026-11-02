@@ -577,32 +577,27 @@ class _JobCardState extends State<JobCard> {
   // MAIN BUTTON
   // ============================================================
 
-  Widget _buildMainButton({
+    Widget _buildMainButton({
     required bool isSearching,
     required bool isInProgress,
     required bool isCompleted,
   }) {
-    // MENCARI MITRA
+    // 1. MENCARI MITRA (Belum ada mitra terpilih)
     if (isSearching) {
       return ElevatedButton(
         onPressed: () => widget.onOpenOffer(widget.job),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: const Text(
           'Lihat Penawaran',
-          style: TextStyle(
-            fontSize: _buttonFontSize,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold),
         ),
       );
     }
 
-    // SEDANG DIKERJAKAN → 2 tombol: Lacak Mitra + Selesaikan
+    // 2. SEDANG DIKERJAKAN
     if (isInProgress) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -610,105 +605,47 @@ class _JobCardState extends State<JobCard> {
           // Tombol Lacak Mitra
           OutlinedButton.icon(
             onPressed: () => _openTracking(context),
-            icon: const Icon(
-              Icons.location_searching,
-              size: 18,
-              color: Color(0xFF0F766E),
-            ),
+            icon: const Icon(Icons.location_searching, size: 18, color: Color(0xFF0F766E)),
             label: const Text(
               'Lacak Mitra',
-              style: TextStyle(
-                fontSize: _buttonFontSize,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F766E),
-              ),
+              style: TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
             ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               side: const BorderSide(color: Color(0xFF0F766E)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 10),
 
-          // Tombol Selesaikan
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          // INFO / TOMBOL PEMBAYARAN (ALUR BARU)
+          // Karena di alur baru, tagihan dibuat SETELAH ACC Mitra, 
+          // kita beri arahan ke halaman Pembayaran.
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(_smallRadius),
+              border: Border.all(color: Colors.blue.shade200),
             ),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (dialogContext) {
-                  return AlertDialog(
-                    title: const Text(
-                      'Konfirmasi',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    content: const Text(
-                      'Apakah pekerjaan ini benar-benar telah selesai?',
-                      style: TextStyle(fontSize: 13, height: 1.4),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text(
-                          'Batal',
-                          style: TextStyle(fontSize: _buttonFontSize),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                          widget.onComplete(widget.job);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Ya',
-                          style: TextStyle(
-                            fontSize: _buttonFontSize,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-            child: const Text(
-              'Selesaikan',
-              style: TextStyle(
-                fontSize: _buttonFontSize,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Column(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                const SizedBox(height: 8),
+                Text(
+                  'Silakan cek menu "Pembayaran" untuk melihat tagihan & melakukan pembayaran jika belum.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.blue.shade800, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
           ),
         ],
       );
     }
 
-    // SELESAI
+    // 3. SELESAI (Tombol Rating)
     if (isCompleted) {
-      // SUDAH RATING
       if (widget.job.hasRated) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -724,85 +661,38 @@ class _JobCardState extends State<JobCard> {
               const SizedBox(width: 7),
               Text(
                 'Rating Anda: ${widget.job.myRating ?? 0}/5',
-                style: const TextStyle(
-                  fontSize: _bodyFontSize,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.amber,
-                ),
+                style: const TextStyle(fontSize: _bodyFontSize, fontWeight: FontWeight.w600, color: Colors.amber),
               ),
             ],
           ),
         );
       }
 
-      // BELUM UPLOAD BUKTI BAYAR
-      if (!widget.job.customerProofUploaded && !widget.job.canRate) {
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            borderRadius: BorderRadius.circular(_smallRadius),
-            border: Border.all(color: Colors.orange.shade200),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline, color: Colors.orange, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Upload bukti pembayaran di menu Pembayaran untuk memberi rating.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange.shade800,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // BISA RATING
-      if (widget.job.canRate) {
-        return ElevatedButton.icon(
-          onPressed: () async {
-            final result = await showDialog<bool>(
-              context: context,
-              barrierDismissible: false,
-              builder: (_) => RatingDialog(
-                jobId: widget.job.id,
-                jobTitle: widget.job.title,
-                mitraName: widget.job.partnerName ?? 'Mitra',
-              ),
-            );
-
-            if (result == true) {
-              widget.onRefresh?.call();
-            }
-          },
-          icon: const Icon(Icons.star_rate_rounded, size: 18),
-          label: const Text(
-            'Beri Rating',
-            style: TextStyle(
-              fontSize: _buttonFontSize,
-              fontWeight: FontWeight.bold,
+      return ElevatedButton.icon(
+        onPressed: () async {
+          final result = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => RatingDialog(
+              jobId: widget.job.id,
+              jobTitle: widget.job.title,
+              mitraName: widget.job.partnerName ?? 'Mitra',
             ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-
-      return const SizedBox.shrink();
+          );
+          if (result == true) widget.onRefresh?.call();
+        },
+        icon: const Icon(Icons.star_rate_rounded, size: 18),
+        label: const Text(
+          'Beri Rating',
+          style: TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
 
     return const SizedBox.shrink();

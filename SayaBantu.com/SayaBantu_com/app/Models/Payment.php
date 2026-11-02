@@ -30,6 +30,10 @@ class Payment extends Model
         'admin_note',
         'paid_at',
         'settled_at',
+        // TAMBAHAN BARU:
+        'held_at',
+        'customer_accepted_at',
+        'released_at',
     ];
 
     protected $casts = [
@@ -42,6 +46,10 @@ class Payment extends Model
         'mitra_proof_uploaded_at' => 'datetime',
         'paid_at' => 'datetime',
         'settled_at' => 'datetime',
+        // TAMBAHAN BARU:
+        'held_at' => 'datetime',
+        'customer_accepted_at' => 'datetime',
+        'released_at' => 'datetime',
     ];
 
     public function job()
@@ -56,6 +64,13 @@ class Payment extends Model
 
     public function mitra()
     {
-        return $this->belongsTo(users::class, 'mitra_id');
+        return $this->belongsTo(users::class, 'mitra_id', 'id');
+    }
+
+    // OPSIONAL — relasi ke ledger
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class, 'reference_id')
+            ->where('reference_type', 'Payment');
     }
 }

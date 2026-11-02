@@ -15,6 +15,7 @@ return new class extends Migration
             $table->enum('user_role', ['Mitra', 'Pelanggan']);
 
             $table->enum('category', [
+                'Lupa PIN / Masalah Akun',
                 'Pelanggan Bermasalah',
                 'Mitra Bermasalah',
                 'Pembayaran',

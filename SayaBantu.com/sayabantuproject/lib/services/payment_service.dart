@@ -1,7 +1,5 @@
-// lib/services/payment_service.dart
-
 import 'dart:convert';
-//import 'dart:typed_data';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
@@ -46,7 +44,7 @@ class PaymentService {
   }
 
   // ============================================================
-  // PELANGGAN — Upload bukti transfer
+  // PELANGGAN — Upload bukti transfer (Alur Lama - Mungkin sudah tidak dipakai)
   // ============================================================
   static Future<UploadResult> uploadCustomerProof({
     required int paymentId,
@@ -102,7 +100,7 @@ class PaymentService {
   }
 
   // ============================================================
-  // ADMIN — Verifikasi bukti pelanggan
+  // ADMIN — Verifikasi bukti pelanggan (Alur Lama)
   // ============================================================
   static Future<UploadResult> verifyCustomerProof({
     required int paymentId,
@@ -133,26 +131,23 @@ class PaymentService {
   }
 
   // ============================================================
-  // ADMIN — Transfer ke mitra + upload bukti
+  // ✅ ADMIN — Verifikasi Topup Saldo (BARU)
   // ============================================================
-  static Future<UploadResult> settleToMitra({
-    required int paymentId,
-    required Uint8List imageBytes,
-    String? imageName,
+  static Future<UploadResult> verifyTopup({
+    required int topupId,
+    required String action,
     String? note,
   }) async {
     try {
-      final response = await ApiService.postMultipart(
-        '/admin/payments/$paymentId/settle',
+      final response = await ApiService.put(
+        '/admin/topups/$topupId/verify',
         {
+          'action': action,
           if (note != null && note.isNotEmpty) 'note': note,
-        },
-        files: {
-          'mitra_proof': imageBytes,
         },
       );
 
-      debugPrint('📤 SETTLE: ${response.statusCode}');
+      debugPrint('📤 VERIFY TOPUP: ${response.statusCode}');
       debugPrint('📤 BODY: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -161,10 +156,48 @@ class PaymentService {
 
       return UploadResult.fail(_parseErrorMessage(response));
     } catch (e) {
-      debugPrint('❌ PaymentService.settleToMitra: $e');
+      debugPrint('❌ PaymentService.verifyTopup: $e');
       return UploadResult.fail('Tidak dapat terhubung ke server.');
     }
   }
+
+  // ============================================================
+  // ✅ ADMIN — Proses Withdraw / Tarik Saldo (BARU)
+  // ============================================================
+  static Future<UploadResult> processWithdrawal({
+    required int withdrawalId,
+    required Uint8List imageBytes,
+    String? note,
+  }) async {
+    try {
+      final response = await ApiService.postMultipart(
+        '/admin/withdrawals/$withdrawalId/process',
+        {
+          if (note != null && note.isNotEmpty) 'note': note,
+        },
+        files: {
+          'transfer_proof': imageBytes,
+        },
+      );
+
+      debugPrint('📤 PROCESS WITHDRAW: ${response.statusCode}');
+      debugPrint('📤 BODY: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return UploadResult.ok;
+      }
+
+      return UploadResult.fail(_parseErrorMessage(response));
+    } catch (e) {
+      debugPrint('❌ PaymentService.processWithdrawal: $e');
+      return UploadResult.fail('Tidak dapat terhubung ke server.');
+    }
+  }
+
+  // ============================================================
+  // ADMIN — Transfer ke mitra + upload bukti (Alur Lama)
+  // ============================================================
+
 
   // ============================================================
   // ✅ ADMIN — Refund

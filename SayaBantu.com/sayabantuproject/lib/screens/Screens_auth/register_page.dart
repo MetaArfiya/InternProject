@@ -1,5 +1,8 @@
+
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
 import '../../theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../services/api_service.dart';
@@ -27,7 +30,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  int _selectedRoleId = 4; // 4 = Pelanggan, 3 = Mitra
+  // ROLE
+  int _selectedRoleId = 4;
+
+  // KOTA
+  List<Map<String, dynamic>> _cities = [];
+  int? _selectedCityId;
+
+  bool _isLoadingCities = true;
+  String? _cityErrorMessage;
 
   @override
   void initState() {
@@ -40,6 +51,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _selectedRoleId = 4;
       }
     }
+
+    _loadCities();
   }
 
   @override
@@ -48,6 +61,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // ============================================================
+  // LOAD DATA KOTA DARI DATABASE
+  // ============================================================
+
+  Future<void> _loadCities() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingCities = true;
+        _cityErrorMessage = null;
+      });
+    }
+
+    try {
+      final response = await ApiService.get('/cities');
+
+      if (response.statusCode != 200) {
+        throw Exception('Gagal mengambil daftar kota.');
+      }
+
+      final data = jsonDecode(response.body);
+
+      if (data['success'] != true || data['data'] is! List) {
+        throw Exception(
+          data['message'] ?? 'Format data kota tidak valid.',
+        );
+      }
+
+      final List<dynamic> cityData = data['data'];
+
+      final loadedCities = cityData
+          .whereType<Map<String, dynamic>>()
+          .where((city) =>
+              city['id'] != null && city['name'] != null)
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _cities = loadedCities;
+        _isLoadingCities = false;
+        _selectedCityId = null;
+
+        if (_cities.isEmpty) {
+          _cityErrorMessage =
+              'Belum ada kota yang tersedia. Hubungi Super Admin.';
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingCities = false;
+        _cityErrorMessage =
+            'Gagal memuat daftar kota. Periksa koneksi Anda.';
+      });
+
+      debugPrint('❌ LOAD CITIES ERROR: $e');
+    }
   }
 
   // ============================================================
@@ -65,7 +138,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return 'Email tidak boleh mengandung spasi';
     }
 
-    // Email wajib menggunakan domain .com
     final emailRegex = RegExp(
       r'^[a-zA-Z0-9.!#$%&\*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.com$',
     );
@@ -77,12 +149,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  // =========================================================
+  // ============================================================
   // REGISTER
-  // =========================================================
+  // ============================================================
 
   Future<void> _register() async {
+    if (_isLoading) return;
+
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedCityId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan pilih kota domisili terlebih dahulu.'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -96,26 +180,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _emailController.text.trim(),
         _passwordController.text,
         _selectedRoleId,
+        _selectedCityId!,
       );
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
         if (!mounted) return;
 
-        // =====================================================
-        // JIKA ROLE = MITRA → tampilkan dialog verifikasi
-        // =====================================================
         if (_selectedRoleId == 3) {
           _showMitraVerificationRequiredDialog();
         } else {
-          // Pelanggan → lanjut seperti biasa
           _showSuccessAndGoToLogin(
-            data['message'] ?? "Registrasi berhasil! Silakan masuk.",
+            data['message'] ??
+                "Registrasi berhasil! Silakan masuk.",
           );
         }
       } else {
-        String errorMessage = data['message'] ?? "Registrasi gagal.";
+        String errorMessage =
+            data['message'] ?? "Registrasi gagal.";
 
         if (data['errors'] != null) {
           final errors = data['errors'] as Map<String, dynamic>;
@@ -147,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally { 
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -157,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // ============================================================
-  // SNACKBAR SUKSES + LANGSUNG KE LOGIN (untuk PELANGGAN)
+  // SUKSES REGISTRASI PELANGGAN
   // ============================================================
 
   void _showSuccessAndGoToLogin(String message) {
@@ -170,17 +254,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
       (route) => false,
     );
   }
 
   // ============================================================
-  // DIALOG VERIFIKASI WAJIB UNTUK MITRA
+  // DIALOG VERIFIKASI MITRA
   // ============================================================
 
   Future<void> _showMitraVerificationRequiredDialog() async {
-    // 1. Gunakan await dan tangkap hasil dari dialog
     final bool? goToLogin = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -190,8 +275,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           insetPadding: const EdgeInsets.all(24),
-          // Tambahkan warna background agar tidak transparan
-          backgroundColor: Theme.of(context).cardColor, 
+          backgroundColor: Theme.of(context).cardColor,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Padding(
@@ -199,9 +283,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // =========================================
-                  // ICON
-                  // =========================================
                   Container(
                     width: 78,
                     height: 78,
@@ -218,9 +299,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 20),
 
-                  // =========================================
-                  // TITLE
-                  // =========================================
                   const Text(
                     'Verifikasi Diperlukan',
                     style: TextStyle(
@@ -232,9 +310,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 12),
 
-                  // =========================================
-                  // DESCRIPTION
-                  // =========================================
                   Text(
                     'Akun Mitra kamu berhasil dibuat! 🎉\n\n'
                     'Untuk bisa mulai menerima pekerjaan, kamu wajib '
@@ -249,9 +324,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 20),
 
-                  // =========================================
-                  // CHECKLIST DOKUMEN
-                  // =========================================
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -294,9 +366,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 22),
 
-                  // =========================================
-                  // INFO REASSURANCE
-                  // =========================================
                   Row(
                     children: [
                       Icon(
@@ -320,14 +389,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // =========================================
-                  // BUTTON: LOGIN & VERIFIKASI (FIXED NAVIGATION)
-                  // =========================================
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Cukup tutup dialog dan kirim nilai true
                         Navigator.pop(dialogContext, true);
                       },
                       style: ElevatedButton.styleFrom(
@@ -358,6 +423,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (goToLogin == true) {
       if (!mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
@@ -366,6 +432,97 @@ class _RegisterScreenState extends State<RegisterScreen> {
         (route) => false,
       );
     }
+  }
+
+  // ============================================================
+  // DROPDOWN KOTA
+  // ============================================================
+
+  Widget _buildCityDropdown() {
+    if (_isLoadingCities) {
+      return InputDecorator(
+        decoration: InputDecoration(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('Memuat daftar kota...'),
+          ],
+        ),
+      );
+    }
+
+    if (_cityErrorMessage != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.red.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              _cityErrorMessage!,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _loadCities,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba Muat Ulang'),
+          ),
+        ],
+      );
+    }
+
+    return DropdownButtonFormField<int>(
+      value: _selectedCityId,
+      isExpanded: true,
+      decoration: InputDecoration(
+        hintText: 'Pilih kota domisili',
+        prefixIcon: const Icon(Icons.location_city_outlined),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+      validator: (value) {
+        if (value == null) {
+          return 'Kota domisili wajib dipilih';
+        }
+        return null;
+      },
+      items: _cities.map((city) {
+        return DropdownMenuItem<int>(
+          value: int.parse(city['id'].toString()),
+          child: Text(
+            city['name'].toString(),
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedCityId = value;
+        });
+      },
+    );
   }
 
   // ============================================================
@@ -409,10 +566,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // =================================================
                           // HEADER
-                          // =================================================
-
                           Center(
                             child: Column(
                               children: [
@@ -429,9 +583,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     size: isMobile ? 30 : 36,
                                   ),
                                 ),
-
                                 const SizedBox(height: 20),
-
                                 Text(
                                   "Daftar Akun",
                                   style: TextStyle(
@@ -439,9 +591,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-
                                 const SizedBox(height: 8),
-
                                 Text(
                                   "Buat akun SayaBantu sekarang",
                                   textAlign: TextAlign.center,
@@ -456,56 +606,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           const SizedBox(height: 30),
 
-                          // =================================================
                           // NAMA
-                          // =================================================
-
                           const Text(
                             "Nama Lengkap",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
-
                           const SizedBox(height: 8),
-
                           TextFormField(
                             controller: _nameController,
                             textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
                               hintText: "Masukkan nama lengkap",
-                              prefixIcon: const Icon(
-                                Icons.person_outline,
-                              ),
+                              prefixIcon: const Icon(Icons.person_outline),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
                             validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
+                              if (value == null || value.trim().isEmpty) {
                                 return 'Nama lengkap wajib diisi';
                               }
-
                               return null;
                             },
                           ),
 
                           const SizedBox(height: 20),
 
-                          // =================================================
                           // EMAIL
-                          // =================================================
-
                           const Text(
                             "Email",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
-
                           const SizedBox(height: 8),
-
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
@@ -514,9 +646,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 AutovalidateMode.onUserInteraction,
                             decoration: InputDecoration(
                               hintText: "Masukkan email",
-                              prefixIcon: const Icon(
-                                Icons.email_outlined,
-                              ),
+                              prefixIcon: const Icon(Icons.email_outlined),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -526,35 +656,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           const SizedBox(height: 20),
 
-                          // =================================================
                           // PASSWORD
-                          // =================================================
-
                           const Text(
                             "Password",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
-
                           const SizedBox(height: 8),
-
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.done,
-
                             onFieldSubmitted: (_) {
                               if (!_isLoading) {
                                 _register();
                               }
                             },
-
                             decoration: InputDecoration(
                               hintText: "Masukkan password",
-                              prefixIcon: const Icon(
-                                Icons.lock_outline,
-                              ),
+                              prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -571,54 +690,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Password wajib diisi';
                               }
-
                               if (value.length < 8) {
                                 return 'Password minimal 8 karakter';
                               }
-
                               if (!RegExp(r'[A-Z]').hasMatch(value)) {
                                 return 'Password harus memiliki huruf besar';
                               }
-
                               if (!RegExp(r'[a-z]').hasMatch(value)) {
                                 return 'Password harus memiliki huruf kecil';
                               }
-
                               if (!RegExp(r'[0-9]').hasMatch(value)) {
                                 return 'Password harus memiliki angka';
                               }
-
                               if (!RegExp(r'[!@#$%^&*(),.?":{}|<>_\-]')
                                   .hasMatch(value)) {
                                 return 'Password harus memiliki simbol';
                               }
-
                               if (value.contains(' ')) {
                                 return 'Password tidak boleh mengandung spasi';
                               }
-
                               return null;
                             },
                           ),
 
                           const SizedBox(height: 20),
 
-                          // =================================================
                           // ROLE
-                          // =================================================
-
                           const Text(
                             "Daftar Sebagai",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
-
                           const SizedBox(height: 8),
 
                           widget.defaultRole != null
@@ -632,17 +737,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     filled: true,
                                     fillColor: Colors.grey.shade100,
                                     border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
                                 )
                               : DropdownButtonFormField<int>(
-                                  initialValue: _selectedRoleId,
+                                  value: _selectedRoleId,
                                   decoration: InputDecoration(
                                     border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
                                   items: const [
@@ -661,19 +764,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ],
                                   onChanged: (value) {
                                     if (value == null) return;
-
                                     setState(() {
                                       _selectedRoleId = value;
                                     });
                                   },
                                 ),
 
+                          const SizedBox(height: 20),
+
+                          // KOTA DOMISILI
+                          const Text(
+                            "Kota Domisili",
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+
+                          _buildCityDropdown(),
+
                           const SizedBox(height: 30),
 
-                          // =================================================
                           // BUTTON
-                          // =================================================
-
                           SizedBox(
                             width: double.infinity,
                             child: _isLoading
@@ -684,35 +794,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     text: "Daftar Sekarang",
                                     width: double.infinity,
                                     height: 56,
-                                    backgroundColor:
-                                        AppColors.primary,
+                                    backgroundColor: AppColors.primary,
                                     onPressed: _register,
                                   ),
                           ),
 
                           const SizedBox(height: 25),
 
-                          // =================================================
                           // LOGIN
-                          // =================================================
-
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                "Sudah punya akun?",
-                              ),
+                              const Text("Sudah punya akun?"),
                               TextButton(
                                 onPressed: () {
                                   Navigator.of(context).pushReplacement(
                                     PageRouteBuilder(
                                       pageBuilder: (_, __, ___) =>
                                           const LoginScreen(),
-                                      transitionDuration:
-                                          Duration.zero,
-                                      reverseTransitionDuration:
-                                          Duration.zero,
+                                      transitionDuration: Duration.zero,
+                                      reverseTransitionDuration: Duration.zero,
                                     ),
                                   );
                                 },

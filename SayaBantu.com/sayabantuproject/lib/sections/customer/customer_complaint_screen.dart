@@ -41,6 +41,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   String _selectedFilter = 'Semua';
 
   final List<String> _categories = [
+    'Lupa PIN / Masalah Akun',
     'Mitra Bermasalah',
     'Kualitas Pekerjaan',
     'Pembayaran',
@@ -85,6 +86,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
   _JobFieldMode _jobFieldMode(String category) {
     switch (category) {
+      case 'Lupa PIN / Masalah Akun':
       case 'Aplikasi':
         return _JobFieldMode.hidden;
       case 'Pembayaran':

@@ -16,7 +16,8 @@ class SuperAdminController extends Controller
 {
     /**
      * 1. MENGELOLA AKUN: Membuat Akun Admin Baru
-     * Hanya Super Admin yang bisa mendaftarkan orang lain menjadi Admin biasa (role_id = 2)
+     * Hanya Super Admin yang bisa mendaftarkan orang lain menjadi Admin biasa
+     * (role_id = 2)
      */
     public function createAdmin(Request $request)
     {
@@ -34,6 +35,8 @@ class SuperAdminController extends Controller
             'password' => 'required|string|min:6',
 
             'phone' => 'nullable|string|max:20',
+
+            'city_id' => 'required|exists:cities,id',
         ]);
 
         $admin = users::create([
@@ -42,6 +45,7 @@ class SuperAdminController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
+            'city_id' => $request->city_id,
             'is_active' => true,
             'last_login_at' => null,
         ]);
@@ -61,45 +65,42 @@ class SuperAdminController extends Controller
         if ($request->user()) {
             SuperAdminActivity::create([
                 'super_admin_id' => $request->user()->id,
-
                 'title' => 'Menambahkan admin baru',
-
-                'detail' =>
-                'Menambahkan akun admin ' . $admin->name,
-
+                'detail' => 'Menambahkan akun admin ' . $admin->name,
                 'icon' => 'person_add',
-
                 'type' => 'Admin',
             ]);
         }
 
         return response()->json([
             'success' => true,
-
-            'message' =>
-            'Akun Admin baru berhasil dibuat oleh Super Admin!',
-
+            'message' => 'Akun Admin baru berhasil dibuat oleh Super Admin!',
             'data' => [
                 'id' => $admin->id,
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'phone' => $admin->phone,
+                'city_id' => $admin->city_id,
                 'is_active' => $admin->is_active,
                 'last_login_at' => $admin->last_login_at,
             ],
         ], 201);
     }
 
-    // 2. MENGELOLA SETTINGAN SISTEM: Mengambil Data Konfigurasi Aplikasi
+    // =============================================================
+    // 2. MENGELOLA SETTINGAN SISTEM
+    // =============================================================
+
+    /**
+     * Mengambil Data Konfigurasi Aplikasi
+     */
     public function getSystemSettings()
     {
         try {
-
             $setting = system_setting::first();
 
             // Jika belum ada, buat default
             if (!$setting) {
-
                 $setting = system_setting::create([
                     'updated_by' => null,
                     'points_on_completion' => 10,
@@ -115,7 +116,6 @@ class SuperAdminController extends Controller
                 'data' => $setting,
             ], 200);
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil pengaturan sistem.',
@@ -124,18 +124,12 @@ class SuperAdminController extends Controller
         }
     }
 
-
     /**
-     * 2. SETTING SISTEM: Mengatur Kebijakan Poin / Aturan Aplikasi
+     * Mengatur Kebijakan Poin / Aturan Aplikasi
      */
     public function updateSystemSettings(Request $request)
     {
         try {
-
-            // ======================================================
-            // VALIDASI
-            // ======================================================
-
             $validated = $request->validate([
                 'points_on_completion' => [
                     'required',
@@ -163,20 +157,9 @@ class SuperAdminController extends Controller
                 ],
             ]);
 
-
-            // ======================================================
-            // AMBIL SETTING
-            // ======================================================
-
             $setting = system_setting::first();
 
-
-            // ======================================================
-            // JIKA BELUM ADA, BUAT BARU
-            // ======================================================
-
             if (!$setting) {
-
                 $setting = new system_setting();
 
                 $setting->points_on_completion =
@@ -191,11 +174,6 @@ class SuperAdminController extends Controller
                 $setting->platform_commission_percent =
                     $validated['platform_commission_percent'];
             } else {
-
-                // ==================================================
-                // UPDATE DATA
-                // ==================================================
-
                 $setting->points_on_completion =
                     $validated['points_on_completion'];
 
@@ -209,33 +187,18 @@ class SuperAdminController extends Controller
                     $validated['platform_commission_percent'];
             }
 
-
-            // ======================================================
-            // USER YANG MELAKUKAN UPDATE
-            // ======================================================
-
             if ($request->user()) {
-                $setting->updated_by =
-                    $request->user()->id;
+                $setting->updated_by = $request->user()->id;
             }
 
-
-            // ======================================================
-            // SIMPAN
-            // ======================================================
-
             $setting->save();
+
             if ($request->user()) {
                 SuperAdminActivity::create([
                     'super_admin_id' => $request->user()->id,
-
                     'title' => 'Mengubah pengaturan sistem',
-
-                    'detail' =>
-                    'Pengaturan sistem berhasil diperbarui.',
-
+                    'detail' => 'Pengaturan sistem berhasil diperbarui.',
                     'icon' => 'settings',
-
                     'type' => 'Sistem',
                 ]);
             }
@@ -248,24 +211,18 @@ class SuperAdminController extends Controller
                 'Sistem'
             );
 
-            // ======================================================
-            // RESPONSE
-            // ======================================================
-
             return response()->json([
                 'success' => true,
                 'message' => 'Pengaturan sistem berhasil diperbarui.',
                 'data' => $setting,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Data pengaturan tidak valid.',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memperbarui pengaturan sistem.',
@@ -274,15 +231,15 @@ class SuperAdminController extends Controller
         }
     }
 
+    // =============================================================
+    // 3. PLATFORM ANALYTICS
+    // =============================================================
+
     /**
-     * 3. PLATFORM ANALYTICS: Menampilkan Data Grafik & Ringkasan
+     * Menampilkan Data Grafik & Ringkasan
      */
     public function analytics()
     {
-        // ============================================================
-        // PERIODE ANALYTICS: 7 HARI TERAKHIR
-        // ============================================================
-
         $endDate = now()->endOfDay();
         $startDate = now()->subDays(6)->startOfDay();
 
@@ -299,9 +256,6 @@ class SuperAdminController extends Controller
         // ============================================================
         // 2. TOTAL TRANSAKSI
         // ============================================================
-        // Menggunakan final_price dari job yang selesai.
-        //
-        // Jika final_price null, gunakan initial_budget.
 
         $totalTransaksi = $jobsSelesai->sum(function ($job) {
             return $job->final_price ?? $job->initial_budget ?? 0;
@@ -326,7 +280,6 @@ class SuperAdminController extends Controller
         // ============================================================
         // 4. TOTAL MITRA AKTIF
         // ============================================================
-        // Untuk saat ini "aktif" = sudah diverifikasi.
 
         $mitraAktif = mitra_profiles::where('is_verified', 1)->count();
 
@@ -345,13 +298,11 @@ class SuperAdminController extends Controller
         $pertumbuhanPengguna = [];
 
         for ($i = 0; $i < 7; $i++) {
-
             $tanggal = now()->subDays(6 - $i);
 
             $awalHari = $tanggal->copy()->startOfDay();
             $akhirHari = $tanggal->copy()->endOfDay();
 
-            // Nama hari Indonesia
             $namaHari = [
                 0 => 'Min',
                 1 => 'Sen',
@@ -393,16 +344,12 @@ class SuperAdminController extends Controller
             $pertumbuhanPengguna[$hari] = $userBaruHariIni;
         }
 
-        // ============================================================
-        // 7. RESPONSE
-        // ============================================================
-
         return response()->json([
             'success' => true,
 
             'period' => [
                 'start' => $startDate->format('Y-m-d'),
-                'end'   => $endDate->format('Y-m-d'),
+                'end' => $endDate->format('Y-m-d'),
             ],
 
             'summary' => [
@@ -423,42 +370,62 @@ class SuperAdminController extends Controller
         ], 200);
     }
 
+    // =============================================================
+    // 4. DAFTAR AKUN ADMIN
+    // =============================================================
+
     /**
-     * 4. MENAMPILKAN DAFTAR AKUN ADMIN (READ)
+     * Menampilkan daftar akun Admin
      */
     public function getAdmins()
     {
-        // Tambahkan 'photo_profile' ke dalam select
         $admins = users::where('role_id', 2)
+            ->with('city')
             ->latest()
             ->get([
                 'id',
                 'name',
                 'email',
                 'phone',
+                'city_id',
                 'is_active',
                 'last_login_at',
                 'created_at',
-                'photo_profile', // <-- TAMBAHKAN INI
+                'photo_profile',
             ])
             ->map(function ($admin) {
                 // Buat URL lengkap untuk foto profil
                 $photoUrl = null;
+
                 if ($admin->photo_profile) {
-                    // Menggunakan basename() agar path-nya tidak dobel
-                    $photoUrl = url('/api/images/profile/' . basename($admin->photo_profile));
+                    $photoUrl = url(
+                        '/api/images/profile/' .
+                        basename($admin->photo_profile)
+                    );
                 }
 
-                // Kembalikan data dengan tambahan photo_url
                 return [
                     'id' => $admin->id,
                     'name' => $admin->name,
                     'email' => $admin->email,
                     'phone' => $admin->phone,
+
+                    // =================================================
+                    // WILAYAH / KOTA
+                    // =================================================
+                    'city_id' => $admin->city_id,
+
+                    'city' => $admin->city
+                        ? [
+                            'id' => $admin->city->id,
+                            'name' => $admin->city->name,
+                        ]
+                        : null,
+
                     'is_active' => $admin->is_active,
                     'last_login_at' => $admin->last_login_at,
                     'created_at' => $admin->created_at,
-                    'photo_url' => $photoUrl, // <-- KIRIM KE FLUTTER
+                    'photo_url' => $photoUrl,
                 ];
             });
 
@@ -469,9 +436,12 @@ class SuperAdminController extends Controller
         ], 200);
     }
 
+    // =============================================================
+    // 5. UPDATE ADMIN
+    // =============================================================
+
     /**
-     * 5. MENGUBAH DATA ADMIN (UPDATE)
-     * Untuk aksi tombol "Edit" di tabel
+     * Mengubah data Admin
      */
     public function updateAdmin(Request $request, $id)
     {
@@ -497,6 +467,8 @@ class SuperAdminController extends Controller
 
             'phone' => 'nullable|string|max:20',
 
+            'city_id' => 'required|exists:cities,id',
+
             'is_active' => 'required|boolean',
         ]);
 
@@ -504,11 +476,15 @@ class SuperAdminController extends Controller
         $oldName = $admin->name;
         $oldStatus = $admin->is_active;
 
-        // Update data
+        // ============================================================
+        // UPDATE DATA ADMIN
+        // ============================================================
+
         $admin->update([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
+            'city_id' => $request->city_id,
             'is_active' => $request->is_active,
         ]);
 
@@ -517,7 +493,6 @@ class SuperAdminController extends Controller
         // ============================================================
 
         if ((bool) $oldStatus !== (bool) $request->is_active) {
-
             if ($request->is_active) {
                 $title = 'Mengaktifkan admin';
                 $detail = 'Mengaktifkan akun admin ' . $admin->name;
@@ -528,7 +503,6 @@ class SuperAdminController extends Controller
                 $icon = 'block';
             }
         } else {
-
             $title = 'Mengubah data admin';
             $detail = 'Memperbarui informasi akun ' . $admin->name;
             $icon = 'edit';
@@ -560,6 +534,10 @@ class SuperAdminController extends Controller
             ]);
         }
 
+        // ============================================================
+        // RESPONSE
+        // ============================================================
+
         return response()->json([
             'success' => true,
             'message' => 'Data Admin berhasil diperbarui!',
@@ -569,15 +547,27 @@ class SuperAdminController extends Controller
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'phone' => $admin->phone,
+                'city_id' => $admin->city_id,
+
+                'city' => $admin->city
+                    ? [
+                        'id' => $admin->city->id,
+                        'name' => $admin->city->name,
+                    ]
+                    : null,
+
                 'is_active' => $admin->is_active,
                 'last_login_at' => $admin->last_login_at,
             ],
         ], 200);
     }
 
+    // =============================================================
+    // 6. DELETE ADMIN
+    // =============================================================
+
     /**
-     * 6. MENGHAPUS AKUN ADMIN (DELETE)
-     * Untuk aksi tombol "Hapus" (Merah) di tabel
+     * Menghapus akun Admin
      */
     public function deleteAdmin($id)
     {
@@ -586,7 +576,7 @@ class SuperAdminController extends Controller
         if (!$admin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Akun Admin tidak ditemukan!'
+                'message' => 'Akun Admin tidak ditemukan!',
             ], 404);
         }
 
@@ -610,14 +600,9 @@ class SuperAdminController extends Controller
         if (request()->user()) {
             SuperAdminActivity::create([
                 'super_admin_id' => request()->user()->id,
-
                 'title' => 'Menghapus admin',
-
-                'detail' =>
-                'Menghapus akun admin ' . $adminName,
-
+                'detail' => 'Menghapus akun admin ' . $adminName,
                 'icon' => 'delete',
-
                 'type' => 'Admin',
             ]);
         }
@@ -625,24 +610,25 @@ class SuperAdminController extends Controller
         return response()->json([
             'success' => true,
             'message' =>
-            'Akun Admin berhasil dihapus dari sistem secara permanen.'
+                'Akun Admin berhasil dihapus dari sistem secara permanen.',
         ], 200);
     }
+
+    // =============================================================
+    // SUPER ADMIN — DAFTAR MITRA AKTIF
+    // =============================================================
+
     /**
-     * =========================================================
-     * SUPER ADMIN — Daftar Mitra Aktif (sedang bekerja)
      * GET /superadmin/active-partners
-     * =========================================================
      *
      * Mengembalikan daftar mitra yang sedang punya job dengan status:
-     * - "Sedang Dikerjakan"
-     * - "Menunggu Konfirmasi Selesai"
+     * - Sedang Dikerjakan
+     * - Menunggu Konfirmasi Selesai
      */
     public function activePartners()
     {
         try {
             $jobs = \App\Models\jobs::with([
-                // Tambahkan photo_profile di sini
                 'mitra:id,name,email,phone,photo_profile',
             ])
                 ->whereIn('status', [
@@ -658,47 +644,60 @@ class SuperAdminController extends Controller
 
                 // Buat URL foto profil
                 $photoUrl = null;
+
                 if ($mitra && $mitra->photo_profile) {
-                    $photoUrl = url('/api/images/profile/' . basename($mitra->photo_profile));
+                    $photoUrl = url(
+                        '/api/images/profile/' .
+                        basename($mitra->photo_profile)
+                    );
                 }
 
                 return [
-                    'id'            => $job->id,
-                    'mitra_id'      => $job->mitra_id,
-                    'name'          => $mitra?->name ?? 'Mitra',
-                    'email'         => $mitra?->email ?? '-',
-                    'phone'         => $mitra?->phone ?? '-',
-                    'photo_url'     => $photoUrl, // <-- TAMBAHKAN INI
-                    'job_title'     => $job->tittle ?? '-',
-                    'job_id'        => $job->id,
-                    'location'      => $job->location ?? '-',
-                    'status'        => $job->status,
-                    'started_at'    => $job->started_at,
-                    'final_price'   => $job->final_price,
+                    'id' => $job->id,
+                    'mitra_id' => $job->mitra_id,
+                    'name' => $mitra?->name ?? 'Mitra',
+                    'email' => $mitra?->email ?? '-',
+                    'phone' => $mitra?->phone ?? '-',
+                    'photo_url' => $photoUrl,
+                    'job_title' => $job->tittle ?? '-',
+                    'job_id' => $job->id,
+                    'location' => $job->location ?? '-',
+                    'status' => $job->status,
+                    'started_at' => $job->started_at,
+                    'final_price' => $job->final_price,
                 ];
             });
 
             return response()->json([
                 'success' => true,
                 'message' => 'Berhasil mengambil daftar mitra aktif.',
-                'total'   => $data->count(),
-                'data'    => $data,
+                'total' => $data->count(),
+                'data' => $data,
             ], 200);
         } catch (\Exception $e) {
-            Log::error('SuperAdminController@activePartners: ' . $e->getMessage());
+            Log::error(
+                'SuperAdminController@activePartners: ' .
+                $e->getMessage()
+            );
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat mitra aktif: ' . $e->getMessage(),
+                'message' =>
+                    'Gagal memuat mitra aktif: ' . $e->getMessage(),
             ], 500);
         }
     }
+
+    // =============================================================
+    // UPDATE BANK ACCOUNT
+    // =============================================================
+
     public function updateBankAccount(Request $request)
     {
         $request->validate([
-            'platform_bank_name'           => 'required|string|max:100',
+            'platform_bank_name' => 'required|string|max:100',
             'platform_bank_account_number' => 'required|string|max:50',
-            'platform_bank_account_name'   => 'required|string|max:100',
+            'platform_bank_account_name' => 'required|string|max:100',
         ]);
 
         $setting = system_setting::first();
@@ -707,16 +706,24 @@ class SuperAdminController extends Controller
             $setting = new system_setting();
         }
 
-        $setting->platform_bank_name           = $request->platform_bank_name;
-        $setting->platform_bank_account_number = $request->platform_bank_account_number;
-        $setting->platform_bank_account_name   = $request->platform_bank_account_name;
-        $setting->updated_by                   = auth()->id();
+        $setting->platform_bank_name =
+            $request->platform_bank_name;
+
+        $setting->platform_bank_account_number =
+            $request->platform_bank_account_number;
+
+        $setting->platform_bank_account_name =
+            $request->platform_bank_account_name;
+
+        $setting->updated_by = auth()->id();
+
         $setting->save();
 
         ActivityLogger::log(
             auth()->id(),
             'Mengubah rekening platform',
-            'Rekening platform diperbarui menjadi ' . $setting->platform_bank_name,
+            'Rekening platform diperbarui menjadi ' .
+                $setting->platform_bank_name,
             'edit',
             'Sistem'
         );
@@ -724,7 +731,7 @@ class SuperAdminController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rekening platform berhasil diperbarui.',
-            'data'    => $setting,
+            'data' => $setting,
         ], 200);
     }
 }

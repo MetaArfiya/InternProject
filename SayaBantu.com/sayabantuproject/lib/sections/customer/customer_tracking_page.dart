@@ -27,7 +27,7 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   void initState() {
     super.initState();
     _fetch();
-    // Polling tiap 5 detik
+    // Polling tiap 5 detik agar posisi mitra selalu update
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _fetch());
   }
 
@@ -40,11 +40,9 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   // ============================================================
   // FETCH DATA
   // ============================================================
-
   Future<void> _fetch() async {
     try {
-      final response =
-          await ApiService.get('/jobs/${widget.jobId}/tracking');
+      final response = await ApiService.get('/jobs/${widget.jobId}/tracking');
 
       if (response.statusCode != 200) {
         if (mounted) {
@@ -88,7 +86,6 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   // ============================================================
   // BUKA CHAT
   // ============================================================
-
   void _openChat() {
     final title = _tracking?.title ?? 'Pekerjaan #${widget.jobId}';
     Navigator.push(
@@ -103,9 +100,8 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   }
 
   // ============================================================
-  // BUILD
+  // BUILD (RESPONSIVE LAYOUT)
   // ============================================================
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,51 +111,218 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('Lacak Mitra'),
-        actions: [
-          IconButton(
-            onPressed: _openChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-            tooltip: 'Chat Mitra',
-          ),
-        ],
       ),
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(
-                    color: AppColors.primaryTeal),
+                child: CircularProgressIndicator(color: AppColors.primaryTeal),
               )
             : _error != null
                 ? _buildError()
-                : _buildBody(),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isDesktop = constraints.maxWidth > 900;
+
+                      if (isDesktop) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // KIRI: Peta
+                            Expanded(
+                              flex: 6,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: _buildMap(),
+                                ),
+                              ),
+                            ),
+                            // KANAN: Detail
+                            Expanded(
+                              flex: 4,
+                              child: _buildDetailPanel(isDesktop: true),
+                            ),
+                          ],
+                        );
+                      }
+
+                      // MOBILE: Atas-Bawah
+                      return Column(
+                        children: [
+                          SizedBox(
+                            height: constraints.maxHeight * 0.45,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: _buildMap(),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildDetailPanel(isDesktop: false),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
       ),
     );
   }
 
   // ============================================================
-  // ERROR STATE
+  // KOMPONEN PETA
   // ============================================================
+  Widget _buildMap() {
+    if (_tracking == null) {
+      return Container(
+        color: AppColors.grey100,
+        child: const Center(child: Text('Data tracking tidak tersedia.')),
+      );
+    }
+    return TrackingMap(tracking: _tracking!, showMitra: _tracking!.isActive);
+  }
 
-  Widget _buildError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+  // ============================================================
+  // KOMPONEN PANEL DETAIL
+  // ============================================================
+  Widget _buildDetailPanel({required bool isDesktop}) {
+    final t = _tracking;
+    final active = t?.isActive ?? false;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: isDesktop
+            ? const BorderRadius.horizontal(left: Radius.circular(20))
+            : const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.error_outline,
-                color: Colors.redAccent, size: 48),
-            const SizedBox(height: 12),
-            Text(_error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() => _isLoading = true);
-                _fetch();
-              },
-              child: const Text('Coba Lagi'),
+            // Header Kode & Status
+            Row(
+              children: [
+                Text(
+                  t?.jobCode ?? '#JOB-${widget.jobId}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryTeal,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (t?.status != null) _statusBadge(t!.status!),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Judul Pekerjaan
+            Text(
+              t?.title ?? 'Pekerjaan',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.grey900,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Info Jarak & ETA (Hanya muncul jika mitra sedang aktif jalan)
+            if (active && (t?.distanceKm != null || t?.etaMinutes != null)) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _infoCard(
+                      Icons.straighten,
+                      'Jarak',
+                      t?.distanceKm != null
+                          ? '${t!.distanceKm!.toStringAsFixed(2)} km'
+                          : '-',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _infoCard(
+                      Icons.schedule,
+                      'Estimasi',
+                      t?.etaMinutes != null ? '${t!.etaMinutes} menit' : '-',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Alamat & Waktu Mulai
+            _infoRow(
+              icon: Icons.location_on_outlined,
+              label: 'Alamat Tujuan',
+              value: t?.destinationAddress?.isNotEmpty == true
+                  ? t!.destinationAddress!
+                  : '-',
+            ),
+            if (t?.startedAt != null) ...[
+              const SizedBox(height: 12),
+              _infoRow(
+                icon: Icons.play_circle_outline,
+                label: 'Waktu Mulai',
+                value: _formatDateTime(t!.startedAt!),
+              ),
+            ],
+
+            // Update Terakhir
+            if (t?.mitraUpdatedAt != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.refresh, size: 14, color: AppColors.grey500),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Posisi diperbarui: ${_timeAgo(t!.mitraUpdatedAt!)}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.grey500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: 24),
+            Divider(height: 1, color: Colors.grey.shade200),
+            const SizedBox(height: 24),
+
+            // Tombol Chat
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
+                onPressed: _openChat,
+                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                label: const Text(
+                  'Chat Mitra',
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryTeal,
+                  side: const BorderSide(color: AppColors.primaryTeal),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -168,177 +331,8 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   }
 
   // ============================================================
-  // BODY
+  // HELPER WIDGETS & FORMATTERS
   // ============================================================
-
-  Widget _buildBody() {
-    final t = _tracking;
-    if (t == null) {
-      return const Center(child: Text('Data tracking tidak tersedia.'));
-    }
-
-    final active = t.isActive;
-
-    return Column(
-      children: [
-        // ========================================================
-        // PETA
-        // ========================================================
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: TrackingMap(tracking: t, showMitra: active),
-          ),
-        ),
-
-        // ========================================================
-        // PANEL BAWAH
-        // ========================================================
-        Container(
-          width: double.infinity,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.55,
-          ),
-          padding: const EdgeInsets.all(18),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ------------------------------------------------
-                // HEADER — kode job + status badge
-                // ------------------------------------------------
-                Row(
-                  children: [
-                    Text(
-                      t.jobCode,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryTeal,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (t.status != null) _statusBadge(t.status!),
-                  ],
-                ),
-
-                const SizedBox(height: 4),
-
-                // ------------------------------------------------
-                // JUDUL PEKERJAAN
-                // ------------------------------------------------
-                Text(
-                  t.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.grey900,
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // ------------------------------------------------
-                // CARD GRID — Jarak + Estimasi
-                // ------------------------------------------------
-                if (active &&
-                    (t.distanceKm != null || t.etaMinutes != null)) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _infoCard(
-                          Icons.straighten,
-                          'Jarak ke Tujuan',
-                          t.distanceKm != null
-                              ? '${t.distanceKm!.toStringAsFixed(2)} km'
-                              : '-',
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _infoCard(
-                          Icons.schedule,
-                          'Estimasi Tiba',
-                          t.etaMinutes != null
-                              ? '${t.etaMinutes} menit'
-                              : '-',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // ------------------------------------------------
-                // UPDATE TERAKHIR
-                // ------------------------------------------------
-                if (t.mitraUpdatedAt != null)
-                  Row(
-                    children: [
-                      const Icon(Icons.refresh,
-                          size: 14, color: AppColors.grey500),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Posisi diperbarui: ${_timeAgo(t.mitraUpdatedAt!)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.grey500,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                const SizedBox(height: 16),
-                Divider(height: 1, color: Colors.grey.shade200),
-                const SizedBox(height: 16),
-
-                // ------------------------------------------------
-                // TOMBOL CHAT MITRA
-                // ------------------------------------------------
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: OutlinedButton.icon(
-                    onPressed: _openChat,
-                    icon: const Icon(
-                      Icons.chat_bubble_outline,
-                      size: 18,
-                    ),
-                    label: const Text(
-                      'Chat Mitra',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryTeal,
-                      side: const BorderSide(
-                        color: AppColors.primaryTeal,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // HELPER — Info Card (kotak kecil untuk grid 2 kolom)
-  // ============================================================
-
   Widget _infoCard(IconData icon, String label, String value) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -388,9 +382,53 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
     );
   }
 
-  // ============================================================
-  // HELPER — Status Badge
-  // ============================================================
+  Widget _infoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.primaryTeal.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 16, color: AppColors.primaryTeal),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.grey500,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.grey900,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _statusBadge(String status) {
     final colors = {
@@ -400,17 +438,17 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
       'selesai': const Color(0xFF16A34A),
     };
     final labels = {
-      'menuju': 'Mitra sedang menuju',
-      'sampai': 'Mitra sudah sampai',
-      'dikerjakan': 'Pekerjaan dikerjakan',
-      'selesai': 'Pekerjaan selesai',
+      'menuju': 'Menuju Lokasi',
+      'sampai': 'Sudah Sampai',
+      'dikerjakan': 'Dikerjakan',
+      'selesai': 'Selesai',
     };
 
     final color = colors[status] ?? AppColors.grey500;
     final label = labels[status] ?? status;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -418,7 +456,7 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: FontWeight.w700,
           color: color,
         ),
@@ -426,9 +464,19 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
     );
   }
 
-  // ============================================================
-  // HELPER — Time Ago
-  // ============================================================
+  String _formatDateTime(DateTime dt) {
+    final local = dt.toLocal();
+    const bulan = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final d = local.day.toString().padLeft(2, '0');
+    final m = bulan[local.month - 1];
+    final y = local.year;
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$d $m $y • $hh:$mm';
+  }
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -436,5 +484,33 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
     if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
     if (diff.inHours < 24) return '${diff.inHours} jam lalu';
     return '${diff.inDays} hari lalu';
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                setState(() => _isLoading = true);
+                _fetch();
+              },
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

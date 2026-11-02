@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -26,10 +27,16 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   // =========================================================
 
   late LatLng _selectedPosition;
+
   final MapController _mapController = MapController();
 
   bool _isLoadingAddress = false;
-  String _address = "";
+
+  String _address = '';
+  String? _cityName;
+
+  // Mencegah respons geocoding lama menimpa lokasi terbaru.
+  int _requestId = 0;
 
   // =========================================================
   // INIT
@@ -38,7 +45,9 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   @override
   void initState() {
     super.initState();
+
     _selectedPosition = widget.initialPosition;
+
     _getAddress(_selectedPosition);
   }
 
@@ -48,7 +57,8 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
 
   Future<void> _goToCurrentLocation() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final bool serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         if (!mounted) return;
@@ -56,7 +66,8 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+      LocationPermission permission =
+          await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -70,6 +81,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
 
       if (permission == LocationPermission.deniedForever) {
         if (!mounted) return;
+
         _showSnack(
           'Izin lokasi ditolak permanen. '
           'Silakan aktifkan izin lokasi dari pengaturan perangkat.',
@@ -77,7 +89,8 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
         return;
       }
 
-      final Position position = await Geolocator.getCurrentPosition(
+      final Position position =
+          await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
@@ -92,15 +105,16 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
 
       setState(() {
         _selectedPosition = currentPosition;
-        _isLoadingAddress = true;
       });
 
       _mapController.move(currentPosition, 17);
+
       await _getAddress(currentPosition);
     } catch (e) {
       debugPrint('Gagal mendapatkan lokasi GPS: $e');
 
       if (!mounted) return;
+
       _showSnack('Gagal mendapatkan lokasi saat ini: $e');
     }
   }
@@ -111,6 +125,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
 
   void _showSnack(String message) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -128,9 +143,12 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   Future<void> _getAddress(LatLng position) async {
     if (!mounted) return;
 
+    final int currentRequestId = ++_requestId;
+
     setState(() {
       _isLoadingAddress = true;
-      _address = "";
+      _address = '';
+      _cityName = null;
     });
 
     try {
@@ -161,29 +179,49 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
       }
 
       final data = jsonDecode(response.body);
-      final addressData = data['address'] as Map<String, dynamic>?;
 
-      if (addressData == null) {
-        throw Exception('Data alamat tidak ditemukan');
+      if (data is! Map<String, dynamic>) {
+        throw Exception('Format data alamat tidak valid.');
       }
 
-      final formattedAddress = _formatIndonesiaAddress(addressData);
+      final addressData =
+          data['address'] as Map<String, dynamic>?;
 
-      if (!mounted) return;
+      if (addressData == null) {
+        throw Exception('Data alamat tidak ditemukan.');
+      }
+
+      final formattedAddress =
+          _formatIndonesiaAddress(addressData);
+
+      final cityName = _normalizeCityName(
+        _extractCityName(addressData),
+      );
+
+      debugPrint('Alamat: $formattedAddress');
+      debugPrint('Kota/Kabupaten: $cityName');
+
+      if (!mounted || currentRequestId != _requestId) {
+        return;
+      }
 
       setState(() {
         _address = formattedAddress;
+        _cityName = cityName;
       });
     } catch (e) {
       debugPrint('Gagal mengambil alamat OpenStreetMap: $e');
 
-      if (!mounted) return;
+      if (!mounted || currentRequestId != _requestId) {
+        return;
+      }
 
       setState(() {
         _address = 'Alamat tidak ditemukan';
+        _cityName = null;
       });
     } finally {
-      if (mounted) {
+      if (mounted && currentRequestId == _requestId) {
         setState(() {
           _isLoadingAddress = false;
         });
@@ -192,16 +230,44 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   }
 
   // =========================================================
+  // AMBIL NAMA KOTA / KABUPATEN
+  // =========================================================
+
+  String? _extractCityName(Map<String, dynamic> address) {
+    final candidates = [
+      address['city'],
+      address['municipality'],
+      address['town'],
+      address['county'],
+    ];
+
+    for (final candidate in candidates) {
+      if (candidate == null) continue;
+
+      final value = candidate.toString().trim();
+
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  // =========================================================
   // FORMAT ALAMAT INDONESIA
   // =========================================================
 
-  String _formatIndonesiaAddress(Map<String, dynamic> address) {
+  String _formatIndonesiaAddress(
+    Map<String, dynamic> address,
+  ) {
     final List<String> parts = [];
 
     void addPart(dynamic value) {
       if (value == null) return;
 
       final text = value.toString().trim();
+
       if (text.isEmpty) return;
 
       if (!parts.contains(text)) {
@@ -218,13 +284,14 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
 
       if (houseNumber != null &&
           houseNumber.toString().trim().isNotEmpty) {
-        roadName = '$roadName No. ${houseNumber.toString().trim()}';
+        roadName =
+            '$roadName No. ${houseNumber.toString().trim()}';
       }
 
       addPart(roadName);
     }
 
-    // DUSUN / DESA / KELURAHAN
+    // DUSUN / LINGKUNGAN
     addPart(address['neighbourhood']);
     addPart(address['quarter']);
     addPart(address['hamlet']);
@@ -232,7 +299,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
     // DESA / KELURAHAN
     addPart(address['village']);
 
-    // KECAMATAN
+    // KECAMATAN / WILAYAH SETARA
     addPart(address['suburb']);
     addPart(address['town']);
 
@@ -281,41 +348,59 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
       case 'special region of yogyakarta':
       case 'yogyakarta':
         return 'Daerah Istimewa Yogyakarta';
+
       case 'west java':
         return 'Jawa Barat';
+
       case 'central java':
         return 'Jawa Tengah';
+
       case 'east java':
         return 'Jawa Timur';
+
       case 'banten':
         return 'Banten';
+
       case 'jakarta':
       case 'dki jakarta':
         return 'DKI Jakarta';
+
       case 'west sumatra':
         return 'Sumatera Barat';
+
       case 'south sumatra':
         return 'Sumatera Selatan';
+
       case 'north sumatra':
         return 'Sumatera Utara';
+
       case 'south sulawesi':
         return 'Sulawesi Selatan';
+
       case 'north sulawesi':
         return 'Sulawesi Utara';
+
       case 'west kalimantan':
         return 'Kalimantan Barat';
+
       case 'south kalimantan':
         return 'Kalimantan Selatan';
+
       case 'east kalimantan':
         return 'Kalimantan Timur';
+
       case 'central kalimantan':
         return 'Kalimantan Tengah';
+
       case 'north kalimantan':
         return 'Kalimantan Utara';
+
       case 'bali':
         return 'Bali';
+
       case 'papua':
         return 'Papua';
+
       default:
         return province;
     }
@@ -325,7 +410,10 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   // KETIKA PETA DIKLIK
   // =========================================================
 
-  void _onMapTap(TapPosition tapPosition, LatLng position) {
+  void _onMapTap(
+    TapPosition tapPosition,
+    LatLng position,
+  ) {
     if (!mounted) return;
 
     setState(() {
@@ -342,11 +430,25 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   void _useLocation() {
     if (_isLoadingAddress) return;
 
+    if (_address.isEmpty ||
+        _address == 'Alamat tidak ditemukan') {
+      _showSnack('Alamat lokasi belum berhasil ditemukan.');
+      return;
+    }
+
+    if (_cityName == null || _cityName!.trim().isEmpty) {
+      _showSnack(
+        'Kota/kabupaten lokasi belum berhasil dideteksi.',
+      );
+      return;
+    }
+
     Navigator.pop(
       context,
       {
         'position': _selectedPosition,
         'address': _address,
+        'cityName': _cityName,
       },
     );
   }
@@ -359,6 +461,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
     final isMobile = screenWidth < 600;
 
     return Dialog(
@@ -376,6 +479,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
               // =================================================
               // HEADER
               // =================================================
+
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -412,6 +516,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
               // =================================================
               // MAP
               // =================================================
+
               Expanded(
                 child: Stack(
                   children: [
@@ -423,14 +528,13 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                         onTap: _onMapTap,
                       ),
                       children: [
-                        // TILE LAYER — OpenStreetMap
                         TileLayer(
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.sayabantu.project',
+                          userAgentPackageName:
+                              'com.sayabantu.project',
                         ),
 
-                        // MARKER
                         MarkerLayer(
                           markers: [
                             Marker(
@@ -448,9 +552,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                       ],
                     ),
 
-                    // =================================================
                     // PETUNJUK
-                    // =================================================
                     Positioned(
                       top: 15,
                       left: 15,
@@ -466,22 +568,23 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                           boxShadow: [
                             BoxShadow(
                               blurRadius: 8,
-                              color: AppColors.black
-                                  .withValues(alpha: 0.15),
+                              color: AppColors.black.withValues(
+                                alpha: 0.15,
+                              ),
                             ),
                           ],
                         ),
                         child: const Text(
                           'Ketuk peta untuk menentukan lokasi',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.grey700),
+                          style: TextStyle(
+                            color: AppColors.grey700,
+                          ),
                         ),
                       ),
                     ),
 
-                    // =================================================
-                    // TOMBOL LOKASI GPS
-                    // =================================================
+                    // TOMBOL GPS
                     Positioned(
                       right: 15,
                       bottom: 15,
@@ -499,6 +602,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
               // =================================================
               // INFORMASI ALAMAT
               // =================================================
+
               Container(
                 padding: const EdgeInsets.all(18),
                 color: AppColors.white,
@@ -512,6 +616,7 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                         color: AppColors.grey900,
                       ),
                     ),
+
                     const SizedBox(height: 8),
 
                     // LOADING ALAMAT
@@ -529,7 +634,9 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                           SizedBox(width: 10),
                           Text(
                             'Mencari alamat...',
-                            style: TextStyle(color: AppColors.grey600),
+                            style: TextStyle(
+                              color: AppColors.grey600,
+                            ),
                           ),
                         ],
                       )
@@ -543,6 +650,32 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                         style: const TextStyle(
                           color: AppColors.grey700,
                         ),
+                      ),
+
+                    const SizedBox(height: 10),
+
+                    // KOTA / KABUPATEN
+                    if (!_isLoadingAddress)
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_city,
+                            size: 16,
+                            color: AppColors.grey600,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _cityName == null
+                                  ? 'Kota/kabupaten belum terdeteksi'
+                                  : 'Wilayah: $_cityName',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.grey600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
                     const SizedBox(height: 10),
@@ -563,7 +696,9 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _isLoadingAddress || _address.isEmpty
+                        onPressed: _isLoadingAddress ||
+                                _address.isEmpty ||
+                                _cityName == null
                             ? null
                             : _useLocation,
                         style: ElevatedButton.styleFrom(
@@ -593,5 +728,20 @@ class _MapPickerDialogState extends State<MapPickerDialog> {
         ),
       ),
     );
+  }
+
+  String? _normalizeCityName(String? cityName) {
+    if (cityName == null || cityName.trim().isEmpty) {
+      return null;
+    }
+
+    String result = cityName.trim();
+
+    result = result.replaceFirst(
+      RegExp(r'^(Kota|Kabupaten)\s+', caseSensitive: false),
+      '',
+    );
+
+    return result.trim();
   }
 }

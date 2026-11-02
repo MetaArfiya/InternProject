@@ -147,10 +147,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Simpan data SESSION saja.
         // Email/password tidak disimpan oleh aplikasi.
+        // AuthStorage.setString('token', token.toString());
+        // AuthStorage.setBool('isLoggedIn', true);
+        // AuthStorage.setString('role', userRole.toString());
+        // AuthStorage.setString('name', userName);
+
+                // Simpan data SESSION saja.
+        // Email/password tidak disimpan oleh aplikasi.
         AuthStorage.setString('token', token.toString());
         AuthStorage.setBool('isLoggedIn', true);
         AuthStorage.setString('role', userRole.toString());
         AuthStorage.setString('name', userName);
+
+        // ======================================================
+        // SIMPAN DATA KOTA (KHUSUS ADMIN)
+        // ======================================================
+        if (userRole.toString().toLowerCase().trim() == 'admin') {
+          // Pastikan rawUserData tidak null sebelum mengambil city_id
+          if (rawUserData != null) {
+            // Simpan City ID (diubah ke String karena AuthStorage hanya support String)
+            if (rawUserData['city_id'] != null) {
+              AuthStorage.setString(
+                'admin_city_id', 
+                rawUserData['city_id'].toString(),
+              );
+            }
+            
+            // Simpan City Name
+            if (rawUserData['city_name'] != null) {
+              AuthStorage.setString(
+                'admin_city_name', 
+                rawUserData['city_name'].toString(),
+              );
+            }
+          }
+        }
 
         if (!mounted) {
           return;

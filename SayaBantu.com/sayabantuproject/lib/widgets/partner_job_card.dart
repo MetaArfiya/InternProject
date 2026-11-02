@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../models/partner_job_model.dart';
 import '../theme/app_colors.dart';
@@ -13,21 +14,46 @@ class PartnerJobCard extends StatelessWidget {
   });
 
   // ============================================================
-  // FORMAT WAKTU
+  // FORMAT TANGGAL DAN WAKTU
   // ============================================================
   String _formatLocalTime(String timeString) {
     try {
-      final parsedDate = DateTime.parse(timeString);
-      final localDate = parsedDate.toLocal();
+      final parsedDate = DateTime.parse(timeString).toLocal();
 
-      return "${localDate.day.toString().padLeft(2, '0')}-"
-          "${localDate.month.toString().padLeft(2, '0')}-"
-          "${localDate.year} "
-          "${localDate.hour.toString().padLeft(2, '0')}:"
-          "${localDate.minute.toString().padLeft(2, '0')}";
-    } catch (e) {
+      return '${parsedDate.day.toString().padLeft(2, '0')}-'
+          '${parsedDate.month.toString().padLeft(2, '0')}-'
+          '${parsedDate.year} '
+          '${parsedDate.hour.toString().padLeft(2, '0')}:'
+          '${parsedDate.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
       return timeString;
     }
+  }
+
+  String _formatPreferredStart(DateTime dateTime) {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    final localDate = dateTime.toLocal();
+    final day = localDate.day.toString().padLeft(2, '0');
+    final month = months[localDate.month - 1];
+    final year = localDate.year;
+    final hour = localDate.hour.toString().padLeft(2, '0');
+    final minute = localDate.minute.toString().padLeft(2, '0');
+
+    return '$day $month $year, $hour:$minute';
   }
 
   @override
@@ -37,11 +63,11 @@ class PartnerJobCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.darkTeal.withValues(alpha:0.04),
+            color: AppColors.darkTeal.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -49,7 +75,7 @@ class PartnerJobCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -59,7 +85,6 @@ class PartnerJobCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // GAMBAR
                 Container(
                   width: 90,
                   height: 90,
@@ -70,15 +95,11 @@ class PartnerJobCard extends StatelessWidget {
                   clipBehavior: Clip.antiAlias,
                   child: _buildJobImage(context),
                 ),
-
                 const SizedBox(width: 14),
-
-                // INFORMASI JOB
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // JUDUL
                       Text(
                         job.title,
                         maxLines: 2,
@@ -90,10 +111,7 @@ class PartnerJobCard extends StatelessWidget {
                           height: 1.25,
                         ),
                       ),
-
                       const SizedBox(height: 6),
-
-                      // KATEGORI — dari orange → teal
                       Text(
                         job.category,
                         maxLines: 1,
@@ -104,10 +122,7 @@ class PartnerJobCard extends StatelessWidget {
                           fontSize: 13,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
-                      // DESKRIPSI
                       Text(
                         job.description,
                         maxLines: 2,
@@ -129,7 +144,7 @@ class PartnerJobCard extends StatelessWidget {
             // ============================================================
             // LOKASI
             // ============================================================
-            if (job.location.isNotEmpty)
+            if (job.location.isNotEmpty) ...[
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -152,13 +167,13 @@ class PartnerJobCard extends StatelessWidget {
                   ),
                 ],
               ),
-
-            if (job.location.isNotEmpty) const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
 
             // ============================================================
-            // WAKTU
+            // WAKTU PEMBUATAN PEKERJAAN
             // ============================================================
-            if (job.time.isNotEmpty)
+            if (job.time.isNotEmpty) ...[
               Row(
                 children: [
                   const Icon(
@@ -167,14 +182,118 @@ class PartnerJobCard extends StatelessWidget {
                     color: AppColors.grey500,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    _formatLocalTime(job.time),
-                    style: const TextStyle(
-                      color: AppColors.grey600,
-                      fontSize: 13,
+                  Expanded(
+                    child: Text(
+                      'Diposting: ${_formatLocalTime(job.time)}',
+                      style: const TextStyle(
+                        color: AppColors.grey500,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ============================================================
+            // WAKTU MULAI YANG DIINGINKAN PELANGGAN
+            // ============================================================
+            if (job.preferredStartAt != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month_outlined,
+                          size: 17,
+                          color: AppColors.primaryTeal,
+                        ),
+                        SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            'Waktu Mulai yang Diinginkan Pelanggan',
+                            style: TextStyle(
+                              color: AppColors.primaryTeal,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.event_outlined,
+                          size: 17,
+                          color: AppColors.grey700,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatPreferredStart(job.preferredStartAt!),
+                            style: const TextStyle(
+                              color: AppColors.grey900,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      'Jadwal ini merupakan permintaan Pelanggan. '
+                      'Mitra dapat mengajukan waktu alternatif.',
+                      style: TextStyle(
+                        color: AppColors.grey600,
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.grey100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 17,
+                      color: AppColors.grey500,
+                    ),
+                    SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        'Informasi waktu mulai belum tersedia.',
+                        style: TextStyle(
+                          color: AppColors.grey600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
             const SizedBox(height: 14),
@@ -183,29 +302,22 @@ class PartnerJobCard extends StatelessWidget {
             // HARGA + TOMBOL
             // ============================================================
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // HARGA — tetap hijau? Atau teal?
-                // ✅ Pakai teal biar konsisten
                 Expanded(
                   child: Text(
                     job.price,
                     style: const TextStyle(
-                      color: AppColors.primaryTeal, // ← dari hijau
+                      color: AppColors.primaryTeal,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 10),
-
-                // TOMBOL AMBIL & NEGO
                 ElevatedButton(
                   onPressed: onTakeOffer,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryTeal, // ← dari orange
+                    backgroundColor: AppColors.primaryTeal,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -217,7 +329,7 @@ class PartnerJobCard extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    "Ambil & Nego",
+                    'Ambil & Nego',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -253,7 +365,7 @@ class PartnerJobCard extends StatelessWidget {
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors.primaryTeal, // ← teal
+                color: AppColors.primaryTeal,
               ),
             ),
           );
@@ -282,7 +394,7 @@ class PartnerJobCard extends StatelessWidget {
       child: Icon(
         Icons.handyman,
         size: 38,
-        color: AppColors.primaryTeal, // ← teal
+        color: AppColors.primaryTeal,
       ),
     );
   }

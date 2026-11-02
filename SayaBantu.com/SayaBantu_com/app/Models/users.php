@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\ActivityLog;
+use App\Models\mitra_profiles;
 
 class users extends Authenticatable
 {
@@ -17,6 +18,8 @@ class users extends Authenticatable
         'email',
         'password',
         'role_id',
+        'city_id',
+        'pin',
         'photo_profile',
         'is_notification_enabled',
         'phone',
@@ -104,5 +107,15 @@ class users extends Authenticatable
         return $this->bank_name
             . ' - ' . $this->bank_account_number
             . ' (' . ($this->bank_account_name ?? $this->name) . ')';
+    }
+
+    public function mitra_profiles()
+    {
+        return $this->hasOne(mitra_profiles::class, 'user_id', 'id');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id');
     }
 }

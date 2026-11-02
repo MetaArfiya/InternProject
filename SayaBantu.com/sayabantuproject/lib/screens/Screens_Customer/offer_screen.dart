@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../models/job_model.dart';
@@ -23,47 +24,73 @@ class OfferScreen extends StatelessWidget {
     required this.onReject,
   });
 
+  static const Color _green = Color(0xFF16A34A);
+  static const Color _red = Color(0xFFDC2626);
+
   bool get _canRespond {
-    final s = job.status.toLowerCase().trim();
-    return s == 'mencari mitra';
+    return job.status.toLowerCase().trim() == 'mencari mitra';
   }
 
   // ============================================================
-  // FETCH BIDS
+  // FETCH PENAWARAN
   // ============================================================
 
   Future<List<OfferModel>> _fetchBids() async {
     final response = await ApiService.get('/jobs/${job.id}');
 
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      List<dynamic> bidsJson = [];
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Gagal memuat penawaran (Kode: ${response.statusCode})',
+      );
+    }
 
-      if (decoded is Map<String, dynamic>) {
-        var target =
-            decoded['data']?['bids'] ?? decoded['bids'] ?? decoded['data'];
-        if (target is List) {
-          bidsJson = target;
+    final decoded = jsonDecode(response.body);
+
+    List<dynamic> bidsJson = [];
+
+    if (decoded is Map<String, dynamic>) {
+      final data = decoded['data'];
+
+      if (data is Map) {
+        final bids = data['bids'] ?? data['offers'];
+        if (bids is List) {
+          bidsJson = bids;
         }
+      } else if (data is List) {
+        bidsJson = data;
       }
 
-      return bidsJson.map((json) => OfferModel.fromJson(json)).toList();
-    } else {
-      throw Exception("Gagal memuat penawaran (Kode: ${response.statusCode})");
+      if (bidsJson.isEmpty) {
+        final bids = decoded['bids'] ?? decoded['offers'];
+        if (bids is List) {
+          bidsJson = bids;
+        }
+      }
     }
+
+    return bidsJson
+        .whereType<Map>()
+        .map(
+          (item) => OfferModel.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList();
   }
 
   // ============================================================
-  // HANDLE ACCEPT
+  // TERIMA PENAWARAN
   // ============================================================
 
-  Future<void> _handleAccept(BuildContext context, OfferModel offer) async {
+  Future<void> _handleAccept(
+    BuildContext context,
+    OfferModel offer,
+  ) async {
     if (!_canRespond) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Pekerjaan ini sudah tidak menerima penawaran baru."),
-          backgroundColor: Colors.red,
-        ),
+      _showMessage(
+        context,
+        'Pekerjaan ini sudah tidak menerima penawaran baru.',
+        isError: true,
       );
       return;
     }
@@ -72,50 +99,68 @@ class OfferScreen extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        child: CircularProgressIndicator(
+          color: AppColors.primaryTeal,
+        ),
       ),
     );
 
     try {
-      final response =
-          await ApiService.post('/jobs/accept-bid/${offer.id}', {});
+      final response = await ApiService.post(
+        '/jobs/accept-bid/${offer.id}',
+        {},
+      );
 
       if (!context.mounted) return;
+
       Navigator.of(context, rootNavigator: true).pop();
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Penawaran berhasil diterima!"),
-            backgroundColor: AppColors.primaryTeal, // ← teal
-          ),
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
+        _showMessage(
+          context,
+          'Penawaran berhasil diterima.',
         );
         onAccept(offer);
       } else {
         String message =
-            "Gagal menerima penawaran (Kode: ${response.statusCode})";
+            'Gagal menerima penawaran (Kode: ${response.statusCode})';
+
         try {
           final decoded = jsonDecode(response.body);
-          if (decoded['message'] != null) {
+          if (decoded is Map && decoded['message'] != null) {
             message = decoded['message'].toString();
           }
         } catch (_) {}
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
+        _showMessage(context, message, isError: true);
       }
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Kesalahan jaringan: $e"),
-          backgroundColor: Colors.red,
-        ),
+      _showMessage(
+        context,
+        'Kesalahan jaringan: $e',
+        isError: true,
       );
     }
+  }
+
+  // ============================================================
+  // SNACKBAR
+  // ============================================================
+
+  void _showMessage(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? _red : AppColors.primaryTeal,
+      ),
+    );
   }
 
   // ============================================================
@@ -125,7 +170,7 @@ class OfferScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.sectionAltLight, // ← mint muda
+      backgroundColor: AppColors.sectionAltLight,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -135,7 +180,7 @@ class OfferScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.grey900,
         title: const Text(
-          "Penawaran Mitra",
+          'Penawaran Mitra',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.grey900,
@@ -161,8 +206,10 @@ class OfferScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Budget : ${job.price}",
-                  style: const TextStyle(color: AppColors.grey500),
+                  'Budget: ${job.price}',
+                  style: const TextStyle(
+                    color: AppColors.grey500,
+                  ),
                 ),
                 const SizedBox(height: 14),
 
@@ -175,8 +222,7 @@ class OfferScreen extends StatelessWidget {
                   child: FutureBuilder<List<OfferModel>>(
                     future: _fetchBids(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(
                             color: AppColors.primaryTeal,
@@ -185,13 +231,7 @@ class OfferScreen extends StatelessWidget {
                       }
 
                       if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            "Terjadi kesalahan: ${snapshot.error}",
-                            style: const TextStyle(color: Colors.red),
-                            textAlign: TextAlign.center,
-                          ),
-                        );
+                        return _buildError(snapshot.error.toString());
                       }
 
                       final bids = snapshot.data ?? [];
@@ -199,8 +239,10 @@ class OfferScreen extends StatelessWidget {
                       if (bids.isEmpty) {
                         return const Center(
                           child: Text(
-                            "Belum ada mitra yang mengajukan penawaran.",
-                            style: TextStyle(color: AppColors.grey500),
+                            'Belum ada mitra yang mengajukan penawaran.',
+                            style: TextStyle(
+                              color: AppColors.grey500,
+                            ),
                           ),
                         );
                       }
@@ -209,7 +251,7 @@ class OfferScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "${bids.length} Mitra Mengirim Penawaran",
+                            '${bids.length} Mitra Mengirim Penawaran',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -236,7 +278,32 @@ class OfferScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // MOBILE — Card
+  // ERROR
+  // ============================================================
+
+  Widget _buildError(String message) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: _red,
+            size: 40,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Terjadi kesalahan:\n$message',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _red),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // MOBILE
   // ============================================================
 
   Widget _buildMobileList(BuildContext context, List<OfferModel> bids) {
@@ -245,11 +312,12 @@ class OfferScreen extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final offer = bids[index];
+
         return OfferCard(
           job: job,
           offer: offer,
           canRespond: _canRespond,
-          onAccept: (o) => _handleAccept(context, o),
+          onAccept: (item) => _handleAccept(context, item),
           onOpenProfile: onOpenProfile,
           onReject: onReject,
         );
@@ -258,182 +326,176 @@ class OfferScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // WEB — Tabel
+  // DESKTOP TABLE (MENGGUNAKAN DATATABLE AGAR RAPI)
   // ============================================================
 
-  Widget _buildWebTable(BuildContext context, List<OfferModel> bids) {
+    Widget _buildWebTable(BuildContext context, List<OfferModel> bids) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryTeal.withValues(alpha:0.10),
+          color: AppColors.primaryTeal.withValues(alpha: 0.10),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildTableHeader(),
-          const Divider(height: 1, color: AppColors.grey100),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Tentukan lebar masing-masing kolom
+              final double wMitra = constraints.maxWidth * 0.20;
+              final double wJadwal = constraints.maxWidth * 0.15;
+              final double wDurasi = constraints.maxWidth * 0.10;
+              final double wJob = constraints.maxWidth * 0.10;
+              final double wHarga = constraints.maxWidth * 0.12;
+              final double wStatus = constraints.maxWidth * 0.13;
+              final double wAksi = constraints.maxWidth * 0.20;
+
+              return Column(
                 children: [
-                  for (int i = 0; i < bids.length; i++) ...[
-                    _buildTableRow(context, bids[i]),
-                    if (i != bids.length - 1)
-                      const Divider(height: 1, color: AppColors.grey100),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: Row(
-        children: [
-          Expanded(flex: 4, child: _headerCell('Mitra')),
-          Expanded(flex: 2, child: _headerCell('Job Selesai')),
-          Expanded(flex: 3, child: _headerCell('Harga Penawaran')),
-          Expanded(flex: 3, child: _headerCell('Status')),
-          Expanded(flex: 5, child: _headerCell('Aksi')),
-        ],
-      ),
-    );
-  }
-
-  Widget _headerCell(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: AppColors.grey500,
-      ),
-    );
-  }
-
-  Widget _buildTableRow(BuildContext context, OfferModel offer) {
-    final isAccepted = offer.isAccepted;
-    final isRejected = offer.isRejected;
-
-    Color? rowBg;
-    if (isAccepted) {
-      rowBg = const Color(0xFFF0FDF4);
-    } else if (isRejected) {
-      rowBg = const Color(0xFFFEF2F2);
-    }
-
-    return Container(
-      color: rowBg,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Kolom 1: Mitra
-          Expanded(
-            flex: 4,
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: isAccepted
-                      ? const Color(0xFFDCFCE7)
-                      : AppColors.mint.withValues(alpha:0.20), // ← dari orange soft
-                  child: Icon(
-                    Icons.person,
-                    color: isAccepted
-                        ? const Color(0xFF16A34A)
-                        : AppColors.primaryTeal, // ← dari orange
-                    size: 24,
+                  // HEADER
+                  Container(
+                    color: AppColors.grey50,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    child: Row(
+                      children: [
+                        SizedBox(width: wMitra, child: const _TableHeader('Mitra')),
+                        SizedBox(width: wJadwal, child: const _TableHeader('Jadwal Mulai')),
+                        SizedBox(width: wDurasi, child: const _TableHeader('Durasi')),
+                        SizedBox(width: wJob, child: const _TableHeader('Job Selesai')),
+                        SizedBox(width: wHarga, child: const _TableHeader('Harga')),
+                        SizedBox(width: wStatus, child: const _TableHeader('Status')),
+                        SizedBox(width: wAksi, child: const _TableHeader('Aksi')),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        offer.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.grey900,
-                        ),
-                      ),
-                      if (offer.verified) ...[
-                        const SizedBox(height: 4),
-                        const Row(
-                          children: [
-                            Icon(Icons.verified,
-                                color: Color(0xFF16A34A), size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              'Terverifikasi',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF16A34A),
-                                fontWeight: FontWeight.w600,
+                  const Divider(height: 1, color: AppColors.grey100),
+
+                  // ROWS
+                  ...bids.map((offer) {
+                    final rowColor = offer.isAccepted
+                        ? const Color(0xFFF0FDF4)
+                        : offer.isRejected
+                            ? const Color(0xFFFEF2F2)
+                            : Colors.transparent;
+
+                    return Container(
+                      color: rowColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        children: [
+                          // 1. Mitra
+                          SizedBox(
+                            width: wMitra,
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: AppColors.mint.withValues(alpha: 0.20),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: AppColors.primaryTeal,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        offer.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.grey900,
+                                        ),
+                                      ),
+                                      if (offer.verified)
+                                        const Text(
+                                          'Terverifikasi',
+                                          style: TextStyle(
+                                            color: _green,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // 2. Jadwal
+                          SizedBox(
+                            width: wJadwal,
+                            child: Text(
+                              offer.proposedStartAtText,
+                              style: const TextStyle(fontSize: 12, color: AppColors.grey900),
+                            ),
+                          ),
+
+                          // 3. Durasi
+                          SizedBox(
+                            width: wDurasi,
+                            child: Text(
+                              offer.estimatedDurationText,
+                              style: const TextStyle(fontSize: 12, color: AppColors.grey900),
+                            ),
+                          ),
+
+                          // 4. Job Selesai
+                          SizedBox(
+                            width: wJob,
+                            child: Text(
+                              '${offer.jobsCompleted} Job',
+                              style: const TextStyle(fontSize: 12, color: AppColors.grey900),
+                            ),
+                          ),
+
+                          // 5. Harga
+                          SizedBox(
+                            width: wHarga,
+                            child: Text(
+                              offer.price,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryTeal,
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+                          ),
 
-          // Kolom 2: Job Selesai
-          Expanded(
-            flex: 2,
-            child: Text(
-              '${offer.jobsCompleted} Job',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.grey900,
-              ),
-            ),
-          ),
+                          // 6. Status
+                          SizedBox(
+                            width: wStatus,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _buildStatusBadge(offer),
+                            ),
+                          ),
 
-          // Kolom 3: Harga
-          Expanded(
-            flex: 3,
-            child: Text(
-              offer.price,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: isAccepted
-                    ? const Color(0xFF16A34A)
-                    : AppColors.primaryTeal, // ← dari orange
-              ),
-            ),
+                          // 7. Aksi
+                          SizedBox(
+                            width: wAksi,
+                            child: _buildTableActions(context, offer),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  
+                  const Divider(height: 1, color: AppColors.grey100),
+                ],
+              );
+            },
           ),
-
-          // Kolom 4: Status
-          Expanded(
-            flex: 3,
-            child: _buildStatusBadge(offer),
-          ),
-
-          // Kolom 5: Aksi
-          Expanded(
-            flex: 5,
-            child: _buildTableActions(context, offer),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -443,46 +505,45 @@ class OfferScreen extends StatelessWidget {
   // ============================================================
 
   Widget _buildStatusBadge(OfferModel offer) {
-    Color bg;
-    Color fg;
-    IconData icon;
-    String label;
+    final Color color;
+    final Color background;
+    final IconData icon;
+    final String label;
 
     if (offer.isAccepted) {
-      bg = const Color(0xFFDCFCE7);
-      fg = const Color(0xFF16A34A);
+      color = _green;
+      background = const Color(0xFFDCFCE7);
       icon = Icons.check_circle;
       label = 'Terpilih';
     } else if (offer.isRejected) {
-      bg = const Color(0xFFFEE2E2);
-      fg = const Color(0xFFDC2626);
+      color = _red;
+      background = const Color(0xFFFEE2E2);
       icon = Icons.cancel;
       label = 'Ditolak';
     } else {
-      // pending → mint/teal (dari amber)
-      bg = AppColors.mint.withValues(alpha:0.20);
-      fg = AppColors.primaryTeal;
+      color = AppColors.primaryTeal;
+      background = AppColors.mint.withValues(alpha: 0.20);
       icon = Icons.hourglass_top;
       label = 'Menunggu';
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: bg,
+        color: background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: fg, size: 14),
-          const SizedBox(width: 5),
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: fg,
+              color: color,
             ),
           ),
         ],
@@ -491,83 +552,138 @@ class OfferScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // AKSI DI TABEL
+  // TABEL ACTIONS
   // ============================================================
 
   Widget _buildTableActions(BuildContext context, OfferModel offer) {
-    // Sudah diputuskan → cuma tombol "Lihat Profil"
     if (!offer.isPending) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: OutlinedButton.icon(
-          onPressed: () => onOpenProfile(offer),
-          icon: const Icon(Icons.person_outline, size: 16),
-          label: const Text('Lihat Profil'),
-          style: OutlinedButton.styleFrom(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            foregroundColor: AppColors.grey700,
-            side: const BorderSide(color: AppColors.grey300),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
+      return TextButton.icon(
+        onPressed: () => onOpenProfile(offer),
+        icon: const Icon(Icons.person_outline, size: 16),
+        label: const Text('Lihat Profil'),
       );
     }
 
-    // Pending → Terima + Tolak + Lihat Profil
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         ElevatedButton(
-          onPressed:
-              _canRespond ? () => _showAcceptDialog(context, offer) : null,
+          onPressed: _canRespond ? () => _showAcceptDialog(context, offer) : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryTeal, // ← dari green
+            backgroundColor: AppColors.primaryTeal,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.grey200,
-            disabledForegroundColor: AppColors.grey400,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
-          child: const Text('Terima',
-              style:
-                  TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
+          child: const Text('Terima', style: TextStyle(fontSize: 12)),
         ),
+        const SizedBox(width: 6),
         OutlinedButton(
           onPressed: _canRespond ? () => onReject(offer) : null,
           style: OutlinedButton.styleFrom(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            foregroundColor: const Color(0xFFDC2626),
-            disabledForegroundColor: AppColors.grey400,
-            side: BorderSide(
-              color: _canRespond
-                  ? const Color(0xFFDC2626)
-                  : AppColors.grey200,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            foregroundColor: _red,
+            side: const BorderSide(color: _red),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
-          child: const Text('Tolak',
-              style:
-                  TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
+          child: const Text('Tolak', style: TextStyle(fontSize: 12)),
         ),
-        TextButton.icon(
+        const SizedBox(width: 4),
+        IconButton(
           onPressed: () => onOpenProfile(offer),
-          icon: const Icon(Icons.person_outline, size: 15),
-          label: const Text('Lihat Profil',
-              style: TextStyle(fontSize: 12.5)),
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primaryTeal, // ← dari ungu
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          icon: const Icon(Icons.person_search, size: 20, color: AppColors.grey600),
+          tooltip: 'Lihat Profil',
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // KONFIRMASI TERIMA
+  // ============================================================
+
+  void _showAcceptDialog(BuildContext context, OfferModel offer) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        title: const Text(
+          'Konfirmasi Penawaran',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Apakah Anda yakin ingin memilih ${offer.name}?',
+              ),
+              const SizedBox(height: 16),
+              _detailRow('Harga', offer.price),
+              const SizedBox(height: 10),
+              _detailRow('Jadwal mulai', offer.proposedStartAtText),
+              const SizedBox(height: 10),
+              _detailRow('Estimasi durasi', offer.estimatedDurationText),
+              const SizedBox(height: 14),
+              const Text(
+                'Dengan menerima penawaran, Anda menyetujui '
+                'harga, jadwal mulai, dan estimasi durasi '
+                'yang diajukan Mitra.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.grey600,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _handleAccept(context, offer);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Ya, Pilih'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.grey500,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.grey900,
           ),
         ),
       ],
@@ -575,136 +691,86 @@ class OfferScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // DIALOG KONFIRMASI TERIMA
+  // BANNER STATUS PEKERJAAN
   // ============================================================
 
-  void _showAcceptDialog(BuildContext context, OfferModel offer) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        title: const Text(
-          "Konfirmasi",
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.grey900,
-          ),
-        ),
-        content: Text(
-          "Apakah Anda yakin ingin memilih ${offer.name} sebagai mitra?",
-          style: const TextStyle(
-            color: AppColors.grey700,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Batal",
-              style: TextStyle(color: AppColors.grey600),
+  Widget _buildStatusBanner() {
+    final status = job.status.toLowerCase().trim();
+
+    String message;
+    Color color;
+    Color background;
+    IconData icon;
+
+    if (status.contains('selesai')) {
+      message = 'Pekerjaan sudah selesai.';
+      color = _green;
+      background = const Color(0xFFDCFCE7);
+      icon = Icons.check_circle;
+    } else if (status.contains('konfirmasi')) {
+      message = 'Pekerjaan sedang menunggu konfirmasi.';
+      color = AppColors.primaryTeal;
+      background = AppColors.mint.withValues(alpha: 0.20);
+      icon = Icons.hourglass_top;
+    } else if (status.contains('dikerjakan') || status.contains('proses')) {
+      message = 'Pekerjaan sedang dikerjakan.';
+      color = AppColors.primaryTeal;
+      background = AppColors.mint.withValues(alpha: 0.20);
+      icon = Icons.engineering;
+    } else if (status.contains('batal') || status.contains('cancel')) {
+      message = 'Pekerjaan telah dibatalkan.';
+      color = _red;
+      background = const Color(0xFFFEE2E2);
+      icon = Icons.cancel;
+    } else {
+      message = 'Penawaran untuk pekerjaan ini sudah ditutup.';
+      color = AppColors.grey700;
+      background = AppColors.grey200;
+      icon = Icons.info_outline;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryTeal, // ← dari green
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              _handleAccept(context, offer);
-            },
-            child: const Text("Ya, Pilih"),
           ),
         ],
       ),
     );
   }
+}
 
-  // ============================================================
-  // BANNER STATUS JOB
-  // ============================================================
+// ============================================================
+// HELPER WIDGET — Header Tabel
+// ============================================================
 
-  Widget _buildStatusBanner() {
-    final status = job.status;
-    final s = status.toLowerCase();
+class _TableHeader extends StatelessWidget {
+  final String text;
+  const _TableHeader(this.text);
 
-    Color bg;
-    Color fg;
-    IconData icon;
-    String message;
-
-    if (s.contains('selesai')) {
-      bg = const Color(0xFFDCFCE7);
-      fg = const Color(0xFF16A34A);
-      icon = Icons.check_circle_outline;
-      message =
-          'Pekerjaan ini sudah selesai. Tidak ada tindakan yang diperlukan.';
-    } else if (s.contains('konfirmasi')) {
-      bg = const Color(0xFFFEF3C7);
-      fg = const Color(0xFFD97706);
-      icon = Icons.hourglass_top_outlined;
-      message =
-          'Mitra sudah upload bukti pekerjaan. Cek di halaman utama untuk konfirmasi.';
-    } else if (s.contains('dikerjakan') || s.contains('proses')) {
-      bg = const Color(0xFFFEF3C7);
-      fg = const Color(0xFFD97706);
-      icon = Icons.construction_outlined;
-      message =
-          'Mitra sudah dipilih dan sedang mengerjakan. Penawaran lain tidak bisa diproses lagi.';
-    } else if (s.contains('batal') || s.contains('cancel')) {
-      bg = const Color(0xFFFEE2E2);
-      fg = const Color(0xFFDC2626);
-      icon = Icons.cancel_outlined;
-      message = 'Pekerjaan ini sudah dibatalkan.';
-    } else {
-      // default → mint/teal (dari ungu)
-      bg = AppColors.mint.withValues(alpha:0.20);
-      fg = AppColors.primaryTeal;
-      icon = Icons.info_outline;
-      message = 'Status pekerjaan: $status';
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: fg.withValues(alpha:0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: fg, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Status: $status',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: fg,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.grey500,
       ),
     );
   }

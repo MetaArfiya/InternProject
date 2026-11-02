@@ -22,10 +22,18 @@ use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\ChatController;
 use App\Models\AppReview;
 
+// TAMBAHAN BARU UNTUK ALUR SALDO
+use App\Http\Controllers\TopupController;
+use App\Http\Controllers\WithdrawalController;
+use App\Http\Controllers\WalletController;
+use App\Http\Controllers\Api\CityController;
+
 
 // =========================================================
 // JALUR UMUM / PUBLIC
 // =========================================================
+
+Route::get('/cities', [CityController::class, 'index']);
 
 Route::get('/images/jobs/{filename}', function ($filename) {
     $path = 'jobs/' . $filename;
@@ -158,21 +166,12 @@ Route::get('/images/completion_proofs/{filename}', function ($filename) {
 });
 
 
-Route::get('/images/payment_proofs/{folder}/{filename}', function ($folder, $filename) {
-    if (!in_array($folder, ['customer', 'mitra'])) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Folder tidak valid.',
-        ], 400);
-    }
-
-    $path = 'payment_proofs/' . $folder . '/' . $filename;
+// ✅ Route untuk menampilkan gambar bukti topup (DIPERBAIKI: tambah CORS)
+Route::get('/images/topup_proofs/{filename}', function ($filename) {
+    $path = 'topup_proofs/' . $filename;
 
     if (!Storage::disk('public')->exists($path)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Bukti pembayaran tidak ditemukan.',
-        ], 404);
+        return response()->json(['message' => 'Not found'], 404);
     }
 
     $file = Storage::disk('public')->get($path);
@@ -187,7 +186,33 @@ Route::get('/images/payment_proofs/{folder}/{filename}', function ($folder, $fil
         ->header('Content-Type', $mimeType)
         ->header('Access-Control-Allow-Origin', '*')
         ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        ->header('Access-Control-Allow-Headers', '*');
+        ->header('Access-Control-Allow-Headers', '*')
+        ->header('Cache-Control', 'public, max-age=86400');
+});
+
+
+// ✅ Route untuk menampilkan gambar bukti withdraw (DIPERBAIKI: tambah CORS)
+Route::get('/images/withdraw_proofs/{filename}', function ($filename) {
+    $path = 'withdraw_proofs/' . $filename;
+
+    if (!Storage::disk('public')->exists($path)) {
+        return response()->json(['message' => 'Not found'], 404);
+    }
+
+    $file = Storage::disk('public')->get($path);
+    $mimeType = match (strtolower(pathinfo($filename, PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        default => 'application/octet-stream',
+    };
+
+    return Response::make($file, 200)
+        ->header('Content-Type', $mimeType)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        ->header('Access-Control-Allow-Headers', '*')
+        ->header('Cache-Control', 'public, max-age=86400');
 });
 
 
@@ -272,26 +297,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/user/profile/photo', [AuthController::class, 'uploadProfilePhoto']);
 
-
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
     Route::post('/activity-logs', [ActivityLogController::class, 'store']);
 
     Route::delete('/activity-logs/by-range', [ActivityLogController::class, 'deleteByRange']);
     Route::delete('/activity-logs/all',      [ActivityLogController::class, 'deleteAll']);
 
-
     Route::get('/complaints/my',    [ComplaintController::class, 'myComplaints']);
     Route::post('/complaints',      [ComplaintController::class, 'store']);
     Route::get('/complaints/{id}',  [ComplaintController::class, 'show']);
 
-
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
-
 
     Route::get('/notifications', [NotificationController::class, 'getNotifications']);
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
     Route::put('/user/notification-setting', [AuthController::class, 'updateNotificationSetting']);
-
 
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
@@ -299,6 +319,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get ('/jobs/{id}/chat', [ChatController::class, 'index']);
     Route::post('/jobs/{id}/chat', [ChatController::class, 'store']);
+
+    // 🆕 WALLET (Bisa diakses semua role: Pelanggan, Mitra, Admin)
+    Route::get('/wallet', [WalletController::class, 'show']);
+
+    Route::post('/user/set-pin', [AuthController::class, 'setPin']);
 
 
     // =====================================================
@@ -320,6 +345,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/superadmin/payments/overview',  [PaymentController::class, 'superOverview']);
         Route::get('/superadmin/payments/chart',     [PaymentController::class, 'superChart']);
         Route::get('/superadmin/payments/top-mitra', [PaymentController::class, 'superTopMitra']);
+
+        Route::post('/cities', [CityController::class, 'store']);
+        Route::put('/cities/{id}', [CityController::class, 'update']);
+        Route::delete('/cities/{id}', [CityController::class, 'destroy']);
     });
 
 
@@ -334,12 +363,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/activities', [AdminActivityController::class, 'index']);
         Route::post('/admin/activities', [AdminActivityController::class, 'store']);
 
-        // PEMBAYARAN — ADMIN
+        // PEMBAYARAN & ESCROW — ADMIN
         Route::get('/admin/payments',                    [PaymentController::class, 'adminIndex']);
         Route::get('/admin/payments/{id}',               [PaymentController::class, 'showForAdmin']);
-        Route::put('/admin/payments/{id}/verify',        [PaymentController::class, 'verifyCustomerProof']);
-        Route::post('/admin/payments/{id}/settle',       [PaymentController::class, 'settle']);
+        // Route::post('/admin/payments/{id}/release',      [PaymentController::class, 'releaseToMitra']);
         Route::put('/admin/payments/{id}/refund',        [PaymentController::class, 'refund']);
+
+        // TOPUP — ADMIN
+        Route::get('/admin/topups',                      [TopupController::class, 'adminIndex']);
+        Route::put('/admin/topups/{id}/verify',          [TopupController::class, 'verify']);
+
+        // WITHDRAW — ADMIN
+        Route::get('/admin/withdrawals',                 [WithdrawalController::class, 'adminIndex']);
+        Route::post('/admin/withdrawals/{id}/process', [WithdrawalController::class, 'process']);
+        Route::put('/admin/withdrawals/{id}/reject',     [WithdrawalController::class, 'reject']);
+
+        // RESET PIN USER — ADMIN
+        Route::post('/admin/users/{id}/reset-pin', [AdminController::class, 'resetUserPin']);
 
         // COMPLAINTS — ADMIN
         Route::get('/admin/complaints',         [ComplaintController::class, 'adminIndex']);
@@ -361,6 +401,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/pending-skills', [MitraProfileController::class, 'pendingSkills']);
         Route::post('/admin/approve-skill/{mitraId}', [MitraProfileController::class, 'approveSkill']);
         Route::post('/admin/reject-skill/{mitraId}',  [MitraProfileController::class, 'rejectSkill']);
+
+        Route::get('/payments/{id}', [PaymentController::class, 'showForAdmin']);
     });
 
 
@@ -385,8 +427,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/jobs/{id}/upload-proof', [JobController::class, 'uploadProof']);
 
+        // PENDAPATAN & STATISTIK
         Route::get('/mitra/earnings', [PaymentController::class, 'mitraIndex']);
         Route::get('/mitra/earnings/monthly', [PaymentController::class, 'mitraMonthlyStats']);
+
+        // 🆕 TOPUP & WITHDRAW — MITRA
+        Route::post('/mitra/topups',                     [TopupController::class, 'store']);
+        Route::get('/mitra/topups',                      [TopupController::class, 'index']);
+        Route::post('/mitra/withdrawals',                [WithdrawalController::class, 'store']);
+        Route::get('/mitra/withdrawals',                 [WithdrawalController::class, 'index']);
 
         Route::get('/mitra/my-jobs/complaint-eligible', [JobController::class, 'myJobsForComplaintMitra']);
 
@@ -394,6 +443,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/jobs/{id}/tracking/location', [TrackingController::class, 'updateLocation']);
         Route::post('/jobs/{id}/tracking/status',   [TrackingController::class, 'updateStatus']);
         Route::post('/jobs/{id}/tracking/stop',     [TrackingController::class, 'stop']);
+
+        Route::post('/jobs/{id}/start', [JobController::class, 'startJob']);
     });
 
 
@@ -416,15 +467,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/mitra/{id}', [MitraProfileController::class, 'show']);
         Route::get('/jobs/{id}', [JobController::class, 'show']);
 
+        // PEMBAYARAN & ESCROW — PELANGGAN
         Route::get('/pelanggan/payments',                   [PaymentController::class, 'pelangganIndex']);
         Route::get('/pelanggan/payments/{id}',              [PaymentController::class, 'showForPelanggan']);
-        Route::post('/pelanggan/payments/{id}/upload-proof',[PaymentController::class, 'uploadCustomerProof']);
+        Route::post('/pelanggan/payments/{id}/pay',         [PaymentController::class, 'payJobWithBalance']);
+        // Route::post('/pelanggan/payments/{id}/accept',      [PaymentController::class, 'acceptJobByPelanggan']);
+
+        // 🆕 TOPUP & WITHDRAW — PELANGGAN
+        Route::post('/pelanggan/topups',                    [TopupController::class, 'store']);
+        Route::get('/pelanggan/topups',                     [TopupController::class, 'index']);
+        Route::post('/pelanggan/withdrawals',               [WithdrawalController::class, 'store']);
+        Route::get('/pelanggan/withdrawals',                [WithdrawalController::class, 'index']);
 
         Route::post('/pelanggan/ratings',              [RatingController::class, 'storeFromPelanggan']);
         Route::get('/pelanggan/ratings/job/{jobId}',   [RatingController::class, 'checkJobRating']);
 
+        Route::post('/jobs/{id}/bids/{bidId}/accept', [JobController::class, 'acceptBid']);
+        Route::post('/jobs/{id}/bids/{bidId}/reject', [JobController::class, 'rejectBid']);
+
     });
 });
+
 Route::get('/complaints/image/{filename}', function ($filename) {
     $path = 'complaints/' . $filename;
 
