@@ -322,6 +322,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 🆕 WALLET (Bisa diakses semua role: Pelanggan, Mitra, Admin)
     Route::get('/wallet', [WalletController::class, 'show']);
+    Route::get('/platform-bank-account', [SuperAdminController::class, 'getPlatformBankAccount']);
 
     Route::post('/user/set-pin', [AuthController::class, 'setPin']);
 

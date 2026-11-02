@@ -692,6 +692,40 @@ class SuperAdminController extends Controller
     // UPDATE BANK ACCOUNT
     // =============================================================
 
+    /** Rekening tujuan top up yang boleh dilihat pengguna login. */
+        public function getPlatformBankAccount()
+    {
+        try {
+            // Ambil data Super Admin (ID 1) dari tabel users
+            $platformAccount = \App\Models\users::find(1);
+
+            if (!$platformAccount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data rekening platform belum diatur.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    // MENYESUAIKAN DENGAN NAMA KOLOM DI DATABASE KAMU
+                    'bank_name'      => $platformAccount->bank_name,
+                    'account_number' => $platformAccount->bank_account_number, // Kolom yang benar
+                    'account_name'   => $platformAccount->bank_account_name,   // Kolom yang benar
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('SuperAdminController@getPlatformBankAccount: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat info rekening.',
+            ], 500);
+        }
+    }
+
     public function updateBankAccount(Request $request)
     {
         $request->validate([

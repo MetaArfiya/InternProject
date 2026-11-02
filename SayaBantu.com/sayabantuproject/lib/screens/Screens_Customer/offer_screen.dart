@@ -79,13 +79,10 @@ class OfferScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // TERIMA PENAWARAN
+  // TERIMA PENAWARAN (DENGAN PIN)
   // ============================================================
 
-  Future<void> _handleAccept(
-    BuildContext context,
-    OfferModel offer,
-  ) async {
+  Future<void> _handleAccept(BuildContext context, OfferModel offer, String pin) async {
     if (!_canRespond) {
       _showMessage(
         context,
@@ -108,15 +105,16 @@ class OfferScreen extends StatelessWidget {
     try {
       final response = await ApiService.post(
         '/jobs/accept-bid/${offer.id}',
-        {},
+        {
+          'pin': pin, // Mengirim PIN ke Backend Laravel
+        },
       );
 
       if (!context.mounted) return;
 
       Navigator.of(context, rootNavigator: true).pop();
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         _showMessage(
           context,
           'Penawaran berhasil diterima.',
@@ -317,7 +315,7 @@ class OfferScreen extends StatelessWidget {
           job: job,
           offer: offer,
           canRespond: _canRespond,
-          onAccept: (item) => _handleAccept(context, item),
+          onAccept: (item) => _showAcceptDialog(context, item), // Mengarah ke dialog konfirmasi dulu
           onOpenProfile: onOpenProfile,
           onReject: onReject,
         );
@@ -329,7 +327,7 @@ class OfferScreen extends StatelessWidget {
   // DESKTOP TABLE (MENGGUNAKAN DATATABLE AGAR RAPI)
   // ============================================================
 
-    Widget _buildWebTable(BuildContext context, List<OfferModel> bids) {
+  Widget _buildWebTable(BuildContext context, List<OfferModel> bids) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -603,7 +601,7 @@ class OfferScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // KONFIRMASI TERIMA
+  // KONFIRMASI TERIMA & FORM PIN
   // ============================================================
 
   void _showAcceptDialog(BuildContext context, OfferModel offer) {
@@ -652,14 +650,58 @@ class OfferScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(dialogContext);
-              _handleAccept(context, offer);
+              Navigator.pop(dialogContext); // Tutup dialog konfirmasi
+              _showPinDialog(context, offer); // Lanjut ke form PIN
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryTeal,
               foregroundColor: Colors.white,
             ),
             child: const Text('Ya, Pilih'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPinDialog(BuildContext context, OfferModel offer) {
+    final TextEditingController pinController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (pinContext) => AlertDialog(
+        title: const Text('Konfirmasi PIN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Masukkan PIN Anda untuk menyetujui penawaran ini dan menahan saldo.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: pinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                labelText: 'PIN',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(pinContext),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final pin = pinController.text;
+              if (pin.isEmpty) return;
+              
+              Navigator.pop(pinContext); // Tutup form PIN
+              _handleAccept(context, offer, pin); // Kirim data ke backend
+            },
+            child: const Text('Konfirmasi'),
           ),
         ],
       ),

@@ -234,6 +234,10 @@ class AdminWithdrawScreenState extends State<AdminWithdrawScreen> {
               rows: _paginatedWithdrawals.map((w) {
                 final isPending = w['status'] == 'pending';
                 final isProcessing = _processingId == w['id'];
+                final userBank = w['user'] is Map ? w['user'] as Map : const {};
+                final bankName = _firstNonEmpty(w['bank_name'], userBank['bank_name']);
+                final accountNumber = _firstNonEmpty(w['account_number'], userBank['bank_account_number']);
+                final accountName = _firstNonEmpty(w['account_name'], userBank['bank_account_name'], userBank['name']);
                 
                 // Ambil URL bukti transfer
                 final proofPath = w['transfer_proof_url']?.toString() ?? '';
@@ -252,8 +256,8 @@ class AdminWithdrawScreenState extends State<AdminWithdrawScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('${w['bank_name']} - ${w['account_number']}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: t.cellText)),
-                            Text(w['account_name'] ?? '-', style: TextStyle(fontSize: 11, color: t.mutedText)),
+                            Text('$bankName - $accountNumber', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: t.cellText)),
+                            Text('A.n. $accountName', style: TextStyle(fontSize: 11, color: t.mutedText)),
                           ],
                         ),
                       )
@@ -305,6 +309,10 @@ class AdminWithdrawScreenState extends State<AdminWithdrawScreen> {
       children: _paginatedWithdrawals.map((w) {
         final isPending = w['status'] == 'pending';
         final isProcessing = _processingId == w['id'];
+        final userBank = w['user'] is Map ? w['user'] as Map : const {};
+        final bankName = _firstNonEmpty(w['bank_name'], userBank['bank_name']);
+        final accountNumber = _firstNonEmpty(w['account_number'], userBank['bank_account_number']);
+        final accountName = _firstNonEmpty(w['account_name'], userBank['bank_account_name'], userBank['name']);
         
         final proofPath = w['transfer_proof_url']?.toString() ?? '';
         final filename = proofPath.split('/').last;
@@ -331,8 +339,8 @@ class AdminWithdrawScreenState extends State<AdminWithdrawScreen> {
               const SizedBox(height: 8),
               Text('User: ${w['user']?['name'] ?? '-'}'),
               Text('Nominal: Rp ${w['amount']}', style: TextStyle(fontWeight: FontWeight.bold, color: t.danger)),
-              Text('Rek: ${w['bank_name']} - ${w['account_number']}'),
-              Text('Atas Nama: ${w['account_name']}'),
+              Text('Rekening tujuan: $bankName - $accountNumber'),
+              Text('Atas nama: $accountName'),
               
               // TAMPILKAN GAMBAR BUKTI DI MOBILE
               if (imageUrl != null) ...[
@@ -364,6 +372,14 @@ class AdminWithdrawScreenState extends State<AdminWithdrawScreen> {
         );
       }).toList(),
     );
+  }
+
+  String _firstNonEmpty(Object? first, [Object? second, Object? third]) {
+    for (final value in [first, second, third]) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty && text != 'null') return text;
+    }
+    return '-';
   }
 
   Widget _statusBadge(String status) {

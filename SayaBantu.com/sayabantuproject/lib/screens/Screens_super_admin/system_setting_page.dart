@@ -123,6 +123,9 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
       TextEditingController();
   final TextEditingController _commissionController =
       TextEditingController();
+  final TextEditingController _platformBankNameController = TextEditingController();
+  final TextEditingController _platformBankAccountController = TextEditingController();
+  final TextEditingController _platformBankOwnerController = TextEditingController();
 
   // ============================================================
   // DEFAULT VALUES
@@ -140,6 +143,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isResetting = false;
+  bool _isSavingBank = false;
   String? _errorMessage;
 
   // ============================================================
@@ -158,6 +162,9 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     _cancelPointController.dispose();
     _ratingBonusController.dispose();
     _commissionController.dispose();
+    _platformBankNameController.dispose();
+    _platformBankAccountController.dispose();
+    _platformBankOwnerController.dispose();
     super.dispose();
   }
 
@@ -214,6 +221,12 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
               _ratingBonusController.text = ratingBonus.toString();
               _commissionController.text =
                   _formatCommissionInput(commission);
+              _platformBankNameController.text =
+                  data['platform_bank_name']?.toString() ?? '';
+              _platformBankAccountController.text =
+                  data['platform_bank_account_number']?.toString() ?? '';
+              _platformBankOwnerController.text =
+                  data['platform_bank_account_name']?.toString() ?? '';
               _isLoading = false;
             });
           } else {
@@ -371,16 +384,25 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
           _buildPointSettingsCard(t),
           const SizedBox(height: 16),
           _buildCommissionCard(t),
+          const SizedBox(height: 16),
+          _buildPlatformBankCard(t),
         ],
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: _buildPointSettingsCard(t)),
-        const SizedBox(width: 16),
-        Expanded(child: _buildCommissionCard(t)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildPointSettingsCard(t)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildCommissionCard(t)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildPlatformBankCard(t),
       ],
     );
   }
@@ -876,6 +898,66 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
     );
   }
 
+  Widget _buildPlatformBankCard(AdminTheme t) {
+    return _buildCard(
+      t: t,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardTitle(
+            icon: Icons.account_balance_outlined,
+            iconColor: t.accent,
+            title: 'Rekening Penerima Top Up',
+            subtitle: 'Ditampilkan kepada pengguna sebelum mereka transfer',
+            t: t,
+          ),
+          const SizedBox(height: 16),
+          _buildBankTextField(_platformBankNameController, 'Nama Bank', t),
+          const SizedBox(height: 12),
+          _buildBankTextField(_platformBankAccountController, 'Nomor Rekening', t,
+              keyboardType: TextInputType.number),
+          const SizedBox(height: 12),
+          _buildBankTextField(_platformBankOwnerController, 'Nama Pemilik Rekening', t),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: _isSavingBank ? null : _savePlatformBank,
+              icon: _isSavingBank
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+                  : const Icon(Icons.save_outlined, size: 18),
+              label: Text(_isSavingBank ? 'Menyimpan...' : 'Simpan Rekening Platform'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: t.accent,
+                foregroundColor: AppColors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBankTextField(
+    TextEditingController controller,
+    String label,
+    AdminTheme t, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: t.border),
+        ),
+      ),
+    );
+  }
+
   // ============================================================
   // SIMULATION
   // ============================================================
@@ -1143,6 +1225,48 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
   // ============================================================
   // SAVE CONFIGURATION
   // ============================================================
+
+  Future<void> _savePlatformBank() async {
+    final t = theme;
+    final bankName = _platformBankNameController.text.trim();
+    final accountNumber = _platformBankAccountController.text.trim();
+    final accountName = _platformBankOwnerController.text.trim();
+
+    if (bankName.isEmpty || accountNumber.isEmpty || accountName.isEmpty) {
+      _showMessage('Lengkapi nama bank, nomor rekening, dan nama pemilik.', isError: true, t: t);
+      return;
+    }
+
+    setState(() => _isSavingBank = true);
+    try {
+      final response = await ApiService.post(
+        '/superadmin/settings/bank-account',
+        {
+          'platform_bank_name': bankName,
+          'platform_bank_account_number': accountNumber,
+          'platform_bank_account_name': accountName,
+        },
+      );
+
+      if (!mounted) return;
+      final body = jsonDecode(response.body);
+      setState(() => _isSavingBank = false);
+      if (response.statusCode == 200 && body['success'] == true) {
+        _showMessage('Rekening platform berhasil disimpan.', t: t);
+        await _loadSettings();
+      } else {
+        _showMessage(
+          body['message']?.toString() ?? 'Gagal menyimpan rekening platform.',
+          isError: true,
+          t: t,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSavingBank = false);
+      _showMessage('Gagal menyimpan rekening platform: $e', isError: true, t: t);
+    }
+  }
 
   Future<void> _saveConfiguration() async {
     final t = theme;

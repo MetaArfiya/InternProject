@@ -1011,10 +1011,24 @@ class JobController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function acceptBid($bidId)
+        public function acceptBid(Request $request, $bidId)
     {
+        // 1. Validasi PIN dari Flutter
+        $request->validate([
+            'pin' => 'required|string|size:6'
+        ]);
+
         try {
             $pelangganId = auth()->id();
+            $user = auth()->user();
+
+            // 2. Cek apakah PIN yang dimasukkan benar
+            if (!$user->pin || !Hash::check($request->pin, $user->pin)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PIN yang Anda masukkan salah.',
+                ], 400);
+            }
 
             $result = DB::transaction(function () use (
                 $bidId,
@@ -1025,47 +1039,27 @@ class JobController extends Controller
                     ->first();
 
                 if (!$selectedBid) {
-                    throw new \RuntimeException(
-                        'Penawaran tidak ditemukan.'
-                    );
+                    throw new \RuntimeException('Penawaran tidak ditemukan.');
                 }
 
                 $job = jobs::whereKey($selectedBid->job_id)
                     ->lockForUpdate()
                     ->first();
 
-                if (
-                    !$job ||
-                    (int) $job->pelanggan_id !== (int) $pelangganId
-                ) {
-                    throw new \RuntimeException(
-                        'Kamu tidak memiliki akses ke pekerjaan ini.'
-                    );
+                if (!$job || (int) $job->pelanggan_id !== (int) $pelangganId) {
+                    throw new \RuntimeException('Kamu tidak memiliki akses ke pekerjaan ini.');
                 }
 
                 if ($job->status !== 'Mencari Mitra') {
-                    throw new \RuntimeException(
-                        'Pekerjaan sudah tidak menerima penawaran.'
-                    );
+                    throw new \RuntimeException('Pekerjaan sudah tidak menerima penawaran.');
                 }
 
                 if ($selectedBid->status !== 'Menunggu') {
-                    throw new \RuntimeException(
-                        'Penawaran ini sudah tidak tersedia.'
-                    );
+                    throw new \RuntimeException('Penawaran ini sudah tidak tersedia.');
                 }
 
-                /*
-                 * Jadwal final berasal dari penawaran Mitra
-                 * yang dipilih pelanggan.
-                 */
-                if (
-                    !$selectedBid->proposed_start_at ||
-                    !$selectedBid->estimated_duration_minutes
-                ) {
-                    throw new \RuntimeException(
-                        'Penawaran Mitra belum memiliki informasi jadwal yang lengkap.'
-                    );
+                if (!$selectedBid->proposed_start_at || !$selectedBid->estimated_duration_minutes) {
+                    throw new \RuntimeException('Penawaran Mitra belum memiliki informasi jadwal yang lengkap.');
                 }
 
                 $schedule = $this->calculateScheduleEnd(
@@ -1077,54 +1071,48 @@ class JobController extends Controller
                 $scheduleEnd = $schedule['end'];
 
                 if ($scheduleStart->lessThanOrEqualTo(now())) {
-                    throw new \RuntimeException(
-                        'Jadwal yang ditawarkan sudah lewat. Pilih penawaran dengan jadwal lain.'
-                    );
+                    throw new \RuntimeException('Jadwal yang ditawarkan sudah lewat. Pilih penawaran dengan jadwal lain.');
                 }
 
                 $hargaDeal = (float) $selectedBid->offered_price;
                 $budgetAwal = (float) $job->initial_budget;
 
-                if (
-                    $hargaDeal <= 0 ||
-                    $hargaDeal > $budgetAwal
-                ) {
-                    throw new \RuntimeException(
-                        'Harga penawaran mitra tidak valid atau melebihi budget awal pelanggan.'
+                if ($hargaDeal <= 0) {
+                    throw new \RuntimeException('Harga penawaran mitra tidak valid.');
+                }
+
+                // === PERBAIKAN LOGIKA HARGA ===
+                // Jika harga mitra > budget awal, pastikan saldo user cukup untuk menutupi selisihnya
+                $selisih = round($hargaDeal - $budgetAwal, 2);
+                $wallet = Wallet::where('user_id', $pelangganId)->lockForUpdate()->first();
+
+                if (!$wallet) {
+                    throw new \RuntimeException('Wallet pelanggan tidak ditemukan.');
+                }
+
+                if ($selisih > 0) {
+                    // Jika harga lebih mahal, potong saldo aktif (balance) pelanggan untuk ditambahkan ke escrow
+                    if ((float) $wallet->balance < $selisih) {
+                        throw new \RuntimeException('Saldo Anda tidak mencukupi untuk menutupi selisih harga penawaran mitra. Silakan Topup.');
+                    }
+                    
+                    // Tambahkan selisih ke saldo tertahan (held_balance)
+                    app(WalletService::class)->hold(
+                        (int) $pelangganId,
+                        $selisih,
+                        (int) $job->id // Gunakan ID job atau payment ID yang sesuai
                     );
                 }
 
-                /*
-                 * PENTING:
-                 * Kunci baris user Mitra untuk menghindari dua
-                 * pelanggan menerima dua pekerjaan Mitra yang sama
-                 * secara bersamaan.
-                 */
-                $mitraUser = users::whereKey($selectedBid->mitra_id)
-                    ->lockForUpdate()
-                    ->first();
-
+                // Kunci Mitra
+                $mitraUser = users::whereKey($selectedBid->mitra_id)->lockForUpdate()->first();
                 if (!$mitraUser) {
-                    throw new \RuntimeException(
-                        'Akun Mitra tidak ditemukan.'
-                    );
+                    throw new \RuntimeException('Akun Mitra tidak ditemukan.');
                 }
 
-                /*
-                 * Cek jadwal bentrok.
-                 *
-                 * Dua jadwal bentrok jika:
-                 * jadwal lama mulai sebelum jadwal baru selesai,
-                 * DAN jadwal lama selesai setelah jadwal baru mulai.
-                 *
-                 * Status selesai dan dibatalkan tidak memblokir jadwal.
-                 */
+                // Cek bentrok jadwal (tetap dipertahankan)
                 $conflictingJob = jobs::where('mitra_id', $selectedBid->mitra_id)
-                    ->whereIn('status', [
-                        'Terjadwal',
-                        'Sedang Dikerjakan',
-                        'Menunggu Konfirmasi Selesai',
-                    ])
+                    ->whereIn('status', ['Terjadwal', 'Sedang Dikerjakan', 'Menunggu Konfirmasi Selesai'])
                     ->whereNotNull('scheduled_start_at')
                     ->whereNotNull('scheduled_end_at')
                     ->where('scheduled_start_at', '<', $scheduleEnd)
@@ -1133,139 +1121,56 @@ class JobController extends Controller
                     ->first();
 
                 if ($conflictingJob) {
-                    throw new \RuntimeException(
-                        'Jadwal Mitra berbenturan dengan pekerjaan lain. Silakan pilih penawaran Mitra lain atau minta jadwal berbeda.'
-                    );
+                    throw new \RuntimeException('Jadwal Mitra berbenturan dengan pekerjaan lain. Silakan pilih penawaran Mitra lain.');
                 }
 
-                /*
-                 * Validasi pembayaran escrow.
-                 */
-                $payment = Payment::where('job_id', $job->id)
-                    ->lockForUpdate()
-                    ->first();
-
+                // Validasi payment escrow
+                $payment = Payment::where('job_id', $job->id)->lockForUpdate()->first();
                 if (!$payment || $payment->status !== 'held') {
-                    throw new \RuntimeException(
-                        'Pembayaran tidak ditemukan atau tidak berada dalam status ditahan.'
-                    );
+                    throw new \RuntimeException('Pembayaran tidak ditemukan atau tidak berada dalam status ditahan.');
                 }
 
-                if (
-                    (int) $payment->pelanggan_id !== (int) $pelangganId ||
-                    round((float) $payment->total_paid, 2) !== round($budgetAwal, 2)
-                ) {
-                    throw new \RuntimeException(
-                        'Data pembayaran tidak sesuai dengan budget pekerjaan.'
-                    );
-                }
-
-                $wallet = Wallet::where('user_id', $pelangganId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$wallet) {
-                    throw new \RuntimeException(
-                        'Wallet pelanggan tidak ditemukan.'
-                    );
-                }
-
-                $selisih = round($budgetAwal - $hargaDeal, 2);
-
-                if (
-                    $selisih > 0 &&
-                    (float) $wallet->held_balance < $selisih
-                ) {
-                    throw new \RuntimeException(
-                        'Saldo escrow tidak mencukupi untuk mengembalikan selisih budget.'
-                    );
-                }
-
-                /*
-                 * Komisi platform.
-                 */
+                // Hitung komisi
                 $settings = system_setting::first();
+                $commissionPercent = $settings ? (float) $settings->platform_commission_percent : 15.00;
+                $commissionAmount = round($hargaDeal * ($commissionPercent / 100), 2);
+                $mitraEarning = round($hargaDeal - $commissionAmount, 2);
 
-                $commissionPercent = $settings
-                    ? (float) $settings->platform_commission_percent
-                    : 15.00;
-
-                if (
-                    $commissionPercent < 0 ||
-                    $commissionPercent > 100
-                ) {
-                    throw new \RuntimeException(
-                        'Persentase komisi platform tidak valid.'
-                    );
-                }
-
-                $commissionAmount = round(
-                    $hargaDeal * ($commissionPercent / 100),
-                    2
-                );
-
-                $mitraEarning = round(
-                    $hargaDeal - $commissionAmount,
-                    2
-                );
-
-                if (
-                    $hargaDeal <= 0 ||
-                    $commissionAmount < 0 ||
-                    $mitraEarning <= 0 ||
-                    round($commissionAmount + $mitraEarning, 2) !== round($hargaDeal, 2)
-                ) {
-                    throw new \RuntimeException(
-                        'Pembagian pembayaran tidak valid.'
-                    );
-                }
-
-                /*
-                 * Tetapkan jadwal final.
-                 * Pekerjaan belum dimulai pada tahap ini.
-                 */
+                // Update Job
                 $job->update([
                     'mitra_id' => $selectedBid->mitra_id,
                     'final_price' => $hargaDeal,
-
                     'scheduled_start_at' => $scheduleStart,
                     'scheduled_end_at' => $scheduleEnd,
-
                     'started_at' => null,
                     'status' => 'Terjadwal',
                 ]);
 
-                $selectedBid->update([
-                    'status' => 'Diterima Pelanggan',
-                ]);
+                // Update Bid
+                $selectedBid->update(['status' => 'Diterima Pelanggan']);
 
-                /*
-                 * Tolak penawaran lain karena pekerjaan sudah
-                 * memiliki Mitra yang dipilih.
-                 */
+                // Tolak bid lain
                 job_bids::where('job_id', $job->id)
                     ->where('id', '!=', $selectedBid->id)
                     ->where('status', 'Menunggu')
-                    ->update([
-                        'status' => 'Ditolak',
-                    ]);
+                    ->update(['status' => 'Ditolak']);
 
+                // Update Payment
                 $payment->update([
                     'mitra_id' => $selectedBid->mitra_id,
-
                     'job_amount' => $hargaDeal,
-
                     'commission_percent' => $commissionPercent,
                     'commission_amount' => $commissionAmount,
-
                     'mitra_earning' => $mitraEarning,
                     'total_paid' => $hargaDeal,
                 ]);
 
-                if ($selisih > 0) {
+                // Jika harga mitra LEBIH MURAH dari budget awal, kembalikan selisihnya ke saldo pelanggan
+                $refundSelisih = round($budgetAwal - $hargaDeal, 2);
+                if ($refundSelisih > 0) {
                     app(WalletService::class)->refundHold(
                         (int) $pelangganId,
-                        $selisih,
+                        $refundSelisih,
                         (int) $payment->id
                     );
                 }
@@ -1275,30 +1180,23 @@ class JobController extends Controller
                     'bid' => $selectedBid->fresh(),
                     'payment' => $payment->fresh(),
                     'mitra_id' => $selectedBid->mitra_id,
-                    'selisih' => $selisih,
                 ];
             }, 3);
 
+            // Notifikasi
             try {
                 $mitraUser = users::find($result['mitra_id']);
-
                 if ($mitraUser) {
-                    $mitraUser->notify(
-                        new BidAccepted($result['job'])
-                    );
+                    $mitraUser->notify(new BidAccepted($result['job']));
                 }
             } catch (\Throwable $e) {
-                Log::warning(
-                    'Notifikasi BidAccepted gagal: ' . $e->getMessage()
-                );
+                Log::warning('Notifikasi BidAccepted gagal: ' . $e->getMessage());
             }
 
             $this->logActivity(
                 $pelangganId,
                 'Pelanggan menerima penawaran mitra',
-                'Pelanggan menerima penawaran untuk "' .
-                    $result['job']->tittle . '". Jadwal: ' .
-                    $result['job']->scheduled_start_at . '.',
+                'Pelanggan menerima penawaran untuk "' . $result['job']->tittle . '".',
                 'check_circle',
                 'Sistem'
             );
@@ -1315,7 +1213,6 @@ class JobController extends Controller
             ], 400);
         } catch (\Throwable $e) {
             Log::error('JobController@acceptBid: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan sistem saat menerima penawaran.',

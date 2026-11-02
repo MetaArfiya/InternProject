@@ -23,6 +23,8 @@ class _TopupDialogState extends State<TopupDialog> {
   XFile? _proofImage;
   Uint8List? _imageBytes;
   bool _isLoading = false;
+  bool _isLoadingBank = true;
+  Map<String, dynamic>? _platformBank;
 
   static const Color _primaryColor = AppColors.primaryTeal;
   static const Color _borderColor = Color(0xFFE5E7EB);
@@ -31,6 +33,32 @@ class _TopupDialogState extends State<TopupDialog> {
     'BCA', 'Mandiri', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 
     'Permata', 'Danamon', 'BTN', 'Lainnya'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlatformBank();
+  }
+
+  Future<void> _loadPlatformBank() async {
+    try {
+      final response = await ApiService.get('/platform-bank-account');
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final data = decoded['data'];
+        if (mounted) {
+          setState(() {
+            _platformBank = data is Map<String, dynamic> ? data : null;
+            _isLoadingBank = false;
+          });
+        }
+        return;
+      }
+    } catch (_) {
+      // Tampilkan keadaan gagal tanpa memakai nomor rekening contoh.
+    }
+    if (mounted) setState(() => _isLoadingBank = false);
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -60,6 +88,13 @@ class _TopupDialogState extends State<TopupDialog> {
     if (rawAmount.isEmpty || _proofImage == null || bankName == null || bankName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lengkapi data dan bukti transfer!'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    if (_isLoadingBank || !_hasPlatformBank) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rekening tujuan top up belum tersedia. Silakan hubungi admin.'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -108,6 +143,13 @@ class _TopupDialogState extends State<TopupDialog> {
         );
       }
     }
+  }
+
+  bool get _hasPlatformBank {
+    final bank = _platformBank;
+    return bank != null &&
+        (bank['bank_name']?.toString().trim().isNotEmpty ?? false) &&
+        (bank['account_number']?.toString().trim().isNotEmpty ?? false);
   }
 
   @override
@@ -165,10 +207,33 @@ class _TopupDialogState extends State<TopupDialog> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Silakan transfer ke: BCA 123-456-789 (PT SayaBantu)',
-                        style: TextStyle(fontSize: 13, color: AppColors.grey700, fontWeight: FontWeight.w600),
-                      ),
+                      _isLoadingBank
+                          ? const LinearProgressIndicator()
+                          : _hasPlatformBank
+                              ? Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDFA),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: _primaryColor.withValues(alpha: 0.25)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Transfer ke rekening platform', style: TextStyle(fontSize: 12, color: AppColors.grey700)),
+                                      const SizedBox(height: 5),
+                                      Text('${_platformBank!['bank_name']} • ${_platformBank!['account_number']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.grey900)),
+                                      Text('Atas nama ${_platformBank!['account_name']?.toString().trim().isNotEmpty == true ? _platformBank!['account_name'] : '-'}', style: const TextStyle(fontSize: 12, color: AppColors.grey700)),
+                                    ],
+                                  ),
+                                )
+                              : Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(10)),
+                                  child: const Text('Rekening tujuan top up belum diatur. Silakan hubungi admin sebelum melakukan transfer.', style: TextStyle(fontSize: 13, color: AppColors.grey700)),
+                                ),
                       const SizedBox(height: 16),
                       
                       // INPUT NOMINAL DENGAN FORMATTER TITIK

@@ -134,7 +134,7 @@ class WithdrawalController extends Controller
         try {
             $admin = auth()->user();
 
-            $query = Withdrawal::with('user:id,name,email,phone,city_id')
+            $query = Withdrawal::with('user:id,name,email,phone,city_id,bank_name,bank_account_number,bank_account_name')
                 ->latest();
 
             // Admin Daerah hanya melihat withdrawal dari user di kotanya
@@ -170,7 +170,7 @@ class WithdrawalController extends Controller
         try {
             $admin = auth()->user();
 
-            $withdrawal = Withdrawal::with('user:id,name,email,phone,city_id')
+            $withdrawal = Withdrawal::with('user:id,name,email,phone,city_id,bank_name,bank_account_number,bank_account_name')
                 ->find($id);
 
             if (!$withdrawal) {

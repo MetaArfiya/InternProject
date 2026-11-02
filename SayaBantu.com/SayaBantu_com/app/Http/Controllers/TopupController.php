@@ -255,4 +255,43 @@ class TopupController extends Controller
             ], 500);
         }
     }
+
+        // USER — Ambil info rekening bank platform
+    // GET /api/platform-bank-account
+    public function getPlatformBankAccount()
+    {
+        try {
+            // MENGAMBIL DARI TABEL USERS
+            // Asumsi: Rekening platform disimpan di user dengan role_id = 1 (Superadmin)
+            // Sesuaikan 'role_id', 1 dengan ID role admin kamu.
+            $platformAccount = \App\Models\users::where('role_id', 1)->first(); 
+
+            if (!$platformAccount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data rekening platform belum diatur.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    // Pastikan nama kolom 'bank_name' dan 'account_number' 
+                    // ini benar-benar ada di tabel users database kamu.
+                    // Jika belum ada, kamu harus menambahkannya via migration.
+                    'bank_name'      => $platformAccount->bank_name ?? 'BCA',
+                    'account_number' => $platformAccount->account_number ?? '1234567890',
+                    'account_name'   => $platformAccount->name ?? 'PT Sayabantu Indonesia',
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('TopupController@getPlatformBankAccount: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat info rekening.',
+            ], 500);
+        }
+    }
+
 }
