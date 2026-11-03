@@ -13,6 +13,7 @@ import '../../sections/admin/admin_payment_detail_dialog.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class AdminPaymentScreen extends StatefulWidget {
   const AdminPaymentScreen({super.key});
@@ -848,24 +849,24 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
           referenceCode: paymentJson['reference_code']?.toString(),
           customerProofUrl: paymentJson['customer_proof_url']?.toString(),
           customerProofUploadedAt: paymentJson['customer_proof_uploaded_at'] != null
-              ? DateTime.tryParse(paymentJson['customer_proof_uploaded_at'].toString())
+              ? IndonesiaTime.tryParseApiTimestamp(paymentJson['customer_proof_uploaded_at'])
               : null,
           customerBankName: paymentJson['customer_bank_name']?.toString(),
           customerAccountName: paymentJson['customer_account_name']?.toString(),
           mitraProofUrl: paymentJson['mitra_proof_url']?.toString(),
           mitraProofUploadedAt: paymentJson['mitra_proof_uploaded_at'] != null
-              ? DateTime.tryParse(paymentJson['mitra_proof_uploaded_at'].toString())
+              ? IndonesiaTime.tryParseApiTimestamp(paymentJson['mitra_proof_uploaded_at'])
               : null,
           adminNote: paymentJson['admin_note']?.toString(),
           mitraBank: bankMap,
           paidAt: paymentJson['paid_at'] != null
-              ? DateTime.tryParse(paymentJson['paid_at'].toString())
+              ? IndonesiaTime.tryParseApiTimestamp(paymentJson['paid_at'])
               : null,
           settledAt: paymentJson['settled_at'] != null
-              ? DateTime.tryParse(paymentJson['settled_at'].toString())
+              ? IndonesiaTime.tryParseApiTimestamp(paymentJson['settled_at'])
               : null,
           createdAt: paymentJson['created_at'] != null
-              ? DateTime.tryParse(paymentJson['created_at'].toString())
+              ? IndonesiaTime.tryParseApiTimestamp(paymentJson['created_at'])
               : null,
           jobTitle: job?['tittle']?.toString() ?? job?['title']?.toString(),
           mitraName: mitra?['name']?.toString(),
@@ -1419,9 +1420,9 @@ class _AdminPaymentScreenState extends State<AdminPaymentScreen> {
               child: DataTable(
                 horizontalMargin: isNarrow ? 12 : 20,
                 columnSpacing: isNarrow ? 12 : 20, // Kurangi spasi antar kolom
-                headingRowHeight: 52,
-                dataRowMinHeight: 64,
-                dataRowMaxHeight: 82,
+                headingRowHeight: 48,
+                dataRowMinHeight: 56,
+                dataRowMaxHeight: 88,
                 headingTextStyle: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: t.headerText,

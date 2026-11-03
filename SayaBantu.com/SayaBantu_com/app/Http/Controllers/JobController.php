@@ -64,7 +64,11 @@ class JobController extends Controller
         string $startAt,
         int $durationMinutes
     ): array {
-        $start = Carbon::parse($startAt)->utc();
+        // Datetime columns do not store timezone information. Persist values
+        // in the app timezone so Eloquent's Asia/Jakarta casts read them back
+        // without shifting the user's selected wall-clock time.
+        $start = Carbon::parse($startAt)
+            ->setTimezone(config('app.timezone', 'Asia/Jakarta'));
         $end = $start->copy()->addMinutes($durationMinutes);
 
         return [
@@ -362,7 +366,7 @@ class JobController extends Controller
 
                     'preferred_start_at' => Carbon::parse(
                         $validated['preferred_start_at']
-                    )->utc(),
+                    )->setTimezone(config('app.timezone', 'Asia/Jakarta')),
 
                     'status' => 'Mencari Mitra',
                 ]);
@@ -721,6 +725,8 @@ class JobController extends Controller
                     'queue_position' => $jobStatus === 'Terjadwal'
                         ? 1
                         : ($queuePosition ?: 1),
+
+                    'bid_status' => $bid->status,
 
                     'is_top' => (
                         $jobStatus === 'Terjadwal' ||

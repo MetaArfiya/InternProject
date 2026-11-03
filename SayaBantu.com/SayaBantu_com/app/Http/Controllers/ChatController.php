@@ -48,7 +48,7 @@ class ChatController extends Controller
                     'sender_name'  => $m->sender->name ?? 'User',
                     'sender_role'  => $this->extractRoleName($m->sender),
                     'sender_photo' => $photoUrl, // <-- TAMBAHKAN INI
-                    'time'         => $m->created_at->format('H:i'),
+                    'time'         => $m->created_at->copy()->timezone(config('app.timezone'))->format('H:i'),
                     'created_at'   => $m->created_at->toIso8601String(),
                 ];
             });
@@ -131,7 +131,7 @@ class ChatController extends Controller
                 'sender_name'  => $user->name,
                 'sender_role'  => $this->extractRoleName($user),
                 'sender_photo' => $photoUrl, 
-                'time'         => $msg->created_at->format('H:i'),
+                'time'         => $msg->created_at->copy()->timezone(config('app.timezone'))->format('H:i'),
                 'created_at'   => $msg->created_at->toIso8601String(),
             ],
         ]);

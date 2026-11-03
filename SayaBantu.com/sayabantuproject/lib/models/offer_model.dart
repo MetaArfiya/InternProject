@@ -1,4 +1,6 @@
 
+import '../utils/indonesia_time.dart';
+
 class OfferModel {
   final int id;
   final int jobId;
@@ -132,8 +134,8 @@ class OfferModel {
 
     if (rawProposedStart != null &&
         rawProposedStart.toString().trim().isNotEmpty) {
-      parsedProposedStart =
-          DateTime.tryParse(rawProposedStart.toString())?.toLocal();
+      final parsed = IndonesiaTime.tryParseApiTimestamp(rawProposedStart);
+      parsedProposedStart = parsed == null ? null : IndonesiaTime.toWall(parsed);
     }
 
     // ============================================================
@@ -216,7 +218,7 @@ class OfferModel {
       return 'Belum mengajukan jadwal';
     }
 
-    final date = proposedStartAt!.toLocal();
+    final date = proposedStartAt!;
 
     const months = [
       'Januari',

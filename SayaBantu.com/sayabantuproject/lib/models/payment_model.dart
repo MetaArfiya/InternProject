@@ -1,3 +1,5 @@
+import '../utils/indonesia_time.dart';
+
 class PaymentModel {
   final int id;
   final int jobId;
@@ -120,7 +122,7 @@ class PaymentModel {
   // GETTER: TANGGAL FORMAT INDONESIA
   // ============================================================
   String get formattedDate {
-    final date = createdAt ?? paidAt ?? DateTime.now();
+    final date = IndonesiaTime.toWall(createdAt ?? paidAt ?? DateTime.now());
 
     const bulan = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -193,7 +195,7 @@ class PaymentModel {
       // Bukti pelanggan
       customerProofUrl: json['customer_proof_url']?.toString(),
       customerProofUploadedAt: json['customer_proof_uploaded_at'] != null
-          ? DateTime.tryParse(json['customer_proof_uploaded_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['customer_proof_uploaded_at'])
           : null,
       customerBankName: json['customer_bank_name']?.toString(),
       customerAccountName: json['customer_account_name']?.toString(),
@@ -201,7 +203,7 @@ class PaymentModel {
       // Bukti mitra
       mitraProofUrl: json['mitra_proof_url']?.toString(),
       mitraProofUploadedAt: json['mitra_proof_uploaded_at'] != null
-          ? DateTime.tryParse(json['mitra_proof_uploaded_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['mitra_proof_uploaded_at'])
           : null,
       adminNote: json['admin_note']?.toString(),
 
@@ -209,13 +211,13 @@ class PaymentModel {
       mitraBank: mitraBank,
 
       paidAt: json['paid_at'] != null
-          ? DateTime.tryParse(json['paid_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['paid_at'])
           : null,
       settledAt: json['settled_at'] != null
-          ? DateTime.tryParse(json['settled_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['settled_at'])
           : null,
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['created_at'])
           : null,
 
       jobTitle: jobTitle,

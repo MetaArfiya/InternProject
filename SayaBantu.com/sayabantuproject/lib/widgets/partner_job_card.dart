@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import '../models/partner_job_model.dart';
 import '../theme/app_colors.dart';
+import '../utils/indonesia_time.dart';
 
 class PartnerJobCard extends StatelessWidget {
   final PartnerJobModel job;
@@ -14,12 +14,13 @@ class PartnerJobCard extends StatelessWidget {
   });
 
   // ============================================================
-  // FORMAT TANGGAL DAN WAKTU
+  // FORMAT TANGGAL DAN WAKTU (TANPA KONVERSI)
   // ============================================================
   String _formatLocalTime(String timeString) {
     try {
-      final parsedDate = DateTime.parse(timeString).toLocal();
-
+      final parsedDate = IndonesiaTime.toWall(
+        IndonesiaTime.parseApiTimestamp(timeString),
+      );
       return '${parsedDate.day.toString().padLeft(2, '0')}-'
           '${parsedDate.month.toString().padLeft(2, '0')}-'
           '${parsedDate.year} '
@@ -46,12 +47,12 @@ class PartnerJobCard extends StatelessWidget {
       'Desember',
     ];
 
-    final localDate = dateTime.toLocal();
-    final day = localDate.day.toString().padLeft(2, '0');
-    final month = months[localDate.month - 1];
-    final year = localDate.year;
-    final hour = localDate.hour.toString().padLeft(2, '0');
-    final minute = localDate.minute.toString().padLeft(2, '0');
+    final wibDate = IndonesiaTime.toWall(dateTime);
+    final day = wibDate.day.toString().padLeft(2, '0');
+    final month = months[wibDate.month - 1];
+    final year = wibDate.year;
+    final hour = wibDate.hour.toString().padLeft(2, '0');
+    final minute = wibDate.minute.toString().padLeft(2, '0');
 
     return '$day $month $year, $hour:$minute';
   }
@@ -330,10 +331,7 @@ class PartnerJobCard extends StatelessWidget {
                   ),
                   child: const Text(
                     'Ambil & Nego',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
@@ -352,34 +350,32 @@ class PartnerJobCard extends StatelessWidget {
       return Image.network(
         job.imageUrl!,
         fit: BoxFit.cover,
-        loadingBuilder: (
-          BuildContext context,
-          Widget child,
-          ImageChunkEvent? loadingProgress,
-        ) {
-          if (loadingProgress == null) return child;
+        loadingBuilder:
+            (
+              BuildContext context,
+              Widget child,
+              ImageChunkEvent? loadingProgress,
+            ) {
+              if (loadingProgress == null) return child;
 
-          return const Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.primaryTeal,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (
-          BuildContext context,
-          Object error,
-          StackTrace? stackTrace,
-        ) {
-          debugPrint('❌ PARTNER JOB ${job.id} - GAMBAR GAGAL DIMUAT');
-          debugPrint('❌ URL: ${job.imageUrl}');
-          debugPrint('❌ ERROR: $error');
-          return _defaultImage(context);
-        },
+              return const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primaryTeal,
+                  ),
+                ),
+              );
+            },
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) {
+              debugPrint('❌ PARTNER JOB ${job.id} - GAMBAR GAGAL DIMUAT');
+              debugPrint('❌ URL: ${job.imageUrl}');
+              debugPrint('❌ ERROR: $error');
+              return _defaultImage(context);
+            },
       );
     }
 
@@ -391,11 +387,7 @@ class PartnerJobCard extends StatelessWidget {
   // ============================================================
   Widget _defaultImage(BuildContext context) {
     return const Center(
-      child: Icon(
-        Icons.handyman,
-        size: 38,
-        color: AppColors.primaryTeal,
-      ),
+      child: Icon(Icons.handyman, size: 38, color: AppColors.primaryTeal),
     );
   }
 }

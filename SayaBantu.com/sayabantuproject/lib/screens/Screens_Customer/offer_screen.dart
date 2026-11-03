@@ -187,7 +187,9 @@ class OfferScreen extends StatelessWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 700;
+          // Pada layar split/tablet, tabel terlalu sempit untuk kolom aksi
+          // Terima, Tolak, dan Profil. Gunakan kartu sampai ruang cukup.
+          final isMobile = constraints.maxWidth < 1100;
 
           return Padding(
             padding: EdgeInsets.all(isMobile ? 16 : 30),
@@ -343,14 +345,19 @@ class OfferScreen extends StatelessWidget {
           scrollDirection: Axis.vertical,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Tentukan lebar masing-masing kolom
-              final double wMitra = constraints.maxWidth * 0.20;
-              final double wJadwal = constraints.maxWidth * 0.15;
-              final double wDurasi = constraints.maxWidth * 0.10;
-              final double wJob = constraints.maxWidth * 0.10;
-              final double wHarga = constraints.maxWidth * 0.12;
-              final double wStatus = constraints.maxWidth * 0.13;
-              final double wAksi = constraints.maxWidth * 0.20;
+              // Kurangi padding horizontal header/baris sebelum membagi kolom,
+              // agar total lebar isi Row tidak melebihi lebar layar.
+              final double contentWidth =
+                  (constraints.maxWidth - 40)
+                      .clamp(0.0, double.infinity)
+                      .toDouble();
+              final double wMitra = contentWidth * 0.20;
+              final double wJadwal = contentWidth * 0.15;
+              final double wDurasi = contentWidth * 0.10;
+              final double wJob = contentWidth * 0.10;
+              final double wHarga = contentWidth * 0.12;
+              final double wStatus = contentWidth * 0.13;
+              final double wAksi = contentWidth * 0.20;
 
               return Column(
                 children: [

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/job_model.dart';
 import '../services/api_service.dart';
+import '../utils/indonesia_time.dart';
 import '../sections/customer/customer_tracking_page.dart'; // ← NEW
 import 'rating_dialog.dart';
 
@@ -37,8 +38,8 @@ class _JobCardState extends State<JobCard> {
 
   String _formatLocalTime(String timeString) {
     try {
-      final parsedDate = DateTime.parse(timeString);
-      final localDate = parsedDate.toLocal();
+      final parsedDate = IndonesiaTime.parseApiTimestamp(timeString);
+      final localDate = IndonesiaTime.toWall(parsedDate);
 
       return "${localDate.day.toString().padLeft(2, '0')}-"
           "${localDate.month.toString().padLeft(2, '0')}-"

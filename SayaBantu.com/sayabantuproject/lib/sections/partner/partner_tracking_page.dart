@@ -5,6 +5,7 @@ import '../../models/tracking_model.dart';
 import '../../services/api_service.dart';
 import '../../services/tracking_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 import '../../widgets/tracking_map.dart';
 import '../shared/chat_page.dart';
 import '../partner/completion_proof_dialog.dart';
@@ -95,20 +96,29 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
     _loadInitial();
   }
 
-  Future<void> _stopTracking() async {
-    await TrackingService.instance.stopTracking();
-    await ApiService.post('/jobs/${widget.jobId}/tracking/stop', {});
-    if (!mounted) return;
-    setState(() => _isTracking = false);
-    _loadInitial();
-  }
-
   Future<void> _updateStatus(String status) async {
     await ApiService.post(
       '/jobs/${widget.jobId}/tracking/status',
       {'status': status},
     );
     _loadInitial();
+  }
+
+  Future<void> _markArrived() async {
+    await TrackingService.instance.stopTracking();
+    final response = await ApiService.post(
+      '/jobs/${widget.jobId}/tracking/status',
+      {'status': 'selesai'},
+    );
+    if (!mounted) return;
+    if (response.statusCode == 200) {
+      setState(() => _isTracking = false);
+      await _loadInitial();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal memperbarui status perjalanan.')),
+      );
+    }
   }
 
   // ============================================================
@@ -231,8 +241,8 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   // ============================================================
   Widget _buildDetailPanel({required bool isDesktop}) {
     final t = _tracking;
-    // Mengecek apakah status sudah "sampai"
-    final bool isArrived = t?.status == 'sampai';
+    // Status perjalanan selesai saat mitra mengonfirmasi sudah sampai.
+    final bool isArrived = t?.status == 'sampai' || t?.status == 'selesai';
 
     return Container(
       width: double.infinity,
@@ -379,7 +389,7 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
             const SizedBox(height: 24),
 
             // TOMBOL AKSI BERDASARKAN STATUS
-            if (!_isTracking && t?.status != 'sampai') ...[
+            if (!_isTracking && !isArrived) ...[
               // 1. Tampil jika BELUM tracking
               SizedBox(
                 width: double.infinity,
@@ -407,29 +417,13 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _updateStatus('sampai'),
+                      onPressed: _markArrived,
                       icon: const Icon(Icons.place, size: 16),
                       label: const Text('Sudah Sampai'),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 46),
                         foregroundColor: AppColors.primaryTeal,
                         side: const BorderSide(color: AppColors.primaryTeal),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _stopTracking,
-                      icon: const Icon(Icons.stop_rounded, size: 16),
-                      label: const Text('Hentikan GPS'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 46),
-                        foregroundColor: AppColors.danger,
-                        side: const BorderSide(color: AppColors.danger),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -720,16 +714,31 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   }
 
   String _formatDateTime(DateTime dt) {
-    final local = dt.toLocal();
     const bulan = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
-    final d = local.day.toString().padLeft(2, '0');
-    final m = bulan[local.month - 1];
-    final y = local.year;
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$d $m $y • $hh:$mm';
+
+    try {
+      // Paksa anggap waktu dari API adalah UTC, lalu tambahkan 7 jam (WIB)
+      final utcTime = DateTime.utc(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+      final local = utcTime.add(const Duration(hours: 7));
+
+      final d = local.day.toString().padLeft(2, '0');
+      final m = bulan[local.month - 1];
+      final y = local.year;
+      final hh = local.hour.toString().padLeft(2, '0');
+      final mm = local.minute.toString().padLeft(2, '0');
+      
+      return '$d $m $y • $hh:$mm';
+    } catch (e) {
+      // Jika gagal, kembalikan format standar tanpa konversi
+      final d = dt.day.toString().padLeft(2, '0');
+      final m = bulan[dt.month - 1];
+      final y = dt.year;
+      final hh = dt.hour.toString().padLeft(2, '0');
+      final mm = dt.minute.toString().padLeft(2, '0');
+      return '$d $m $y • $hh:$mm';
+    }
   }
 }

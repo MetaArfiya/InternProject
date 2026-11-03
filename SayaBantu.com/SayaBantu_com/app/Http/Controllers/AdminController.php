@@ -12,6 +12,8 @@ use App\Helpers\ActivityLogger;
 
 class AdminController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
     // =========================================================
     // MITRA BELUM DIVERIFIKASI
     // =========================================================
@@ -213,13 +215,42 @@ class AdminController extends Controller
     // MODERASI JOB
     // =========================================================
 
+    public function contentModeration()
+    {
+        $admin = auth()->user();
+        if ($response = $this->missingAdminCityResponse($admin)) {
+            return $response;
+        }
+
+        $query = jobs::with([
+            'pelanggan:id,name,email,city_id',
+            'mitra:id,name,email,city_id',
+            'city:id,name',
+        ])->where('is_verified', 0);
+
+        if ($cityId = $this->adminCityId($admin)) {
+            $query->where('city_id', $cityId);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $query->latest()->get(),
+        ], 200);
+    }
+
     public function moderateJob(Request $request, $id)
     {
         $request->validate([
             'action' => 'required|string|in:safe,suspend,delete',
         ]);
 
-        $adminId = auth()->id();
+        $admin = auth()->user();
+
+        if ($response = $this->missingAdminCityResponse($admin)) {
+            return $response;
+        }
+
+        $adminId = $admin->id;
 
         if (!$adminId) {
             return response()->json([
@@ -228,7 +259,11 @@ class AdminController extends Controller
             ], 401);
         }
 
-        $job = jobs::find($id);
+        $jobQuery = jobs::query();
+        if ($cityId = $this->adminCityId($admin)) {
+            $jobQuery->where('city_id', $cityId);
+        }
+        $job = $jobQuery->find($id);
 
         if (!$job) {
             return response()->json([
@@ -331,11 +366,23 @@ class AdminController extends Controller
                 'end_date'   => 'nullable|date|after_or_equal:start_date',
             ]);
 
+            $period = $request->input('period', 'month');
+            $periodStart = match ($period) {
+                'today' => now()->startOfDay(),
+                'week' => now()->startOfWeek(),
+                default => now()->startOfMonth(),
+            };
+            $periodEnd = match ($period) {
+                'today' => now()->endOfDay(),
+                'week' => now()->endOfWeek(),
+                default => now()->endOfMonth(),
+            };
+
             $startDate = $validated['start_date']
-                ?? now()->startOfMonth()->toDateString();
+                ?? $periodStart->toDateString();
 
             $endDate = $validated['end_date']
-                ?? now()->endOfMonth()->toDateString();
+                ?? $periodEnd->toDateString();
 
             // ============================================================
             // 3. QUERY DATA PEMBAYARAN
@@ -563,7 +610,16 @@ class AdminController extends Controller
     // ADMIN — Reset PIN User
     public function resetUserPin($id)
     {
-        $user = \App\Models\users::find($id);
+        $admin = auth()->user();
+        if ($response = $this->missingAdminCityResponse($admin)) {
+            return $response;
+        }
+
+        $userQuery = \App\Models\users::query();
+        if ($cityId = $this->adminCityId($admin)) {
+            $userQuery->where('city_id', $cityId);
+        }
+        $user = $userQuery->find($id);
 
         if (!$user) {
             return response()->json([

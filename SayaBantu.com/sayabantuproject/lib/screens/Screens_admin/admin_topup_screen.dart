@@ -295,11 +295,11 @@ class AdminTopupScreenState extends State<AdminTopupScreen> {
           child: ConstrainedBox(
             constraints: BoxConstraints(minWidth: tableWidth),
             child: DataTable(
-              horizontalMargin: 24,
-              columnSpacing: 36,
-              headingRowHeight: 52,
-              dataRowMinHeight: 64,
-              dataRowMaxHeight: 82,
+              horizontalMargin: 20,
+              columnSpacing: 24,
+              headingRowHeight: 48,
+              dataRowMinHeight: 56,
+              dataRowMaxHeight: 88,
               headingTextStyle: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, color: t.headerText),
               headingRowColor: WidgetStateProperty.all(AppColors.grey50),
               dividerThickness: 0.6,
@@ -499,7 +499,7 @@ class AdminTopupScreenState extends State<AdminTopupScreen> {
         children: [
           // KIRI: Info Teks
           Text(
-            'Menampilkan $startItem–$endItem dari $total',
+            'Menampilkan $startItem–$endItem dari $total top up',
             style: TextStyle(fontSize: 12.5, color: t.headerText, fontWeight: FontWeight.w500),
           ),
           

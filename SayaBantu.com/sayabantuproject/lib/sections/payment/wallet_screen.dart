@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../../services/api_service.dart';
-import '../../../theme/app_colors.dart';
+import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 import 'topup_dialog.dart';
 import 'withdraw_dialog.dart';
 
@@ -93,7 +94,9 @@ class _WalletScreenState extends State<WalletScreen> {
 
   String _formatDate(String dateString) {
     try {
-      final date = DateTime.parse(dateString).toLocal();
+      final parsed = IndonesiaTime.tryParseApiTimestamp(dateString);
+      if (parsed == null) return dateString;
+      final date = IndonesiaTime.toWall(parsed);
       const months = [
         'Jan',
         'Feb',

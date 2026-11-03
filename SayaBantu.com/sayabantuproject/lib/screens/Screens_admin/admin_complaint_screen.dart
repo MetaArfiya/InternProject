@@ -11,6 +11,7 @@ import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class AdminComplaintScreen extends StatefulWidget {
   const AdminComplaintScreen({super.key});
@@ -227,7 +228,9 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
   String _formatTanggal(String? iso) {
     if (iso == null || iso.isEmpty) return '-';
     try {
-      final date = DateTime.parse(iso).toLocal();
+      final parsed = IndonesiaTime.tryParseApiTimestamp(iso);
+      if (parsed == null) return '-';
+      final date = IndonesiaTime.toWall(parsed);
       const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
       return '${date.day.toString().padLeft(2, '0')} ${bulan[date.month - 1]} ${date.year}';
     } catch (_) {
@@ -766,17 +769,18 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_radius),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: isTablet ? 980 : 1180,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(AppColors.grey50),
               headingRowHeight: 48,
-              dataRowMinHeight: 74,
-              dataRowMaxHeight: 100,
+              dataRowMinHeight: 56,
+              dataRowMaxHeight: 88,
               columnSpacing: isTablet ? 18 : 24,
-              horizontalMargin: 14,
+              horizontalMargin: 20,
               dividerThickness: 0.6,
               headingTextStyle: textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
@@ -784,6 +788,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
               ),
               columns: const [
                 DataColumn(label: Text('Pengaduan')),
+                DataColumn(label: Text('Detail Pengaduan')),
                 DataColumn(label: Text('Bukti')),
                 DataColumn(label: Text('Pengadu')),
                 DataColumn(label: Text('Pekerjaan')),
@@ -814,6 +819,40 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                               _formatTanggal(c['created_at']?.toString()),
                               style: textTheme.labelSmall?.copyWith(
                                 color: AppColors.grey400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 240,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              c['title']?.toString().trim().isNotEmpty == true
+                                  ? c['title'].toString()
+                                  : '-',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: t.cellText,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              c['description']?.toString().trim().isNotEmpty == true
+                                  ? c['description'].toString()
+                                  : '-',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.grey500,
+                                height: 1.25,
                               ),
                             ),
                           ],
@@ -915,6 +954,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
                   ],
                 );
               }).toList(),
+            ),
             ),
           ),
         ),
@@ -1723,7 +1763,7 @@ class _AdminComplaintScreenState extends State<AdminComplaintScreen> {
         children: [
           // KIRI: Info Teks
           Text(
-            'Menampilkan $startItem–$endItem dari $total',
+            'Menampilkan $startItem–$endItem dari $total pengaduan',
             style: TextStyle(fontSize: 12.5, color: t.headerText, fontWeight: FontWeight.w500),
           ),
           

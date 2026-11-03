@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class AdminVerificationScreen extends StatefulWidget {
   final ValueChanged<int>? onPendingCountChanged;
@@ -285,10 +286,12 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           return {
             'id': mitra['id'],
             'user_id': mitra['user_id'],
-            'name': mitra['name']?.toString() ??
+            'name':
+                mitra['name']?.toString() ??
                 user['name']?.toString() ??
                 'Tanpa Nama',
-            'email': mitra['email']?.toString() ??
+            'email':
+                mitra['email']?.toString() ??
                 user['email']?.toString() ??
                 'Tanpa Email',
             'phone': mitra['phone']?.toString() ?? '-',
@@ -299,7 +302,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             'city': mitra['city']?.toString() ?? '-',
             'bio': mitra['bio'],
             'skills': mitra['skills'],
-            'category': mitra['category']?.toString() ??
+            'category':
+                mitra['category']?.toString() ??
                 mitra['skills']?.toString() ??
                 'Umum',
             'certificate': mitra['certificate'],
@@ -543,7 +547,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   String _formatTime(dynamic createdAt) {
     if (createdAt == null) return 'Baru saja';
     try {
-      final date = DateTime.parse(createdAt.toString());
+      final date = IndonesiaTime.tryParseApiTimestamp(createdAt);
+      if (date == null) return 'Baru saja';
       final difference = DateTime.now().difference(date);
 
       if (difference.isNegative) return 'Baru saja';
@@ -557,7 +562,8 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       if (difference.inDays < 7) {
         return '${difference.inDays} hari lalu';
       }
-      return '${date.day}/${date.month}/${date.year}';
+      final wibDate = IndonesiaTime.toWall(date);
+      return '${wibDate.day}/${wibDate.month}/${wibDate.year}';
     } catch (_) {
       return 'Baru saja';
     }
@@ -952,7 +958,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         final textTheme = Theme.of(dialogContext).textTheme;
 
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -1150,7 +1158,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -1227,8 +1237,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               runSpacing: 8,
                               children: newPhotos
                                   .map(
-                                    (url) =>
-                                        _skillPhotoThumb(url, 'Foto Baru'),
+                                    (url) => _skillPhotoThumb(url, 'Foto Baru'),
                                   )
                                   .toList(),
                             ),
@@ -1279,8 +1288,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               runSpacing: 8,
                               children: oldPhotos
                                   .map(
-                                    (url) =>
-                                        _skillPhotoThumb(url, 'Foto Lama'),
+                                    (url) => _skillPhotoThumb(url, 'Foto Lama'),
                                   )
                                   .toList(),
                             ),
@@ -1289,8 +1297,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             _sectionBanner(
                               icon: Icons.assignment,
                               color: AppColors.grey500,
-                              text:
-                                  'Sertifikat SAAT INI (${oldCerts.length})',
+                              text: 'Sertifikat SAAT INI (${oldCerts.length})',
                             ),
                             const SizedBox(height: 10),
                             Wrap(
@@ -1468,7 +1475,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -1814,7 +1823,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       builder: (dialogContext) {
         final textTheme = Theme.of(dialogContext).textTheme;
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 24,
@@ -2080,9 +2091,18 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   Widget _dataRow(String label, dynamic value, AdminTheme t) {
-    final text = (value == null || value.toString().isEmpty || value == 'null')
-        ? '-'
-        : value.toString();
+    // Cek apakah label ini berisi tanggal
+    final isDateLabel = label.contains('Tanggal') || label.contains('Sejak');
+
+    String text;
+    if (value == null || value.toString().isEmpty || value == 'null') {
+      text = '-';
+    } else if (isDateLabel) {
+      // Jika tanggal, format dengan rapi
+      text = _formatReadableDate(value.toString());
+    } else {
+      text = value.toString();
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -2194,13 +2214,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final isMobile = width < _mobileBreakpoint;
-              final isTablet = width >= _mobileBreakpoint &&
-                  width < _tabletBreakpoint;
+              final isTablet =
+                  width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
               final useCards = isMobile || isTablet;
 
-              final horizontalPadding =
-                  isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+              final horizontalPadding = isMobile
+                  ? 16.0
+                  : (isTablet ? 24.0 : 28.0);
               final verticalPadding = isMobile ? 16.0 : 28.0;
 
               return SingleChildScrollView(
@@ -2233,17 +2254,14 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       if (_selectedTab == 'pending') ...[
                         _summary(isMobile),
                         const SizedBox(height: _gapBetweenSections),
-                        partners.isEmpty
-                            ? _empty()
-                            : _table(useCards),
+                        partners.isEmpty ? _empty() : _table(useCards),
                       ] else if (_selectedTab == 'verified') ...[
                         _buildVerifiedList(useCards),
                       ] else ...[
                         _buildPendingSkillsList(useCards),
                       ],
 
-                      if (_selectedTab == 'pending' &&
-                          partners.isNotEmpty) ...[
+                      if (_selectedTab == 'pending' && partners.isNotEmpty) ...[
                         const SizedBox(height: _gapBetweenSections),
                         _buildPaginationFullWidth(
                           total: partners.length,
@@ -2268,8 +2286,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         _buildPaginationFullWidth(
                           total: pendingSkillsList.length,
                           currentPage: _skillsPage,
-                          onPageChanged: (p) =>
-                              setState(() => _skillsPage = p),
+                          onPageChanged: (p) => setState(() => _skillsPage = p),
                           label: 'pengajuan',
                         ),
                       ],
@@ -2348,6 +2365,49 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         ),
       ],
     );
+  }
+
+  String _formatReadableDate(String rawDate) {
+    try {
+      // Ganti T menjadi spasi, dan buang bagian .000000Z
+      String cleanDate = rawDate.replaceAll('T', ' ').split('.')[0];
+
+      final parts = cleanDate.split(' ');
+      if (parts.length >= 2) {
+        final dateSplit = parts[0].split('-');
+        final timeSplit = parts[1].split(':');
+
+        if (dateSplit.length == 3 && timeSplit.length >= 2) {
+          final year = dateSplit[0];
+          final monthInt = int.parse(dateSplit[1]);
+          final day = dateSplit[2];
+
+          const months = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'Mei',
+            'Jun',
+            'Jul',
+            'Agu',
+            'Sep',
+            'Okt',
+            'Nov',
+            'Des',
+          ];
+          final month = months[monthInt - 1];
+
+          final hour = timeSplit[0];
+          final minute = timeSplit[1];
+
+          return '$day $month $year, $hour:$minute';
+        }
+      }
+      return rawDate;
+    } catch (_) {
+      return rawDate;
+    }
   }
 
   String _subtitleForTab() {
@@ -2462,9 +2522,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         decoration: BoxDecoration(
           color: isActive ? activeColor : AppColors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isActive ? activeColor : t.border,
-          ),
+          border: Border.all(color: isActive ? activeColor : t.border),
           boxShadow: isActive
               ? [
                   BoxShadow(
@@ -2609,7 +2667,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          
+
           const Spacer(),
 
           Row(
@@ -2658,7 +2716,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 10),
 
               _paginationIconButton(
@@ -2668,7 +2726,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                     : null,
                 t: t,
               ),
-              
+
               const SizedBox(width: 8),
 
               Container(
@@ -2688,7 +2746,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 8),
 
               _paginationIconButton(
@@ -3151,11 +3209,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               color: t.mutedText,
                             ),
                           )
-                        : Icon(
-                            Icons.person,
-                            size: 22,
-                            color: t.mutedText,
-                          ),
+                        : Icon(Icons.person, size: 22, color: t.mutedText),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -3186,8 +3240,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 12, color: t.mutedText),
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: t.mutedText,
+                          ),
                           const SizedBox(width: 3),
                           Flexible(
                             child: Text(
@@ -3201,8 +3258,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Icon(Icons.access_time,
-                              size: 12, color: t.mutedText),
+                          Icon(Icons.access_time, size: 12, color: t.mutedText),
                           const SizedBox(width: 3),
                           Flexible(
                             child: Text(
@@ -3588,17 +3644,10 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           width: 44,
                           height: 44,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.person,
-                            size: 22,
-                            color: t.mutedText,
-                          ),
+                          errorBuilder: (_, __, ___) =>
+                              Icon(Icons.person, size: 22, color: t.mutedText),
                         )
-                      : Icon(
-                          Icons.person,
-                          size: 22,
-                          color: t.mutedText,
-                        ),
+                      : Icon(Icons.person, size: 22, color: t.mutedText),
                 ),
               ),
               const SizedBox(width: 12),
@@ -4044,11 +4093,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                               color: t.mutedText,
                             ),
                           )
-                        : Icon(
-                            Icons.person,
-                            size: 22,
-                            color: t.mutedText,
-                          ),
+                        : Icon(Icons.person, size: 22, color: t.mutedText),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -4079,8 +4124,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.access_time,
-                              size: 11, color: t.mutedText),
+                          Icon(Icons.access_time, size: 11, color: t.mutedText),
                           const SizedBox(width: 3),
                           Flexible(
                             child: Text(
@@ -4130,8 +4174,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.arrow_forward,
-                                size: 12, color: AppColors.grey500),
+                            Icon(
+                              Icons.arrow_forward,
+                              size: 12,
+                              color: AppColors.grey500,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -4165,8 +4212,11 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.star,
-                                size: 12, color: AppColors.purple),
+                            const Icon(
+                              Icons.star,
+                              size: 12,
+                              color: AppColors.purple,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -4199,8 +4249,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
               children: [
                 Expanded(
                   child: TextButton.icon(
-                    onPressed: () =>
-                        _viewSkillPhotos(pendingSkillsList[index]),
+                    onPressed: () => _viewSkillPhotos(pendingSkillsList[index]),
                     icon: const Icon(Icons.photo_library_outlined, size: 16),
                     label: const Text(
                       'Foto',

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../models/chat_message.dart';
 import '../../services/chat_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class ChatPage extends StatefulWidget {
   final int jobId;
@@ -122,7 +123,7 @@ class _ChatPageState extends State<ChatPage> {
       senderName: 'Saya',
       senderRole: '',
       time: _formatNow(),
-      createdAt: DateTime.now(),
+      createdAt: IndonesiaTime.nowWall(),
     );
 
     setState(() {
@@ -161,7 +162,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   String _formatNow() {
-    final now = DateTime.now();
+    final now = IndonesiaTime.nowWall();
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
@@ -421,7 +422,7 @@ class _ChatPageState extends State<ChatPage> {
   // ============================================================
 
   Widget _buildDateSeparator(DateTime dt) {
-    final now = DateTime.now();
+    final now = IndonesiaTime.nowWall();
     final yesterday = now.subtract(const Duration(days: 1));
 
     String label;

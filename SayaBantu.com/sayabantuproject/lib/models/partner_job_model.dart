@@ -1,6 +1,7 @@
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/indonesia_time.dart';
 
 class PartnerJobModel {
   final int id;
@@ -77,7 +78,7 @@ class PartnerJobModel {
     if (rawPreferredStart != null &&
         rawPreferredStart.toString().trim().isNotEmpty) {
       parsedPreferredStart =
-          DateTime.tryParse(rawPreferredStart.toString())?.toLocal();
+          IndonesiaTime.tryParseApiTimestamp(rawPreferredStart);
     }
 
     debugPrint('🖼️ PARTNER JOB ${json['id']}');

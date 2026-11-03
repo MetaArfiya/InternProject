@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -15,10 +16,14 @@ class ActiveOfferScreen extends StatefulWidget {
   State<ActiveOfferScreen> createState() => _ActiveOfferScreenState();
 }
 
-// WidgetsBindingObserver untuk mendeteksi jika aplikasi di-minimize
 class _ActiveOfferScreenState extends State<ActiveOfferScreen>
     with WidgetsBindingObserver {
   List<ActiveOfferModel> _offers = [];
+
+  int _currentPage = 1;
+  int _rowsPerPage = 10;
+
+  final List<int> _rowsPerPageOptions = [10, 25, 50];
 
   bool _isLoading = true;
   String _errorMessage = '';
@@ -29,48 +34,69 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // DESIGN TOKENS
   // ============================================================
+
   static const Color _accent = AppColors.primaryTeal;
   static const Color _tableBorder = AppColors.grey200;
   static const Color _tableDivider = AppColors.grey100;
 
   static const double _gapAfterHeader = 16;
 
+  int get _totalPages {
+    if (_offers.isEmpty) return 1;
+    return (_offers.length / _rowsPerPage).ceil();
+  }
+
+  int get _startIndex => (_currentPage - 1) * _rowsPerPage;
+
+  int get _endIndex =>
+      (_startIndex + _rowsPerPage).clamp(0, _offers.length);
+
+  List<ActiveOfferModel> get _paginatedOffers {
+    return _offers
+        .skip(_startIndex)
+        .take(_rowsPerPage)
+        .toList();
+  }
+
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
 
-    // Fetch pertama kali (tampilkan loading)
     _fetchMyOffers();
-
-    // Setup timer untuk fetch otomatis setiap 5 detik (mode silent)
     _startAutoRefresh();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _refreshTimer?.cancel(); // Selalu matikan timer saat halaman ditutup
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
   // ============================================================
   // AUTO REFRESH & LIFECYCLE
   // ============================================================
+
   void _startAutoRefresh() {
     _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_isAppInForeground && mounted) {
-        _fetchMyOffers(silent: true);
-      }
-    });
+
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (timer) {
+        if (_isAppInForeground && mounted) {
+          _fetchMyOffers(silent: true);
+        }
+      },
+    );
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _isAppInForeground = true;
-      _fetchMyOffers(silent: true); 
+      _fetchMyOffers(silent: true);
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _isAppInForeground = false;
@@ -80,6 +106,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // FETCH DATA
   // ============================================================
+
   Future<void> _fetchMyOffers({bool silent = false}) async {
     if (!mounted) return;
 
@@ -99,8 +126,12 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
         List<dynamic> loadedOffersJson = [];
 
         if (decodedData is Map<String, dynamic>) {
-          final target = decodedData['data'] ?? decodedData['offers'] ?? [];
-          if (target is List) loadedOffersJson = target;
+          final target =
+              decodedData['data'] ?? decodedData['offers'] ?? [];
+
+          if (target is List) {
+            loadedOffersJson = target;
+          }
         } else if (decodedData is List) {
           loadedOffersJson = decodedData;
         }
@@ -110,7 +141,9 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
         for (final item in loadedOffersJson) {
           try {
             if (item is Map<String, dynamic>) {
-              loadedOffers.add(ActiveOfferModel.fromJson(item));
+              loadedOffers.add(
+                ActiveOfferModel.fromJson(item),
+              );
             }
           } catch (e) {
             debugPrint('⚠️ Gagal parsing offer: $e');
@@ -121,11 +154,17 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
 
         setState(() {
           _offers = loadedOffers;
+
+          _currentPage = _currentPage
+              .clamp(1, _totalPages)
+              .toInt();
+
           _isLoading = false;
-          _errorMessage = ''; // Reset error jika sebelumnya ada
+          _errorMessage = '';
         });
       } else {
         if (!mounted || silent) return;
+
         setState(() {
           _errorMessage =
               'Gagal memuat penawaran.\nStatus: ${response.statusCode}';
@@ -134,6 +173,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
       }
     } catch (e) {
       if (!mounted || silent) return;
+
       setState(() {
         _errorMessage = 'Terjadi kesalahan koneksi.\n$e';
         _isLoading = false;
@@ -148,6 +188,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // BUILD
   // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -160,11 +201,14 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
+
             final isMobile = width < 700;
             final isTablet = width >= 700 && width < 1100;
 
-            final horizontalPadding =
-                isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+            final horizontalPadding = isMobile
+                ? 16.0
+                : (isTablet ? 24.0 : 28.0);
+
             final verticalPadding = isMobile ? 16.0 : 28.0;
 
             return SingleChildScrollView(
@@ -194,6 +238,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // HEADER
   // ============================================================
+
   Widget _buildHeader(BuildContext context) {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +266,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // CONTENT
   // ============================================================
+
   Widget _buildContent({
     required bool isMobile,
     required bool isTablet,
@@ -234,18 +280,29 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
       );
     }
 
-    if (_errorMessage.isNotEmpty) return _buildErrorState();
-    if (_offers.isEmpty) return _buildEmptyState();
+    if (_errorMessage.isNotEmpty) {
+      return _buildErrorState();
+    }
 
-    if (isMobile) return _buildMobileList();
+    if (_offers.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    if (isMobile) {
+      return _buildMobileList();
+    }
+
     return _buildDesktopTable(isTablet: isTablet);
   }
 
   // ============================================================
-  // WIDGET BUKTI (KOSONG JIKA TIDAK ADA)
+  // WIDGET BUKTI
   // ============================================================
+
   Widget _buildProofImage(String? proofUrl) {
-    if (proofUrl == null || proofUrl.isEmpty || proofUrl == 'null') {
+    if (proofUrl == null ||
+        proofUrl.isEmpty ||
+        proofUrl == 'null') {
       return Container(
         width: 60,
         height: 60,
@@ -258,11 +315,18 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.image_not_supported_outlined, size: 20, color: AppColors.grey400),
+              Icon(
+                Icons.image_not_supported_outlined,
+                size: 20,
+                color: AppColors.grey400,
+              ),
               SizedBox(height: 4),
               Text(
                 'Tidak ada',
-                style: TextStyle(fontSize: 9, color: AppColors.grey500),
+                style: TextStyle(
+                  fontSize: 9,
+                  color: AppColors.grey500,
+                ),
               ),
             ],
           ),
@@ -272,15 +336,17 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
 
     final fullUrl = proofUrl.startsWith('http')
         ? proofUrl
-        : '${ApiService.baseUrl}$proofUrl'; // Pastikan pakai baseUrl ApiService
+        : '${ApiService.baseUrl}$proofUrl';
 
     return GestureDetector(
       onTap: () {
-        // Tampilkan dialog gambar (implementasi dialog Anda di sini)
         showDialog(
           context: context,
           builder: (_) => Dialog(
-            child: Image.network(fullUrl, fit: BoxFit.contain),
+            child: Image.network(
+              fullUrl,
+              fit: BoxFit.contain,
+            ),
           ),
         );
       },
@@ -300,25 +366,36 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   }
 
   // ============================================================
-  // WIDGET TOMBOL DETAIL (HANYA 1 AKSI)
+  // DETAIL BUTTON
   // ============================================================
-  Widget _buildDetailButton(BuildContext context, ActiveOfferModel offer) {
+
+  Widget _buildDetailButton(
+    BuildContext context,
+    ActiveOfferModel offer,
+  ) {
     return Material(
       color: AppColors.grey100,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: () {
-          // Panggil dialog detail dari widget/package yang sudah Anda buat
-          // Contoh: showActiveOfferDetailDialog(context, offer);
-          debugPrint('Klik detail untuk Job ID: ${offer.jobId}');
+          debugPrint(
+            'Klik detail untuk Job ID: ${offer.jobId}',
+          );
         },
         borderRadius: BorderRadius.circular(20),
         child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 8,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.visibility_outlined, size: 14, color: AppColors.grey700),
+              Icon(
+                Icons.visibility_outlined,
+                size: 14,
+                color: AppColors.grey700,
+              ),
               SizedBox(width: 6),
               Text(
                 'Detail',
@@ -338,6 +415,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // MOBILE — RECEIPT STYLE
   // ============================================================
+
   Widget _buildMobileList() {
     return Column(
       children: _offers.asMap().entries.map((entry) {
@@ -354,13 +432,20 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
     );
   }
 
-  Widget _buildMobileOfferCard(ActiveOfferModel offer, int number) {
-    // Gunakan widget baris dari active_offer_card.dart
-    final existingRow = buildActiveOfferRow(context, offer, number);
+  Widget _buildMobileOfferCard(
+    ActiveOfferModel offer,
+    int number,
+  ) {
+    final existingRow = buildActiveOfferRow(
+      context,
+      offer,
+      number,
+    );
+
     final cells = existingRow.children;
 
     const labels = [
-      '', // 0: skip (dipakai header)
+      '',
       'Pekerjaan',
       'Harga',
       'Peringkat',
@@ -382,7 +467,6 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Row(
@@ -409,24 +493,25 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
             ),
           ),
 
-          const Divider(height: 1, color: _tableDivider),
+          const Divider(
+            height: 1,
+            color: _tableDivider,
+          ),
 
-          // BODY
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Column(
-              children: List.generate(
-                cells.length,
-                (index) {
-                  if (index == 0) return const SizedBox.shrink();
+              children: List.generate(cells.length, (index) {
+                if (index == 0) {
+                  return const SizedBox.shrink();
+                }
 
-                  return _buildReceiptRow(
-                    label: labels[index],
-                    value: cells[index],
-                    isLast: index == cells.length - 1,
-                  );
-                },
-              ),
+                return _buildReceiptRow(
+                  label: labels[index],
+                  value: cells[index],
+                  isLast: index == cells.length - 1,
+                );
+              }),
             ),
           ),
         ],
@@ -437,17 +522,19 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   // ============================================================
   // RECEIPT ROW
   // ============================================================
+
   Widget _buildReceiptRow({
     required String label,
     required Widget value,
     required bool isLast,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+      padding: EdgeInsets.only(
+        bottom: isLast ? 0 : 10,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // LABEL
           SizedBox(
             width: 100,
             child: Text(
@@ -460,10 +547,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
               ),
             ),
           ),
-
           const SizedBox(width: 12),
-
-          // VALUE
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
@@ -476,50 +560,65 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   }
 
   // ============================================================
-  // WEB — TABEL
+  // WEB — TABEL + PAGINATION
   // ============================================================
-  Widget _buildDesktopTable({required bool isTablet}) {
-    if (isTablet) {
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _tableBorder),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 1200,
-              child: _buildTable(isTablet: true),
-            ),
-          ),
-        ),
-      );
-    }
 
+  Widget _buildDesktopTable({required bool isTablet}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
+          width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _tableBorder),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: constraints.maxWidth,
-              child: _buildTable(isTablet: false),
-            ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // TABLE
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(10),
+                ),
+                child: isTablet
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: 1200,
+                          child: _buildTable(isTablet: true),
+                        ),
+                      )
+                    : SizedBox(
+                        width: constraints.maxWidth,
+                        child: _buildTable(isTablet: false),
+                      ),
+              ),
+
+              // DIVIDER
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: _tableBorder,
+              ),
+
+              // PAGINATION — MENYATU DENGAN TABEL
+              _buildPagination(),
+            ],
           ),
         );
       },
     );
   }
 
+  // ============================================================
+  // TABLE
+  // ============================================================
+
   Widget _buildTable({required bool isTablet}) {
+    final pageOffers = _paginatedOffers;
+
     return Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       columnWidths: isTablet
@@ -549,20 +648,26 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
       ),
       children: [
         _buildTableHeader(),
-        ..._offers.asMap().entries.map((entry) {
+        ...pageOffers.asMap().entries.map((entry) {
           return buildActiveOfferRow(
             context,
             entry.value,
-            entry.key + 1,
+            _startIndex + entry.key + 1,
           );
         }),
       ],
     );
   }
 
+  // ============================================================
+  // TABLE HEADER
+  // ============================================================
+
   TableRow _buildTableHeader() {
     return const TableRow(
-      decoration: BoxDecoration(color: AppColors.white),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+      ),
       children: [
         _HeaderCell('NO'),
         _HeaderCell('NAMA PEKERJAAN'),
@@ -577,8 +682,181 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
   }
 
   // ============================================================
-  // ERROR & EMPTY
+  // PAGINATION
   // ============================================================
+
+  Widget _buildPagination() {
+    final total = _offers.length;
+
+    final information = Text(
+      total == 0
+          ? 'Menampilkan 0 dari 0 penawaran'
+          : 'Menampilkan ${_startIndex + 1}–$_endIndex dari $total penawaran',
+      style: const TextStyle(
+        fontSize: 12,
+        color: AppColors.grey500,
+      ),
+    );
+
+    final controls = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        // JUMLAH DATA PER HALAMAN
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _tableBorder),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: _rowsPerPage,
+              isDense: true,
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                size: 18,
+                color: AppColors.grey500,
+              ),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.grey900,
+                fontWeight: FontWeight.w500,
+              ),
+              items: _rowsPerPageOptions.map((value) {
+                return DropdownMenuItem<int>(
+                  value: value,
+                  child: Text('$value / hal'),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value == null) return;
+
+                setState(() {
+                  _rowsPerPage = value;
+                  _currentPage = 1;
+                });
+              },
+            ),
+          ),
+        ),
+
+        // HALAMAN SEBELUMNYA
+        _paginationButton(
+          icon: Icons.chevron_left,
+          enabled: _currentPage > 1,
+          onTap: () {
+            setState(() {
+              _currentPage--;
+            });
+          },
+        ),
+
+        // INDIKATOR HALAMAN
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Hal $_currentPage / $_totalPages',
+            style: const TextStyle(
+              fontSize: 12,
+              color: _accent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+
+        // HALAMAN SELANJUTNYA
+        _paginationButton(
+          icon: Icons.chevron_right,
+          enabled: _currentPage < _totalPages,
+          onTap: () {
+            setState(() {
+              _currentPage++;
+            });
+          },
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 10,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 550;
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                information,
+                const SizedBox(height: 12),
+                controls,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: information),
+              controls,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION BUTTON
+  // ============================================================
+
+  Widget _paginationButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _tableBorder),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: enabled
+                ? AppColors.grey700
+                : AppColors.grey300,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR STATE
+  // ============================================================
+
   Widget _buildErrorState() {
     return Container(
       width: double.infinity,
@@ -626,6 +904,10 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
     );
   }
 
+  // ============================================================
+  // EMPTY STATE
+  // ============================================================
+
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
@@ -663,14 +945,19 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
 // ============================================================
 // HEADER CELL
 // ============================================================
+
 class _HeaderCell extends StatelessWidget {
   final String text;
+
   const _HeaderCell(this.text);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 14,
+      ),
       child: Text(
         text,
         style: const TextStyle(

@@ -11,6 +11,8 @@ import 'package:sayabantu_project/screens/Screens_Landing/landing_page.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_storage.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
+import '../../utils/indonesia_time.dart';
 
 class PartnerSettingScreen extends StatefulWidget {
   final VoidCallback onProfileUpdate;
@@ -198,7 +200,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
     if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) return s;
 
     try {
-      final dt = DateTime.parse(s).toLocal();
+      final dt = DateTime.parse(s);
       return '${dt.year.toString().padLeft(4, '0')}-'
           '${dt.month.toString().padLeft(2, '0')}-'
           '${dt.day.toString().padLeft(2, '0')}';
@@ -477,7 +479,12 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
 
           final loadedPending = mitra['pending_skills']?.toString() ?? '';
           final rawUpdated = mitra['skills_updated_at']?.toString();
-          final loadedUpdatedAt = (rawUpdated != null && rawUpdated.isNotEmpty) ? DateTime.tryParse(rawUpdated) : null;
+          final parsedUpdatedAt = (rawUpdated != null && rawUpdated.isNotEmpty)
+              ? IndonesiaTime.tryParseApiTimestamp(rawUpdated)
+              : null;
+          final loadedUpdatedAt = parsedUpdatedAt == null
+              ? null
+              : IndonesiaTime.toWall(parsedUpdatedAt);
 
           final loadedIsVerified = mitra['is_verified'] == true ||
               mitra['is_verified'] == 1 ||
@@ -1394,7 +1401,7 @@ class _PartnerSettingScreenState extends State<PartnerSettingScreen> {
         if (mounted) {
           setState(() {
             pendingSkills = selectedCategory;
-            skillsUpdatedAt = DateTime.now();
+            skillsUpdatedAt = IndonesiaTime.nowWall();
           });
         }
 

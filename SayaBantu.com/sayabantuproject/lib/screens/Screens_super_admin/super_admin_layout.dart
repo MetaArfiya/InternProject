@@ -39,6 +39,8 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   // =========================================================
 
   int _selectedIndex = 0;
+  static const String _selectedMenuStorageKey = 'super_admin_selected_menu';
+  bool _isRedirectingForExpiredSession = false;
 
   // =========================================================
   // MENUS
@@ -112,7 +114,31 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
   @override
   void initState() {
     super.initState();
+    final savedMenu = AuthStorage.getString(_selectedMenuStorageKey);
+    final savedIndex = _menus.indexWhere((menu) => menu['key'] == savedMenu);
+    if (savedIndex >= 0) _selectedIndex = savedIndex;
     _loadSuperAdminProfile();
+  }
+
+  void _selectMenu(int index) {
+    if (index < 0 || index >= _menus.length) return;
+    AuthStorage.setString(
+      _selectedMenuStorageKey,
+      _menus[index]['key'] as String,
+    );
+    setState(() => _selectedIndex = index);
+  }
+
+  void _handleExpiredSession() {
+    if (_isRedirectingForExpiredSession) return;
+    _isRedirectingForExpiredSession = true;
+    AuthStorage.clear();
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil<void>(
+      MaterialPageRoute<void>(builder: (_) => const LandingPage()),
+      (route) => false,
+    );
   }
 
   // =========================================================
@@ -129,6 +155,11 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       }
 
       final response = await ApiService.get('/user');
+
+      if (response.statusCode == 401) {
+        _handleExpiredSession();
+        return;
+      }
 
       if (response.statusCode != 200) {
         debugPrint('GAGAL MEMUAT DATA SUPER ADMIN: ${response.statusCode}');
@@ -359,10 +390,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       child: Container(
         width: 100,
         height: 100,
-        decoration: BoxDecoration(
-          color: t.accent,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: t.accent, shape: BoxShape.circle),
         alignment: Alignment.center,
         child: Text(
           _getInitials(),
@@ -636,10 +664,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                       Text(
                         'Klik ikon kamera untuk mengganti foto',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: t.mutedText,
-                          fontSize: 11,
-                        ),
+                        style: TextStyle(color: t.mutedText, fontSize: 11),
                       ),
                       if (selectedPhotoName != null) ...[
                         const SizedBox(height: 6),
@@ -647,10 +672,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           selectedPhotoName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: t.mutedText,
-                            fontSize: 11,
-                          ),
+                          style: TextStyle(color: t.mutedText, fontSize: 11),
                         ),
                       ],
                       const SizedBox(height: 22),
@@ -673,8 +695,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                       const SizedBox(height: 14),
                       TextField(
                         enabled: false,
-                        controller:
-                            TextEditingController(text: 'Super Admin'),
+                        controller: TextEditingController(text: 'Super Admin'),
                         decoration: InputDecoration(
                           labelText: 'Role',
                           prefixIcon: const Icon(
@@ -722,14 +743,12 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                                 );
 
                                 if (response.statusCode != 200) {
-                                  String message =
-                                      'Gagal memperbarui nama.';
+                                  String message = 'Gagal memperbarui nama.';
                                   try {
-                                    final data =
-                                        jsonDecode(response.body);
+                                    final data = jsonDecode(response.body);
                                     if (data is Map<String, dynamic>) {
-                                      message = data['message']
-                                              ?.toString() ??
+                                      message =
+                                          data['message']?.toString() ??
                                           message;
                                     }
                                   } catch (_) {}
@@ -741,9 +760,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                               if (selectedPhotoBytes != null) {
                                 photoUpdated = await _uploadProfilePhoto();
                                 if (!photoUpdated) {
-                                  throw Exception(
-                                    'Foto gagal diperbarui.',
-                                  );
+                                  throw Exception('Foto gagal diperbarui.');
                                 }
                               }
 
@@ -761,22 +778,19 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                                 Navigator.of(dialogContext).pop();
                               }
 
-                              String message =
-                                  'Profil berhasil diperbarui.';
+                              String message = 'Profil berhasil diperbarui.';
                               if (nameUpdated && photoUpdated) {
                                 message =
                                     'Nama dan foto profil berhasil diperbarui.';
                               } else if (photoUpdated) {
-                                message =
-                                    'Foto profil berhasil diperbarui.';
+                                message = 'Foto profil berhasil diperbarui.';
                               } else if (nameUpdated) {
                                 message = 'Nama berhasil diperbarui.';
                               }
 
                               _showSnack(message);
                             } catch (e) {
-                              debugPrint(
-                                  'ERROR UPDATE SUPER ADMIN: $e');
+                              debugPrint('ERROR UPDATE SUPER ADMIN: $e');
                               if (!mounted) return;
                               _showSnack(
                                 'Gagal memperbarui profil: $e',
@@ -811,8 +825,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           )
                         : const Text(
                             'Simpan',
-                            style:
-                                TextStyle(fontWeight: FontWeight.w700),
+                            style: TextStyle(fontWeight: FontWeight.w700),
                           ),
                   ),
                 ],
@@ -859,10 +872,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 250,
-            child: _buildSidebar(context),
-          ),
+          SizedBox(width: 250, child: _buildSidebar(context)),
           Expanded(child: _buildContentArea()),
         ],
       ),
@@ -911,7 +921,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                   : Icons.folder_outlined,
               color: _selectedIndex == 5 ? t.accent : t.sidebarText,
             ),
-            onPressed: () => setState(() => _selectedIndex = 5),
+            onPressed: () => _selectMenu(5),
           ),
           const SizedBox(width: 4),
         ],
@@ -934,10 +944,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
       removeRight: true,
       child: Align(
         alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: double.infinity,
-          child: _buildContent(),
-        ),
+        child: SizedBox(width: double.infinity, child: _buildContent()),
       ),
     );
   }
@@ -985,8 +992,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color:
-                                AppColors.white.withValues(alpha: 0.65),
+                            color: AppColors.white.withValues(alpha: 0.65),
                             fontSize: 13,
                           ),
                         ),
@@ -1001,13 +1007,13 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
 
             // MENU
             ..._menus.asMap().entries.map(
-                  (entry) => _menuItem(
-                    context: context,
-                    index: entry.key,
-                    icon: entry.value['icon'] as IconData,
-                    title: entry.value['title'] as String,
-                  ),
-                ),
+              (entry) => _menuItem(
+                context: context,
+                index: entry.key,
+                icon: entry.value['icon'] as IconData,
+                title: entry.value['title'] as String,
+              ),
+            ),
 
             const Spacer(),
 
@@ -1034,13 +1040,10 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
     final bool active = _selectedIndex == index;
 
     return InkWell(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () => _selectMenu(index),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 15,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         color: active
             ? AppColors.mint.withValues(alpha: 0.15)
             : AppColors.transparent,
@@ -1063,8 +1066,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                   color: active
                       ? AppColors.mint
                       : AppColors.white.withValues(alpha: 0.85),
-                  fontWeight:
-                      active ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
                   fontSize: 14.5,
                 ),
               ),
@@ -1096,24 +1098,15 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         borderRadius: BorderRadius.circular(10),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 13,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
             color: AppColors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.15),
-            ),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.15)),
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.logout,
-                color: AppColors.mint,
-                size: 20,
-              ),
+              const Icon(Icons.logout, color: AppColors.mint, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -1148,17 +1141,15 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         top: false,
         child: BottomNavigationBar(
           currentIndex: _getMenuIndex() > 4 ? 0 : _getMenuIndex(),
-          onTap: (index) => setState(() => _selectedIndex = index),
+          onTap: _selectMenu,
           type: BottomNavigationBarType.fixed,
           backgroundColor: AppColors.white,
           selectedItemColor: t.accent,
           unselectedItemColor: t.sidebarMuted,
           selectedFontSize: 11,
           unselectedFontSize: 11,
-          selectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.w500),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
           elevation: 0,
           items: _menus
               .take(5)
@@ -1190,10 +1181,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
           child: AlertDialog(
             title: Text(
               'Logout',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: t.cellText,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: t.cellText),
             ),
             content: Text(
               'Apakah kamu yakin ingin keluar dari akun Super Admin?',
@@ -1274,8 +1262,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
         final isMobile = width < 700;
         final isTablet = width >= 700 && width < 1100;
 
-        final horizontalPadding =
-            isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
@@ -1291,154 +1278,142 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Profil Super Admin',
+                    style: TextStyle(
+                      fontSize: isMobile ? 22 : 26,
+                      fontWeight: FontWeight.w700,
+                      color: t.cellText,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Kelola informasi profil akun Super Admin.',
+                    style: TextStyle(
+                      fontSize: isMobile ? 12.5 : 13,
+                      color: t.mutedText,
+                      height: 1.4,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
                     children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: t.accent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       Text(
-                        'Profil Super Admin',
+                        'Informasi Akun',
                         style: TextStyle(
-                          fontSize: isMobile ? 22 : 26,
+                          fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: t.cellText,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Kelola informasi profil akun Super Admin.',
-                        style: TextStyle(
-                          fontSize: isMobile ? 12.5 : 13,
-                          color: t.mutedText,
-                          height: 1.4,
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: t.accent,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Informasi Akun',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: t.cellText,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isMobile ? 20 : 24),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: t.border),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildSuperAdminProfileImage(size: 100),
-                            const SizedBox(height: 18),
-
-                            Text(
-                              superAdminName,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: t.cellText,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-
-                            _roleChip(),
-
-                            const SizedBox(height: 20),
-                            Divider(height: 1, color: t.divider),
-                            const SizedBox(height: 20),
-
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton.icon(
-                                onPressed: _showEditProfileDialog,
-                                icon: const Icon(
-                                  Icons.edit_outlined,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  'Edit Profil',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: t.accent,
-                                  foregroundColor: AppColors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: OutlinedButton.icon(
-                                onPressed: _logout,
-                                icon: Icon(
-                                  Icons.logout_outlined,
-                                  size: 18,
-                                  color: t.danger,
-                                ),
-                                label: Text(
-                                  'Keluar',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: t.danger,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color:
-                                        t.danger.withValues(alpha: 0.3),
-                                  ),
-                                  backgroundColor:
-                                      t.danger.withValues(alpha: 0.05),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
+
+                  const SizedBox(height: 12),
+
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(isMobile ? 20 : 24),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: t.border),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildSuperAdminProfileImage(size: 100),
+                        const SizedBox(height: 18),
+
+                        Text(
+                          superAdminName,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: t.cellText,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        _roleChip(),
+
+                        const SizedBox(height: 20),
+                        Divider(height: 1, color: t.divider),
+                        const SizedBox(height: 20),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _showEditProfileDialog,
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text(
+                              'Edit Profil',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: t.accent,
+                              foregroundColor: AppColors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: _logout,
+                            icon: Icon(
+                              Icons.logout_outlined,
+                              size: 18,
+                              color: t.danger,
+                            ),
+                            label: Text(
+                              'Keluar',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: t.danger,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: t.danger.withValues(alpha: 0.3),
+                              ),
+                              backgroundColor: t.danger.withValues(alpha: 0.05),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

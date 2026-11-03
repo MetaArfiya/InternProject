@@ -11,6 +11,8 @@ use App\Notifications\NewMitraRegistered;
 
 class MitraProfileController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
     // ============================================================
     // UPLOAD KTP (LEGACY — untuk verifikasi awal)
     // ============================================================
@@ -683,9 +685,14 @@ class MitraProfileController extends Controller
     public function pendingSkills(Request $request)
     {
         try {
-            $list = mitra_profiles::whereNotNull('pending_skills')
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $list = $this->scopeByAdminCity(mitra_profiles::whereNotNull('pending_skills')
                 ->where('pending_skills', '!=', '')
-                ->with('user:id,name,email,phone,photo_profile')
+                ->with('user:id,name,email,phone,photo_profile,city_id'), $admin)
                 ->orderBy('skills_updated_at', 'desc')
                 ->get()
                 ->map(function ($profile) {
@@ -747,7 +754,14 @@ class MitraProfileController extends Controller
     public function approveSkill(Request $request, $mitraId)
     {
         try {
-            $profile = mitra_profiles::where('user_id', $mitraId)->first();
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $profileQuery = mitra_profiles::where('user_id', $mitraId);
+            $this->scopeByAdminCity($profileQuery, $admin);
+            $profile = $profileQuery->first();
 
             if (!$profile) {
                 return response()->json([
@@ -808,7 +822,14 @@ class MitraProfileController extends Controller
     public function rejectSkill(Request $request, $mitraId)
     {
         try {
-            $profile = mitra_profiles::where('user_id', $mitraId)->first();
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $profileQuery = mitra_profiles::where('user_id', $mitraId);
+            $this->scopeByAdminCity($profileQuery, $admin);
+            $profile = $profileQuery->first();
 
             if (!$profile) {
                 return response()->json([

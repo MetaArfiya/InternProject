@@ -8,6 +8,18 @@ use App\Models\users;
 
 class AdminActivityController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
+    private function scopedAdminActivities($admin)
+    {
+        return ActivityLog::whereHas('user', function ($query) use ($admin) {
+            $query->where('role_id', 2);
+            if ($cityId = $this->adminCityId($admin)) {
+                $query->where('city_id', $cityId);
+            }
+        });
+    }
+
     // =========================================================
     // MENGAMBIL LAPORAN AKTIVITAS ADMIN HARI INI
     // =========================================================
@@ -15,16 +27,18 @@ class AdminActivityController extends Controller
     public function index()
     {
         try {
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             // =====================================================
             // AKTIVITAS ADMIN HARI INI
             // =====================================================
 
-            $activities = ActivityLog::with('user')
+            $activities = $this->scopedAdminActivities($admin)
+                ->with('user')
                 ->whereDate('created_at', today())
-                ->whereHas('user', function ($query) {
-                    $query->where('role_id', 2);
-                })
                 ->latest()
                 ->take(50)
                 ->get();
@@ -34,47 +48,35 @@ class AdminActivityController extends Controller
             // STATISTIK
             // =====================================================
 
-            $approvedPartners = ActivityLog::whereDate(
+            $approvedPartners = $this->scopedAdminActivities($admin)->whereDate(
                     'created_at',
                     today()
                 )
                 ->where('icon', 'verified')
-                ->whereHas('user', function ($query) {
-                    $query->where('role_id', 2);
-                })
                 ->count();
 
 
-            $moderatedPosts = ActivityLog::whereDate(
+            $moderatedPosts = $this->scopedAdminActivities($admin)->whereDate(
                     'created_at',
                     today()
                 )
                 ->where('icon', 'flag')
-                ->whereHas('user', function ($query) {
-                    $query->where('role_id', 2);
-                })
                 ->count();
 
 
-            $rejectedPosts = ActivityLog::whereDate(
+            $rejectedPosts = $this->scopedAdminActivities($admin)->whereDate(
                     'created_at',
                     today()
                 )
                 ->where('icon', 'cancel')
-                ->whereHas('user', function ($query) {
-                    $query->where('role_id', 2);
-                })
                 ->count();
 
 
-            $userReports = ActivityLog::whereDate(
+            $userReports = $this->scopedAdminActivities($admin)->whereDate(
                     'created_at',
                     today()
                 )
                 ->where('icon', 'report')
-                ->whereHas('user', function ($query) {
-                    $query->where('role_id', 2);
-                })
                 ->count();
 
 
@@ -104,7 +106,7 @@ class AdminActivityController extends Controller
 
                         'time' =>
                             $activity->created_at
-                                ? $activity->created_at->format('H:i')
+                            ? $activity->created_at->copy()->timezone(config('app.timezone'))->format('H:i')
                                 : '-',
 
                         'admin_name' =>

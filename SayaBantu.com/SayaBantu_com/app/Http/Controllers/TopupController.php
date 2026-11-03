@@ -11,6 +11,8 @@ use App\Helpers\ActivityLogger;
 
 class TopupController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
     protected WalletService $wallet;
 
     public function __construct(WalletService $wallet)
@@ -97,17 +99,14 @@ class TopupController extends Controller
     {
         try {
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             $query = Topup::with('user:id,name,email,phone,city_id')
                 ->latest();
 
-            // ADMIN DAERAH
-            // Hanya melihat topup dari user yang berada di kota admin tersebut
-            if ($admin->role_id == 2 && $admin->city_id) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('city_id', $admin->city_id);
-                });
-            }
+            $this->scopeByAdminCity($query, $admin);
 
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
@@ -138,6 +137,9 @@ class TopupController extends Controller
     {
         try {
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             $topup = Topup::with('user:id,name,email,phone,city_id')
                 ->find($id);
@@ -152,9 +154,9 @@ class TopupController extends Controller
             // ============================================================
             // VALIDASI WILAYAH ADMIN DAERAH
             // ============================================================
-            if ($admin->role_id == 2 && $admin->city_id) {
+            if ($cityId = $this->adminCityId($admin)) {
 
-                if (!$topup->user || $topup->user->city_id != $admin->city_id) {
+                if (!$topup->user || (int) $topup->user->city_id !== $cityId) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Akses ditolak. User ini bukan dari wilayah Anda.',

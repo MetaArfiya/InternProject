@@ -1,3 +1,5 @@
+import '../utils/indonesia_time.dart';
+
 class ActiveOfferModel {
   final int id;
   final int jobId;
@@ -6,6 +8,7 @@ class ActiveOfferModel {
   final int queuePosition;
   final bool isTop;
   final String status;
+  final String bidStatus;
 
   // Fitur bukti
   final bool canSubmitProof;
@@ -28,6 +31,7 @@ class ActiveOfferModel {
     required this.queuePosition,
     required this.isTop,
     required this.status,
+    this.bidStatus = 'Menunggu',
     this.canSubmitProof = false,
     this.proofSubmitted = false,
     this.proofImage,
@@ -60,7 +64,7 @@ class ActiveOfferModel {
   /// Helper parse DateTime dari API
   static DateTime? _parseDate(dynamic value) {
     if (value == null || value.toString().isEmpty) return null;
-    return DateTime.tryParse(value.toString());
+    return IndonesiaTime.tryParseApiTimestamp(value);
   }
 
   factory ActiveOfferModel.fromJson(Map<String, dynamic> json) {
@@ -78,6 +82,7 @@ class ActiveOfferModel {
           int.tryParse(json['queue_position']?.toString() ?? '1') ?? 1,
       isTop: json['is_top'] == true || json['is_top']?.toString() == '1',
       status: json['status']?.toString() ?? 'Menunggu',
+      bidStatus: json['bid_status']?.toString() ?? 'Menunggu',
       canSubmitProof: json['can_submit_proof'] == true ||
           json['can_submit_proof']?.toString() == '1',
       proofSubmitted: json['proof_submitted'] == true ||

@@ -16,7 +16,11 @@ Future<void> main() async {
 
   try {
     final token = AuthStorage.getString('token') ?? '';
-    final role = (AuthStorage.getString('role') ?? '').trim();
+    final role = (AuthStorage.getString('role') ?? '')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[_-]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ');
 
     debugPrint('====== MAIN DEBUG ======');
     debugPrint('TOKEN : "$token"');
@@ -25,16 +29,20 @@ Future<void> main() async {
 
     if (token.isNotEmpty) {
       switch (role) {
-        case 'Super Admin':
+        case 'super admin':
+        case 'superadmin':
           homePage = const SuperAdminLayout();
           break;
-        case 'Admin':
+        case 'admin':
+        case 'administrator':
           homePage = const AdminLayout();
           break;
-        case 'Pelanggan':
+        case 'pelanggan':
+        case 'customer':
           homePage = const CustomerMainDashboard();
           break;
-        case 'Mitra':
+        case 'mitra':
+        case 'partner':
           homePage = const PartnerMainDashboard();
           break;
         default:

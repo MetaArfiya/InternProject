@@ -7,6 +7,7 @@ import 'dart:html' as html; // Untuk HtmlElementView
 import '../../models/monthly_earning_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 import '../../sections/payment/withdraw_dialog.dart';
 
 class IncomeScreen extends StatefulWidget {
@@ -857,7 +858,8 @@ class _IncomeScreenState extends State<IncomeScreen> {
   String _formatWithdrawalDate(dynamic value) {
     if (value == null) return '-';
 
-    final date = DateTime.tryParse(value.toString())?.toLocal();
+    final parsed = IndonesiaTime.tryParseApiTimestamp(value);
+    final date = parsed == null ? null : IndonesiaTime.toWall(parsed);
 
     if (date == null) return '-';
 

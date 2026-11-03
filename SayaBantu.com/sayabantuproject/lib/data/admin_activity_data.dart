@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../utils/indonesia_time.dart';
 
 class AdminActivityData extends ChangeNotifier {
   AdminActivityData._();
@@ -153,8 +154,9 @@ class AdminActivityData extends ChangeNotifier {
   // =========================================================
 
   static String _formatTime(DateTime time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
+    final wib = IndonesiaTime.toWall(time);
+    final hour = wib.hour.toString().padLeft(2, '0');
+    final minute = wib.minute.toString().padLeft(2, '0');
 
     return '$hour:$minute';
   }
@@ -174,3 +176,4 @@ class AdminActivityData extends ChangeNotifier {
     instance.notifyListeners();
   }
 }
+

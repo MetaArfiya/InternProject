@@ -25,5 +25,24 @@ class AppTheme {
         borderRadius: BorderRadius.circular(16),
       ),
     ),
+    dataTableTheme: DataTableThemeData(
+      headingRowColor: WidgetStatePropertyAll(Color(0xFFF8FAFC)),
+      headingTextStyle: TextStyle(
+        color: Color(0xFF475569),
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.3,
+      ),
+      dataTextStyle: TextStyle(
+        color: Color(0xFF334155),
+        fontSize: 13,
+      ),
+      headingRowHeight: 48,
+      dataRowMinHeight: 56,
+      dataRowMaxHeight: 88,
+      horizontalMargin: 20,
+      columnSpacing: 24,
+      dividerThickness: 0.6,
+    ),
   );
 }

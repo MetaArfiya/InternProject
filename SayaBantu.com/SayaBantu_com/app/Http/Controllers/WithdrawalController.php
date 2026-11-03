@@ -12,6 +12,8 @@ use App\Helpers\ActivityLogger;
 
 class WithdrawalController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
     protected WalletService $wallet;
 
     public function __construct(WalletService $wallet)
@@ -133,16 +135,14 @@ class WithdrawalController extends Controller
     {
         try {
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             $query = Withdrawal::with('user:id,name,email,phone,city_id,bank_name,bank_account_number,bank_account_name')
                 ->latest();
 
-            // Admin Daerah hanya melihat withdrawal dari user di kotanya
-            if ($admin->role_id == 2 && $admin->city_id) {
-                $query->whereHas('user', function ($q) use ($admin) {
-                    $q->where('city_id', $admin->city_id);
-                });
-            }
+            $this->scopeByAdminCity($query, $admin);
 
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
@@ -169,6 +169,9 @@ class WithdrawalController extends Controller
     {
         try {
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             $withdrawal = Withdrawal::with('user:id,name,email,phone,city_id,bank_name,bank_account_number,bank_account_name')
                 ->find($id);
@@ -188,8 +191,8 @@ class WithdrawalController extends Controller
             }
 
             // Admin Daerah hanya boleh memproses withdrawal dari kotanya
-            if ($admin->role_id == 2 && $admin->city_id) {
-                if (!$withdrawal->user || $withdrawal->user->city_id != $admin->city_id) {
+            if ($cityId = $this->adminCityId($admin)) {
+                if (!$withdrawal->user || (int) $withdrawal->user->city_id !== $cityId) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Anda tidak memiliki akses untuk memproses withdrawal dari kota ini.',
@@ -240,6 +243,9 @@ class WithdrawalController extends Controller
     {
         try {
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             $withdrawal = Withdrawal::with('user:id,name,email,phone,city_id')
                 ->find($id);
@@ -259,8 +265,8 @@ class WithdrawalController extends Controller
             }
 
             // Admin Daerah hanya boleh menolak withdrawal dari kotanya
-            if ($admin->role_id == 2 && $admin->city_id) {
-                if (!$withdrawal->user || $withdrawal->user->city_id != $admin->city_id) {
+            if ($cityId = $this->adminCityId($admin)) {
+                if (!$withdrawal->user || (int) $withdrawal->user->city_id !== $cityId) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Anda tidak memiliki akses untuk menolak withdrawal dari kota ini.',

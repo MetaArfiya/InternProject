@@ -13,6 +13,7 @@ import 'package:latlong2/latlong.dart';
 import '../../models/job_model.dart';
 import '../../screens/Screens_Customer/map_picker_screen.dart';
 import '../../services/api_service.dart';
+import '../../utils/indonesia_time.dart';
 import '../../services/auth_storage.dart';
 import '../../theme/app_colors.dart';
 
@@ -327,9 +328,11 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   Future<void> _pickPreferredStartAt() async {
-    final now = DateTime.now();
+    final now = IndonesiaTime.nowWall();
 
-    final existing = _preferredStartAt;
+    final existing = _preferredStartAt == null
+        ? null
+        : IndonesiaTime.toWall(_preferredStartAt!);
 
     final initialDate = existing != null && existing.isAfter(now)
         ? existing
@@ -355,11 +358,15 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       helpText: 'Pilih jam mulai pekerjaan',
       cancelText: 'Batal',
       confirmText: 'Pilih',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
     );
 
     if (selectedTime == null || !mounted) return;
 
-    final selectedDateTime = DateTime(
+    final selectedDateTime = DateTime.utc(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
@@ -367,7 +374,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       selectedTime.minute,
     );
 
-    if (!selectedDateTime.isAfter(DateTime.now())) {
+    if (!IndonesiaTime.wallToUtc(selectedDateTime)
+        .isAfter(DateTime.now().toUtc())) {
       _showMessage(
         'Waktu mulai harus lebih dari waktu sekarang.',
         backgroundColor: Colors.red,
@@ -376,7 +384,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     }
 
     setState(() {
-      _preferredStartAt = selectedDateTime;
+      _preferredStartAt = IndonesiaTime.wallToUtc(selectedDateTime);
     });
   }
 
@@ -385,6 +393,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   String _formatPreferredStartAt(DateTime dateTime) {
+    final wibDateTime = IndonesiaTime.toWall(dateTime);
     const months = [
       'Januari',
       'Februari',
@@ -400,12 +409,12 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       'Desember',
     ];
 
-    final day = dateTime.day.toString().padLeft(2, '0');
-    final month = months[dateTime.month - 1];
-    final year = dateTime.year;
+    final day = wibDateTime.day.toString().padLeft(2, '0');
+    final month = months[wibDateTime.month - 1];
+    final year = wibDateTime.year;
 
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final hour = wibDateTime.hour.toString().padLeft(2, '0');
+    final minute = wibDateTime.minute.toString().padLeft(2, '0');
 
     return '$day $month $year, pukul $hour:$minute';
   }
@@ -501,7 +510,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       return;
     }
 
-    if (!_preferredStartAt!.isAfter(DateTime.now())) {
+    if (!_preferredStartAt!.isAfter(DateTime.now().toUtc())) {
       _showMessage(
         'Waktu mulai harus lebih dari waktu sekarang.',
         backgroundColor: Colors.red,

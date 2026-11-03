@@ -163,6 +163,10 @@ class _AdminLayoutState extends State<AdminLayout> {
           final apiEmail = userData['email']?.toString();
           final apiPhoto = userData['photo_url']?.toString();
           final apiRole = userData['role']?.toString();
+          final city = userData['city'];
+          final apiCityName = city is Map
+              ? city['name']?.toString()
+              : userData['city_name']?.toString();
 
           if (!mounted) return;
 
@@ -176,6 +180,11 @@ class _AdminLayoutState extends State<AdminLayout> {
             if (apiRole != null && apiRole.trim().isNotEmpty) {
               adminRole = apiRole.trim();
             }
+            if (apiCityName != null &&
+                apiCityName.trim().isNotEmpty &&
+                apiCityName != 'null') {
+              adminCityName = apiCityName.trim();
+            }
             if (apiPhoto != null &&
                 apiPhoto.trim().isNotEmpty &&
                 apiPhoto != 'null') {
@@ -184,6 +193,12 @@ class _AdminLayoutState extends State<AdminLayout> {
               adminPhotoUrl = null;
             }
           });
+
+          if (apiCityName != null &&
+              apiCityName.trim().isNotEmpty &&
+              apiCityName != 'null') {
+            AuthStorage.setString('admin_city_name', apiCityName.trim());
+          }
         }
       }
     } catch (e) {

@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/table_pagination_footer.dart';
 
 class ActivePartnerPage extends StatefulWidget {
   const ActivePartnerPage({super.key});
@@ -20,6 +21,8 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   List<Map<String, dynamic>> _partners = [];
 
   String _searchQuery = '';
+  int _currentPage = 1;
+  int _rowsPerPage = 10;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -48,6 +51,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
       if (!mounted) return;
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();
+        _currentPage = 1;
       });
     });
 
@@ -92,11 +96,16 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
                     (item) => Map<String, dynamic>.from(item),
                   )
                   .toList();
+              final totalPages = _partners.isEmpty
+                  ? 1
+                  : (_partners.length / _rowsPerPage).ceil();
+              _currentPage = _currentPage.clamp(1, totalPages).toInt();
               _isLoading = false;
             });
           } else {
             setState(() {
               _partners = [];
+              _currentPage = 1;
               _isLoading = false;
             });
           }
@@ -426,25 +435,46 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
 
   Widget _buildDesktopTable(AdminTheme t) {
     final partners = _filteredPartners;
+    final start = (_currentPage - 1) * _rowsPerPage;
+    final pagePartners = partners.skip(start).take(_rowsPerPage).toList();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: t.border),
-      ),
-      child: Column(
-        children: [
-          _buildTableHeaderRow(t),
-          Divider(height: 1, thickness: 1, color: t.divider),
-
-          for (int i = 0; i < partners.length; i++) ...[
-            _buildTableDataRow(partners[i], t),
-            if (i != partners.length - 1)
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: t.border),
+          ),
+          child: Column(
+            children: [
+              _buildTableHeaderRow(t),
               Divider(height: 1, thickness: 1, color: t.divider),
-          ],
-        ],
-      ),
+
+              for (int i = 0; i < pagePartners.length; i++) ...[
+                _buildTableDataRow(pagePartners[i], t),
+                if (i != pagePartners.length - 1)
+                  Divider(height: 1, thickness: 1, color: t.divider),
+              ],
+            ],
+          ),
+        ),
+        TablePaginationFooter(
+          totalCount: partners.length,
+          currentPage: _currentPage,
+          rowsPerPage: _rowsPerPage,
+          itemLabel: 'mitra',
+          accentColor: t.accent,
+          borderColor: t.border,
+          headerTextColor: t.headerText,
+          cellTextColor: t.cellText,
+          onPageChanged: (page) => setState(() => _currentPage = page),
+          onRowsPerPageChanged: (value) => setState(() {
+            _rowsPerPage = value;
+            _currentPage = 1;
+          }),
+        ),
+      ],
     );
   }
 
@@ -708,7 +738,7 @@ class _ActivePartnerPageState extends State<ActivePartnerPage> {
   // AVATAR & STATUS
   // ============================================================
 
-    Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
+  Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Container(

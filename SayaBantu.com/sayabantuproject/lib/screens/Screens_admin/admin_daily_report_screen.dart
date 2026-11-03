@@ -118,8 +118,40 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
 
       if (!mounted) return;
 
-      final s = decoded['summary'] ?? {};
-      final list = decoded['data'] is List ? decoded['data'] as List : [];
+      final s = decoded['summary'] is Map
+          ? Map<String, dynamic>.from(decoded['summary'] as Map)
+          : <String, dynamic>{};
+      final rawReports = decoded['daily_reports'] is List
+          ? decoded['daily_reports'] as List
+          : (decoded['data'] is List ? decoded['data'] as List : <dynamic>[]);
+      final list = rawReports.whereType<Map>().map((raw) {
+        final report = Map<String, dynamic>.from(raw);
+        final transactions = report['transactions'] is List
+            ? (report['transactions'] as List)
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+            : <Map<String, dynamic>>[];
+        final jobsById = <String, Map<String, dynamic>>{};
+        for (final transaction in transactions) {
+          final jobId = transaction['job_id']?.toString();
+          if (jobId == null) continue;
+          jobsById.putIfAbsent(jobId, () => {
+                'id': transaction['job_id'],
+                'code': transaction['reference_code'],
+                'title': transaction['job_title'],
+              });
+        }
+
+        return <String, dynamic>{
+          ...report,
+          'transactions': report['total_transactions'] ?? transactions.length,
+          'jobs': jobsById.length,
+          'income': report['total_commission'] ?? 0,
+          'transaction_details': transactions,
+          'job_details': jobsById.values.toList(),
+        };
+      }).toList();
 
       setState(() {
         _dailyData = list
@@ -129,17 +161,16 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
             )
             .toList();
 
-        _totalTransactions =
-            int.tryParse(s['total_transaksi']?.toString() ?? '0') ?? 0;
-
-        _totalJobs =
-            int.tryParse(s['total_pekerjaan']?.toString() ?? '0') ?? 0;
-
-        _totalIncome =
-            double.tryParse(s['total_komisi']?.toString() ?? '0') ?? 0;
-
-        _averageIncome =
-            double.tryParse(s['rata_harian']?.toString() ?? '0') ?? 0;
+        _totalTransactions = _toInt(s['total_transactions']);
+        _totalJobs = list
+            .expand((day) => (day['job_details'] as List))
+            .whereType<Map>()
+            .map((job) => job['id']?.toString())
+            .whereType<String>()
+            .toSet()
+            .length;
+        _totalIncome = _toDouble(s['total_commission']);
+        _averageIncome = list.isEmpty ? 0 : _totalIncome / list.length;
 
         _currentPage = 1;
         _isLoading = false;
@@ -1606,11 +1637,11 @@ class _AdminDailyReportScreenState extends State<AdminDailyReportScreen> {
               headingRowColor:
                   WidgetStateProperty.all(AppColors.grey50),
               headingRowHeight: 48,
-              dataRowMinHeight: 82,
-              dataRowMaxHeight: 150,
+              dataRowMinHeight: 56,
+              dataRowMaxHeight: 88,
               columnSpacing: 24,
               horizontalMargin: 20,
-              dividerThickness: 1,
+              dividerThickness: 0.6,
               showBottomBorder: true,
               headingTextStyle:
                   Theme.of(context).textTheme.bodyMedium?.copyWith(

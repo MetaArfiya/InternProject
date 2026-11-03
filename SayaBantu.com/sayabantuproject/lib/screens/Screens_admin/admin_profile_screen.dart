@@ -48,6 +48,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   String adminName = 'Memuat...';
   String adminEmail = 'Memuat...';
   String adminRole = 'Memuat...';
+  String adminCityName = AuthStorage.getString('admin_city_name') ?? 'Memuat...';
 
   String? photoUrl;
 
@@ -171,6 +172,18 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           final apiRole =
               user['role']?.toString() ?? user['role_name']?.toString();
           final apiPhotoUrl = user['photo_url']?.toString();
+          final city = user['city'];
+          final apiCityName = city is Map
+              ? city['name']?.toString()
+              : user['city_name']?.toString();
+          final savedCityName = AuthStorage.getString('admin_city_name');
+          final resolvedCityName = apiCityName != null &&
+                  apiCityName.trim().isNotEmpty &&
+                  apiCityName != 'null'
+              ? apiCityName.trim()
+              : (savedCityName != null && savedCityName.trim().isNotEmpty
+                  ? savedCityName.trim()
+                  : '-');
 
           setState(() {
             adminName = apiName != null && apiName.isNotEmpty
@@ -182,6 +195,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             adminRole = apiRole != null && apiRole.isNotEmpty
                 ? apiRole
                 : 'Admin';
+            adminCityName = resolvedCityName;
 
             if (apiPhotoUrl != null &&
                 apiPhotoUrl.isNotEmpty &&
@@ -193,6 +207,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
             isLoading = false;
           });
+
+          if (apiCityName != null &&
+              apiCityName.trim().isNotEmpty &&
+              apiCityName != 'null') {
+            AuthStorage.setString('admin_city_name', apiCityName.trim());
+          }
 
           debugPrint('ADMIN PROFILE: $user');
           debugPrint('ADMIN PHOTO URL: $photoUrl');
@@ -1167,6 +1187,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 const SizedBox(height: 15),
                 _infoItem(
                   context,
+                  Icons.location_on_outlined,
+                  'Wilayah Admin',
+                  adminCityName,
+                ),
+                const SizedBox(height: 15),
+                _infoItem(
+                  context,
                   Icons.check_circle_outline,
                   'Status Akun',
                   'Aktif',
@@ -1192,6 +1219,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                         Icons.admin_panel_settings_outlined,
                         'Level Akses',
                         adminRole,
+                      ),
+                      const SizedBox(height: 18),
+                      _infoItem(
+                        context,
+                        Icons.location_on_outlined,
+                        'Wilayah Admin',
+                        adminCityName,
                       ),
                     ],
                   ),

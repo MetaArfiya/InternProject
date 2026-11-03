@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class AdminRatingScreen extends StatefulWidget {
   const AdminRatingScreen({super.key});
@@ -153,7 +154,9 @@ class _AdminRatingScreenState extends State<AdminRatingScreen> {
   String _formatTanggal(String? iso) {
     if (iso == null || iso.isEmpty) return '-';
     try {
-      final date = DateTime.parse(iso).toLocal();
+      final parsed = IndonesiaTime.tryParseApiTimestamp(iso);
+      if (parsed == null) return '-';
+      final date = IndonesiaTime.toWall(parsed);
       const bulan = [
         'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
         'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',

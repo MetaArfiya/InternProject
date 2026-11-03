@@ -1,4 +1,5 @@
 // lib/models/complaint_model.dart
+import '../utils/indonesia_time.dart';
 
 class ComplaintModel {
   final int id;
@@ -43,7 +44,7 @@ class ComplaintModel {
   // TANGGAL FORMAT INDONESIA
   // ============================================================
   String get formattedDate {
-    final date = createdAt ?? DateTime.now();
+    final date = IndonesiaTime.toWall(createdAt ?? DateTime.now());
     const bulan = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -83,13 +84,14 @@ class ComplaintModel {
       status: json['status']?.toString() ?? 'Menunggu',
       adminResponse: json['admin_response']?.toString(),
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['created_at'])
           : null,
       handledAt: json['handled_at'] != null
-          ? DateTime.tryParse(json['handled_at'].toString())
+          ? IndonesiaTime.tryParseApiTimestamp(json['handled_at'])
           : null,
       proofPhoto: json['proof_photo']?.toString(),
       proofPhotoUrl: json['proof_photo_url']?.toString(),
     );
   }
 }
+

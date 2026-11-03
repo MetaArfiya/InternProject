@@ -18,6 +18,8 @@ use App\Helpers\ActivityLogger;
 
 class PaymentController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
     protected WalletService $wallet;
 
     public function __construct(WalletService $wallet)
@@ -386,6 +388,9 @@ class PaymentController extends Controller
             $endDate = $validated['end_date'] ?? null;
 
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             // Query pembayaran
             $query = Payment::with([
@@ -396,7 +401,7 @@ class PaymentController extends Controller
 
             // Filter wilayah untuk Admin Daerah
             // Berdasarkan domisili mitra
-            if ((int) $admin->role_id === 2 && $admin->city_id) {
+            if ($cityId = $this->adminCityId($admin)) {
                 $query->whereIn('job_id', function ($subQuery) use ($admin) {
                     $subQuery->select('jobs.id')
                         ->from('jobs')
@@ -614,6 +619,9 @@ class PaymentController extends Controller
     {
         try {
             $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
 
             $query = Payment::with([
                 'job:id,tittle,description,final_price,location',
@@ -623,7 +631,7 @@ class PaymentController extends Controller
             ]);
 
             // Filter wilayah Admin Daerah berdasarkan domisili mitra
-            if ((int) $admin->role_id === 2 && $admin->city_id) {
+            if ($cityId = $this->adminCityId($admin)) {
                 $query->whereIn('job_id', function ($subQuery) use ($admin) {
                     $subQuery->select('jobs.id')
                         ->from('jobs')

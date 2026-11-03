@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import '../../services/api_service.dart';
 import '../../theme/admin_theme.dart';
 import '../../theme/admin_theme_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class ManageAdminPage extends StatefulWidget {
   const ManageAdminPage({super.key});
@@ -27,6 +27,8 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   String? _cityErrorMessage;
 
   String _searchQuery = '';
+  int _currentPage = 1;
+  int _rowsPerPage = 10;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -74,9 +76,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   ];
 
   static final List<TextInputFormatter> _emailFormatters = [
-    FilteringTextInputFormatter.allow(
-      RegExp(r"[a-zA-Z0-9@._%+-]"),
-    ),
+    FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z0-9@._%+-]")),
   ];
 
   // ============================================================
@@ -92,6 +92,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
 
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();
+        _currentPage = 1;
       });
     });
 
@@ -205,18 +206,22 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
                     (item) => Map<String, dynamic>.from(item),
                   )
                   .toList();
+              final totalPages = _admins.isEmpty
+                  ? 1
+                  : (_admins.length / _rowsPerPage).ceil();
+              _currentPage = _currentPage.clamp(1, totalPages).toInt();
               _isLoading = false;
             });
           } else {
             setState(() {
               _admins = [];
+              _currentPage = 1;
               _isLoading = false;
             });
           }
         } else {
           setState(() {
-            _errorMessage =
-                body['message'] ?? 'Gagal mengambil data admin.';
+            _errorMessage = body['message'] ?? 'Gagal mengambil data admin.';
             _isLoading = false;
           });
         }
@@ -285,8 +290,7 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
             _cities = [];
             _isLoadingCities = false;
             _cityErrorMessage =
-                body['message']?.toString() ??
-                'Format data kota tidak valid.';
+                body['message']?.toString() ?? 'Format data kota tidak valid.';
           });
         }
       } else {
@@ -317,207 +321,199 @@ class _ManageAdminPageState extends State<ManageAdminPage> {
   }
 
   // ============================================================
-// CITY PICKER
-// ============================================================
+  // CITY PICKER
+  // ============================================================
 
-Future<int?> _showCityPicker(AdminTheme t) async {
-  final searchController = TextEditingController();
-  List<Map<String, dynamic>> filteredCities = List.from(_cities);
+  Future<int?> _showCityPicker(AdminTheme t) async {
+    final searchController = TextEditingController();
+    List<Map<String, dynamic>> filteredCities = List.from(_cities);
 
-  final result = await showDialog<int>(
-    context: context,
-    builder: (pickerContext) {
-      return StatefulBuilder(
-        builder: (context, setPickerState) {
-          void filterCities(String query) {
-            final keyword = query.trim().toLowerCase();
+    final result = await showDialog<int>(
+      context: context,
+      builder: (pickerContext) {
+        return StatefulBuilder(
+          builder: (context, setPickerState) {
+            void filterCities(String query) {
+              final keyword = query.trim().toLowerCase();
 
-            setPickerState(() {
-              filteredCities = _cities.where((city) {
-                final name = (city['name'] ?? '').toString().toLowerCase();
-                return name.contains(keyword);
-              }).toList();
-            });
-          }
+              setPickerState(() {
+                filteredCities = _cities.where((city) {
+                  final name = (city['name'] ?? '').toString().toLowerCase();
+                  return name.contains(keyword);
+                }).toList();
+              });
+            }
 
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              'Pilih Wilayah Kota',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            content: SizedBox(
-              width: 420,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: searchController,
-                    onChanged: filterCities,
-                    decoration: InputDecoration(
-                      hintText: 'Cari nama kota/kabupaten...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Pilih Wilayah Kota',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      onChanged: filterCities,
+                      decoration: InputDecoration(
+                        hintText: 'Cari nama kota/kabupaten...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Flexible(
-                    child: filteredCities.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Text('Kota tidak ditemukan.'),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: filteredCities.length,
-                            itemBuilder: (context, index) {
-                              final city = filteredCities[index];
-                              final id = int.tryParse(
-                                city['id'].toString(),
-                              );
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: filteredCities.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text('Kota tidak ditemukan.'),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: filteredCities.length,
+                              itemBuilder: (context, index) {
+                                final city = filteredCities[index];
+                                final id = int.tryParse(city['id'].toString());
 
-                              if (id == null) {
-                                return const SizedBox.shrink();
-                              }
+                                if (id == null) {
+                                  return const SizedBox.shrink();
+                                }
 
-                              return ListTile(
-                                dense: true,
-                                leading: const Icon(
-                                  Icons.location_city_outlined,
-                                ),
-                                title: Text(city['name'].toString()),
-                                onTap: () {
-                                  Navigator.pop(pickerContext, id);
-                                },
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                                return ListTile(
+                                  dense: true,
+                                  leading: const Icon(
+                                    Icons.location_city_outlined,
+                                  ),
+                                  title: Text(city['name'].toString()),
+                                  onTap: () {
+                                    Navigator.pop(pickerContext, id);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            actions: [
-              TextButton.icon(
-                onPressed: () async {
-                  final cityName = await _showAddCityPrompt(t);
+              actions: [
+                TextButton.icon(
+                  onPressed: () async {
+                    final cityName = await _showAddCityPrompt(t);
 
-                  if (cityName == null || cityName.trim().isEmpty) {
-                    return;
-                  }
-
-                  try {
-                    final response = await ApiService.post(
-                      '/cities',
-                      {'name': cityName.trim()},
-                    );
-
-                    final body = jsonDecode(response.body);
-
-                    if (response.statusCode == 201 &&
-                        body['success'] == true) {
-                      final city = Map<String, dynamic>.from(body['data']);
-                      final newId = int.tryParse(city['id'].toString());
-
-                      if (newId == null) {
-                        _showMessage(
-                          'Kota tersimpan, tetapi ID tidak valid.',
-                          isError: true,
-                          t: t,
-                        );
-                        return;
-                      }
-
-                      if (mounted) {
-                        setState(() {
-                          _cities.add(city);
-                          _cities.sort(
-                            (a, b) => a['name']
-                                .toString()
-                                .compareTo(b['name'].toString()),
-                          );
-                          _cityErrorMessage = null;
-                        });
-                      }
-
-                      if (pickerContext.mounted) {
-                        Navigator.pop(pickerContext, newId);
-                      }
-
-                      _showMessage(
-                        'Kota ${city['name']} berhasil ditambahkan.',
-                        t: t,
-                      );
+                    if (cityName == null || cityName.trim().isEmpty) {
                       return;
                     }
 
-                    final message = body['message']?.toString() ??
-                        'Gagal menambahkan kota.';
+                    try {
+                      final response = await ApiService.post('/cities', {
+                        'name': cityName.trim(),
+                      });
 
-                    // Jika nama sudah ada, muat ulang dan pilih kota tersebut.
-                    if (response.statusCode == 422) {
-                      await _loadCities();
+                      final body = jsonDecode(response.body);
 
-                      final existingCity = _cities.firstWhere(
-                        (city) => city['name']
-                            .toString()
-                            .trim()
-                            .toLowerCase() ==
-                            cityName.trim().toLowerCase(),
-                        orElse: () => <String, dynamic>{},
-                      );
+                      if (response.statusCode == 201 &&
+                          body['success'] == true) {
+                        final city = Map<String, dynamic>.from(body['data']);
+                        final newId = int.tryParse(city['id'].toString());
 
-                      final existingId = int.tryParse(
-                        existingCity['id']?.toString() ?? '',
-                      );
+                        if (newId == null) {
+                          _showMessage(
+                            'Kota tersimpan, tetapi ID tidak valid.',
+                            isError: true,
+                            t: t,
+                          );
+                          return;
+                        }
 
-                      if (existingId != null && pickerContext.mounted) {
-                        Navigator.pop(pickerContext, existingId);
+                        if (mounted) {
+                          setState(() {
+                            _cities.add(city);
+                            _cities.sort(
+                              (a, b) => a['name'].toString().compareTo(
+                                b['name'].toString(),
+                              ),
+                            );
+                            _cityErrorMessage = null;
+                          });
+                        }
+
+                        if (pickerContext.mounted) {
+                          Navigator.pop(pickerContext, newId);
+                        }
+
                         _showMessage(
-                          'Kota sudah tersedia. Kota tersebut dipilih.',
+                          'Kota ${city['name']} berhasil ditambahkan.',
                           t: t,
                         );
                         return;
                       }
+
+                      final message =
+                          body['message']?.toString() ??
+                          'Gagal menambahkan kota.';
+
+                      // Jika nama sudah ada, muat ulang dan pilih kota tersebut.
+                      if (response.statusCode == 422) {
+                        await _loadCities();
+
+                        final existingCity = _cities.firstWhere(
+                          (city) =>
+                              city['name'].toString().trim().toLowerCase() ==
+                              cityName.trim().toLowerCase(),
+                          orElse: () => <String, dynamic>{},
+                        );
+
+                        final existingId = int.tryParse(
+                          existingCity['id']?.toString() ?? '',
+                        );
+
+                        if (existingId != null && pickerContext.mounted) {
+                          Navigator.pop(pickerContext, existingId);
+                          _showMessage(
+                            'Kota sudah tersedia. Kota tersebut dipilih.',
+                            t: t,
+                          );
+                          return;
+                        }
+                      }
+
+                      _showMessage(message, isError: true, t: t);
+                    } catch (e) {
+                      _showMessage(
+                        'Gagal menambahkan kota: $e',
+                        isError: true,
+                        t: t,
+                      );
                     }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Tambah kota baru'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(pickerContext),
+                  child: const Text('Tutup'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
 
-                    _showMessage(
-                      message,
-                      isError: true,
-                      t: t,
-                    );
-                  } catch (e) {
-                    _showMessage(
-                      'Gagal menambahkan kota: $e',
-                      isError: true,
-                      t: t,
-                    );
-                  }
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Tambah kota baru'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(pickerContext),
-                child: const Text('Tutup'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
+    searchController.dispose();
+    return result;
+  }
 
-  searchController.dispose();
-  return result;
-}
-
-// ============================================================
-// ADD CITY PROMPT
-// ============================================================
+  // ============================================================
+  // ADD CITY PROMPT
+  // ============================================================
 
   Future<String?> _showAddCityPrompt(AdminTheme t) async {
     final controller = TextEditingController();
@@ -618,8 +614,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         final isTablet =
             width >= _mobileBreakpoint && width < _tabletBreakpoint;
 
-        final horizontalPadding =
-            isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
+        final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 28.0);
         final verticalPadding = isMobile ? 16.0 : 28.0;
 
         return Container(
@@ -635,10 +630,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Column(
+              child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHeader(isMobile, t),
@@ -656,8 +648,6 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                       else
                         _buildDesktopTable(t),
                     ],
-                  ),
-                ),
               ),
             ),
           ),
@@ -734,15 +724,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         style: TextStyle(fontSize: 13.5, color: t.cellText),
         decoration: InputDecoration(
           hintText: 'Cari nama, email, atau nomor telepon...',
-          hintStyle: const TextStyle(
-            color: AppColors.grey400,
-            fontSize: 13,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: t.headerText,
-            size: 20,
-          ),
+          hintStyle: const TextStyle(color: AppColors.grey400, fontSize: 13),
+          prefixIcon: Icon(Icons.search, color: t.headerText, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
@@ -761,10 +744,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         icon: const Icon(Icons.person_add_alt_1, size: 17),
         label: const Text(
           'Tambah Admin',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: t.accent,
@@ -798,10 +778,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
           const SizedBox(height: 16),
           Text(
             'Mengambil data admin...',
-            style: TextStyle(
-              color: t.mutedText,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: t.mutedText, fontSize: 13),
           ),
         ],
       ),
@@ -819,17 +796,11 @@ Future<int?> _showCityPicker(AdminTheme t) async {
       decoration: BoxDecoration(
         color: t.danger.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: t.danger.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 42,
-            color: t.danger,
-          ),
+          Icon(Icons.error_outline, size: 42, color: t.danger),
           const SizedBox(height: 12),
           Text(
             'Gagal mengambil data admin',
@@ -843,11 +814,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
           Text(
             _errorMessage ?? '',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12.5,
-              color: t.danger,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 12.5, color: t.danger, height: 1.4),
           ),
           const SizedBox(height: 18),
           ElevatedButton.icon(
@@ -917,6 +884,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
 
   Widget _buildDesktopTable(AdminTheme t) {
     final admins = _filteredAdmins;
+    final start = (_currentPage - 1) * _rowsPerPage;
+    final pageAdmins = admins.skip(start).take(_rowsPerPage).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -924,52 +893,198 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: t.border),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           _buildTableHeaderRow(t),
+
           Divider(height: 1, thickness: 1, color: t.divider),
-          for (int i = 0; i < admins.length; i++) ...[
-            _buildTableDataRow(admins[i], t),
-            if (i != admins.length - 1)
+
+          for (int i = 0; i < pageAdmins.length; i++) ...[
+            _buildTableDataRow(pageAdmins[i], t),
+
+            if (i != pageAdmins.length - 1)
               Divider(height: 1, thickness: 1, color: t.divider),
           ],
+
+          Divider(height: 1, thickness: 1, color: t.border),
+
+          _buildAdminPagination(t, admins.length),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAdminPagination(AdminTheme t, int total) {
+    final totalPages = total == 0 ? 1 : (total / _rowsPerPage).ceil();
+
+    final start = total == 0 ? 0 : ((_currentPage - 1) * _rowsPerPage) + 1;
+
+    final end = (_currentPage * _rowsPerPage).clamp(0, total);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 550;
+
+          final information = Text(
+            total == 0
+                ? 'Menampilkan 0 dari 0 admin'
+                : 'Menampilkan $start–$end dari $total admin',
+            style: TextStyle(fontSize: 12, color: t.headerText),
+          );
+
+          final controls = Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // DROPDOWN JUMLAH DATA
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: t.border),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _rowsPerPage,
+                    isDense: true,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: t.headerText,
+                    ),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: t.cellText,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    items: [10, 25, 50].map((value) {
+                      return DropdownMenuItem<int>(
+                        value: value,
+                        child: Text('$value / hal'),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+
+                      setState(() {
+                        _rowsPerPage = value;
+                        _currentPage = 1;
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              // HALAMAN SEBELUMNYA
+              _adminPaginationButton(
+                icon: Icons.chevron_left,
+                enabled: _currentPage > 1,
+                color: t,
+                onTap: () {
+                  setState(() {
+                    _currentPage--;
+                  });
+                },
+              ),
+
+              // INDIKATOR HALAMAN
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: t.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Hal $_currentPage / $totalPages',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: t.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
+              // HALAMAN SELANJUTNYA
+              _adminPaginationButton(
+                icon: Icons.chevron_right,
+                enabled: _currentPage < totalPages,
+                color: t,
+                onTap: () {
+                  setState(() {
+                    _currentPage++;
+                  });
+                },
+              ),
+            ],
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [information, const SizedBox(height: 12), controls],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: information),
+              controls,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _adminPaginationButton({
+    required IconData icon,
+    required bool enabled,
+    required AdminTheme color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.border),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: enabled ? color.cellText : AppColors.grey300,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildTableHeaderRow(AdminTheme t) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(
-            flex: 3,
-            child: _headerCell('Admin', t),
-          ),
-          Expanded(
-            flex: 3,
-            child: _headerCell('Kontak', t),
-          ),
-          Expanded(
-            flex: 2,
-            child: _headerCell('Wilayah', t),
-          ),
-          Expanded(
-            flex: 2,
-            child: _headerCell('Status', t),
-          ),
-          Expanded(
-            flex: 3,
-            child: _headerCell('Login Terakhir', t),
-          ),
-          Expanded(
-            flex: 2,
-            child: _headerCell('Aksi', t),
-          ),
+          Expanded(flex: 3, child: _headerCell('Admin', t)),
+          Expanded(flex: 3, child: _headerCell('Kontak', t)),
+          Expanded(flex: 2, child: _headerCell('Wilayah', t)),
+          Expanded(flex: 2, child: _headerCell('Status', t)),
+          Expanded(flex: 3, child: _headerCell('Login Terakhir', t)),
+          Expanded(flex: 2, child: _headerCell('Aksi', t)),
         ],
       ),
     );
@@ -986,10 +1101,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     );
   }
 
-  Widget _buildTableDataRow(
-    Map<String, dynamic> admin,
-    AdminTheme t,
-  ) {
+  Widget _buildTableDataRow(Map<String, dynamic> admin, AdminTheme t) {
     final name = (admin['name'] ?? '-').toString();
     final email = (admin['email'] ?? '-').toString();
     final phone = (admin['phone'] ?? '-').toString();
@@ -1002,17 +1114,13 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     if (admin['city'] is Map) {
       final city = admin['city'] as Map;
 
-      if (city['name'] != null &&
-          city['name'].toString().trim().isNotEmpty) {
+      if (city['name'] != null && city['name'].toString().trim().isNotEmpty) {
         cityName = city['name'].toString();
       }
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1023,11 +1131,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
             flex: 3,
             child: Row(
               children: [
-                _buildAvatar(
-                  name,
-                  admin['photo_url']?.toString(),
-                  t,
-                ),
+                _buildAvatar(name, admin['photo_url']?.toString(), t),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1072,10 +1176,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                   email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: t.cellText,
-                  ),
+                  style: TextStyle(fontSize: 12.5, color: t.cellText),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -1140,11 +1241,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
               lastLogin,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: t.mutedText,
-                height: 1.3,
-              ),
+              style: TextStyle(fontSize: 12.5, color: t.mutedText, height: 1.3),
             ),
           ),
 
@@ -1213,19 +1310,14 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         final admin = entry.value;
 
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: index == admins.length - 1 ? 0 : 12,
-          ),
+          padding: EdgeInsets.only(bottom: index == admins.length - 1 ? 0 : 12),
           child: _buildMobileCard(admin, t),
         );
       }).toList(),
     );
   }
 
-  Widget _buildMobileCard(
-    Map<String, dynamic> admin,
-    AdminTheme t,
-  ) {
+  Widget _buildMobileCard(Map<String, dynamic> admin, AdminTheme t) {
     final name = (admin['name'] ?? '-').toString();
     final email = (admin['email'] ?? '-').toString();
     final phone = (admin['phone'] ?? '-').toString();
@@ -1238,8 +1330,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     if (admin['city'] is Map) {
       final city = admin['city'] as Map;
 
-      if (city['name'] != null &&
-          city['name'].toString().trim().isNotEmpty) {
+      if (city['name'] != null && city['name'].toString().trim().isNotEmpty) {
         cityName = city['name'].toString();
       }
     }
@@ -1261,11 +1352,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAvatar(
-                name,
-                admin['photo_url']?.toString(),
-                t,
-              ),
+              _buildAvatar(name, admin['photo_url']?.toString(), t),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1300,61 +1387,39 @@ Future<int?> _showCityPicker(AdminTheme t) async {
 
           const SizedBox(height: 14),
 
-          Divider(
-            height: 1,
-            color: t.divider,
-          ),
+          Divider(height: 1, color: t.divider),
 
           const SizedBox(height: 12),
 
           // ======================================================
           // EMAIL
           // ======================================================
-          _mobileInfo(
-            Icons.email_outlined,
-            email,
-            t,
-          ),
+          _mobileInfo(Icons.email_outlined, email, t),
 
           const SizedBox(height: 8),
 
           // ======================================================
           // TELEPON
           // ======================================================
-          _mobileInfo(
-            Icons.phone_outlined,
-            phone,
-            t,
-          ),
+          _mobileInfo(Icons.phone_outlined, phone, t),
 
           const SizedBox(height: 8),
 
           // ======================================================
           // WILAYAH
           // ======================================================
-          _mobileInfo(
-            Icons.location_city_outlined,
-            cityName,
-            t,
-          ),
+          _mobileInfo(Icons.location_city_outlined, cityName, t),
 
           const SizedBox(height: 8),
 
           // ======================================================
           // LOGIN TERAKHIR
           // ======================================================
-          _mobileInfo(
-            Icons.access_time_outlined,
-            lastLogin,
-            t,
-          ),
+          _mobileInfo(Icons.access_time_outlined, lastLogin, t),
 
           const SizedBox(height: 14),
 
-          Divider(
-            height: 1,
-            color: t.divider,
-          ),
+          Divider(height: 1, color: t.divider),
 
           const SizedBox(height: 10),
 
@@ -1366,20 +1431,12 @@ Future<int?> _showCityPicker(AdminTheme t) async {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _showEditAdminDialog(admin, t),
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    size: 16,
-                  ),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(fontSize: 12.5),
-                  ),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Edit', style: TextStyle(fontSize: 12.5)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: t.cellText,
                     side: BorderSide(color: t.border),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1390,22 +1447,12 @@ Future<int?> _showCityPicker(AdminTheme t) async {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _deleteAdmin(admin, t),
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 16,
-                  ),
-                  label: const Text(
-                    'Hapus',
-                    style: TextStyle(fontSize: 12.5),
-                  ),
+                  icon: const Icon(Icons.delete_outline, size: 16),
+                  label: const Text('Hapus', style: TextStyle(fontSize: 12.5)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: t.danger,
-                    side: BorderSide(
-                      color: t.danger.withValues(alpha: 0.3),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                    ),
+                    side: BorderSide(color: t.danger.withValues(alpha: 0.3)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1419,11 +1466,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     );
   }
 
-  Widget _mobileInfo(
-    IconData icon,
-    String text,
-    AdminTheme t,
-  ) {
+  Widget _mobileInfo(IconData icon, String text, AdminTheme t) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1434,11 +1477,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
             text,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12.5,
-              color: t.mutedText,
-              height: 1.35,
-            ),
+            style: TextStyle(fontSize: 12.5, color: t.mutedText, height: 1.35),
           ),
         ),
       ],
@@ -1449,11 +1488,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
   // AVATAR
   // ============================================================
 
-  Widget _buildAvatar(
-    String name,
-    String? photoUrl,
-    AdminTheme t,
-  ) {
+  Widget _buildAvatar(String name, String? photoUrl, AdminTheme t) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Container(
@@ -1505,10 +1540,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
   String _getStatus(Map<String, dynamic> admin) {
     final value = admin['is_active'];
 
-    if (value == true ||
-        value == 1 ||
-        value == '1' ||
-        value == 'true') {
+    if (value == true || value == 1 || value == '1' || value == 'true') {
       return 'Aktif';
     }
 
@@ -1523,10 +1555,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         : AppColors.grey100;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
@@ -1537,10 +1566,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
           Container(
             width: 6,
             height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 5),
           Text(
@@ -1557,8 +1583,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
   }
 
   // ============================================================
-// CITY FORM FIELD
-// ============================================================
+  // CITY FORM FIELD
+  // ============================================================
 
   Widget _buildCityFormField({
     required AdminTheme t,
@@ -1574,8 +1600,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
       },
       builder: (field) {
         final selectedCity = _cities.cast<Map<String, dynamic>?>().firstWhere(
-          (city) =>
-              int.tryParse(city?['id']?.toString() ?? '') == field.value,
+          (city) => int.tryParse(city?['id']?.toString() ?? '') == field.value,
           orElse: () => null,
         );
 
@@ -1631,7 +1656,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                   _isLoadingCities
                       ? 'Memuat daftar kota...'
                       : selectedName ??
-                          (_cityErrorMessage ?? 'Pilih wilayah kota'),
+                            (_cityErrorMessage ?? 'Pilih wilayah kota'),
                   style: TextStyle(
                     fontSize: 13,
                     color: selectedName == null
@@ -1674,7 +1699,9 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     if (value == null || value.toString().isEmpty) return '-';
 
     try {
-      final date = DateTime.parse(value.toString()).toLocal();
+      final parsed = IndonesiaTime.tryParseApiTimestamp(value);
+      if (parsed == null) return '-';
+      final date = IndonesiaTime.toWall(parsed);
 
       const months = [
         'Jan',
@@ -1720,8 +1747,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     bool isSubmitting = false;
     bool obscurePassword = true;
 
-    AutovalidateMode autovalidateMode =
-        AutovalidateMode.disabled;
+    AutovalidateMode autovalidateMode = AutovalidateMode.disabled;
 
     showDialog(
       context: context,
@@ -1822,8 +1848,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                     helper:
                                         'Maks $_emailMax karakter, format email valid',
                                     icon: Icons.email_outlined,
-                                    keyboardType:
-                                        TextInputType.emailAddress,
+                                    keyboardType: TextInputType.emailAddress,
                                     enabled: !isSubmitting,
                                     maxLength: _emailMax,
                                     inputFormatters: _emailFormatters,
@@ -1905,8 +1930,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                     color: AppColors.grey300,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                                 child: const Text(
@@ -1926,9 +1950,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                     ? null
                                     : () async {
                                         setDialogState(() {
-                                          autovalidateMode =
-                                              AutovalidateMode
-                                                  .onUserInteraction;
+                                          autovalidateMode = AutovalidateMode
+                                              .onUserInteraction;
                                         });
 
                                         if (!(formKey.currentState
@@ -1946,12 +1969,11 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                           return;
                                         }
 
-                                        final name =
-                                            nameController.text.trim();
-                                        final email =
-                                            emailController.text.trim();
-                                        final phone =
-                                            phoneController.text.trim();
+                                        final name = nameController.text.trim();
+                                        final email = emailController.text
+                                            .trim();
+                                        final phone = phoneController.text
+                                            .trim();
                                         final password =
                                             passwordController.text;
 
@@ -1962,15 +1984,15 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                         try {
                                           final response =
                                               await ApiService.post(
-                                            '/superadmin/create-admin',
-                                            {
-                                              'name': name,
-                                              'email': email,
-                                              'phone': phone,
-                                              'password': password,
-                                              'city_id': _selectedCityId,
-                                            },
-                                          );
+                                                '/superadmin/create-admin',
+                                                {
+                                                  'name': name,
+                                                  'email': email,
+                                                  'phone': phone,
+                                                  'password': password,
+                                                  'city_id': _selectedCityId,
+                                                },
+                                              );
 
                                           if (response.statusCode == 201) {
                                             if (dialogContext.mounted) {
@@ -2048,8 +2070,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                   minimumSize: const Size(0, 46),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                                 child: isSubmitting
@@ -2093,18 +2114,11 @@ Future<int?> _showCityPicker(AdminTheme t) async {
   // EDIT ADMIN
   // ============================================================
 
-  void _showEditAdminDialog(
-    Map<String, dynamic> admin,
-    AdminTheme t,
-  ) {
+  void _showEditAdminDialog(Map<String, dynamic> admin, AdminTheme t) {
     final id = admin['id'];
 
     if (id == null) {
-      _showMessage(
-        'ID admin tidak ditemukan.',
-        isError: true,
-        t: t,
-      );
+      _showMessage('ID admin tidak ditemukan.', isError: true, t: t);
       return;
     }
 
@@ -2132,7 +2146,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
       selectedCityId = int.tryParse(city['id']?.toString() ?? '');
     }
 
-    bool isActive = admin['is_active'] == true ||
+    bool isActive =
+        admin['is_active'] == true ||
         admin['is_active'] == 1 ||
         admin['is_active'] == '1' ||
         admin['is_active'] == 'true';
@@ -2143,8 +2158,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
       builder: (dialogContext) {
         bool isSubmitting = false;
 
-        AutovalidateMode autovalidateMode =
-            AutovalidateMode.disabled;
+        AutovalidateMode autovalidateMode = AutovalidateMode.disabled;
 
         return AdminThemeProvider(
           theme: t,
@@ -2248,8 +2262,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                     helper:
                                         'Maks $_emailMax karakter, format email valid',
                                     icon: Icons.email_outlined,
-                                    keyboardType:
-                                        TextInputType.emailAddress,
+                                    keyboardType: TextInputType.emailAddress,
                                     enabled: !isSubmitting,
                                     maxLength: _emailMax,
                                     inputFormatters: _emailFormatters,
@@ -2298,8 +2311,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                         }
                                       }
 
-                                      final cityName =
-                                          selectedCity?['name']?.toString();
+                                      final cityName = selectedCity?['name']
+                                          ?.toString();
 
                                       return Column(
                                         crossAxisAlignment:
@@ -2319,7 +2332,9 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                                 ? null
                                                 : () async {
                                                     final result =
-                                                        await _showCityPicker(t);
+                                                        await _showCityPicker(
+                                                          t,
+                                                        );
 
                                                     if (result != null) {
                                                       field.didChange(result);
@@ -2329,8 +2344,9 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                                       });
                                                     }
                                                   },
-                                            borderRadius:
-                                                BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                             child: InputDecorator(
                                               decoration: InputDecoration(
                                                 prefixIcon: Icon(
@@ -2346,9 +2362,9 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                                 fillColor: AppColors.grey50,
                                                 contentPadding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 14,
-                                                ),
+                                                      horizontal: 12,
+                                                      vertical: 14,
+                                                    ),
                                                 border: OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(10),
@@ -2358,12 +2374,14 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                                 ),
                                                 enabledBorder:
                                                     OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  borderSide: BorderSide(
-                                                    color: t.border,
-                                                  ),
-                                                ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                      borderSide: BorderSide(
+                                                        color: t.border,
+                                                      ),
+                                                    ),
                                                 errorText: field.errorText,
                                               ),
                                               child: Text(
@@ -2393,8 +2411,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                     ),
                                     decoration: BoxDecoration(
                                       color: AppColors.grey50,
-                                      borderRadius:
-                                          BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(10),
                                       border: Border.all(color: t.border),
                                     ),
                                     child: Row(
@@ -2472,9 +2489,8 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                     ? null
                                     : () async {
                                         setDialogState(() {
-                                          autovalidateMode =
-                                              AutovalidateMode
-                                                  .onUserInteraction;
+                                          autovalidateMode = AutovalidateMode
+                                              .onUserInteraction;
                                         });
 
                                         if (!(formKey.currentState
@@ -2483,20 +2499,18 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                           return;
                                         }
 
-                                        final name =
-                                            nameController.text.trim();
-                                        final email =
-                                            emailController.text.trim();
-                                        final phone =
-                                            phoneController.text.trim();
+                                        final name = nameController.text.trim();
+                                        final email = emailController.text
+                                            .trim();
+                                        final phone = phoneController.text
+                                            .trim();
 
                                         setDialogState(() {
                                           isSubmitting = true;
                                         });
 
                                         try {
-                                          final response =
-                                              await ApiService.put(
+                                          final response = await ApiService.put(
                                             '/superadmin/admins/$id',
                                             {
                                               'name': name,
@@ -2525,8 +2539,9 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                               'Gagal memperbarui admin.';
 
                                           try {
-                                            final body =
-                                                jsonDecode(response.body);
+                                            final body = jsonDecode(
+                                              response.body,
+                                            );
 
                                             if (body['errors'] is Map) {
                                               final errors =
@@ -2625,18 +2640,11 @@ Future<int?> _showCityPicker(AdminTheme t) async {
   // DELETE ADMIN
   // ============================================================
 
-  void _deleteAdmin(
-    Map<String, dynamic> admin,
-    AdminTheme t,
-  ) {
+  void _deleteAdmin(Map<String, dynamic> admin, AdminTheme t) {
     final id = admin['id'];
 
     if (id == null) {
-      _showMessage(
-        'ID admin tidak ditemukan.',
-        isError: true,
-        t: t,
-      );
+      _showMessage('ID admin tidak ditemukan.', isError: true, t: t);
       return;
     }
 
@@ -2658,10 +2666,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                 ),
                 title: Row(
                   children: [
-                    Icon(
-                      Icons.delete_outline,
-                      color: t.danger,
-                    ),
+                    Icon(Icons.delete_outline, color: t.danger),
                     const SizedBox(width: 10),
                     Text(
                       'Hapus Admin',
@@ -2682,17 +2687,13 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                     color: t.mutedText,
                   ),
                 ),
-                actionsPadding:
-                    const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 actions: [
                   TextButton(
                     onPressed: isDeleting
                         ? null
                         : () => Navigator.pop(dialogContext),
-                    child: const Text(
-                      'Batal',
-                      style: TextStyle(fontSize: 13),
-                    ),
+                    child: const Text('Batal', style: TextStyle(fontSize: 13)),
                   ),
                   ElevatedButton(
                     onPressed: isDeleting
@@ -2712,22 +2713,16 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                   Navigator.pop(dialogContext);
                                 }
 
-                                _showMessage(
-                                  'Admin berhasil dihapus.',
-                                  t: t,
-                                );
+                                _showMessage('Admin berhasil dihapus.', t: t);
 
                                 await _loadAdmins();
                               } else {
-                                String message =
-                                    'Gagal menghapus admin.';
+                                String message = 'Gagal menghapus admin.';
 
                                 try {
-                                  final body =
-                                      jsonDecode(response.body);
+                                  final body = jsonDecode(response.body);
                                   message =
-                                      body['message']?.toString() ??
-                                          message;
+                                      body['message']?.toString() ?? message;
                                 } catch (_) {}
 
                                 if (dialogContext.mounted) {
@@ -2736,11 +2731,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
                                   });
                                 }
 
-                                _showMessage(
-                                  message,
-                                  isError: true,
-                                  t: t,
-                                );
+                                _showMessage(message, isError: true, t: t);
                               }
                             } catch (e) {
                               if (dialogContext.mounted) {
@@ -2808,8 +2799,7 @@ Future<int?> _showCityPicker(AdminTheme t) async {
     bool enabled = true,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
-    TextCapitalization textCapitalization =
-        TextCapitalization.none,
+    TextCapitalization textCapitalization = TextCapitalization.none,
     int? maxLength,
     String? Function(String?)? validator,
     Widget? suffixIcon,
@@ -2848,47 +2838,28 @@ Future<int?> _showCityPicker(AdminTheme t) async {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(
-            color: t.accent,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: t.accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(
-            color: t.danger,
-            width: 1.2,
-          ),
+          borderSide: BorderSide(color: t.danger, width: 1.2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(
-            color: t.danger,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: t.danger, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: t.border),
         ),
-        labelStyle: TextStyle(
-          fontSize: 13,
-          color: t.headerText,
-        ),
-        hintStyle: const TextStyle(
-          fontSize: 13,
-          color: AppColors.grey400,
-        ),
+        labelStyle: TextStyle(fontSize: 13, color: t.headerText),
+        hintStyle: const TextStyle(fontSize: 13, color: AppColors.grey400),
         helperStyle: TextStyle(
           fontSize: 11,
           color: t.headerText.withValues(alpha: 0.8),
           height: 1.3,
         ),
-        errorStyle: TextStyle(
-          fontSize: 11,
-          color: t.danger,
-          height: 1.3,
-        ),
+        errorStyle: TextStyle(fontSize: 11, color: t.danger, height: 1.3),
       ),
     );
   }

@@ -40,6 +40,32 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
 
   String _selectedFilter = 'Semua';
 
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+
+  int _currentPage = 1;
+  int _rowsPerPage = 10;
+
+  final List<int> _rowsPerPageOptions = [10, 25, 50];
+
+  int get _totalPages {
+    if (_filteredComplaints.isEmpty) return 1;
+    return (_filteredComplaints.length / _rowsPerPage).ceil();
+  }
+
+  int get _startIndex => (_currentPage - 1) * _rowsPerPage;
+
+  int get _endIndex =>
+      (_startIndex + _rowsPerPage).clamp(0, _filteredComplaints.length);
+
+  List<ComplaintModel> get _paginatedComplaints {
+    return _filteredComplaints
+        .skip(_startIndex)
+        .take(_rowsPerPage)
+        .toList();
+  }
+
   final List<String> _categories = [
     'Lupa PIN / Masalah Akun',
     'Mitra Bermasalah',
@@ -152,6 +178,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 .toList()
             : [];
 
+        _currentPage = 1;
         _isLoading = false;
       });
     } catch (e) {
@@ -1416,7 +1443,10 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
                 }).toList(),
                 onChanged: (value) {
                   if (value == null) return;
-                  setState(() => _selectedFilter = value);
+                  setState(() {
+                    _selectedFilter = value;
+                    _currentPage = 1;
+                  });
                 },
               ),
             ),
@@ -1632,7 +1662,7 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
   // ============================================================
 
   Widget _buildDesktopTable(BuildContext context) {
-    final rows = _filteredComplaints;
+    final rows = _paginatedComplaints;
 
     return Container(
       decoration: BoxDecoration(
@@ -1645,13 +1675,163 @@ class _CustomerComplaintScreenState extends State<CustomerComplaintScreen> {
         children: [
           _buildTableHeaderRow(context),
           const Divider(height: 1, thickness: 1, color: _tableDivider),
-
           for (int i = 0; i < rows.length; i++) ...[
             _buildTableDataRow(context, rows[i]),
             if (i != rows.length - 1)
               const Divider(height: 1, thickness: 1, color: _tableDivider),
           ],
+          const Divider(height: 1, thickness: 1, color: _tableBorder),
+          _buildPagination(),
         ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGINATION FOOTER
+  // ============================================================
+
+  Widget _buildPagination() {
+    final total = _filteredComplaints.length;
+
+    final information = Text(
+      total == 0
+          ? 'Menampilkan 0 dari 0 pengaduan'
+          : 'Menampilkan ${_startIndex + 1}–$_endIndex dari $total pengaduan',
+      style: const TextStyle(
+        fontSize: 12,
+        color: AppColors.grey500,
+      ),
+    );
+
+    final controls = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _tableBorder),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: _rowsPerPage,
+              isDense: true,
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                size: 18,
+                color: AppColors.grey500,
+              ),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.grey900,
+                fontWeight: FontWeight.w500,
+              ),
+              items: _rowsPerPageOptions.map((value) {
+                return DropdownMenuItem<int>(
+                  value: value,
+                  child: Text('$value / hal'),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _rowsPerPage = value;
+                  _currentPage = 1;
+                });
+              },
+            ),
+          ),
+        ),
+        _paginationButton(
+          icon: Icons.chevron_left,
+          enabled: _currentPage > 1,
+          onTap: () {
+            setState(() => _currentPage--);
+          },
+        ),
+        Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Hal $_currentPage / $_totalPages',
+            style: const TextStyle(
+              fontSize: 12,
+              color: _accent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        _paginationButton(
+          icon: Icons.chevron_right,
+          enabled: _currentPage < _totalPages,
+          onTap: () {
+            setState(() => _currentPage++);
+          },
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 620) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                information,
+                const SizedBox(height: 12),
+                controls,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: information),
+              controls,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _paginationButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _tableBorder),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: enabled ? AppColors.grey700 : AppColors.grey300,
+          ),
+        ),
       ),
     );
   }

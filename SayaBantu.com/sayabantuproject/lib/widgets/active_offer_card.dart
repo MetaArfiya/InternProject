@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../models/active_offer_model.dart';
 import '../sections/partner/completion_proof_dialog.dart';
 import '../sections/partner/partner_tracking_page.dart';
+import '../services/api_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/indonesia_time.dart';
 
 // ================================================================
 // BASE URL API
@@ -116,9 +120,13 @@ Widget _buildRanking(ActiveOfferModel offer) {
 // STATUS PEKERJAAN
 // ================================================================
 Widget _buildStatus(ActiveOfferModel offer) {
-  final bool isWorking = offer.status == 'Sedang Dikerjakan';
-  final bool waiting = offer.status == 'Menunggu Konfirmasi Selesai';
-  final bool completed = offer.status == 'Selesai';
+  final status = offer.status.toLowerCase().trim();
+  final bidStatus = offer.bidStatus.toLowerCase().trim();
+  final bool isWorking = status == 'sedang dikerjakan';
+  final bool scheduled = status == 'terjadwal';
+  final bool waiting = status == 'menunggu konfirmasi selesai';
+  final bool completed = status == 'selesai';
+  final bool accepted = bidStatus == 'diterima pelanggan';
 
   Color backgroundColor;
   Color textColor;
@@ -136,6 +144,10 @@ Widget _buildStatus(ActiveOfferModel offer) {
     backgroundColor = const Color(0xffDCFCE7);
     textColor = const Color(0xff15803D);
     text = 'Sedang Dikerjakan';
+  } else if (scheduled) {
+    backgroundColor = const Color(0xffDBEAFE);
+    textColor = const Color(0xff1D4ED8);
+    text = accepted ? 'Diterima Pelanggan' : 'Terjadwal';
   } else {
     backgroundColor = AppColors.mint.withValues(alpha: 0.20);
     textColor = AppColors.primaryTeal;
@@ -417,36 +429,28 @@ Widget _buildAction(
   BuildContext context,
   ActiveOfferModel offer,
 ) {
-  final bool isWorking = offer.status == 'Sedang Dikerjakan';
+  final isScheduled = offer.status.toLowerCase().trim() == 'terjadwal';
+  final isAccepted = offer.bidStatus.toLowerCase().trim() ==
+      'diterima pelanggan';
 
-  // Jika sedang dikerjakan, tampilkan tombol Mulai Perjalanan
-  if (isWorking) {
+  if (isScheduled && isAccepted) {
     return SizedBox(
       height: 38,
       child: ElevatedButton.icon(
-        onPressed: () => _openPartnerTracking(context, offer),
-        icon: const Icon(Icons.navigation_outlined, size: 15),
-        label: const Text(
-          'Mulai Perjalanan',
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        onPressed: () => _startJob(context, offer),
+        icon: const Icon(Icons.play_arrow, size: 17),
+        label: const Text('Mulai', style: TextStyle(fontSize: 12)),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryTeal,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
   }
 
-  // Jika sudah selesai atau menunggu, tampilkan tombol Detail
   return SizedBox(
     height: 38,
     child: OutlinedButton.icon(
@@ -468,6 +472,29 @@ Widget _buildAction(
       ),
     ),
   );
+}
+
+Future<void> _startJob(BuildContext context, ActiveOfferModel offer) async {
+  try {
+    final response = await ApiService.post('/jobs/${offer.jobId}/start', {});
+    var message = 'Gagal memulai pekerjaan.';
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map<String, dynamic> && body['message'] != null) {
+        message = body['message'].toString();
+      }
+    } catch (_) {}
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal memulai pekerjaan: $e')),
+    );
+  }
 }
 
 // ================================================================
@@ -741,28 +768,50 @@ Future<void> _showDetailTimeline(
               ),
             ),
 
-            // FOOTER
+            // FOOTER: aksi pekerjaan terpusat di dialog detail.
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryTeal,
-                    side: BorderSide(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.4),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryTeal,
+                        side: BorderSide(
+                          color: AppColors.primaryTeal.withValues(alpha: 0.4),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text('Tutup'),
                     ),
                   ),
-                  child: const Text(
-                    'Tutup',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
+                  if (offer.bidStatus.toLowerCase().trim() ==
+                          'diterima pelanggan' ||
+                      offer.status.toLowerCase().contains('dikerjakan')) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          _openPartnerTracking(context, offer);
+                        },
+                        icon: const Icon(Icons.navigation_outlined, size: 17),
+                        label: const Text('Mulai Perjalanan'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryTeal,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
@@ -916,7 +965,7 @@ String _formatDateTime(DateTime? dt) {
     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
   ];
 
-  final local = dt.toLocal();
+  final local = IndonesiaTime.toWall(dt);
   final day = local.day.toString().padLeft(2, '0');
   final month = bulan[local.month - 1];
   final year = local.year;

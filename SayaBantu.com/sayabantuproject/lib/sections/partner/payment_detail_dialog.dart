@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/payment_model.dart';
+import '../../utils/indonesia_time.dart';
 
 class PaymentDetailMitraDialog extends StatefulWidget {
   final PaymentModel payment;
@@ -491,7 +492,7 @@ class _PaymentDetailMitraDialogState extends State<PaymentDetailMitraDialog> {
   }
 
   String _formatDateTime(DateTime date) {
-    final local = date.toLocal();
+    final local = IndonesiaTime.toWall(date);
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',

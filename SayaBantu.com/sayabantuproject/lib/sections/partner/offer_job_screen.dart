@@ -8,6 +8,7 @@ import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import '../../models/partner_job_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 
 class OfferJobScreen extends StatefulWidget {
   final PartnerJobModel job;
@@ -136,8 +137,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     if (rawTime.isEmpty) return 'Waktu fleksibel';
 
     try {
-      final dateTime = DateTime.parse(rawTime);
-      final now = DateTime.now();
+      final dateTime = IndonesiaTime.parseApiTimestamp(rawTime);
+      final now = DateTime.now().toUtc();
       final diff = now.difference(dateTime);
 
       if (diff.isNegative) return 'Baru saja';
@@ -160,9 +161,10 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
       ];
 
-      return '${dateTime.day} '
-          '${bulan[dateTime.month - 1]} '
-          '${dateTime.year}';
+      final wibDateTime = IndonesiaTime.toWall(dateTime);
+      return '${wibDateTime.day} '
+          '${bulan[wibDateTime.month - 1]} '
+          '${wibDateTime.year}';
     } catch (_) {
       return rawTime;
     }
@@ -178,7 +180,9 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     }
 
     try {
-      final date = DateTime.parse(rawDate).toLocal();
+      final date = IndonesiaTime.toWall(
+        IndonesiaTime.parseApiTimestamp(rawDate),
+      );
 
       const bulan = [
         'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
@@ -198,16 +202,17 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    final wibDateTime = IndonesiaTime.toWall(dateTime);
     const bulan = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
 
-    final day = dateTime.day.toString().padLeft(2, '0');
-    final month = bulan[dateTime.month - 1];
-    final year = dateTime.year;
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final day = wibDateTime.day.toString().padLeft(2, '0');
+    final month = bulan[wibDateTime.month - 1];
+    final year = wibDateTime.year;
+    final hour = wibDateTime.hour.toString().padLeft(2, '0');
+    final minute = wibDateTime.minute.toString().padLeft(2, '0');
 
     return '$day $month $year, $hour:$minute';
   }
@@ -217,11 +222,14 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // ============================================================
 
   Future<void> _pickProposedStartAt() async {
-    final now = DateTime.now();
+    final now = IndonesiaTime.nowWall();
+    final existing = _proposedStartAt == null
+        ? null
+        : IndonesiaTime.toWall(_proposedStartAt!);
 
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: _proposedStartAt ?? now.add(const Duration(days: 1)),
+      initialDate: existing ?? now.add(const Duration(days: 1)),
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 2),
       helpText: 'Pilih tanggal mulai kerja',
@@ -233,17 +241,21 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
     final selectedTime = await showTimePicker(
       context: context,
-      initialTime: _proposedStartAt != null
-          ? TimeOfDay.fromDateTime(_proposedStartAt!)
+      initialTime: existing != null
+          ? TimeOfDay.fromDateTime(existing)
           : const TimeOfDay(hour: 9, minute: 0),
       helpText: 'Pilih jam mulai kerja',
       cancelText: 'Batal',
       confirmText: 'Pilih',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
     );
 
     if (selectedTime == null || !mounted) return;
 
-    final selectedDateTime = DateTime(
+    final selectedDateTime = DateTime.utc(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
@@ -251,7 +263,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
       selectedTime.minute,
     );
 
-    if (!selectedDateTime.isAfter(now)) {
+    if (!IndonesiaTime.wallToUtc(selectedDateTime)
+        .isAfter(DateTime.now().toUtc())) {
       _showSnack(
         'Waktu mulai harus lebih dari waktu sekarang.',
         warning: true,
@@ -260,7 +273,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
     }
 
     setState(() {
-      _proposedStartAt = selectedDateTime;
+      _proposedStartAt = IndonesiaTime.wallToUtc(selectedDateTime);
     });
   }
 

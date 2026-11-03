@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import '../utils/indonesia_time.dart';
 
 class NotificationModel {
   final String id;         // ← UUID (String), bukan int
@@ -157,7 +158,8 @@ class NotificationModel {
       'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
-    return '${createdAt!.day} ${bulan[createdAt!.month - 1]} ${createdAt!.year}';
+    final wibDate = IndonesiaTime.toWall(createdAt!);
+    return '${wibDate.day} ${bulan[wibDate.month - 1]} ${wibDate.year}';
   }
 
   // ============================================================
@@ -194,7 +196,7 @@ class NotificationModel {
     final dynamic rawDate = json['created_at'] ?? json['createdAt'];
     final DateTime? createdAt = rawDate == null
         ? null
-        : DateTime.tryParse(rawDate.toString());
+        : IndonesiaTime.tryParseApiTimestamp(rawDate);
 
     // 5. is_read
     final bool isRead = json['read_at'] != null;
@@ -257,3 +259,4 @@ class NotificationModel {
     }
   }
 }
+

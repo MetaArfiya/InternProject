@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import '../utils/indonesia_time.dart';
 
 class TrackingModel {
   final int jobId;
@@ -51,15 +52,13 @@ class TrackingModel {
           dest is Map ? dest['address']?.toString() : null,
       mitraPosition:
           mitra is Map ? ll(mitra['lat'], mitra['lng']) : null,
-      mitraUpdatedAt: mitra is Map && mitra['updated_at'] != null
-          ? DateTime.tryParse(mitra['updated_at'].toString())
+      mitraUpdatedAt: mitra is Map
+          ? IndonesiaTime.tryParseApiTimestamp(mitra['updated_at'])
           : null,
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
       etaMinutes: (json['eta_minutes'] as num?)?.toInt(),
       status: json['status']?.toString(),
-      startedAt: json['started_at'] != null
-          ? DateTime.tryParse(json['started_at'].toString())
-          : null,
+      startedAt: IndonesiaTime.tryParseApiTimestamp(json['started_at']),
     );
   }
 

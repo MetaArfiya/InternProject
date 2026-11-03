@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../models/tracking_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/indonesia_time.dart';
 import '../../widgets/tracking_map.dart';
 import '../shared/chat_page.dart';
 
@@ -465,17 +466,33 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   }
 
   String _formatDateTime(DateTime dt) {
-    final local = dt.toLocal();
     const bulan = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
-    final d = local.day.toString().padLeft(2, '0');
-    final m = bulan[local.month - 1];
-    final y = local.year;
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$d $m $y • $hh:$mm';
+
+    try {
+      // Kita anggap waktu dari server adalah UTC.
+      // Buat objek UTC manual dari dt, lalu tambahkan 7 jam.
+      final utcTime = DateTime.utc(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+      final local = utcTime.add(const Duration(hours: 7));
+
+      final d = local.day.toString().padLeft(2, '0');
+      final m = bulan[local.month - 1];
+      final y = local.year;
+      final hh = local.hour.toString().padLeft(2, '0');
+      final mm = local.minute.toString().padLeft(2, '0');
+      
+      return '$d $m $y • $hh:$mm';
+    } catch (e) {
+      // Jika gagal, kembalikan format standar
+      final d = dt.day.toString().padLeft(2, '0');
+      final m = bulan[dt.month - 1];
+      final y = dt.year;
+      final hh = dt.hour.toString().padLeft(2, '0');
+      final mm = dt.minute.toString().padLeft(2, '0');
+      return '$d $m $y • $hh:$mm';
+    }
   }
 
   String _timeAgo(DateTime dt) {

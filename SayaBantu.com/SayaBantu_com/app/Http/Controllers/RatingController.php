@@ -10,6 +10,8 @@ use App\Models\Payment;
 
 class RatingController extends Controller
 {
+    use \App\Http\Controllers\Concerns\EnforcesAdminCity;
+
     /**
      * =========================================================
      * ADMIN — LIST SEMUA RATING
@@ -19,11 +21,16 @@ class RatingController extends Controller
     public function adminIndex(Request $request)
     {
         try {
-            $query = Rating::with([
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $query = $this->scopeByAdminCity(Rating::with([
                 'job:id,tittle',
                 'mitra:id,name',
                 'pelanggan:id,name',
-            ]);
+            ]), $admin, 'mitra');
 
             // Filter by stars
             if ($request->filled('stars')) {
@@ -38,7 +45,11 @@ class RatingController extends Controller
             $ratings = $query->latest()->get();
 
             // Summary
-            $all = Rating::where('is_hidden', 0)->get();
+            $all = $this->scopeByAdminCity(
+                Rating::where('is_hidden', 0),
+                $admin,
+                'mitra'
+            )->get();
             $total     = $all->count();
             $avg       = $total > 0 ? round($all->avg('stars'), 1) : 0;
             $highCount = $all->where('stars', '>=', 4)->count();
@@ -73,12 +84,17 @@ class RatingController extends Controller
     public function show($id)
     {
         try {
-            $rating = Rating::with([
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $rating = $this->scopeByAdminCity(Rating::with([
                 'job',
                 'mitra:id,name,email',
                 'pelanggan:id,name,email',
                 'hider:id,name',
-            ])->find($id);
+            ]), $admin, 'mitra')->find($id);
 
             if (!$rating) {
                 return response()->json([
@@ -110,7 +126,12 @@ class RatingController extends Controller
     public function destroy($id)
     {
         try {
-            $rating = Rating::find($id);
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $rating = $this->scopeByAdminCity(Rating::query(), $admin, 'mitra')->find($id);
 
             if (!$rating) {
                 return response()->json([
@@ -148,7 +169,12 @@ class RatingController extends Controller
     public function hide(Request $request, $id)
     {
         try {
-            $rating = Rating::find($id);
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $rating = $this->scopeByAdminCity(Rating::query(), $admin, 'mitra')->find($id);
 
             if (!$rating) {
                 return response()->json([
@@ -194,7 +220,12 @@ class RatingController extends Controller
     public function unhide($id)
     {
         try {
-            $rating = Rating::find($id);
+            $admin = auth()->user();
+            if ($response = $this->missingAdminCityResponse($admin)) {
+                return $response;
+            }
+
+            $rating = $this->scopeByAdminCity(Rating::query(), $admin, 'mitra')->find($id);
 
             if (!$rating) {
                 return response()->json([

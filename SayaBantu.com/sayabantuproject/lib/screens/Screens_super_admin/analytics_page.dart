@@ -278,12 +278,7 @@ class _SuperAdminAnalyticsPageState extends State<SuperAdminAnalyticsPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: _buildContent(width, isMobile, t),
-                ),
-              ),
+              child: _buildContent(width, isMobile, t),
             ),
           ),
         );

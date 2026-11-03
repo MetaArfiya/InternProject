@@ -337,10 +337,7 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                 horizontal: horizontalPadding,
                 vertical: verticalPadding,
               ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
+              child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildPageHeader(isMobile, t),
@@ -359,8 +356,6 @@ class _SystemSettingsPageState extends State<SystemSettingsPage> {
                         _buildActionButtons(isMobile, t),
                       ],
                     ],
-                  ),
-                ),
               ),
             ),
           ),
