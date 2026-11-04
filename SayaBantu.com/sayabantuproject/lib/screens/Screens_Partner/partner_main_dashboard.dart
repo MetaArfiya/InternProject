@@ -118,14 +118,7 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
 
     switch (selectedMenu) {
       case PartnerSidebarMenu.cariPekerjaan:
-        return PartnerDashboard(
-          onTakeOffer: (job) {
-            setState(() {
-              selectedJob = job;
-              selectedMenu = PartnerSidebarMenu.offerJob;
-            });
-          },
-        );
+        return const PartnerDashboard();
 
       case PartnerSidebarMenu.offerJob:
         if (selectedJob == null) {

@@ -7,7 +7,6 @@ import 'rating_dialog.dart';
 
 class JobCard extends StatefulWidget {
   final JobModel job;
-  final Function(JobModel) onOpenOffer;
   final ValueChanged<JobModel> onOpenTracking;
   final Function(JobModel) onComplete;
   final VoidCallback? onRefresh;
@@ -15,7 +14,6 @@ class JobCard extends StatefulWidget {
   const JobCard({
     super.key,
     required this.job,
-    required this.onOpenOffer,
     required this.onOpenTracking,
     required this.onComplete,
     this.onRefresh,
@@ -56,10 +54,7 @@ class _JobCardState extends State<JobCard> {
   // PREVIEW GAMBAR
   // ============================================================
 
-  void _showImageDialog(
-    BuildContext context,
-    ImageProvider imageProvider,
-  ) {
+  void _showImageDialog(BuildContext context, ImageProvider imageProvider) {
     showDialog(
       context: context,
       builder: (context) {
@@ -121,13 +116,8 @@ class _JobCardState extends State<JobCard> {
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(
-            status == 'approved'
-                ? 'Setujui Pekerjaan'
-                : 'Tolak Pekerjaan',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            status == 'approved' ? 'Setujui Pekerjaan' : 'Tolak Pekerjaan',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           content: Text(
             status == 'approved'
@@ -145,8 +135,9 @@ class _JobCardState extends State<JobCard> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    status == 'approved' ? Colors.green : Colors.red,
+                backgroundColor: status == 'approved'
+                    ? Colors.green
+                    : Colors.red,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
@@ -193,8 +184,9 @@ class _JobCardState extends State<JobCard> {
                       : 'Pekerjaan ditolak.'),
               style: const TextStyle(fontSize: _bodyFontSize),
             ),
-            backgroundColor:
-                status == 'approved' ? Colors.green : Colors.orange,
+            backgroundColor: status == 'approved'
+                ? Colors.green
+                : Colors.orange,
           ),
         );
 
@@ -285,9 +277,9 @@ class _JobCardState extends State<JobCard> {
                       width: isMobile ? 72 : 84,
                       height: isMobile ? 72 : 84,
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       clipBehavior: Clip.antiAlias,
@@ -354,10 +346,7 @@ class _JobCardState extends State<JobCard> {
                 spacing: 16,
                 runSpacing: 8,
                 children: [
-                  _info(
-                    Icons.attach_money,
-                    'Harga Awal: ${widget.job.price}',
-                  ),
+                  _info(Icons.attach_money, 'Harga Awal: ${widget.job.price}'),
                   if (widget.job.acceptedPrice != null &&
                       widget.job.acceptedPrice!.isNotEmpty)
                     _info(
@@ -398,8 +387,8 @@ class _JobCardState extends State<JobCard> {
                   color: isCompleted
                       ? Colors.green.shade100
                       : isInProgress
-                          ? Colors.blue.shade100
-                          : Colors.orange.shade100,
+                      ? Colors.blue.shade100
+                      : Colors.orange.shade100,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -410,10 +399,10 @@ class _JobCardState extends State<JobCard> {
                     color: isCompleted
                         ? Colors.green
                         : isInProgress
-                            ? Colors.blue
-                            : isWaitingConfirmation
-                                ? Colors.orange.shade800
-                                : Colors.orange,
+                        ? Colors.blue
+                        : isWaitingConfirmation
+                        ? Colors.orange.shade800
+                        : Colors.orange,
                   ),
                 ),
               ),
@@ -574,22 +563,40 @@ class _JobCardState extends State<JobCard> {
   // MAIN BUTTON
   // ============================================================
 
-    Widget _buildMainButton({
+  Widget _buildMainButton({
     required bool isSearching,
     required bool isInProgress,
     required bool isCompleted,
   }) {
     // 1. MENCARI MITRA (Belum ada mitra terpilih)
     if (isSearching) {
-      return ElevatedButton(
-        onPressed: () => widget.onOpenOffer(widget.job),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDFA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF99F6E4)),
         ),
-        child: const Text(
-          'Lihat Penawaran',
-          style: TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.hourglass_top_rounded,
+              color: Color(0xFF0F766E),
+              size: 18,
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Menunggu mitra menyetujui tawaran Anda',
+                style: TextStyle(
+                  fontSize: _buttonFontSize,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F766E),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -602,21 +609,31 @@ class _JobCardState extends State<JobCard> {
           // Tombol Lacak Mitra
           OutlinedButton.icon(
             onPressed: _openTracking,
-            icon: const Icon(Icons.location_searching, size: 18, color: Color(0xFF0F766E)),
+            icon: const Icon(
+              Icons.location_searching,
+              size: 18,
+              color: Color(0xFF0F766E),
+            ),
             label: const Text(
               'Lacak Mitra',
-              style: TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
+              style: TextStyle(
+                fontSize: _buttonFontSize,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F766E),
+              ),
             ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               side: const BorderSide(color: Color(0xFF0F766E)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 10),
 
           // INFO / TOMBOL PEMBAYARAN (ALUR BARU)
-          // Karena di alur baru, tagihan dibuat SETELAH ACC Mitra, 
+          // Karena di alur baru, tagihan dibuat SETELAH ACC Mitra,
           // kita beri arahan ke halaman Pembayaran.
           Container(
             padding: const EdgeInsets.all(12),
@@ -632,7 +649,11 @@ class _JobCardState extends State<JobCard> {
                 Text(
                   'Silakan cek menu "Pembayaran" untuk melihat tagihan & melakukan pembayaran jika belum.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.blue.shade800, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade800,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -658,7 +679,11 @@ class _JobCardState extends State<JobCard> {
               const SizedBox(width: 7),
               Text(
                 'Rating Anda: ${widget.job.myRating ?? 0}/5',
-                style: const TextStyle(fontSize: _bodyFontSize, fontWeight: FontWeight.w600, color: Colors.amber),
+                style: const TextStyle(
+                  fontSize: _bodyFontSize,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.amber,
+                ),
               ),
             ],
           ),
@@ -681,13 +706,18 @@ class _JobCardState extends State<JobCard> {
         icon: const Icon(Icons.star_rate_rounded, size: 18),
         label: const Text(
           'Beri Rating',
-          style: TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: _buttonFontSize,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }

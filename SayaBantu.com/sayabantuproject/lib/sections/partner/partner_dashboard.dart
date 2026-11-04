@@ -9,12 +9,7 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 
 class PartnerDashboard extends StatefulWidget {
-  final Function(PartnerJobModel) onTakeOffer;
-
-  const PartnerDashboard({
-    super.key,
-    required this.onTakeOffer,
-  });
+  const PartnerDashboard({super.key});
 
   @override
   State<PartnerDashboard> createState() => _PartnerDashboardState();
@@ -28,6 +23,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
   List<PartnerJobModel> _jobs = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  int? _acceptingJobId;
 
   int _activeOffersCount = 0;
   int _userPoints = 0;
@@ -208,143 +204,45 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     }
   }
 
-  // ============================================================
-  // KONFIRMASI
-  // ============================================================
+  Future<void> _acceptJob(PartnerJobModel job) async {
+    if (_acceptingJobId != null) return;
+    setState(() => _acceptingJobId = job.id);
 
-  void _showTakeOfferConfirmation(PartnerJobModel job) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: _accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.local_offer_outlined,
-                          color: _accent,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Konfirmasi Penawaran',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.grey900,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(
-                          Icons.close,
-                          size: 20,
-                          color: AppColors.grey500,
-                        ),
-                        splashRadius: 22,
-                      ),
-                    ],
-                  ),
+    try {
+      final response = await ApiService.post('/jobs/${job.id}/apply', {
+        'expected_initial_budget': job.initialBudget,
+        'expected_tittle': job.title,
+        'expected_description': job.description,
+      });
 
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-
-                  Text(
-                    'Apakah Anda yakin ingin mengajukan penawaran untuk pekerjaan "${job.title}"?',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.grey700,
-                      height: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            foregroundColor: AppColors.grey700,
-                            side: const BorderSide(
-                              color: AppColors.grey300,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(dialogContext);
-                            widget.onTakeOffer(job);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _accent,
-                            foregroundColor: AppColors.white,
-                            minimumSize: const Size(0, 46),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            'Ya, Ajukan',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+      if (!mounted) return;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pekerjaan berhasil diambil.')),
         );
-      },
-    );
+        await _fetchDashboardData(silent: true);
+      } else {
+        var message = 'Pekerjaan gagal diambil. Silakan coba lagi.';
+        try {
+          final body = jsonDecode(response.body);
+          if (body is Map && body['message'] != null) {
+            message = body['message'].toString();
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        await _fetchDashboardData(silent: true);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Koneksi gagal. Silakan coba lagi.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _acceptingJobId = null);
+    }
   }
 
   // ============================================================
@@ -822,7 +720,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         // Card asli
         PartnerJobCard(
           job: job,
-          onTakeOffer: () => _showTakeOfferConfirmation(job),
+          onTakeOffer: _acceptingJobId == null ? () => _acceptJob(job) : null,
+          isTakingOffer: _acceptingJobId == job.id,
         ),
 
         // Badge jarak — overlay di kanan atas

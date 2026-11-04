@@ -1,4 +1,3 @@
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/indonesia_time.dart';
@@ -11,6 +10,8 @@ class PartnerJobModel {
   final String location;
   final String time;
   final String price;
+  final double initialBudget;
+  final String duration;
   final String status;
   final bool hasOffered;
   final String? imageUrl;
@@ -27,6 +28,8 @@ class PartnerJobModel {
     required this.location,
     required this.time,
     required this.price,
+    required this.initialBudget,
+    required this.duration,
     this.status = "open",
     this.hasOffered = false,
     this.imageUrl,
@@ -77,8 +80,9 @@ class PartnerJobModel {
 
     if (rawPreferredStart != null &&
         rawPreferredStart.toString().trim().isNotEmpty) {
-      parsedPreferredStart =
-          IndonesiaTime.tryParseApiTimestamp(rawPreferredStart);
+      parsedPreferredStart = IndonesiaTime.tryParseApiTimestamp(
+        rawPreferredStart,
+      );
     }
 
     debugPrint('🖼️ PARTNER JOB ${json['id']}');
@@ -89,28 +93,27 @@ class PartnerJobModel {
 
     return PartnerJobModel(
       id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      title: json['title']?.toString() ??
-          json['tittle']?.toString() ??
-          '',
-      category: json['category']?.toString() ??
-          json['kategori']?.toString() ??
-          '',
-      description: json['description']?.toString() ??
+      title: json['title']?.toString() ?? json['tittle']?.toString() ?? '',
+      category:
+          json['category']?.toString() ?? json['kategori']?.toString() ?? '',
+      description:
+          json['description']?.toString() ??
           json['deskripsi']?.toString() ??
           '',
-      location: json['location']?.toString() ??
-          json['lokasi']?.toString() ??
-          '',
-      time: json['time']?.toString() ??
-          json['created_at']?.toString() ??
-          '',
+      location:
+          json['location']?.toString() ?? json['lokasi']?.toString() ?? '',
+      time: json['time']?.toString() ?? json['created_at']?.toString() ?? '',
       price: json['price'] != null
           ? json['price'].toString()
           : json['initial_budget'] != null
-              ? "Rp ${json['initial_budget']}"
-              : "Rp 0",
+          ? "Rp ${json['initial_budget']}"
+          : "Rp 0",
+      initialBudget:
+          double.tryParse(json['initial_budget']?.toString() ?? '0') ?? 0,
+      duration: json['duration']?.toString() ?? '-',
       status: json['status']?.toString() ?? 'open',
-      hasOffered: json['has_offered'] == true ||
+      hasOffered:
+          json['has_offered'] == true ||
           json['has_offered'] == 1 ||
           json['has_offered'] == '1' ||
           json['has_offered'] == 'true' ||
@@ -133,6 +136,8 @@ class PartnerJobModel {
       'location': location,
       'time': time,
       'price': price,
+      'initial_budget': initialBudget,
+      'duration': duration,
       'status': status,
       'has_offered': hasOffered,
       'image_url': imageUrl,

@@ -23,19 +23,14 @@ TableRow buildActiveOfferRow(
 }) {
   return TableRow(
     decoration: const BoxDecoration(
-      border: Border(
-        bottom: BorderSide(color: Color(0xffE5E7EB), width: 1),
-      ),
+      border: Border(bottom: BorderSide(color: Color(0xffE5E7EB), width: 1)),
     ),
     children: [
       _tableCell(
         Center(
           child: Text(
             '$number',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.grey900,
-            ),
+            style: const TextStyle(fontSize: 14, color: AppColors.grey900),
           ),
         ),
       ),
@@ -57,6 +52,12 @@ TableRow buildActiveOfferRow(
             fontWeight: FontWeight.w600,
             color: AppColors.primaryTeal,
           ),
+        ),
+      ),
+      _tableCell(
+        Text(
+          _formatDateTime(offer.proposedStartAt ?? offer.scheduledStartAt),
+          style: const TextStyle(fontSize: 12, color: AppColors.grey700),
         ),
       ),
       _tableCell(_buildRanking(offer)),
@@ -148,7 +149,7 @@ Widget _buildStatus(ActiveOfferModel offer) {
   } else if (scheduled) {
     backgroundColor = const Color(0xffDBEAFE);
     textColor = const Color(0xff1D4ED8);
-    text = accepted ? 'Diterima Pelanggan' : 'Terjadwal';
+    text = accepted ? 'Diterima Mitra' : 'Terjadwal';
   } else {
     backgroundColor = AppColors.mint.withValues(alpha: 0.20);
     textColor = AppColors.primaryTeal;
@@ -192,10 +193,7 @@ String? _buildProofImageUrl(String? rawPath) {
 // ================================================================
 // KOLOM BUKTI (Hanya Menampilkan Gambar / Teks "Belum Ada")
 // ================================================================
-Widget _buildProofColumn(
-  BuildContext context,
-  ActiveOfferModel offer,
-) {
+Widget _buildProofColumn(BuildContext context, ActiveOfferModel offer) {
   final String? rawPath = offer.completionPhotoUrl ?? offer.proofImage;
   final String? imageUrl = _buildProofImageUrl(rawPath);
 
@@ -315,10 +313,7 @@ Future<void> _showFullProofImage(
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: AppColors.grey700,
-                    ),
+                    icon: const Icon(Icons.close, color: AppColors.grey700),
                     onPressed: () => Navigator.pop(dialogContext),
                   ),
                 ],
@@ -361,9 +356,7 @@ Future<void> _showFullProofImage(
                               SizedBox(height: 12),
                               Text(
                                 'Gagal memuat gambar',
-                                style: TextStyle(
-                                  color: AppColors.grey600,
-                                ),
+                                style: TextStyle(color: AppColors.grey600),
                               ),
                             ],
                           ),
@@ -432,8 +425,8 @@ Widget _buildAction(
   ValueChanged<ActiveOfferModel>? onOpenTracking,
 ) {
   final isScheduled = offer.status.toLowerCase().trim() == 'terjadwal';
-  final isAccepted = offer.bidStatus.toLowerCase().trim() ==
-      'diterima pelanggan';
+  final isAccepted =
+      offer.bidStatus.toLowerCase().trim() == 'diterima pelanggan';
 
   if (isScheduled && isAccepted) {
     return SizedBox(
@@ -458,22 +451,29 @@ Widget _buildAction(
     child: OutlinedButton.icon(
       onPressed: () => _showDetailTimeline(context, offer, onOpenTracking),
       icon: const Icon(Icons.info_outline, size: 17),
-      label: const Text(
-        'Detail',
-        style: TextStyle(fontSize: 12),
-      ),
+      label: const Text('Detail', style: TextStyle(fontSize: 12)),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primaryTeal,
-        side: BorderSide(
-          color: AppColors.primaryTeal.withValues(alpha: 0.4),
-        ),
+        side: BorderSide(color: AppColors.primaryTeal.withValues(alpha: 0.4)),
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     ),
   );
+}
+
+bool _canStartJourney(ActiveOfferModel offer) {
+  final status = offer.status.toLowerCase().trim();
+  final bidStatus = offer.bidStatus.toLowerCase().trim();
+  final isCompleted =
+      status.contains('selesai') ||
+      bidStatus.contains('selesai') ||
+      bidStatus.contains('sudah acc') ||
+      offer.completionStatus?.toLowerCase() == 'approved';
+  final isAcceptedOrWorking =
+      bidStatus == 'diterima pelanggan' || status.contains('dikerjakan');
+
+  return isAcceptedOrWorking && !isCompleted;
 }
 
 Future<void> _startJob(BuildContext context, ActiveOfferModel offer) async {
@@ -488,14 +488,14 @@ Future<void> _startJob(BuildContext context, ActiveOfferModel offer) async {
     } catch (_) {}
 
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   } catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gagal memulai pekerjaan: $e')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Gagal memulai pekerjaan: $e')));
   }
 }
 
@@ -530,9 +530,7 @@ Future<void> _showDetailTimeline(
     context: context,
     builder: (dialogContext) => Dialog(
       insetPadding: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
         child: Column(
@@ -542,9 +540,7 @@ Future<void> _showDetailTimeline(
             Container(
               padding: const EdgeInsets.fromLTRB(20, 18, 8, 18),
               decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Color(0xffE5E7EB)),
-                ),
+                border: Border(bottom: BorderSide(color: Color(0xffE5E7EB))),
               ),
               child: Row(
                 children: [
@@ -600,6 +596,27 @@ Future<void> _showDetailTimeline(
                     // 1. INFO HARGA & STATUS
                     _infoRow('Harga Deal', offer.price),
                     _infoRow('Status', offer.status),
+                    if (offer.completionStatus?.toLowerCase() ==
+                        'rejected') ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Text(
+                          'Bukti ditolak pelanggan. Perbaiki pekerjaan, lalu unggah bukti kembali melalui halaman perjalanan.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFB91C1C),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     const Divider(height: 1),
                     const SizedBox(height: 20),
@@ -618,14 +635,17 @@ Future<void> _showDetailTimeline(
                     if (imageUrl != null) ...[
                       // JIKA GAMBAR ADA
                       GestureDetector(
-                        onTap: () => _showFullProofImage(context, imageUrl, offer.title),
+                        onTap: () =>
+                            _showFullProofImage(context, imageUrl, offer.title),
                         child: Container(
                           width: double.infinity,
                           height: 180,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: AppColors.primaryTeal.withValues(alpha: 0.20),
+                              color: AppColors.primaryTeal.withValues(
+                                alpha: 0.20,
+                              ),
                             ),
                           ),
                           child: ClipRRect(
@@ -634,19 +654,25 @@ Future<void> _showDetailTimeline(
                               imageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.broken_image_outlined, color: AppColors.grey500),
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.grey500,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Catatan Pekerjaan (Hanya jika ada)
-                      if (offer.proofDescription != null && offer.proofDescription!.isNotEmpty) ...[
-                        const Text(
-                          'Catatan Pekerjaan',
+                      if (offer.proofDescription != null &&
+                          offer.proofDescription!.isNotEmpty) ...[
+                        Text(
+                          offer.completionStatus?.toLowerCase() == 'rejected'
+                              ? 'Catatan Penolakan'
+                              : 'Catatan Pekerjaan',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -727,7 +753,7 @@ Future<void> _showDetailTimeline(
                       icon: Icons.check_circle_outline,
                       iconColor: const Color(0xff16A34A),
                       title: 'Pekerjaan Dimulai',
-                      subtitle: 'Pelanggan menyetujui penawaran mitra',
+                      subtitle: 'Mitra menyetujui harga pelanggan',
                       time: _formatDateTime(offer.startedAt),
                       isActive: offer.startedAt != null,
                     ),
@@ -738,11 +764,13 @@ Future<void> _showDetailTimeline(
                       iconColor: const Color(0xffF59E0B),
                       title: 'Sedang Dikerjakan',
                       subtitle: 'Mitra mengerjakan pekerjaan',
-                      time: offer.startedAt != null &&
+                      time:
+                          offer.startedAt != null &&
                               offer.completionSubmittedAt == null
                           ? 'Dalam proses'
                           : null,
-                      isActive: offer.startedAt != null &&
+                      isActive:
+                          offer.startedAt != null &&
                           offer.completionSubmittedAt == null,
                     ),
 
@@ -791,9 +819,7 @@ Future<void> _showDetailTimeline(
                       child: const Text('Tutup'),
                     ),
                   ),
-                  if (offer.bidStatus.toLowerCase().trim() ==
-                          'diterima pelanggan' ||
-                      offer.status.toLowerCase().contains('dikerjakan')) ...[
+                  if (_canStartJourney(offer)) ...[
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
@@ -806,7 +832,11 @@ Future<void> _showDetailTimeline(
                           }
                         },
                         icon: const Icon(Icons.navigation_outlined, size: 17),
-                        label: const Text('Mulai Perjalanan'),
+                        label: Text(
+                          offer.completionStatus?.toLowerCase() == 'rejected'
+                              ? 'Perbaiki Pekerjaan'
+                              : 'Mulai Perjalanan',
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryTeal,
                           foregroundColor: Colors.white,
@@ -841,10 +871,7 @@ Widget _infoRow(String label, String value) {
           width: 100,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.grey600,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.grey600),
           ),
         ),
         Expanded(
@@ -888,10 +915,7 @@ Widget _timelineItem({
             Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
               child: Icon(icon, size: 18, color: finalColor),
             ),
             if (!isLast)
@@ -918,9 +942,7 @@ Widget _timelineItem({
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: isActive
-                        ? AppColors.grey900
-                        : AppColors.grey500,
+                    color: isActive ? AppColors.grey900 : AppColors.grey500,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -968,8 +990,18 @@ String _formatDateTime(DateTime? dt) {
   if (dt == null) return '-';
 
   const bulan = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   final local = IndonesiaTime.toWall(dt);

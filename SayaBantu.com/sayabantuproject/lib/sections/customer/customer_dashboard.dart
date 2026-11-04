@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/job_model.dart';
 import '../../services/api_service.dart';
@@ -11,13 +12,11 @@ import '../../widgets/pekerjaan_card.dart';
 import '../../widgets/statistic_card.dart';
 
 class CustomerDashboard extends StatefulWidget {
-  final Function(JobModel) onOpenOffer;
   final ValueChanged<JobModel> onOpenTracking;
   final ValueChanged<JobModel> onOpenChat;
 
   const CustomerDashboard({
     super.key,
-    required this.onOpenOffer,
     required this.onOpenTracking,
     required this.onOpenChat,
   });
@@ -143,6 +142,38 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     }
   }
 
+  Future<void> _rejectCompletionProof(JobModel job) async {
+    try {
+      final response = await ApiService.post('/jobs/${job.id}/verify-proof', {
+        'status': 'rejected',
+        'note':
+            'Pelanggan menolak bukti. Silakan perbaiki pekerjaan dan unggah bukti kembali.',
+      });
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        _showSnack(
+          'Bukti pekerjaan ditolak. Mitra dapat memperbaiki pekerjaan.',
+          success: true,
+        );
+        _fetchMyJobs();
+      } else {
+        var message = 'Gagal menolak bukti (${response.statusCode})';
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['message'] != null) {
+            message = decoded['message'].toString();
+          }
+        } catch (_) {}
+        _showSnack(message);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Terjadi kesalahan: $e');
+    }
+  }
+
   Future<void> _cancelJob(JobModel job) async {
     try {
       final response = await ApiService.post(
@@ -198,24 +229,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return isWaitingConfirm && hasProof;
   }
 
-  bool _canOpenOffer(JobModel job) {
-    final status = job.status.toLowerCase().trim();
-    return status.contains('mencari') ||
-        status.contains('offer') ||
-        status == 'open' ||
-        status == 'pending' ||
-        status == 'baru' ||
-        status == 'diposting';
-  }
+  bool _canEdit(JobModel job) =>
+      job.status.toLowerCase().trim() == 'mencari mitra' && job.mitraId == null;
 
   bool _hasJobActions(JobModel job) =>
-      _canOpenOffer(job) ||
-      _canTrack(job) ||
-      _canChat(job) ||
-      _canConfirm(job) ||
-      _canCancel(job);
-
-  bool _canChat(JobModel job) => job.mitraId != null;
+      _canEdit(job) || _canTrack(job) || _canConfirm(job) || _canCancel(job);
 
   bool _canCancel(JobModel job) {
     final s = job.status.toLowerCase().trim();
@@ -570,7 +588,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             child: JobCard(
               job: job,
               onRefresh: _fetchMyJobs,
-              onOpenOffer: widget.onOpenOffer,
               onOpenTracking: widget.onOpenTracking,
               onComplete: _showCompleteConfirmation,
             ),
@@ -1054,10 +1071,10 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
 
   String _formatDate(dynamic date) {
     if (date == null) return '-';
-    
+
     // Ambil string, potong jika ada huruf T
     String dateString = date.toString().split('T')[0];
-    
+
     // Jika format dari API adalah YYYY-MM-DD, ubah ke DD/MM/YYYY
     final parts = dateString.split('-');
     if (parts.length == 3) {
@@ -1233,18 +1250,16 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                if (_canOpenOffer(job))
+                                if (_canEdit(job))
                                   _pillButton(
                                     context: dialogContext,
-                                    icon: Icons.local_offer_outlined,
-                                    label: 'Lihat Offer',
-                                    bgColor: AppColors.mint.withValues(
-                                      alpha: 0.15,
-                                    ),
+                                    icon: Icons.edit_outlined,
+                                    label: 'Edit Pekerjaan',
+                                    bgColor: AppColors.sectionAltLight,
                                     fgColor: AppColors.primaryTeal,
                                     onTap: () {
                                       Navigator.of(dialogContext).pop();
-                                      widget.onOpenOffer(job);
+                                      _showEditJobDialog(job);
                                     },
                                   ),
                                 if (_canTrack(job))
@@ -1259,18 +1274,6 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                                       _openTracking(job);
                                     },
                                   ),
-                                if (_canChat(job))
-                                  _pillButton(
-                                    context: dialogContext,
-                                    icon: Icons.chat_bubble_outline,
-                                    label: 'Chat Mitra',
-                                    bgColor: AppColors.primaryTeal,
-                                    fgColor: Colors.white,
-                                    onTap: () {
-                                      Navigator.of(dialogContext).pop();
-                                      widget.onOpenChat(job);
-                                    },
-                                  ),
                                 if (_canConfirm(job))
                                   _pillButton(
                                     context: dialogContext,
@@ -1281,6 +1284,18 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                                     onTap: () {
                                       Navigator.of(dialogContext).pop();
                                       _showCompleteConfirmation(job);
+                                    },
+                                  ),
+                                if (_canConfirm(job))
+                                  _pillButton(
+                                    context: dialogContext,
+                                    icon: Icons.close,
+                                    label: 'Tolak Pekerjaan',
+                                    bgColor: const Color(0xFFFEE2E2),
+                                    fgColor: const Color(0xFFDC2626),
+                                    onTap: () {
+                                      Navigator.of(dialogContext).pop();
+                                      _showRejectCompletionConfirmation(job);
                                     },
                                   ),
                                 if (_canCancel(job))
@@ -1524,6 +1539,237 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return true;
   }
 
+  void _showEditJobDialog(JobModel job) {
+    final budgetController = TextEditingController(
+      text: job.initialBudget.round().toString(),
+    );
+    final pinController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        var isSaving = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: AppColors.white,
+            surfaceTintColor: AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            title: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.lightMint,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(
+                    Icons.payments_outlined,
+                    color: AppColors.primaryTeal,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Edit Nominal Pekerjaan',
+                    style: TextStyle(
+                      color: AppColors.grey900,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.sectionAltLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.lightMint),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Nominal saat ini',
+                          style: TextStyle(
+                            color: AppColors.grey600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          job.price,
+                          style: const TextStyle(
+                            color: AppColors.primaryTeal,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Ubah nominal pekerjaan. Jika nominal dinaikkan, selisih dana ditahan dari dompet dan memerlukan PIN.',
+                    style: TextStyle(
+                      color: AppColors.grey600,
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: budgetController,
+                    enabled: !isSaving,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setDialogState(() {}),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: 'Nominal pelanggan',
+                      prefixText: 'Rp ',
+                      helperText: 'Minimal Rp 10.000',
+                      filled: true,
+                      fillColor: AppColors.grey50,
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryTeal,
+                          width: 1.5,
+                        ),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  if ((double.tryParse(budgetController.text) ?? 0) >
+                      job.initialBudget) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: pinController,
+                      enabled: !isSaving,
+                      keyboardType: TextInputType.number,
+                      obscureText: true,
+                      maxLength: 6,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: 'PIN keamanan (6 digit)',
+                        counterText: '',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final budget = double.tryParse(
+                          budgetController.text.replaceAll('.', ''),
+                        );
+
+                        if (budget == null || budget < 10000) {
+                          _showSnack('Nominal minimal Rp 10.000.');
+                          return;
+                        }
+                        final needsPin = budget > job.initialBudget;
+                        if (needsPin && pinController.text.trim().length != 6) {
+                          _showSnack(
+                            'Masukkan PIN 6 digit untuk menambah nominal.',
+                          );
+                          return;
+                        }
+
+                        setDialogState(() => isSaving = true);
+                        try {
+                          final response =
+                              await ApiService.put('/jobs/${job.id}', {
+                                'initial_budget': budget,
+                                if (needsPin) 'pin': pinController.text.trim(),
+                              });
+
+                          if (!mounted || !dialogContext.mounted) return;
+                          if (response.statusCode == 200) {
+                            Navigator.pop(dialogContext);
+                            _showSnack(
+                              'Pekerjaan berhasil diperbarui.',
+                              success: true,
+                            );
+                            _fetchMyJobs();
+                            return;
+                          }
+
+                          var message = 'Gagal memperbarui pekerjaan.';
+                          try {
+                            final body = jsonDecode(response.body);
+                            if (body is Map && body['message'] != null) {
+                              message = body['message'].toString();
+                            }
+                          } catch (_) {}
+                          _showSnack(message);
+                        } catch (e) {
+                          if (!mounted) return;
+                          _showSnack('Terjadi kesalahan koneksi: $e');
+                        } finally {
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isSaving = false);
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryTeal,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Simpan Nominal'),
+              ),
+            ],
+          ),
+        );
+      },
+    ).whenComplete(() {
+      budgetController.dispose();
+      pinController.dispose();
+    });
+  }
+
   void _showCompleteConfirmation(JobModel selectedJob) {
     showDialog(
       context: context,
@@ -1577,6 +1823,40 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   color: Colors.white,
                 ),
               ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showRejectCompletionConfirmation(JobModel selectedJob) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Tolak Bukti Pekerjaan'),
+          content: Text(
+            "Apakah kamu yakin ingin menolak bukti pekerjaan '${selectedJob.title}'? Mitra dapat memperbaiki pekerjaan dan mengirim bukti kembali.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Kembali'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _rejectCompletionProof(selectedJob);
+              },
+              child: const Text('Ya, Tolak'),
             ),
           ],
         );

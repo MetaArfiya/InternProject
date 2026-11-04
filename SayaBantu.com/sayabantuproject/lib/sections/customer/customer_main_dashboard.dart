@@ -25,8 +25,7 @@ class CustomerMainDashboard extends StatefulWidget {
   const CustomerMainDashboard({super.key});
 
   @override
-  State<CustomerMainDashboard> createState() =>
-      _CustomerMainDashboardState();
+  State<CustomerMainDashboard> createState() => _CustomerMainDashboardState();
 }
 
 class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
@@ -208,13 +207,6 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
             _activeChatJobId = job.id;
             _activeChatTitle = job.title;
           }),
-          onOpenOffer: (job) {
-            setState(() {
-              selectedJob = job;
-              selectedOffer = null;
-              selectedMenu = SidebarMenu.penawaran;
-            });
-          },
         );
 
       case SidebarMenu.pembayaran:
@@ -331,18 +323,12 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
             const SizedBox(height: 6),
             Text(
               message,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.grey500,
-              ),
+              style: const TextStyle(fontSize: 13, color: AppColors.grey500),
             ),
             const SizedBox(height: 24),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 48,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 48),
               decoration: BoxDecoration(
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -359,11 +345,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                       color: AppColors.mint.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 24,
-                      color: AppColors.primaryTeal,
-                    ),
+                    child: Icon(icon, size: 24, color: AppColors.primaryTeal),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -399,10 +381,7 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
             onMenuSelected: _onMenuSelected,
           ),
           Expanded(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: _currentPage(),
-            ),
+            child: Align(alignment: Alignment.topLeft, child: _currentPage()),
           ),
         ],
       ),
@@ -453,18 +432,12 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
         ],
       ),
 
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: _currentPage(),
-      ),
+      body: SafeArea(top: false, bottom: false, child: _currentPage()),
 
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.white,
-          border: Border(
-            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
         ),
         child: SafeArea(
           top: false,
@@ -492,7 +465,10 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
                 label: 'Pembayaran',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.account_balance_wallet_outlined, size: 22), // <-- Ikon Dompet
+                icon: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 22,
+                ), // <-- Ikon Dompet
                 activeIcon: Icon(Icons.account_balance_wallet, size: 22),
                 label: 'Dompet',
               ),

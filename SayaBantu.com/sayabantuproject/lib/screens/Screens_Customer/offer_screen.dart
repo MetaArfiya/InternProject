@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/job_model.dart';
 import '../../models/offer_model.dart';
@@ -612,15 +613,45 @@ class OfferScreen extends StatelessWidget {
   // ============================================================
 
   void _showAcceptDialog(BuildContext context, OfferModel offer) {
+    final shortfall =
+        (offer.priceAmount - job.initialBudget).clamp(0, double.infinity).toDouble();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text(
-          'Konfirmasi Penawaran',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        title: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.lightMint,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Icon(
+                Icons.handshake_outlined,
+                color: AppColors.primaryTeal,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Tinjau Penawaran',
+                style: TextStyle(
+                  color: AppColors.grey900,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -628,31 +659,45 @@ class OfferScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Apakah Anda yakin ingin memilih ${offer.name}?',
-              ),
-              const SizedBox(height: 16),
-              _detailRow('Harga', offer.price),
-              const SizedBox(height: 10),
-              _detailRow('Jadwal mulai', offer.proposedStartAtText),
-              const SizedBox(height: 10),
-              _detailRow('Estimasi durasi', offer.estimatedDurationText),
-              const SizedBox(height: 14),
-              const Text(
-                'Dengan menerima penawaran, Anda menyetujui '
-                'harga, jadwal mulai, dan estimasi durasi '
-                'yang diajukan Mitra.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.grey600,
+                'Kamu akan menerima penawaran dari ${offer.name}.',
+                style: const TextStyle(
+                  color: AppColors.grey700,
+                  fontSize: 13,
                   height: 1.4,
                 ),
               ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.grey50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.grey200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _detailRow('Harga penawaran', offer.price),
+                    const SizedBox(height: 10),
+                    _detailRow('Jadwal mulai', offer.proposedStartAtText),
+                    const SizedBox(height: 10),
+                    _detailRow('Estimasi durasi', offer.estimatedDurationText),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _shortfallCard(shortfall),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.grey600,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
@@ -662,35 +707,207 @@ class OfferScreen extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryTeal,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(11),
+              ),
             ),
-            child: const Text('Ya, Pilih'),
+            child: const Text('Lanjutkan'),
           ),
         ],
       ),
     );
   }
 
+  Widget _shortfallCard(double shortfall) {
+    final hasShortfall = shortfall > 0;
+    final amount = _formatRupiah(shortfall);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.mint.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.primaryTeal.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_outline, color: AppColors.primaryTeal, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hasShortfall
+                  ? 'Kekurangan dana yang perlu ditambahkan: $amount. Dana ini akan ditahan setelah PIN dikonfirmasi.'
+                  : 'Tidak ada kekurangan dana. Selisih dari budget akan dikembalikan ke dompet setelah penawaran diterima.',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.primaryTeal,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatRupiah(double amount) {
+    final value = amount.round().toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]}.',
+    );
+    return 'Rp $value';
+  }
+
   void _showPinDialog(BuildContext context, OfferModel offer) {
     final TextEditingController pinController = TextEditingController();
+    final shortfall =
+        (offer.priceAmount - job.initialBudget).clamp(0, double.infinity).toDouble();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (pinContext) => AlertDialog(
-        title: const Text('Konfirmasi PIN'),
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        title: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.lightMint,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: AppColors.primaryTeal,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Konfirmasi dengan PIN',
+                style: TextStyle(
+                  color: AppColors.grey900,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Masukkan PIN Anda untuk menyetujui penawaran ini dan menahan saldo.'),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.mint.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primaryTeal.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.primaryTeal,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          shortfall > 0
+                              ? 'Kekurangan dana sebesar ${_formatRupiah(shortfall)} akan ditahan oleh sistem (Escrow).'
+                              : 'Tidak ada kekurangan dana yang perlu ditambahkan. Selisih budget akan dikembalikan ke dompet Anda.',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primaryTeal,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 28),
+                    child: Text(
+                      'Dana yang ditahan mengikuti harga penawaran yang kamu setujui. Pastikan saldo mencukupi sebelum menerima penawaran.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.grey700,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
+            const Text(
+              'Masukkan PIN Anda (6 Digit)',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.grey700,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: pinController,
-              keyboardType: TextInputType.number,
+              autofocus: true,
               obscureText: true,
-              maxLength: 6,
-              decoration: const InputDecoration(
-                labelText: 'PIN',
-                border: OutlineInputBorder(),
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+              decoration: InputDecoration(
+                hintText: '******',
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.grey400,
+                ),
+                prefixIcon: const Icon(Icons.password),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                    color: AppColors.primaryTeal,
+                    width: 1.5,
+                  ),
+                ),
               ),
             ),
           ],
@@ -698,21 +915,39 @@ class OfferScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(pinContext),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.grey600,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () {
-              final pin = pinController.text;
-              if (pin.isEmpty) return;
-              
-              Navigator.pop(pinContext); // Tutup form PIN
-              _handleAccept(context, offer, pin); // Kirim data ke backend
+              final pin = pinController.text.trim();
+              if (pin.length != 6) {
+                ScaffoldMessenger.of(pinContext).showSnackBar(
+                  const SnackBar(content: Text('Masukkan PIN 6 digit.')),
+                );
+                return;
+              }
+
+              Navigator.pop(pinContext);
+              _handleAccept(context, offer, pin);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: AppColors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(11),
+              ),
+            ),
             child: const Text('Konfirmasi'),
           ),
         ],
       ),
-    );
+    ).whenComplete(pinController.dispose);
   }
 
   Widget _detailRow(String label, String value) {

@@ -9,6 +9,8 @@ class ActiveOfferModel {
   final bool isTop;
   final String status;
   final String bidStatus;
+  final DateTime? proposedStartAt;
+  final DateTime? scheduledStartAt;
 
   // Fitur bukti
   final bool canSubmitProof;
@@ -16,6 +18,7 @@ class ActiveOfferModel {
   final String? proofImage;
   final String? completionPhotoUrl;
   final String? proofDescription;
+  final String? completionStatus;
 
   // 🆕 TIMELINE
   final DateTime? startedAt;
@@ -32,11 +35,14 @@ class ActiveOfferModel {
     required this.isTop,
     required this.status,
     this.bidStatus = 'Menunggu',
+    this.proposedStartAt,
+    this.scheduledStartAt,
     this.canSubmitProof = false,
     this.proofSubmitted = false,
     this.proofImage,
     this.completionPhotoUrl,
     this.proofDescription,
+    this.completionStatus,
     this.startedAt,
     this.completedAt,
     this.completionSubmittedAt,
@@ -83,6 +89,8 @@ class ActiveOfferModel {
       isTop: json['is_top'] == true || json['is_top']?.toString() == '1',
       status: json['status']?.toString() ?? 'Menunggu',
       bidStatus: json['bid_status']?.toString() ?? 'Menunggu',
+      proposedStartAt: _parseDate(json['proposed_start_at']),
+      scheduledStartAt: _parseDate(json['scheduled_start_at']),
       canSubmitProof: json['can_submit_proof'] == true ||
           json['can_submit_proof']?.toString() == '1',
       proofSubmitted: json['proof_submitted'] == true ||
@@ -90,6 +98,7 @@ class ActiveOfferModel {
       proofImage: json['proof_image']?.toString(),
       completionPhotoUrl: json['completion_photo_url']?.toString(),
       proofDescription: json['proof_description']?.toString(),
+      completionStatus: json['completion_status']?.toString(),
 
       // 🆕 Timeline
       startedAt: _parseDate(json['started_at']),

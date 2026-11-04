@@ -5,12 +5,14 @@ import '../utils/indonesia_time.dart';
 
 class PartnerJobCard extends StatelessWidget {
   final PartnerJobModel job;
-  final VoidCallback onTakeOffer;
+  final VoidCallback? onTakeOffer;
+  final bool isTakingOffer;
 
   const PartnerJobCard({
     super.key,
     required this.job,
     required this.onTakeOffer,
+    this.isTakingOffer = false,
   });
 
   // ============================================================
@@ -329,10 +331,22 @@ class PartnerJobCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
-                    'Ambil & Nego',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
+                  child: isTakingOffer
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Ambil Pekerjaan',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ],
             ),

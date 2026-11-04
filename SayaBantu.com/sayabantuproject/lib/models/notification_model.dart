@@ -3,13 +3,13 @@ import 'dart:convert';
 import '../utils/indonesia_time.dart';
 
 class NotificationModel {
-  final String id;         // ← UUID (String), bukan int
-  final String type;       // ← hasil extract dari class name atau data.type
+  final String id; // ← UUID (String), bukan int
+  final String type; // ← hasil extract dari class name atau data.type
   final String title;
   final String message;
   final DateTime? createdAt;
   final bool isRead;
-  final int? jobId;        // <-- TAMBAHKAN INI UNTUK NAVIGASI CHAT
+  final int? jobId; // <-- TAMBAHKAN INI UNTUK NAVIGASI CHAT
 
   NotificationModel({
     required this.id,
@@ -18,7 +18,7 @@ class NotificationModel {
     required this.message,
     this.createdAt,
     this.isRead = false,
-    this.jobId,            // <-- TAMBAHKAN INI
+    this.jobId, // <-- TAMBAHKAN INI
   });
 
   // ============================================================
@@ -37,6 +37,7 @@ class NotificationModel {
 
       case 'bid_accepted':
       case 'penawaran_diterima':
+      case 'job_assigned':
         return Icons.business_center_outlined;
 
       case 'job_started':
@@ -76,6 +77,7 @@ class NotificationModel {
 
       case 'bid_accepted':
       case 'penawaran_diterima':
+      case 'job_assigned':
         return const Color(0xff22C55E);
 
       case 'job_started':
@@ -115,6 +117,7 @@ class NotificationModel {
 
       case 'bid_accepted':
       case 'penawaran_diterima':
+      case 'job_assigned':
         return const Color(0xffEAF9F0);
 
       case 'job_started':
@@ -155,8 +158,18 @@ class NotificationModel {
     if (diff.inDays < 7) return '${diff.inDays} hari lalu';
 
     const bulan = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
     final wibDate = IndonesiaTime.toWall(createdAt!);
     return '${wibDate.day} ${bulan[wibDate.month - 1]} ${wibDate.year}';
@@ -183,11 +196,13 @@ class NotificationModel {
     }
 
     // 3. Title & message
-    final String title = data['title']?.toString() ??
+    final String title =
+        data['title']?.toString() ??
         data['judul']?.toString() ??
         _defaultTitle(type);
 
-    final String message = data['message']?.toString() ??
+    final String message =
+        data['message']?.toString() ??
         data['body']?.toString() ??
         data['pesan']?.toString() ??
         '-';
@@ -259,4 +274,3 @@ class NotificationModel {
     }
   }
 }
-

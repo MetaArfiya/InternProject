@@ -90,10 +90,9 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
       return;
     }
 
-    await ApiService.post(
-      '/jobs/${widget.jobId}/tracking/status',
-      {'status': 'menuju'},
-    );
+    await ApiService.post('/jobs/${widget.jobId}/tracking/status', {
+      'status': 'menuju',
+    });
 
     if (!mounted) return;
     setState(() => _isTracking = true);
@@ -101,10 +100,9 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   }
 
   Future<void> _updateStatus(String status) async {
-    await ApiService.post(
-      '/jobs/${widget.jobId}/tracking/status',
-      {'status': status},
-    );
+    await ApiService.post('/jobs/${widget.jobId}/tracking/status', {
+      'status': status,
+    });
     _loadInitial();
   }
 
@@ -157,10 +155,7 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChatPage(
-          jobId: widget.jobId,
-          title: widget.title,
-        ),
+        builder: (_) => ChatPage(jobId: widget.jobId, title: widget.title),
       ),
     );
   }
@@ -176,72 +171,72 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
         if (!didPop) widget.onBack?.call();
       },
       child: Scaffold(
-      backgroundColor: AppColors.sectionAltLight,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryTeal,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: widget.onBack == null,
-        leading: widget.onBack == null
-            ? null
-            : IconButton(
-                tooltip: 'Kembali ke penawaran aktif',
-                onPressed: widget.onBack,
-                icon: const Icon(Icons.arrow_back),
-              ),
-        title: const Text('Detail & Tracking'),
-      ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryTeal),
-              )
-            : LayoutBuilder(
-                builder: (context, constraints) {
-                  final isDesktop = constraints.maxWidth > 900;
+        backgroundColor: AppColors.sectionAltLight,
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryTeal,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: widget.onBack == null,
+          leading: widget.onBack == null
+              ? null
+              : IconButton(
+                  tooltip: 'Kembali ke penawaran aktif',
+                  onPressed: widget.onBack,
+                  icon: const Icon(Icons.arrow_back),
+                ),
+          title: const Text('Detail & Tracking'),
+        ),
+        body: SafeArea(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryTeal,
+                  ),
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isDesktop = constraints.maxWidth > 900;
 
-                  if (isDesktop) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    if (isDesktop) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 6,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: _buildMap(),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 4,
+                            child: _buildDetailPanel(isDesktop: true),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Column(
                       children: [
-                        Expanded(
-                          flex: 6,
+                        SizedBox(
+                          height: constraints.maxHeight * 0.4,
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
                               child: _buildMap(),
                             ),
                           ),
                         ),
-                        Expanded(
-                          flex: 4,
-                          child: _buildDetailPanel(isDesktop: true),
-                        ),
+                        Expanded(child: _buildDetailPanel(isDesktop: false)),
                       ],
                     );
-                  }
-
-                  return Column(
-                    children: [
-                      SizedBox(
-                        height: constraints.maxHeight * 0.4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: _buildMap(),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildDetailPanel(isDesktop: false),
-                      ),
-                    ],
-                  );
-                },
-              ),
-      ),
+                  },
+                ),
+        ),
       ),
     );
   }
@@ -314,7 +309,8 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
             const SizedBox(height: 20),
 
             // Info Jarak & ETA
-            if (t != null && (t.distanceKm != null || t.etaMinutes != null)) ...[
+            if (t != null &&
+                (t.distanceKm != null || t.etaMinutes != null)) ...[
               Row(
                 children: [
                   Expanded(
@@ -375,8 +371,10 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
               icon: Icons.check_circle_outline,
               iconColor: const Color(0xff16A34A),
               title: 'Pekerjaan Dimulai',
-              subtitle: 'Pelanggan menyetujui penawaran mitra',
-              time: t?.startedAt != null ? _formatDateTime(t!.startedAt!) : null,
+              subtitle: 'Mitra menyetujui harga dan jadwal pelanggan',
+              time: t?.startedAt != null
+                  ? _formatDateTime(t!.startedAt!)
+                  : null,
               isActive: t?.startedAt != null,
             ),
             _timelineItem(
@@ -522,8 +520,9 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
     bool isLast = false,
   }) {
     final Color finalColor = isActive ? iconColor : AppColors.grey400;
-    final Color bgColor =
-        isActive ? iconColor.withValues(alpha: 0.12) : AppColors.grey100;
+    final Color bgColor = isActive
+        ? iconColor.withValues(alpha: 0.12)
+        : AppColors.grey100;
 
     return IntrinsicHeight(
       child: Row(
@@ -738,13 +737,30 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
 
   String _formatDateTime(DateTime dt) {
     const bulan = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
 
     try {
       // Paksa anggap waktu dari API adalah UTC, lalu tambahkan 7 jam (WIB)
-      final utcTime = DateTime.utc(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+      final utcTime = DateTime.utc(
+        dt.year,
+        dt.month,
+        dt.day,
+        dt.hour,
+        dt.minute,
+        dt.second,
+      );
       final local = utcTime.add(const Duration(hours: 7));
 
       final d = local.day.toString().padLeft(2, '0');
@@ -752,7 +768,7 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
       final y = local.year;
       final hh = local.hour.toString().padLeft(2, '0');
       final mm = local.minute.toString().padLeft(2, '0');
-      
+
       return '$d $m $y • $hh:$mm';
     } catch (e) {
       // Jika gagal, kembalikan format standar tanpa konversi

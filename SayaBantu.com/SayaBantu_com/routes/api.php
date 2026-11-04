@@ -454,6 +454,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // =====================================================
     Route::middleware('role:Pelanggan')->group(function () {
         Route::post('/jobs', [JobController::class, 'store']);
+        Route::put('/jobs/{id}', [JobController::class, 'updateByCustomer']);
         Route::get('/pelanggan/my-jobs', [JobController::class, 'myJobs']);
 
         Route::post('/jobs/{id}/cancel-customer', [JobController::class, 'cancelJobByPelanggan']);

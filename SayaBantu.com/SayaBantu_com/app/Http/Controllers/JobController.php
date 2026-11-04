@@ -21,7 +21,6 @@ use App\Models\City;
 
 use App\Providers\WalletService;
 use App\Notifications\BidAccepted;
-use App\Notifications\NewBidReceived;
 use App\Helpers\ActivityLogger;
 
 class JobController extends Controller
@@ -455,6 +454,122 @@ class JobController extends Controller
         }
     }
 
+    public function updateByCustomer(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'initial_budget' => 'required|numeric|min:10000',
+            'pin' => 'nullable|string|size:6',
+        ]);
+
+        if (empty($validated)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada perubahan pekerjaan yang dikirim.',
+            ], 422);
+        }
+
+        try {
+            $customerId = (int) auth()->id();
+
+            $job = DB::transaction(function () use (
+                $id,
+                $customerId,
+                $validated
+            ) {
+                $job = jobs::whereKey($id)->lockForUpdate()->first();
+
+                if (!$job || (int) $job->pelanggan_id !== $customerId) {
+                    throw new \RuntimeException(
+                        'Pekerjaan tidak ditemukan atau bukan milik Anda.'
+                    );
+                }
+
+                if ($job->status !== 'Mencari Mitra' || $job->mitra_id !== null) {
+                    throw new \RuntimeException(
+                        'Pekerjaan hanya dapat diedit sebelum diambil Mitra.'
+                    );
+                }
+
+                $payment = Payment::where('job_id', $job->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$payment || $payment->status !== 'held') {
+                    throw new \RuntimeException(
+                        'Dana pekerjaan tidak tersedia untuk diperbarui.'
+                    );
+                }
+
+                $newBudget = round((float) $validated['initial_budget'], 2);
+                $oldBudget = (float) $payment->total_paid;
+                $difference = round($newBudget - $oldBudget, 2);
+
+                if ($difference > 0) {
+                    $customer = users::find($customerId);
+                    if (
+                        !$customer ||
+                        !$customer->pin ||
+                        empty($validated['pin']) ||
+                        !Hash::check($validated['pin'], $customer->pin)
+                    ) {
+                        throw new \RuntimeException(
+                            'PIN diperlukan dan harus benar untuk menambah nominal pekerjaan.'
+                        );
+                    }
+
+                    app(WalletService::class)->hold(
+                        $customerId,
+                        $difference,
+                        (int) $payment->id
+                    );
+                } elseif ($difference < 0) {
+                    app(WalletService::class)->refundHold(
+                        $customerId,
+                        abs($difference),
+                        (int) $payment->id
+                    );
+                }
+
+                $payment->update([
+                    'job_amount' => $newBudget,
+                    'total_paid' => $newBudget,
+                ]);
+                $job->initial_budget = $newBudget;
+
+                $job->save();
+
+                return $job->fresh();
+            }, 3);
+
+            $this->logActivity(
+                $customerId,
+                'Pelanggan mengubah nominal pekerjaan',
+                'Pelanggan memperbarui nominal pekerjaan "' . $job->tittle . '" menjadi Rp ' .
+                    number_format((float) $job->initial_budget, 0, ',', '.') . '.',
+                'edit',
+                'Pelanggan'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pekerjaan berhasil diperbarui.',
+                'data' => $job,
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        } catch (\Throwable $e) {
+            Log::error('JobController@updateByCustomer: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui pekerjaan.',
+            ], 500);
+        }
+    }
+
     private function buildRecommendation(
         string $title,
         string $description
@@ -813,26 +928,21 @@ class JobController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | MITRA MEMBUAT PENAWARAN
+    | MITRA MENERIMA PEKERJAAN PELANGGAN
     |--------------------------------------------------------------------------
     */
 
     public function applyJob(Request $request, $id)
     {
         $validated = $request->validate([
-            'offered_price' => 'required|numeric|min:1000',
-            'proposed_start_at' => 'required|date|after:now',
-            'estimated_duration_minutes' =>
-            'required|integer|min:15|max:1440',
+            'expected_initial_budget' => 'required|numeric|min:10000',
+            'expected_tittle' => 'required|string|max:255',
+            'expected_description' => 'required|string',
         ]);
 
         try {
-            $mitraId = auth()->id();
-
-            $mitraProfile = mitra_profiles::where(
-                'user_id',
-                $mitraId
-            )->first();
+            $mitraId = (int) auth()->id();
+            $mitraProfile = mitra_profiles::where('user_id', $mitraId)->first();
 
             if (!$mitraProfile || !$mitraProfile->is_verified) {
                 return response()->json([
@@ -841,96 +951,175 @@ class JobController extends Controller
                 ], 403);
             }
 
-            $bid = DB::transaction(function () use (
+            $result = DB::transaction(function () use (
                 $id,
                 $mitraId,
                 $mitraProfile,
                 $validated
             ) {
-                $job = jobs::whereKey($id)
-                    ->lockForUpdate()
-                    ->first();
+                $job = jobs::whereKey($id)->lockForUpdate()->first();
 
                 if (!$job || $job->status !== 'Mencari Mitra') {
                     throw new \RuntimeException(
-                        'Pekerjaan tidak ditemukan atau sudah tidak menerima tawaran.'
+                        'Pekerjaan ini sudah diambil Mitra lain atau tidak tersedia.'
                     );
                 }
 
                 if (
-                    job_bids::where('job_id', $id)
-                    ->where('mitra_id', $mitraId)
-                    ->exists()
+                    round((float) $job->initial_budget, 2) !==
+                        round((float) $validated['expected_initial_budget'], 2) ||
+                    $job->tittle !== $validated['expected_tittle'] ||
+                    $job->description !== $validated['expected_description']
                 ) {
                     throw new \RuntimeException(
-                        'Kamu sudah mengajukan penawaran untuk pekerjaan ini.'
+                        'Pelanggan memperbarui pekerjaan. Muat ulang daftar pekerjaan sebelum mengambilnya.'
                     );
                 }
 
-                $proposedStart = Carbon::parse(
-                    $validated['proposed_start_at']
-                );
-
-                if ($proposedStart->lessThanOrEqualTo(now())) {
+                if (empty($job->preferred_start_at)) {
                     throw new \RuntimeException(
-                        'Jadwal penawaran harus berada di masa mendatang.'
+                        'Jadwal mulai dari pelanggan belum tersedia.'
+                    );
+                }
+
+                $durationLabel = mb_strtolower(trim((string) $job->duration));
+                $durationLabel = str_replace(['–', '—'], '-', $durationLabel);
+                $durationMinutes = match ($durationLabel) {
+                    '1-2 jam' => 120,
+                    '3-5 jam' => 300,
+                    '1 hari' => 1440,
+                    '2-3 hari' => 4320,
+                    '1 minggu' => 10080,
+                    '> 1 minggu', 'lebih dari 1 minggu' => 20160,
+                    default => 0,
+                };
+
+                if ($durationMinutes <= 0) {
+                    throw new \RuntimeException(
+                        'Durasi pekerjaan pelanggan tidak dikenali.'
                     );
                 }
 
                 $schedule = $this->calculateScheduleEnd(
-                    $validated['proposed_start_at'],
-                    (int) $validated['estimated_duration_minutes']
+                    (string) $job->preferred_start_at,
+                    $durationMinutes
                 );
+                $scheduleStart = $schedule['start'];
+                $scheduleEnd = $schedule['end'];
 
-                return job_bids::create([
-                    'job_id' => $id,
+                if ($scheduleStart->lessThanOrEqualTo(now())) {
+                    throw new \RuntimeException(
+                        'Jadwal pekerjaan sudah lewat dan tidak dapat diterima.'
+                    );
+                }
+
+                $conflictingJob = jobs::where('mitra_id', $mitraId)
+                    ->whereIn('status', [
+                        'Terjadwal',
+                        'Sedang Dikerjakan',
+                        'Menunggu Konfirmasi Selesai',
+                    ])
+                    ->whereNotNull('scheduled_start_at')
+                    ->whereNotNull('scheduled_end_at')
+                    ->where('scheduled_start_at', '<', $scheduleEnd)
+                    ->where('scheduled_end_at', '>', $scheduleStart)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($conflictingJob) {
+                    throw new \RuntimeException(
+                        'Jadwal pekerjaan berbenturan dengan pekerjaan Anda yang lain.'
+                    );
+                }
+
+                $payment = Payment::where('job_id', $job->id)
+                    ->lockForUpdate()
+                    ->first();
+                if (!$payment || $payment->status !== 'held') {
+                    throw new \RuntimeException(
+                        'Dana escrow pelanggan tidak tersedia untuk pekerjaan ini.'
+                    );
+                }
+
+                $price = (float) $job->initial_budget;
+                if ($price <= 0) {
+                    throw new \RuntimeException(
+                        'Harga yang ditetapkan pelanggan tidak valid.'
+                    );
+                }
+
+                $settings = system_setting::first();
+                $commissionPercent = $settings
+                    ? (float) $settings->platform_commission_percent
+                    : 15.00;
+                $commissionAmount = round($price * ($commissionPercent / 100), 2);
+                $mitraEarning = round($price - $commissionAmount, 2);
+
+                $bid = job_bids::create([
+                    'job_id' => $job->id,
                     'mitra_id' => $mitraId,
-
-                    'offered_price' => $validated['offered_price'],
+                    'offered_price' => $price,
                     'mitras_point_at_time' => $mitraProfile->point ?? 0,
-
-                    'proposed_start_at' => $schedule['start'],
-                    'estimated_duration_minutes' =>
-                    (int) $validated['estimated_duration_minutes'],
-
-                    'status' => 'Menunggu',
+                    // Nilai ini dipertahankan agar data lama dan daftar aktif tetap kompatibel.
+                    'status' => 'Diterima Pelanggan',
+                    'proposed_start_at' => $scheduleStart,
+                    'estimated_duration_minutes' => $durationMinutes,
                 ]);
-            });
 
-            $job = jobs::find($id);
+                $job->update([
+                    'mitra_id' => $mitraId,
+                    'final_price' => $price,
+                    'scheduled_start_at' => $scheduleStart,
+                    'scheduled_end_at' => $scheduleEnd,
+                    'started_at' => null,
+                    'status' => 'Terjadwal',
+                ]);
 
-            if ($job) {
-                $this->logActivity(
-                    $mitraId,
-                    'Mitra membuat penawaran',
-                    'Mitra mengajukan penawaran Rp ' .
-                        number_format($bid->offered_price, 0, ',', '.') .
-                        ' untuk "' . $job->tittle . '".',
-                    'local_offer',
-                    'Mitra'
-                );
+                $payment->update([
+                    'mitra_id' => $mitraId,
+                    'job_amount' => $price,
+                    'commission_percent' => $commissionPercent,
+                    'commission_amount' => $commissionAmount,
+                    'mitra_earning' => $mitraEarning,
+                    'total_paid' => $price,
+                ]);
 
+                return [
+                    'job' => $job->fresh(),
+                    'bid' => $bid,
+                ];
+            }, 3);
+
+            $customer = users::find($result['job']->pelanggan_id);
+            if ($customer) {
                 try {
-                    $pelanggan = users::find($job->pelanggan_id);
-
-                    if ($pelanggan) {
-                        $pelanggan->notify(
-                            new NewBidReceived($job, $bid)
-                        );
-                    }
+                    $customer->notify(new \App\Notifications\PartnerAcceptedJob(
+                        $result['job'],
+                        $result['bid']
+                    ));
                 } catch (\Throwable $notificationException) {
                     Log::warning(
-                        'Notifikasi penawaran gagal: ' .
+                        'Notifikasi mitra menerima pekerjaan gagal: ' .
                             $notificationException->getMessage()
                     );
                 }
             }
 
+            $this->logActivity(
+                $mitraId,
+                'Mitra menerima pekerjaan',
+                'Mitra menerima pekerjaan "' . $result['job']->tittle .
+                    '" dengan harga pelanggan Rp ' .
+                    number_format((float) $result['job']->final_price, 0, ',', '.') . '.',
+                'check_circle',
+                'Mitra'
+            );
+
             return response()->json([
                 'success' => true,
-                'message' => 'Berhasil mengirimkan penawaran kerja!',
-                'data' => $bid,
-            ], 201);
+                'message' => 'Pekerjaan berhasil diterima. Anda menjadi Mitra pertama yang menyetujuinya.',
+                'data' => $result['job'],
+            ], 200);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'success' => false,
@@ -941,11 +1130,10 @@ class JobController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirimkan penawaran.',
+                'message' => 'Gagal menerima pekerjaan.',
             ], 500);
         }
     }
-
     /*
     |--------------------------------------------------------------------------
     | PELANGGAN MENOLAK PENAWARAN
