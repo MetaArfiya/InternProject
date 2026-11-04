@@ -10,11 +10,13 @@ import '../../utils/indonesia_time.dart';
 class ChatPage extends StatefulWidget {
   final int jobId;
   final String title;
+  final VoidCallback? onBack;
 
   const ChatPage({
     super.key,
     required this.jobId,
     required this.title,
+    this.onBack,
   });
 
   @override
@@ -172,12 +174,25 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: widget.onBack == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack?.call();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.grey50,
       appBar: AppBar(
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: widget.onBack == null,
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                tooltip: 'Kembali',
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back),
+              ),
         title: Row(
           children: [
             Container(
@@ -243,6 +258,7 @@ class _ChatPageState extends State<ChatPage> {
           ),
           _buildInputBar(),
         ],
+      ),
       ),
     );
   }

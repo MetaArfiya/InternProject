@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../screens/Screens_auth/register_page.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
+import 'custom_button.dart';
 import '../../widgets/safe_mouse_region.dart';
 
 // ============================================================
@@ -70,7 +72,115 @@ class _CategorySectionState extends State<CategorySection> {
   ];
 
   void _onCategoryTap(_CategoryItem category) {
-    debugPrint('Tap kategori: ${category.title}');
+    showDialog<void>(
+      context: context,
+      barrierColor: AppColors.darkTeal.withValues(alpha: 0.45),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(26, 22, 26, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightMint,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        category.icon,
+                        color: AppColors.primaryTeal,
+                        size: 27,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Tutup',
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                      color: AppColors.grey500,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    category.title,
+                    style: AppTextStyles.headingMediumOnLight.copyWith(
+                      fontSize: 21,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Daftar akun SayaBantu untuk melihat detail layanan '
+                    'dan menghubungi mitra.',
+                    style: AppTextStyles.bodySmallOnLight.copyWith(
+                      color: AppColors.grey600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryTeal,
+                            side: const BorderSide(
+                              color: AppColors.primaryTeal,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Nanti'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: CustomButton(
+                        text: 'Daftar Sekarang',
+                        height: 48,
+                        backgroundColor: AppColors.primaryTeal,
+                        icon: Icons.arrow_forward_rounded,
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const RegisterScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override

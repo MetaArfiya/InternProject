@@ -23,7 +23,7 @@ class CustomNavbar extends StatelessWidget {
   });
 
   void _navigateToLogin(BuildContext context) {
-    Navigator.of(context).push(
+    Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const LoginScreen(),
         transitionDuration: Duration.zero,
@@ -33,7 +33,7 @@ class CustomNavbar extends StatelessWidget {
   }
 
   void _navigateToRegister(BuildContext context) {
-    Navigator.of(context).push(
+    Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const RegisterScreen(),
         transitionDuration: Duration.zero,

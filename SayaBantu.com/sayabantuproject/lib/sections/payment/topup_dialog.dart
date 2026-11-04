@@ -28,6 +28,7 @@ class _TopupDialogState extends State<TopupDialog> {
 
   static const Color _primaryColor = AppColors.primaryTeal;
   static const Color _borderColor = Color(0xFFE5E7EB);
+  static const int _customerTopupMaxDigits = 8;
 
   final List<String> _bankList = [
     'BCA', 'Mandiri', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 
@@ -84,6 +85,17 @@ class _TopupDialogState extends State<TopupDialog> {
 
     // Ambil teks nominal, hapus titik pemisah ribuan sebelum dikirim ke API
     final rawAmount = _amountController.text.replaceAll('.', '');
+
+    if (widget.role.toLowerCase() == 'pelanggan' &&
+        rawAmount.length > _customerTopupMaxDigits) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nominal top up maksimal Rp99.999.999.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     if (rawAmount.isEmpty || _proofImage == null || bankName == null || bankName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -243,8 +255,11 @@ class _TopupDialogState extends State<TopupDialog> {
                         icon: Icons.attach_money,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          // Formatter khusus untuk pemisah ribuan
                           FilteringTextInputFormatter.digitsOnly,
+                          if (widget.role.toLowerCase() == 'pelanggan')
+                            const _MaxDigitsInputFormatter(
+                              _customerTopupMaxDigits,
+                            ),
                           _ThousandsSeparatorFormatter(),
                         ],
                       ),
@@ -440,7 +455,7 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
     final String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
     // Format dengan titik setiap 3 digit dari belakang
-    final String formatted = _formatNumber(digitsOnly);
+    final String formatted = formatNumber(digitsOnly);
 
     return TextEditingValue(
       text: formatted,
@@ -448,7 +463,7 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
     );
   }
 
-  String _formatNumber(String s) {
+  static String formatNumber(String s) {
     final buffer = StringBuffer();
     int count = 0;
     for (int i = s.length - 1; i >= 0; i--) {
@@ -460,5 +475,27 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
       }
     }
     return buffer.toString().split('').reversed.join();
+  }
+}
+
+class _MaxDigitsInputFormatter extends TextInputFormatter {
+  final int maxDigits;
+
+  const _MaxDigitsInputFormatter(this.maxDigits);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length <= maxDigits) return newValue;
+
+    final limitedDigits = digits.substring(0, maxDigits);
+    final formatted = _ThousandsSeparatorFormatter.formatNumber(limitedDigits);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
   }
 }

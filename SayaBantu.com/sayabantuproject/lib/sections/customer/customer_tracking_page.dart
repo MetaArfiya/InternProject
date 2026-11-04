@@ -5,14 +5,20 @@ import 'package:flutter/material.dart';
 import '../../models/tracking_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
-import '../../utils/indonesia_time.dart';
 import '../../widgets/tracking_map.dart';
 import '../shared/chat_page.dart';
 
 class CustomerTrackingPage extends StatefulWidget {
   final int jobId;
+  final VoidCallback? onBack;
+  final ValueChanged<String>? onOpenChat;
 
-  const CustomerTrackingPage({super.key, required this.jobId});
+  const CustomerTrackingPage({
+    super.key,
+    required this.jobId,
+    this.onBack,
+    this.onOpenChat,
+  });
 
   @override
   State<CustomerTrackingPage> createState() => _CustomerTrackingPageState();
@@ -89,7 +95,12 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   // ============================================================
   void _openChat() {
     final title = _tracking?.title ?? 'Pekerjaan #${widget.jobId}';
-    Navigator.push(
+    if (widget.onOpenChat != null) {
+      widget.onOpenChat!(title);
+      return;
+    }
+
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => ChatPage(
@@ -111,6 +122,14 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: widget.onBack == null,
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                tooltip: 'Kembali',
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back),
+              ),
         title: const Text('Lacak Mitra'),
       ),
       body: SafeArea(

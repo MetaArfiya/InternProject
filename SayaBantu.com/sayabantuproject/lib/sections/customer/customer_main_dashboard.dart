@@ -12,12 +12,14 @@ import '../../screens/Screens_Customer/offer_screen.dart';
 import '../../screens/Screens_Customer/partner_profile_screen.dart';
 
 import 'customer_dashboard.dart';
+import 'customer_tracking_page.dart';
 import 'customer_complaint_screen.dart';
 import 'notification_screen.dart';
 import 'setting_screen.dart';
 
 import '../../sections/payment/payment_screen.dart';
 import '../../sections/payment/wallet_screen.dart'; // <-- IMPORT WALLET SCREEN BARU
+import '../shared/chat_page.dart';
 
 class CustomerMainDashboard extends StatefulWidget {
   const CustomerMainDashboard({super.key});
@@ -36,6 +38,9 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
 
   JobModel? selectedJob;
   OfferModel? selectedOffer;
+  JobModel? _trackingJob;
+  int? _activeChatJobId;
+  String? _activeChatTitle;
 
   final GlobalKey<CustomerSidebarState> _sidebarKey =
       GlobalKey<CustomerSidebarState>();
@@ -91,6 +96,9 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
 
   void _onMenuSelected(SidebarMenu menu) {
     setState(() {
+      _trackingJob = null;
+      _activeChatJobId = null;
+      _activeChatTitle = null;
       selectedMenu = menu;
 
       if (menu != SidebarMenu.penawaran) {
@@ -136,6 +144,9 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
     }
 
     setState(() {
+      _trackingJob = null;
+      _activeChatJobId = null;
+      _activeChatTitle = null;
       selectedMenu = menu;
       selectedOffer = null;
       selectedJob = null;
@@ -167,9 +178,36 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   // ==========================================================
 
   Widget _currentPage() {
+    if (_activeChatJobId != null) {
+      return ChatPage(
+        jobId: _activeChatJobId!,
+        title: _activeChatTitle ?? 'Chat Koordinasi',
+        onBack: () => setState(() {
+          _activeChatJobId = null;
+          _activeChatTitle = null;
+        }),
+      );
+    }
+
+    if (_trackingJob != null) {
+      return CustomerTrackingPage(
+        jobId: _trackingJob!.id,
+        onBack: () => setState(() => _trackingJob = null),
+        onOpenChat: (title) => setState(() {
+          _activeChatJobId = _trackingJob!.id;
+          _activeChatTitle = title;
+        }),
+      );
+    }
+
     switch (selectedMenu) {
       case SidebarMenu.beranda:
         return CustomerDashboard(
+          onOpenTracking: (job) => setState(() => _trackingJob = job),
+          onOpenChat: (job) => setState(() {
+            _activeChatJobId = job.id;
+            _activeChatTitle = job.title;
+          }),
           onOpenOffer: (job) {
             setState(() {
               selectedJob = job;
@@ -246,7 +284,14 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
         );
 
       case SidebarMenu.notifikasi:
-        return const NotificationScreen();
+        return NotificationScreen(
+          onOpenChat: (notification) {
+            setState(() {
+              _activeChatJobId = notification.jobId;
+              _activeChatTitle = 'Chat Koordinasi';
+            });
+          },
+        );
 
       case SidebarMenu.pengaturan:
         return CustomerSettingScreen(
@@ -471,6 +516,10 @@ class _CustomerMainDashboardState extends State<CustomerMainDashboard> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (_trackingJob != null || _activeChatJobId != null) {
+          return _currentPage();
+        }
+
         final isDesktop = constraints.maxWidth >= 700;
         if (isDesktop) return _buildDesktopLayout();
         return _buildMobileLayout();

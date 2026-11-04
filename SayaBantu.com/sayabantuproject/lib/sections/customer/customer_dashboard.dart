@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../models/job_model.dart';
 import '../../services/api_service.dart';
-import '../../sections/customer/customer_tracking_page.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/indonesia_time.dart';
 import '../../widgets/dashboard_header.dart';
@@ -13,8 +12,15 @@ import '../../widgets/statistic_card.dart';
 
 class CustomerDashboard extends StatefulWidget {
   final Function(JobModel) onOpenOffer;
+  final ValueChanged<JobModel> onOpenTracking;
+  final ValueChanged<JobModel> onOpenChat;
 
-  const CustomerDashboard({super.key, required this.onOpenOffer});
+  const CustomerDashboard({
+    super.key,
+    required this.onOpenOffer,
+    required this.onOpenTracking,
+    required this.onOpenChat,
+  });
 
   @override
   State<CustomerDashboard> createState() => _CustomerDashboardState();
@@ -205,8 +211,11 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   bool _hasJobActions(JobModel job) =>
       _canOpenOffer(job) ||
       _canTrack(job) ||
+      _canChat(job) ||
       _canConfirm(job) ||
       _canCancel(job);
+
+  bool _canChat(JobModel job) => job.mitraId != null;
 
   bool _canCancel(JobModel job) {
     final s = job.status.toLowerCase().trim();
@@ -241,10 +250,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   void _openTracking(JobModel job) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CustomerTrackingPage(jobId: job.id)),
-    );
+    widget.onOpenTracking(job);
   }
 
   List<JobModel> get _filteredJobs {
@@ -565,6 +571,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               job: job,
               onRefresh: _fetchMyJobs,
               onOpenOffer: widget.onOpenOffer,
+              onOpenTracking: widget.onOpenTracking,
               onComplete: _showCompleteConfirmation,
             ),
           );
@@ -611,26 +618,44 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   Widget _buildJobsTable(BuildContext context) {
     final rows = _pagedJobs;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _tableBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildTableHeaderRow(context),
-          const Divider(height: 1, thickness: 1, color: _tableDivider),
-          for (int i = 0; i < rows.length; i++) ...[
-            _buildTableDataRow(context, rows[i]),
-            if (i != rows.length - 1)
-              const Divider(height: 1, thickness: 1, color: _tableDivider),
-          ],
-          const Divider(height: 1, thickness: 1, color: _tableDivider),
-          _buildTableFooter(context),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableWidth = constraints.maxWidth < 1200
+            ? 1200.0
+            : constraints.maxWidth;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: tableWidth,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _tableBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildTableHeaderRow(context),
+                  const Divider(height: 1, thickness: 1, color: _tableDivider),
+                  for (int i = 0; i < rows.length; i++) ...[
+                    _buildTableDataRow(context, rows[i]),
+                    if (i != rows.length - 1)
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: _tableDivider,
+                      ),
+                  ],
+                  const Divider(height: 1, thickness: 1, color: _tableDivider),
+                  _buildTableFooter(context),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -640,10 +665,15 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       child: Row(
         children: [
           Expanded(flex: 4, child: _headerCell(context, 'Pekerjaan')),
+          const SizedBox(width: 16),
           Expanded(flex: 2, child: _headerCell(context, 'Mitra')),
+          const SizedBox(width: 16),
           Expanded(flex: 2, child: _headerCell(context, 'Kategori')),
+          const SizedBox(width: 16),
           Expanded(flex: 3, child: _headerCell(context, 'Lokasi')),
+          const SizedBox(width: 16),
           Expanded(flex: 2, child: _headerCell(context, 'Tanggal')),
+          const SizedBox(width: 16),
           Expanded(flex: 4, child: _headerCell(context, 'Aksi')),
         ],
       ),
@@ -696,6 +726,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               ],
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
             flex: 2,
             child: Text(
@@ -708,6 +739,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               ),
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
             flex: 2,
             child: Text(
@@ -720,6 +752,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               ),
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
             flex: 3,
             child: Text(
@@ -732,6 +765,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               ),
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
             flex: 2,
             child: Text(
@@ -739,6 +773,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               style: textTheme.bodyMedium?.copyWith(color: _cellText),
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
             flex: 4,
             child: Wrap(
@@ -1222,6 +1257,18 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                                     onTap: () {
                                       Navigator.of(dialogContext).pop();
                                       _openTracking(job);
+                                    },
+                                  ),
+                                if (_canChat(job))
+                                  _pillButton(
+                                    context: dialogContext,
+                                    icon: Icons.chat_bubble_outline,
+                                    label: 'Chat Mitra',
+                                    bgColor: AppColors.primaryTeal,
+                                    fgColor: Colors.white,
+                                    onTap: () {
+                                      Navigator.of(dialogContext).pop();
+                                      widget.onOpenChat(job);
                                     },
                                   ),
                                 if (_canConfirm(job))

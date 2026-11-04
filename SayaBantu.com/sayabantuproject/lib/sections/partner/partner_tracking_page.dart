@@ -14,12 +14,16 @@ class PartnerTrackingPage extends StatefulWidget {
   final int jobId;
   final String jobCode;
   final String title;
+  final VoidCallback? onBack;
+  final ValueChanged<String>? onOpenChat;
 
   const PartnerTrackingPage({
     super.key,
     required this.jobId,
     required this.jobCode,
     required this.title,
+    this.onBack,
+    this.onOpenChat,
   });
 
   @override
@@ -145,6 +149,11 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   // BUKA CHAT
   // ============================================================
   void _openChat() {
+    if (widget.onOpenChat != null) {
+      widget.onOpenChat!(widget.title);
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -161,12 +170,25 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   // ============================================================
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: widget.onBack == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack?.call();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.sectionAltLight,
       appBar: AppBar(
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: widget.onBack == null,
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                tooltip: 'Kembali ke penawaran aktif',
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back),
+              ),
         title: const Text('Detail & Tracking'),
       ),
       body: SafeArea(
@@ -219,6 +241,7 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
                   );
                 },
               ),
+      ),
       ),
     );
   }

@@ -34,7 +34,6 @@ class ApiService {
   static Future<Map<String, String>> _headers() async {
     final token = await _getToken();
 
-    debugPrint("🔑 TOKEN DI API_SERVICE: '$token'");
 
     return {
       'Content-Type': 'application/json',
@@ -57,7 +56,6 @@ class ApiService {
     final response = await http.get(url, headers: headers);
 
     debugPrint('🔎 [GET RESPONSE] ${response.statusCode} - $url');
-    debugPrint('📦 BODY: ${response.body}');
 
     return response;
   }
@@ -74,7 +72,6 @@ class ApiService {
     final headers = await _headers();
 
     debugPrint('🌐 [POST] $url');
-    debugPrint('📤 DATA: $data');
 
     final response = await http.post(
       url,
@@ -83,7 +80,6 @@ class ApiService {
     );
 
     debugPrint('🔎 [POST RESPONSE] ${response.statusCode} - $url');
-    debugPrint('📦 BODY: ${response.body}');
 
     return response;
   }
@@ -100,7 +96,6 @@ class ApiService {
     final headers = await _headers();
 
     debugPrint('🌐 [PUT] $url');
-    debugPrint('📤 DATA: $data');
 
     try {
       final response = await http
@@ -112,7 +107,6 @@ class ApiService {
           .timeout(const Duration(seconds: 15));
 
       debugPrint('🔎 [PUT RESPONSE] ${response.statusCode} - $url');
-      debugPrint('📦 BODY: ${response.body}');
 
       return response;
     } catch (e) {
@@ -137,7 +131,6 @@ class ApiService {
     );
 
     debugPrint('🔎 [DELETE RESPONSE] ${response.statusCode} - $url');
-    debugPrint('📦 BODY: ${response.body}');
 
     return response;
   }
@@ -156,7 +149,6 @@ class ApiService {
     final token = await _getToken();
 
     debugPrint('🌐 [POST MULTIPART] $url');
-    debugPrint('📤 FIELDS: $fields');
 
     final request = http.MultipartRequest('POST', url);
 
@@ -207,7 +199,6 @@ class ApiService {
       debugPrint(
         '🔎 [MULTIPART RESPONSE] ${response.statusCode} - $url',
       );
-      debugPrint('📦 BODY: ${response.body}');
 
       return response;
     } catch (e) {

@@ -10,7 +10,12 @@ import '../../models/active_offer_model.dart';
 import '../../theme/app_colors.dart';
 
 class ActiveOfferScreen extends StatefulWidget {
-  const ActiveOfferScreen({super.key});
+  final ValueChanged<ActiveOfferModel> onOpenTracking;
+
+  const ActiveOfferScreen({
+    super.key,
+    required this.onOpenTracking,
+  });
 
   @override
   State<ActiveOfferScreen> createState() => _ActiveOfferScreenState();
@@ -440,6 +445,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
       context,
       offer,
       number,
+      onOpenTracking: widget.onOpenTracking,
     );
 
     final cells = existingRow.children;
@@ -653,6 +659,7 @@ class _ActiveOfferScreenState extends State<ActiveOfferScreen>
             context,
             entry.value,
             _startIndex + entry.key + 1,
+            onOpenTracking: widget.onOpenTracking,
           );
         }),
       ],

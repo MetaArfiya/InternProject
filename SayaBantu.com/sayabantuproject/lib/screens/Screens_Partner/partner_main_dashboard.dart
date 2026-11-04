@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/partner_sidebar_menu.dart';
 import '../../models/partner_job_model.dart';
+import '../../models/active_offer_model.dart';
 import '../../widgets/partner_sidebar.dart';
 import '../../services/auth_storage.dart';
 import '../../theme/app_colors.dart';
@@ -15,6 +16,8 @@ import '../../sections/partner/partner_complaint_screen.dart';
 import '../../sections/payment/payment_screen.dart';
 import 'income_screen.dart';
 import '../../sections/partner/partner_notification_screen.dart';
+import '../../sections/partner/partner_tracking_page.dart';
+import '../../sections/shared/chat_page.dart';
 
 class PartnerMainDashboard extends StatefulWidget {
   const PartnerMainDashboard({super.key});
@@ -30,6 +33,9 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
 
   PartnerSidebarMenu selectedMenu = PartnerSidebarMenu.cariPekerjaan;
   PartnerJobModel? selectedJob;
+  ActiveOfferModel? _trackingOffer;
+  int? _activeChatJobId;
+  String? _activeChatTitle;
 
   final GlobalKey<PartnerSidebarState> _sidebarKey =
       GlobalKey<PartnerSidebarState>();
@@ -83,6 +89,33 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   // ============================================================
 
   Widget currentPage() {
+    if (_activeChatJobId != null) {
+      return ChatPage(
+        jobId: _activeChatJobId!,
+        title: _activeChatTitle ?? 'Chat Koordinasi',
+        onBack: () => setState(() {
+          _activeChatJobId = null;
+          _activeChatTitle = null;
+        }),
+      );
+    }
+
+    if (_trackingOffer != null) {
+      final offer = _trackingOffer!;
+      return PartnerTrackingPage(
+        jobId: offer.jobId,
+        jobCode: '#JOB-${offer.jobId}',
+        title: offer.title,
+        onBack: () {
+          setState(() => _trackingOffer = null);
+        },
+        onOpenChat: (title) => setState(() {
+          _activeChatJobId = offer.jobId;
+          _activeChatTitle = title;
+        }),
+      );
+    }
+
     switch (selectedMenu) {
       case PartnerSidebarMenu.cariPekerjaan:
         return PartnerDashboard(
@@ -122,7 +155,11 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
         );
 
       case PartnerSidebarMenu.penawaranAktif:
-        return const ActiveOfferScreen();
+        return ActiveOfferScreen(
+          onOpenTracking: (offer) {
+            setState(() => _trackingOffer = offer);
+          },
+        );
 
       case PartnerSidebarMenu.penghasilan:
         return const IncomeScreen();
@@ -131,7 +168,12 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
         return const PaymentScreen(role: 'mitra');
 
       case PartnerSidebarMenu.notifikasi:
-        return const PartnerNotificationScreen();
+        return PartnerNotificationScreen(
+          onOpenChat: (jobId) => setState(() {
+            _activeChatJobId = jobId;
+            _activeChatTitle = 'Chat Koordinasi';
+          }),
+        );
 
       case PartnerSidebarMenu.pengaduan:
         return const PartnerComplaintScreen();
@@ -152,6 +194,9 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
 
   void _onMenuSelected(PartnerSidebarMenu menu) {
     setState(() {
+      _trackingOffer = null;
+      _activeChatJobId = null;
+      _activeChatTitle = null;
       selectedMenu = menu;
     });
     _saveSelectedMenu(menu);
@@ -204,6 +249,9 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
     }
 
     setState(() {
+      _trackingOffer = null;
+      _activeChatJobId = null;
+      _activeChatTitle = null;
       selectedMenu = menu;
       selectedJob = null;
     });
@@ -219,6 +267,10 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (_trackingOffer != null || _activeChatJobId != null) {
+          return currentPage();
+        }
+
         final bool isDesktop = constraints.maxWidth >= 700;
 
         if (isDesktop) {

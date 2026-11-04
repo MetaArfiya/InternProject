@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import '../models/job_model.dart';
 import '../services/api_service.dart';
 import '../utils/indonesia_time.dart';
-import '../sections/customer/customer_tracking_page.dart'; // ← NEW
 import 'rating_dialog.dart';
 
 class JobCard extends StatefulWidget {
   final JobModel job;
   final Function(JobModel) onOpenOffer;
+  final ValueChanged<JobModel> onOpenTracking;
   final Function(JobModel) onComplete;
   final VoidCallback? onRefresh;
 
@@ -16,6 +16,7 @@ class JobCard extends StatefulWidget {
     super.key,
     required this.job,
     required this.onOpenOffer,
+    required this.onOpenTracking,
     required this.onComplete,
     this.onRefresh,
   });
@@ -104,13 +105,8 @@ class _JobCardState extends State<JobCard> {
   // BUKA HALAMAN TRACKING
   // ============================================================
 
-  void _openTracking(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CustomerTrackingPage(jobId: widget.job.id),
-      ),
-    );
+  void _openTracking() {
+    widget.onOpenTracking(widget.job);
   }
 
   // ============================================================
@@ -605,7 +601,7 @@ class _JobCardState extends State<JobCard> {
         children: [
           // Tombol Lacak Mitra
           OutlinedButton.icon(
-            onPressed: () => _openTracking(context),
+            onPressed: _openTracking,
             icon: const Icon(Icons.location_searching, size: 18, color: Color(0xFF0F766E)),
             label: const Text(
               'Lacak Mitra',

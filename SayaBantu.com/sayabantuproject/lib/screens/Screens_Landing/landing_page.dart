@@ -31,6 +31,7 @@ class _LandingPageState extends State<LandingPage> {
   List<JobModel> _filteredJobs = [];
   bool _isLoading = false;
   String? _errorMessage;
+  int _searchRequestId = 0;
 
   // ============================================================
   // GLOBAL KEYS
@@ -65,6 +66,8 @@ class _LandingPageState extends State<LandingPage> {
   // API CALL
   // ============================================================
   Future<void> _fetchJobsFromApi() async {
+    final requestId = ++_searchRequestId;
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -83,7 +86,10 @@ class _LandingPageState extends State<LandingPage> {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
+
+      // Ignore older responses when the user submits a newer search.
+      if (!mounted || requestId != _searchRequestId) return;
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -97,20 +103,24 @@ class _LandingPageState extends State<LandingPage> {
         }
 
         setState(() {
-          _filteredJobs =
-              jobListJson.map((json) => JobModel.fromJson(json)).toList();
+          _filteredJobs = jobListJson
+              .whereType<Map>()
+              .map((json) => JobModel.fromJson(
+                    Map<String, dynamic>.from(json),
+                  ))
+              .toList();
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage =
-              'Gagal mengambil data (Kode: ${response.statusCode})';
+          _errorMessage = 'Pencarian belum dapat dimuat. Silakan coba lagi.';
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() {
-        _errorMessage = 'Terjadi kesalahan koneksi ke backend: $e';
+        _errorMessage = 'Koneksi bermasalah. Periksa jaringan lalu coba lagi.';
         _isLoading = false;
       });
     }
@@ -120,13 +130,33 @@ class _LandingPageState extends State<LandingPage> {
   // SEARCH
   // ============================================================
   void _searchJob(String keyword) {
+    final normalizedKeyword = keyword.trim();
+    if (normalizedKeyword.length > 100) {
+      _searchRequestId++;
+      setState(() {
+        _searchKeyword = normalizedKeyword;
+        _errorMessage = 'Kata kunci maksimal 100 karakter.';
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
-      _searchKeyword = keyword;
+      _searchKeyword = normalizedKeyword;
     });
 
-    _fetchJobsFromApi();
+    if (normalizedKeyword.isNotEmpty) {
+      _fetchJobsFromApi();
+    } else {
+      // Invalidate any in-flight request and reset the hidden results state.
+      _searchRequestId++;
+      setState(() {
+        _filteredJobs = [];
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    }
 
-    if (keyword.trim().isNotEmpty) {
+    if (normalizedKeyword.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToKey(_searchResultKey);
       });

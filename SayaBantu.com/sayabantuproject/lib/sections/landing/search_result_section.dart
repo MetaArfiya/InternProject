@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -282,9 +284,9 @@ class _JobCardState extends State<_JobCard> {
       children: [
         _buildJobHeader(),
         const SizedBox(height: 12),
-        _buildDescription(),
+        _buildPrivacyBlur(_buildDescription()),
         const SizedBox(height: 12),
-        _buildLocation(),
+        _buildPrivacyBlur(_buildLocation()),
         const SizedBox(height: 14),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -329,9 +331,9 @@ class _JobCardState extends State<_JobCard> {
                 style: AppTextStyles.headingSmall.copyWith(fontSize: 17),
               ),
               const SizedBox(height: 6),
-              _buildDescription(maxLines: 2),
+              _buildPrivacyBlur(_buildDescription(maxLines: 2)),
               const SizedBox(height: 8),
-              _buildLocation(),
+              _buildPrivacyBlur(_buildLocation()),
             ],
           ),
         ),
@@ -388,6 +390,40 @@ class _JobCardState extends State<_JobCard> {
       style: AppTextStyles.bodyOnLight.copyWith(
         fontSize: 13.5,
         height: 1.6,
+      ),
+    );
+  }
+
+  Widget _buildPrivacyBlur(Widget child) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Stack(
+        children: [
+          ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+            child: child,
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withValues(alpha: 0.75),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(3),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 14,
+                      color: AppColors.primaryTeal,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

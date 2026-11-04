@@ -92,6 +92,7 @@ class JobController extends Controller
                     'bids.mitraProfile',
                     'bids.user',
                 ])
+                ->where('pelanggan_id', auth()->id())
                 ->find($id);
 
             if (!$job) {
@@ -124,8 +125,12 @@ class JobController extends Controller
 
     public function search(Request $request)
     {
+        $validated = $request->validate([
+            'keyword' => ['nullable', 'string', 'max:100'],
+        ]);
+
         try {
-            $keyword = trim((string) $request->query('keyword', ''));
+            $keyword = trim((string) ($validated['keyword'] ?? ''));
 
             $query = jobs::where('status', 'Mencari Mitra');
 
@@ -141,7 +146,26 @@ class JobController extends Controller
                 'message' => $keyword !== ''
                     ? 'Hasil pencarian untuk: "' . $keyword . '"'
                     : 'Menampilkan semua lowongan aktif.',
-                'data' => $query->latest()->get(),
+                // Bound public search responses to avoid unbounded queries and payloads.
+                'data' => $query->latest()
+                    ->limit(50)
+                    ->get([
+                        'id',
+                        'tittle',
+                        'category',
+                        'description',
+                        'location',
+                        'initial_budget',
+                        'status',
+                        'created_at',
+                    ])
+                    ->map(function ($job) {
+                        // Public previews must not disclose customer details or exact addresses.
+                        $job->description = 'Daftar untuk melihat detail pekerjaan.';
+                        $job->location = 'Lokasi tersedia setelah mendaftar';
+
+                        return $job;
+                    }),
             ]);
         } catch (\Throwable $e) {
             Log::error('JobController@search: ' . $e->getMessage());

@@ -6,10 +6,14 @@ import '../../models/notification_model.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/notification_card.dart';
-import '../shared/chat_page.dart'; // <-- PASTIKAN PATH INI BENAR (Sesuaikan dengan foldermu)
 
 class PartnerNotificationScreen extends StatefulWidget {
-  const PartnerNotificationScreen({super.key});
+  final ValueChanged<int> onOpenChat;
+
+  const PartnerNotificationScreen({
+    super.key,
+    required this.onOpenChat,
+  });
 
   @override
   State<PartnerNotificationScreen> createState() =>
@@ -181,16 +185,10 @@ class _PartnerNotificationScreenState extends State<PartnerNotificationScreen> {
             onTap: () {
               final notif = _notifications[i];
               // Cek jika notifikasi bertipe chat dan ada jobId
-              if (notif.type == 'chat' && notif.jobId != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatPage(
-                      jobId: notif.jobId!,
-                      title: 'Chat Koordinasi',
-                    ),
-                  ),
-                );
+              final type = notif.type.toLowerCase();
+              if ((type == 'chat' || type == 'new_chat_message') &&
+                  notif.jobId != null) {
+                widget.onOpenChat(notif.jobId!);
               }
             },
           ),

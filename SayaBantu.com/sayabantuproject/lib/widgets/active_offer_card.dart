@@ -18,8 +18,9 @@ const String _apiBaseUrl = 'http://localhost:8000/api';
 TableRow buildActiveOfferRow(
   BuildContext context,
   ActiveOfferModel offer,
-  int number,
-) {
+  int number, {
+  ValueChanged<ActiveOfferModel>? onOpenTracking,
+}) {
   return TableRow(
     decoration: const BoxDecoration(
       border: Border(
@@ -62,7 +63,7 @@ TableRow buildActiveOfferRow(
       _tableCell(_buildStatus(offer)),
       _tableCell(_buildProofColumn(context, offer)),
       _tableCell(_buildApproval(offer)),
-      _tableCell(_buildAction(context, offer)),
+      _tableCell(_buildAction(context, offer, onOpenTracking)),
     ],
   );
 }
@@ -428,6 +429,7 @@ Widget _buildApproval(ActiveOfferModel offer) {
 Widget _buildAction(
   BuildContext context,
   ActiveOfferModel offer,
+  ValueChanged<ActiveOfferModel>? onOpenTracking,
 ) {
   final isScheduled = offer.status.toLowerCase().trim() == 'terjadwal';
   final isAccepted = offer.bidStatus.toLowerCase().trim() ==
@@ -454,7 +456,7 @@ Widget _buildAction(
   return SizedBox(
     height: 38,
     child: OutlinedButton.icon(
-      onPressed: () => _showDetailTimeline(context, offer),
+      onPressed: () => _showDetailTimeline(context, offer, onOpenTracking),
       icon: const Icon(Icons.info_outline, size: 17),
       label: const Text(
         'Detail',
@@ -519,6 +521,7 @@ void _openPartnerTracking(BuildContext context, ActiveOfferModel offer) {
 Future<void> _showDetailTimeline(
   BuildContext context,
   ActiveOfferModel offer,
+  ValueChanged<ActiveOfferModel>? onOpenTracking,
 ) async {
   final String? rawPath = offer.completionPhotoUrl ?? offer.proofImage;
   final String? imageUrl = _buildProofImageUrl(rawPath);
@@ -796,7 +799,11 @@ Future<void> _showDetailTimeline(
                       child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(dialogContext);
-                          _openPartnerTracking(context, offer);
+                          if (onOpenTracking != null) {
+                            onOpenTracking(offer);
+                          } else {
+                            _openPartnerTracking(context, offer);
+                          }
                         },
                         icon: const Icon(Icons.navigation_outlined, size: 17),
                         label: const Text('Mulai Perjalanan'),

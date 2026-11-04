@@ -284,7 +284,7 @@ class PartnerCTASection extends StatelessWidget {
               textColor: AppColors.darkTeal,
               fontSize: isSmallMobile ? 12.5 : 14,
               onPressed: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const RegisterScreen(

@@ -22,11 +22,6 @@ Future<void> main() async {
         .replaceAll(RegExp(r'[_-]+'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ');
 
-    debugPrint('====== MAIN DEBUG ======');
-    debugPrint('TOKEN : "$token"');
-    debugPrint('ROLE  : "$role"');
-    debugPrint('========================');
-
     if (token.isNotEmpty) {
       switch (role) {
         case 'super admin':
