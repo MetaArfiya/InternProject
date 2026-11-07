@@ -334,6 +334,8 @@ class JobModel {
   final String category;
   final String description;
   final String? location;
+  final String? pickupLocation;
+  final String? pickupAddressDetail;
   
   // 🆕 TAMBAHAN DARI INPUTAN PELANGGAN
   final String? addressDetail; 
@@ -380,6 +382,8 @@ class JobModel {
     required this.category,
     required this.description,
     this.location,
+    this.pickupLocation,
+    this.pickupAddressDetail,
     this.addressDetail, // 🆕
     this.duration, // 🆕
     this.preferredStartAt, // 🆕
@@ -449,6 +453,8 @@ class JobModel {
     String? category,
     String? description,
     String? location,
+    String? pickupLocation,
+    String? pickupAddressDetail,
     String? addressDetail, // 🆕
     String? duration, // 🆕
     String? preferredStartAt, // 🆕
@@ -486,6 +492,8 @@ class JobModel {
       category: category ?? this.category,
       description: description ?? this.description,
       location: location ?? this.location,
+      pickupLocation: pickupLocation ?? this.pickupLocation,
+      pickupAddressDetail: pickupAddressDetail ?? this.pickupAddressDetail,
       addressDetail: addressDetail ?? this.addressDetail, // 🆕
       duration: duration ?? this.duration, // 🆕
       preferredStartAt: preferredStartAt ?? this.preferredStartAt, // 🆕
@@ -594,6 +602,8 @@ class JobModel {
       category: categoryValue,
       description: json['description']?.toString() ?? '',
       location: json['location']?.toString(),
+      pickupLocation: json['pickup_location']?.toString(),
+      pickupAddressDetail: json['pickup_address_detail']?.toString(),
       
       // 🆕 PEMETAAN DATA BARU DARI API
       addressDetail: json['location_description']?.toString() ?? json['address_detail']?.toString(),

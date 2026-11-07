@@ -109,6 +109,13 @@ class _PartnerMainDashboardState extends State<PartnerMainDashboard> {
         onBack: () {
           setState(() => _trackingOffer = null);
         },
+        onProofSubmitted: () {
+          setState(() {
+            _trackingOffer = null;
+            selectedMenu = PartnerSidebarMenu.penawaranAktif;
+          });
+          _saveSelectedMenu(PartnerSidebarMenu.penawaranAktif);
+        },
         onOpenChat: (title) => setState(() {
           _activeChatJobId = offer.jobId;
           _activeChatTitle = title;

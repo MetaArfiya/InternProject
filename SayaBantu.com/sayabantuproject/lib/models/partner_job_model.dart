@@ -8,6 +8,9 @@ class PartnerJobModel {
   final String category;
   final String description;
   final String location;
+  final String pickupLocation;
+  final String pickupAddressDetail;
+  final String destinationAddressDetail;
   final String time;
   final String price;
   final double initialBudget;
@@ -19,6 +22,7 @@ class PartnerJobModel {
 
   // Waktu mulai yang diinginkan Pelanggan
   final DateTime? preferredStartAt;
+  final DateTime? deliveryDeadlineAt;
 
   PartnerJobModel({
     required this.id,
@@ -26,6 +30,9 @@ class PartnerJobModel {
     required this.category,
     required this.description,
     required this.location,
+    this.pickupLocation = '',
+    this.pickupAddressDetail = '',
+    this.destinationAddressDetail = '',
     required this.time,
     required this.price,
     required this.initialBudget,
@@ -35,6 +42,7 @@ class PartnerJobModel {
     this.imageUrl,
     this.distanceKm,
     this.preferredStartAt,
+    this.deliveryDeadlineAt,
   });
 
   static String? _buildImageUrl(dynamic value) {
@@ -84,6 +92,10 @@ class PartnerJobModel {
         rawPreferredStart,
       );
     }
+    final rawDeliveryDeadline = json['delivery_deadline_at'];
+    final DateTime? parsedDeliveryDeadline = rawDeliveryDeadline == null
+        ? null
+        : IndonesiaTime.tryParseApiTimestamp(rawDeliveryDeadline);
 
     debugPrint('🖼️ PARTNER JOB ${json['id']}');
     debugPrint('🖼️ IMAGE DARI API: ${json['image_url']}');
@@ -102,6 +114,10 @@ class PartnerJobModel {
           '',
       location:
           json['location']?.toString() ?? json['lokasi']?.toString() ?? '',
+      pickupLocation: json['pickup_location']?.toString() ?? '',
+      pickupAddressDetail: json['pickup_address_detail']?.toString() ?? '',
+      destinationAddressDetail:
+          json['location_description']?.toString() ?? '',
       time: json['time']?.toString() ?? json['created_at']?.toString() ?? '',
       price: json['price'] != null
           ? json['price'].toString()
@@ -124,6 +140,7 @@ class PartnerJobModel {
       imageUrl: imageUrl,
       distanceKm: parsedDistance,
       preferredStartAt: parsedPreferredStart,
+      deliveryDeadlineAt: parsedDeliveryDeadline,
     );
   }
 
@@ -134,6 +151,9 @@ class PartnerJobModel {
       'category': category,
       'description': description,
       'location': location,
+      'pickup_location': pickupLocation,
+      'pickup_address_detail': pickupAddressDetail,
+      'location_description': destinationAddressDetail,
       'time': time,
       'price': price,
       'initial_budget': initialBudget,
@@ -143,6 +163,7 @@ class PartnerJobModel {
       'image_url': imageUrl,
       'distance_km': distanceKm,
       'preferred_start_at': preferredStartAt?.toIso8601String(),
+      'delivery_deadline_at': deliveryDeadlineAt?.toIso8601String(),
     };
   }
 }

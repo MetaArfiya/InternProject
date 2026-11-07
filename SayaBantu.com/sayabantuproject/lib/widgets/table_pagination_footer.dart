@@ -50,19 +50,15 @@ class TablePaginationFooter extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        runSpacing: 10,
-        spacing: 12,
+      child: Row(
         children: [
           Text(
             'Menampilkan $start–$end dari $totalCount $itemLabel',
             style: textStyle,
           ),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
+          const Spacer(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 height: 32,

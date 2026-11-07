@@ -15,6 +15,7 @@ class PartnerTrackingPage extends StatefulWidget {
   final String jobCode;
   final String title;
   final VoidCallback? onBack;
+  final VoidCallback? onProofSubmitted;
   final ValueChanged<String>? onOpenChat;
 
   const PartnerTrackingPage({
@@ -23,6 +24,7 @@ class PartnerTrackingPage extends StatefulWidget {
     required this.jobCode,
     required this.title,
     this.onBack,
+    this.onProofSubmitted,
     this.onOpenChat,
   });
 
@@ -107,6 +109,24 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   }
 
   Future<void> _markArrived() async {
+    final isErrandPickupLeg =
+        _tracking?.pickup != null && _tracking?.status == 'menuju';
+    if (isErrandPickupLeg) {
+      final response = await ApiService.post(
+        '/jobs/${widget.jobId}/tracking/status',
+        {'status': 'mengantar'},
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        await _loadInitial();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal melanjutkan tracking ke lokasi serah.')),
+        );
+      }
+      return;
+    }
+
     await TrackingService.instance.stopTracking();
     final response = await ApiService.post(
       '/jobs/${widget.jobId}/tracking/status',
@@ -140,6 +160,7 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
           backgroundColor: AppColors.primaryTeal,
         ),
       );
+      widget.onProofSubmitted?.call();
     }
   }
 
@@ -259,8 +280,8 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   // ============================================================
   Widget _buildDetailPanel({required bool isDesktop}) {
     final t = _tracking;
-    // Status perjalanan selesai saat mitra mengonfirmasi sudah sampai.
-    final bool isArrived = t?.status == 'sampai' || t?.status == 'selesai';
+    final bool isArrived = t?.status == 'selesai';
+    final bool hasPickup = t?.pickup != null;
 
     return Container(
       width: double.infinity,
@@ -336,9 +357,19 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
             ],
 
             // Alamat & Waktu Mulai
+            if (t?.pickupAddress?.isNotEmpty == true) ...[
+              _infoRow(
+                icon: Icons.store_outlined,
+                label: 'Lokasi Ambil',
+                value: t!.pickupAddress!,
+              ),
+              const SizedBox(height: 12),
+            ],
             _infoRow(
               icon: Icons.location_on_outlined,
-              label: 'Alamat Tujuan',
+              label: t?.pickupAddress?.isNotEmpty == true
+                  ? 'Lokasi Serah / Tujuan'
+                  : 'Alamat Tujuan',
               value: t?.destinationAddress?.isNotEmpty == true
                   ? t!.destinationAddress!
                   : '-',
@@ -440,7 +471,13 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
                     child: OutlinedButton.icon(
                       onPressed: _markArrived,
                       icon: const Icon(Icons.place, size: 16),
-                      label: const Text('Sudah Sampai'),
+                      label: Text(
+                        hasPickup && t?.status == 'menuju'
+                            ? 'Barang Diambil, Lanjut Antar'
+                            : hasPickup
+                                ? 'Sudah Sampai Lokasi Serah'
+                                : 'Sudah Sampai',
+                      ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 46),
                         foregroundColor: AppColors.primaryTeal,
@@ -704,12 +741,14 @@ class _PartnerTrackingPageState extends State<PartnerTrackingPage> {
   Widget _statusBadge(String status) {
     final colors = {
       'menuju': const Color(0xFF0F766E),
+      'mengantar': const Color(0xFF0F766E),
       'sampai': const Color(0xFF2563EB),
       'dikerjakan': const Color(0xFFF59E0B),
       'selesai': const Color(0xFF16A34A),
     };
     final labels = {
       'menuju': 'Menuju Lokasi',
+      'mengantar': 'Mengantar ke Lokasi Serah',
       'sampai': 'Sudah Sampai',
       'dikerjakan': 'Dikerjakan',
       'selesai': 'Selesai',

@@ -8,6 +8,8 @@ class TrackingModel {
 
   final LatLng? destination;
   final String? destinationAddress;
+  final LatLng? pickup;
+  final String? pickupAddress;
 
   final LatLng? mitraPosition;
   final DateTime? mitraUpdatedAt;
@@ -23,6 +25,8 @@ class TrackingModel {
     required this.title,
     this.destination,
     this.destinationAddress,
+    this.pickup,
+    this.pickupAddress,
     this.mitraPosition,
     this.mitraUpdatedAt,
     this.distanceKm,
@@ -41,6 +45,7 @@ class TrackingModel {
     }
 
     final dest = json['destination'];
+    final pickup = json['pickup'];
     final mitra = json['mitra'];
 
     return TrackingModel(
@@ -50,6 +55,8 @@ class TrackingModel {
       destination: dest is Map ? ll(dest['lat'], dest['lng']) : null,
       destinationAddress:
           dest is Map ? dest['address']?.toString() : null,
+      pickup: pickup is Map ? ll(pickup['lat'], pickup['lng']) : null,
+      pickupAddress: pickup is Map ? pickup['address']?.toString() : null,
       mitraPosition:
           mitra is Map ? ll(mitra['lat'], mitra['lng']) : null,
       mitraUpdatedAt: mitra is Map
@@ -63,5 +70,8 @@ class TrackingModel {
   }
 
   bool get isActive =>
-      status == 'menuju' || status == 'sampai' || status == 'dikerjakan';
+      status == 'menuju' ||
+      status == 'mengantar' ||
+      status == 'sampai' ||
+      status == 'dikerjakan';
 }

@@ -34,6 +34,27 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
   int get _parsedPrice => widget.job.initialBudget.round();
   bool _isSubmitting = false;
+  bool _mergeRoute = false;
+  int? _estimatedDurationMinutes;
+
+  static const Map<int, String> _errandDurationOptions = {
+    30: '30 menit',
+    60: '1 jam',
+    90: '1 jam 30 menit',
+    120: '2 jam',
+    180: '3 jam',
+    240: '4 jam',
+    360: '6 jam',
+    480: '8 jam',
+    1440: '1 hari',
+    2880: '2 hari',
+    4320: '3 hari',
+    10080: '1 minggu',
+    20160: '2 minggu',
+  };
+
+  bool get _isErrand =>
+      widget.job.category.trim().toLowerCase() == 'beli/ambil barang';
 
   // ============================================================
   // DESIGN TOKENS
@@ -208,11 +229,16 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
 
   Future<void> _submitOfferToApi() async {
     if (_isSubmitting) return;
-    if (widget.job.preferredStartAt == null || widget.job.duration == '-') {
+    if ((_isErrand && widget.job.deliveryDeadlineAt == null) ||
+        (!_isErrand && widget.job.preferredStartAt == null)) {
       _showSnack(
         'Jadwal atau durasi dari pelanggan belum tersedia.',
         error: true,
       );
+      return;
+    }
+    if (_estimatedDurationMinutes == null) {
+      _showSnack('Pilih estimasi durasi pekerjaan terlebih dahulu.', error: true);
       return;
     }
 
@@ -225,6 +251,8 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
         'expected_initial_budget': widget.job.initialBudget,
         'expected_tittle': widget.job.title,
         'expected_description': widget.job.description,
+        'merge_route': _mergeRoute,
+        'estimated_duration_minutes': _estimatedDurationMinutes!,
       });
 
       if (!mounted) return;
@@ -515,6 +543,7 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
   // ============================================================
 
   Widget _buildJobInfoCard({required bool isMobile}) {
+    final isErrand = _isErrand;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 18 : 24),
@@ -555,6 +584,31 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               ),
             ),
           ),
+          if (isErrand) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.sectionAltLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _accent.withValues(alpha: 0.15)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.route_outlined, color: _accent, size: 19),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Kategori ini terbuka untuk semua mitra terverifikasi. Penggabungan perjalanan bersifat opsional dan dibatasi maksimal 3 pekerjaan di lokasi dan tanggal yang sama.',
+                      style: TextStyle(fontSize: 12, color: AppColors.grey700, height: 1.45),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Text(
             widget.job.description,
@@ -573,17 +627,26 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
             children: [
               _infoItem(
                 Icons.location_on_outlined,
-                widget.job.location.isNotEmpty
-                    ? widget.job.location
-                    : 'Lokasi tidak ditentukan',
+                _isErrand
+                    ? 'Tujuan: ${widget.job.location}${widget.job.destinationAddressDetail.isNotEmpty ? ', ${widget.job.destinationAddressDetail}' : ''}'
+                    : widget.job.location.isNotEmpty
+                        ? widget.job.location
+                        : 'Lokasi tidak ditentukan',
               ),
+              if (_isErrand)
+                _infoItem(
+                  Icons.store_outlined,
+                  'Ambil: ${widget.job.pickupLocation}${widget.job.pickupAddressDetail.isNotEmpty ? ', ${widget.job.pickupAddressDetail}' : ''}',
+                ),
               _infoItem(
                 Icons.access_time,
                 _formatRelativeTime(widget.job.time),
               ),
               _infoItem(
                 Icons.calendar_month_outlined,
-                'Mulai: ${_formatStartDate(widget.job.preferredStartAt?.toIso8601String())}',
+                _isErrand
+                    ? 'Waktu pengantaran: ${_formatStartDate(widget.job.deliveryDeadlineAt?.toIso8601String())}'
+                    : 'Waktu pelaksanaan: ${_formatStartDate(widget.job.preferredStartAt?.toIso8601String())}',
               ),
             ],
           ),
@@ -650,12 +713,63 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
           const SizedBox(height: 14),
           _infoItem(
             Icons.calendar_month_outlined,
-            startAt == null
-                ? 'Jadwal mulai tidak tersedia'
-                : _formatDateTime(startAt),
+                _isErrand
+                    ? 'Waktu pengantaran: ${widget.job.deliveryDeadlineAt == null ? 'tidak ditentukan' : _formatDateTime(widget.job.deliveryDeadlineAt!)}'
+                : startAt == null
+                    ? 'Jadwal mulai tidak tersedia'
+                    : 'Waktu pelaksanaan: ${_formatDateTime(startAt)}',
           ),
           const SizedBox(height: 14),
-          _infoItem(Icons.timelapse_outlined, 'Durasi: ${widget.job.duration}'),
+          ...[
+            Text(
+              'Estimasi durasi ${_isErrand ? 'perjalanan' : 'pekerjaan'} Anda',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.grey800),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              initialValue: _estimatedDurationMinutes,
+              hint: const Text('Pilih estimasi durasi'),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.timelapse_outlined),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: _errandDurationOptions.entries.map((entry) => DropdownMenuItem<int>(
+                value: entry.key,
+                child: Text(entry.value),
+              )).toList(),
+              onChanged: _isSubmitting ? null : (value) {
+                if (value != null) setState(() => _estimatedDurationMinutes = value);
+              },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _estimatedDurationMinutes == null
+                  ? 'Pilih durasi untuk melihat perkiraan selesai.'
+                  : 'Perkiraan selesai: ${_formatDateTime((_isErrand ? DateTime.now() : (startAt ?? DateTime.now())).add(Duration(minutes: _estimatedDurationMinutes!)))}',
+              style: const TextStyle(fontSize: 12, color: AppColors.grey700),
+            ),
+          ],
+          if (_isErrand) ...[
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              value: _mergeRoute,
+              onChanged: _isSubmitting
+                  ? null
+                  : (value) => setState(() => _mergeRoute = value ?? false),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              activeColor: _accent,
+              title: const Text(
+                'Gabungkan dengan perjalanan searah',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.grey900),
+              ),
+              subtitle: const Text(
+                'Boleh ada jadwal yang beririsan jika kategori, lokasi, dan tanggal sama. Maksimal 3 job.',
+                style: TextStyle(fontSize: 11.5, color: AppColors.grey600, height: 1.4),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Container(
             width: double.infinity,
@@ -664,9 +778,11 @@ class _OfferJobScreenState extends State<OfferJobScreen> {
               color: AppColors.sectionAltLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text(
-              'Dengan menerima pekerjaan, Anda menyetujui harga dan jadwal yang ditentukan pelanggan.',
-              style: TextStyle(
+            child: Text(
+              _isErrand
+                  ? 'Dengan menerima pekerjaan, Anda menyetujui harga dan estimasi durasi perjalanan yang Anda pilih. Perkiraan selesai harus sebelum tenggat pelanggan.'
+                  : 'Dengan menerima pekerjaan, Anda menyetujui harga dan jadwal yang ditentukan pelanggan.',
+              style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.grey700,
                 height: 1.4,

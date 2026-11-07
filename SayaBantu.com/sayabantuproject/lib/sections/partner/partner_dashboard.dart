@@ -206,6 +206,8 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
 
   Future<void> _acceptJob(PartnerJobModel job) async {
     if (_acceptingJobId != null) return;
+    final estimatedDurationMinutes = await _chooseEstimatedDuration();
+    if (estimatedDurationMinutes == null || !mounted) return;
     setState(() => _acceptingJobId = job.id);
 
     try {
@@ -213,6 +215,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
         'expected_initial_budget': job.initialBudget,
         'expected_tittle': job.title,
         'expected_description': job.description,
+        'estimated_duration_minutes': estimatedDurationMinutes,
       });
 
       if (!mounted) return;
@@ -243,6 +246,65 @@ class _PartnerDashboardState extends State<PartnerDashboard> {
     } finally {
       if (mounted) setState(() => _acceptingJobId = null);
     }
+  }
+
+  Future<int?> _chooseEstimatedDuration() {
+    const options = <int, String>{
+      30: '30 menit',
+      60: '1 jam',
+      90: '1 jam 30 menit',
+      120: '2 jam',
+      180: '3 jam',
+      240: '4 jam',
+      360: '6 jam',
+      480: '8 jam',
+      1440: '1 hari',
+      2880: '2 hari',
+      4320: '3 hari',
+      10080: '1 minggu',
+      20160: '2 minggu',
+    };
+    int? selectedMinutes;
+
+    return showDialog<int>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Estimasi durasi pekerjaan'),
+          content: DropdownButtonFormField<int>(
+            initialValue: selectedMinutes,
+            hint: const Text('Pilih estimasi durasi'),
+            decoration: const InputDecoration(
+              labelText: 'Perkiraan waktu yang dibutuhkan',
+              border: OutlineInputBorder(),
+            ),
+            items: options.entries
+                .map((entry) => DropdownMenuItem<int>(
+                      value: entry.key,
+                      child: Text(entry.value),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setDialogState(() => selectedMinutes = value);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: selectedMinutes == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, selectedMinutes),
+              child: const Text('Lanjutkan'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ============================================================

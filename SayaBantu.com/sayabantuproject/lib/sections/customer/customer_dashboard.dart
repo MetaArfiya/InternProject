@@ -1162,9 +1162,14 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                           _sectionTitle('Informasi Pekerjaan'),
                           const SizedBox(height: 10),
                           _detailRow('Kategori', job.category),
-                          _detailRow('Durasi', job.duration ?? '-'),
+                          if (job.mitraId != null &&
+                              job.duration != null &&
+                              job.duration!.trim().isNotEmpty)
+                            _detailRow('Estimasi Durasi Mitra', job.duration!),
                           _detailRow(
-                            'Jadwal Diminta',
+                            job.mitraId == null
+                                ? 'Waktu Pelaksanaan'
+                                : 'Mitra Dijadwalkan Mulai',
                             _formatDateTime(job.preferredStartAt),
                           ),
                           const SizedBox(height: 16),
@@ -1172,10 +1177,21 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                           // BAGIAN LOKASI
                           _sectionTitle('Lokasi & Alamat'),
                           const SizedBox(height: 10),
-                          _detailRow('Kota / Wilayah', job.location ?? '-'),
+                          if (job.category.trim().toLowerCase() == 'beli/ambil barang') ...[
+                            _detailRow('Lokasi Ambil', job.pickupLocation ?? '-'),
+                            if (job.pickupAddressDetail?.isNotEmpty == true)
+                              _detailRow('Detail Alamat Ambil', job.pickupAddressDetail!),
+                            _detailRow('Lokasi Serah / Tujuan', job.location ?? '-'),
+                          ] else
+                            _detailRow('Kota / Wilayah', job.location ?? '-'),
                           if (job.addressDetail != null &&
                               job.addressDetail!.isNotEmpty)
-                            _detailRow('Detail Alamat', job.addressDetail!),
+                            _detailRow(
+                              job.category.trim().toLowerCase() == 'beli/ambil barang'
+                                  ? 'Detail Alamat Serah'
+                                  : 'Detail Alamat',
+                              job.addressDetail!,
+                            ),
                           const SizedBox(height: 16),
 
                           // BAGIAN HARGA & MITRA

@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -35,6 +36,8 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   final _kategoriLainnyaController = TextEditingController();
   final _lokasiController = TextEditingController();
   final _detailAlamatController = TextEditingController();
+  final _pickupLocationController = TextEditingController();
+  final _pickupDetailController = TextEditingController();
   final _pinController = TextEditingController();
 
   // =========================================================
@@ -57,6 +60,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   String _kategori = 'Perbaikan & Perawatan Rumah';
 
   final List<String> kategoriList = [
+    'Beli/Ambil Barang',
     'Perbaikan & Perawatan Rumah',
     'Kebersihan',
     'Konstruksi & Renovasi',
@@ -81,10 +85,18 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // Lokasi
   double? _latitude;
   double? _longitude;
+  double? _pickupLatitude;
+  double? _pickupLongitude;
   String? _selectedCityName;
 
   // Waktu mulai yang diinginkan Pelanggan
   DateTime? _preferredStartAt;
+  DateTime? _preferredDate;
+  TimeOfDay? _preferredTime;
+  bool _scheduleManuallyEdited = false;
+  Timer? _scheduleClockTimer;
+
+  bool get _isErrand => _kategori == 'Beli/Ambil Barang';
 
   // =========================================================
   // DESIGN TOKENS
@@ -93,18 +105,31 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   static const Color _accent = AppColors.primaryTeal;
   static const double _mobileBreakpoint = 700;
 
+  @override
+  void initState() {
+    super.initState();
+    _refreshAutomaticSchedule();
+    _scheduleClockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted || _scheduleManuallyEdited) return;
+      setState(_refreshAutomaticSchedule);
+    });
+  }
+
   // =========================================================
   // DISPOSE
   // =========================================================
 
   @override
   void dispose() {
+    _scheduleClockTimer?.cancel();
     _judulController.dispose();
     _deskripsiController.dispose();
     _budgetController.dispose();
     _kategoriLainnyaController.dispose();
     _lokasiController.dispose();
     _detailAlamatController.dispose();
+    _pickupLocationController.dispose();
+    _pickupDetailController.dispose();
     _pinController.dispose();
 
     super.dispose();
@@ -182,7 +207,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // PILIH LOKASI
   // =========================================================
 
-  Future<void> _pickLocation() async {
+  Future<void> _pickLocation({bool pickup = false}) async {
     try {
       final serviceEnabled =
           await Geolocator.isLocationServiceEnabled();
@@ -268,20 +293,22 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       if (!mounted) return;
 
       setState(() {
-        _latitude = selectedPosition.latitude;
-        _longitude = selectedPosition.longitude;
-
-        _lokasiController.text = address;
-
-        _selectedCityName =
-            cityName != null && cityName.trim().isNotEmpty
-                ? cityName.trim()
-                : null;
-
-        _isLoadingCity = false;
+        if (pickup) {
+          _pickupLatitude = selectedPosition.latitude;
+          _pickupLongitude = selectedPosition.longitude;
+          _pickupLocationController.text = address;
+        } else {
+          _latitude = selectedPosition.latitude;
+          _longitude = selectedPosition.longitude;
+          _lokasiController.text = address;
+          _selectedCityName = cityName != null && cityName.trim().isNotEmpty
+              ? cityName.trim()
+              : null;
+          _isLoadingCity = false;
+        }
       });
 
-      if (_selectedCityName == null) {
+      if (!pickup && _selectedCityName == null) {
         _showMessage(
           'Kota/kabupaten belum berhasil dideteksi. Silakan pilih titik lokasi lainnya.',
           backgroundColor: Colors.red,
@@ -327,35 +354,42 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // PILIH WAKTU MULAI
   // =========================================================
 
-  Future<void> _pickPreferredStartAt() async {
+  Future<void> _pickPreferredDate() async {
     final now = IndonesiaTime.nowWall();
-
     final existing = _preferredStartAt == null
         ? null
         : IndonesiaTime.toWall(_preferredStartAt!);
-
-    final initialDate = existing != null && existing.isAfter(now)
-        ? existing
-        : now.add(const Duration(days: 1));
+    final initialDate = _preferredDate ?? (existing != null
+        ? DateTime.utc(existing.year, existing.month, existing.day)
+        : now.add(const Duration(days: 1)));
 
     final selectedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 2),
-      helpText: 'Pilih tanggal mulai pekerjaan',
+      helpText: _isErrand ? 'Pilih tanggal tenggat pengantaran' : 'Pilih tanggal mulai pekerjaan',
       cancelText: 'Batal',
-      confirmText: 'Lanjut',
+      confirmText: 'Pilih',
     );
 
     if (selectedDate == null || !mounted) return;
+    _updatePreferredSchedule(
+      date: DateTime.utc(selectedDate.year, selectedDate.month, selectedDate.day),
+    );
+  }
 
+  Future<void> _pickPreferredTime() async {
+    final existing = _preferredStartAt == null
+        ? null
+        : IndonesiaTime.toWall(_preferredStartAt!);
     final selectedTime = await showTimePicker(
       context: context,
-      initialTime: existing != null
-          ? TimeOfDay.fromDateTime(existing)
-          : const TimeOfDay(hour: 9, minute: 0),
-      helpText: 'Pilih jam mulai pekerjaan',
+      initialTime: _preferredTime ??
+          (existing != null
+              ? TimeOfDay.fromDateTime(existing)
+              : const TimeOfDay(hour: 9, minute: 0)),
+      helpText: _isErrand ? 'Pilih jam tenggat pengantaran' : 'Pilih jam mulai pekerjaan',
       cancelText: 'Batal',
       confirmText: 'Pilih',
       builder: (context, child) => MediaQuery(
@@ -365,35 +399,60 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
     );
 
     if (selectedTime == null || !mounted) return;
+    _updatePreferredSchedule(time: selectedTime);
+  }
+
+  void _updatePreferredSchedule({DateTime? date, TimeOfDay? time}) {
+    final nextDate = date ?? _preferredDate;
+    final nextTime = time ?? _preferredTime;
+    if (nextDate == null || nextTime == null) {
+      setState(() {
+        _preferredDate = nextDate;
+        _preferredTime = nextTime;
+        _preferredStartAt = null;
+        _scheduleManuallyEdited = true;
+      });
+      return;
+    }
 
     final selectedDateTime = DateTime.utc(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-      selectedTime.hour,
-      selectedTime.minute,
+      nextDate.year,
+      nextDate.month,
+      nextDate.day,
+      nextTime.hour,
+      nextTime.minute,
     );
-
-    if (!IndonesiaTime.wallToUtc(selectedDateTime)
-        .isAfter(DateTime.now().toUtc())) {
+    final selectedUtc = IndonesiaTime.wallToUtc(selectedDateTime);
+    if (!selectedUtc.isAfter(DateTime.now().toUtc())) {
       _showMessage(
-        'Waktu mulai harus lebih dari waktu sekarang.',
+        _isErrand
+            ? 'Tenggat pengantaran harus lebih dari waktu sekarang.'
+            : 'Waktu mulai harus lebih dari waktu sekarang.',
         backgroundColor: Colors.red,
       );
       return;
     }
 
     setState(() {
-      _preferredStartAt = IndonesiaTime.wallToUtc(selectedDateTime);
+      _preferredDate = nextDate;
+      _preferredTime = nextTime;
+      _preferredStartAt = selectedUtc;
+      _scheduleManuallyEdited = true;
     });
+  }
+
+  void _refreshAutomaticSchedule() {
+    final suggested = IndonesiaTime.nowWall().add(const Duration(hours: 1));
+    _preferredDate = DateTime.utc(suggested.year, suggested.month, suggested.day);
+    _preferredTime = TimeOfDay(hour: suggested.hour, minute: suggested.minute);
+    _preferredStartAt = IndonesiaTime.wallToUtc(suggested);
   }
 
   // =========================================================
   // FORMAT TANGGAL DAN WAKTU
   // =========================================================
 
-  String _formatPreferredStartAt(DateTime dateTime) {
-    final wibDateTime = IndonesiaTime.toWall(dateTime);
+  String _formatPreferredDate(DateTime date) {
     const months = [
       'Januari',
       'Februari',
@@ -409,14 +468,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       'Desember',
     ];
 
-    final day = wibDateTime.day.toString().padLeft(2, '0');
-    final month = months[wibDateTime.month - 1];
-    final year = wibDateTime.year;
-
-    final hour = wibDateTime.hour.toString().padLeft(2, '0');
-    final minute = wibDateTime.minute.toString().padLeft(2, '0');
-
-    return '$day $month $year, pukul $hour:$minute';
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
   }
 
   // =========================================================
@@ -430,6 +482,88 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
         .replaceAll(',', '')
         .replaceAll(' ', '')
         .trim();
+  }
+
+  Future<bool?> _showPostingConfirmation() {
+    final wallSchedule = _preferredStartAt == null
+        ? null
+        : IndonesiaTime.toWall(_preferredStartAt!);
+    final schedule = wallSchedule == null
+        ? 'Belum ditentukan'
+        : '${_formatPreferredDate(wallSchedule)}, ${wallSchedule.hour.toString().padLeft(2, '0')}:${wallSchedule.minute.toString().padLeft(2, '0')}';
+    final address = [
+      _lokasiController.text.trim(),
+      _detailAlamatController.text.trim(),
+    ].where((part) => part.isNotEmpty).join(', ');
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Periksa Detail Pekerjaan'),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Pastikan detail dan jadwal berikut sudah benar sebelum diposting.',
+                  style: TextStyle(color: AppColors.grey700),
+                ),
+                const SizedBox(height: 16),
+                _confirmationRow('Judul', _judulController.text.trim()),
+                _confirmationRow(
+                  'Kategori',
+                  _kategori == 'Lainnya'
+                      ? _kategoriLainnyaController.text.trim()
+                      : _kategori,
+                ),
+                _confirmationRow('Deskripsi', _deskripsiController.text.trim()),
+                if (_isErrand) ...[
+                  _confirmationRow('Lokasi ambil', _pickupLocationController.text.trim()),
+                  _confirmationRow('Tujuan', address),
+                  _confirmationRow('Batas pengantaran', schedule),
+                ] else ...[
+                  _confirmationRow('Lokasi pekerjaan', address),
+                  _confirmationRow('Mitra dijadwalkan mulai', schedule),
+                ],
+                _confirmationRow('Budget', _budgetController.text.trim()),
+                const SizedBox(height: 8),
+                const Text(
+                  'Setelah diposting, pekerjaan langsung dapat dilihat mitra. Jadwal mulai adalah waktu pelaksanaan, bukan waktu posting.',
+                  style: TextStyle(fontSize: 12, color: AppColors.grey600),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Periksa Lagi'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Konfirmasi & Posting'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _confirmationRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.grey600)),
+          const SizedBox(height: 2),
+          Text(value.isEmpty ? '-' : value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 
   // =========================================================
@@ -504,7 +638,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
     if (_preferredStartAt == null) {
       _showMessage(
-        'Silakan tentukan waktu mulai pekerjaan.',
+        _isErrand ? 'Silakan tentukan tenggat pengantaran.' : 'Silakan tentukan waktu mulai pekerjaan.',
         backgroundColor: Colors.red,
       );
       return;
@@ -512,7 +646,7 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
     if (!_preferredStartAt!.isAfter(DateTime.now().toUtc())) {
       _showMessage(
-        'Waktu mulai harus lebih dari waktu sekarang.',
+        _isErrand ? 'Tenggat pengantaran harus lebih dari waktu sekarang.' : 'Waktu mulai harus lebih dari waktu sekarang.',
         backgroundColor: Colors.red,
       );
       return;
@@ -534,6 +668,15 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
     if (_detailAlamatController.text.trim().isEmpty) {
       _showMessage('Detail alamat wajib diisi.');
+      return;
+    }
+
+    final isErrand = _kategori == 'Beli/Ambil Barang';
+    if (isErrand &&
+        (_pickupLatitude == null || _pickupLongitude == null ||
+            _pickupLocationController.text.trim().isEmpty ||
+            _pickupDetailController.text.trim().isEmpty)) {
+      _showMessage('Lokasi pengambilan dan detail alamatnya wajib diisi.');
       return;
     }
 
@@ -569,6 +712,9 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       );
       return;
     }
+
+    final confirmed = await _showPostingConfirmation();
+    if (confirmed != true || !mounted) return;
 
     setState(() {
       _isSubmitting = true;
@@ -609,19 +755,22 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
       request.headers['Authorization'] = 'Bearer $token';
 
       request.fields['tittle'] = _judulController.text.trim();
-      request.fields['description'] = _deskripsiController.text.trim();
+      final description = _deskripsiController.text.trim();
+      request.fields['description'] = _kategori == 'Lainnya'
+          ? 'Kategori yang diminta: ${_kategoriLainnyaController.text.trim()}\n\n$description'
+          : description;
       request.fields['initial_budget'] = rawBudget;
 
-      request.fields['category'] = _kategori == 'Lainnya'
-          ? _kategoriLainnyaController.text.trim()
-          : _kategori;
+      request.fields['category'] = _kategori;
 
-      request.fields['duration'] = _waktuPengerjaan;
 
       // Waktu mulai yang diinginkan Pelanggan.
       // Simpan sebagai UTC agar konsisten dengan backend.
-      request.fields['preferred_start_at'] =
-          _preferredStartAt!.toUtc().toIso8601String();
+      if (_isErrand) {
+        request.fields['delivery_deadline_at'] = _preferredStartAt!.toUtc().toIso8601String();
+      } else {
+        request.fields['preferred_start_at'] = _preferredStartAt!.toUtc().toIso8601String();
+      }
 
       // Lokasi
       request.fields['location'] = _lokasiController.text.trim();
@@ -633,6 +782,12 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
 
       request.fields['location_lat'] = _latitude!.toString();
       request.fields['location_lng'] = _longitude!.toString();
+      if (isErrand) {
+        request.fields['pickup_location'] = _pickupLocationController.text.trim();
+        request.fields['pickup_address_detail'] = _pickupDetailController.text.trim();
+        request.fields['pickup_latitude'] = _pickupLatitude!.toString();
+        request.fields['pickup_longitude'] = _pickupLongitude!.toString();
+      }
 
       request.fields['city_name'] = _selectedCityName!.trim();
 
@@ -903,22 +1058,12 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     const SizedBox(height: 24),
 
                     // SECTION 2
-                    _buildSectionLabel('Anggaran & Waktu', isMobile),
+                    _buildSectionLabel(
+                      _isErrand ? 'Anggaran & Tenggat Pengantaran' : 'Anggaran & Jadwal',
+                      isMobile,
+                    ),
                     const SizedBox(height: 14),
-
-                    if (isMobile) ...[
-                      _buildBudgetField(),
-                      const SizedBox(height: 16),
-                      _buildDurasiField(),
-                    ] else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildBudgetField()),
-                          const SizedBox(width: 16),
-                          Expanded(child: _buildDurasiField()),
-                        ],
-                      ),
+                    _buildBudgetField(),
 
                     const SizedBox(height: 18),
 
@@ -931,6 +1076,38 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                     const SizedBox(height: 14),
 
                     _buildLocationPicker(),
+
+                    if (_kategori == 'Beli/Ambil Barang') ...[
+                      const SizedBox(height: 18),
+                      _buildSectionLabel('Lokasi Pengambilan Barang', isMobile),
+                      const SizedBox(height: 10),
+                      _buildLocationPicker(
+                        onTap: () => _pickLocation(pickup: true),
+                        hasLocation: _pickupLatitude != null,
+                        label: _pickupLocationController.text.isEmpty
+                            ? 'Pilih lokasi toko atau tempat barang diambil'
+                            : _pickupLocationController.text,
+                      ),
+                      if (_pickupLatitude != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Koordinat: ${_pickupLatitude!.toStringAsFixed(6)}, ${_pickupLongitude!.toStringAsFixed(6)}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.grey600),
+                        ),
+                        _buildField(
+                          label: 'Detail Alamat Pengambilan',
+                          child: TextField(
+                            controller: _pickupDetailController,
+                            enabled: !_isSubmitting,
+                            maxLines: 2,
+                            decoration: _inputDecoration(
+                              hint: 'Nama toko, patokan, atau instruksi pengambilan',
+                              prefixIcon: const Icon(Icons.store_outlined),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
 
                     if (_latitude != null) ...[
                       const SizedBox(height: 14),
@@ -1111,73 +1288,79 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // =========================================================
 
   Widget _buildPreferredStartField() {
-    final hasSelectedTime = _preferredStartAt != null;
+    final dateValue = _preferredDate == null
+        ? 'Pilih tanggal'
+        : _formatPreferredDate(_preferredDate!);
+    final timeValue = _preferredTime == null
+        ? 'Pilih jam'
+        : '${_preferredTime!.hour.toString().padLeft(2, '0')}:${_preferredTime!.minute.toString().padLeft(2, '0')}';
 
-    return _buildField(
-      label: 'Waktu Mulai yang Diinginkan',
-      child: InkWell(
-        onTap: _isSubmitting ? null : _pickPreferredStartAt,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 15,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _isErrand ? 'Waktu Pengantaran' : 'Waktu Pelaksanaan',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.grey800,
           ),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: hasSelectedTime
-                  ? AppColors.primaryTeal
-                  : AppColors.grey300,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildScheduleInput(
+                label: 'Tanggal',
+                value: dateValue,
+                icon: Icons.calendar_month_outlined,
+                onTap: _pickPreferredDate,
+              ),
             ),
-            borderRadius: BorderRadius.circular(10),
-            color: hasSelectedTime
-                ? AppColors.mint.withValues(alpha: 0.08)
-                : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.calendar_month_outlined,
-                color: hasSelectedTime
-                    ? AppColors.primaryTeal
-                    : AppColors.grey500,
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildScheduleInput(
+                label: 'Jam',
+                value: timeValue,
+                icon: Icons.access_time,
+                onTap: _pickPreferredTime,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      hasSelectedTime
-                          ? _formatPreferredStartAt(_preferredStartAt!)
-                          : 'Pilih tanggal dan jam mulai',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: hasSelectedTime
-                            ? AppColors.primaryTeal
-                            : AppColors.grey500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Tentukan kapan Mitra diharapkan mulai bekerja.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.grey600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                hasSelectedTime
-                    ? Icons.edit_calendar_outlined
-                    : Icons.chevron_right,
-                color: AppColors.grey500,
-              ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _isErrand
+              ? 'Posting langsung dikirim ke mitra. Sistem mengisi waktu pengantaran 1 jam dari sekarang; kamu bisa mengubahnya. Mitra memperkirakan durasi perjalanan.'
+              : 'Posting langsung dikirim ke mitra. Sistem mengisi waktu pelaksanaan 1 jam dari sekarang; kamu bisa mengubahnya.',
+          style: const TextStyle(fontSize: 11, color: AppColors.grey600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScheduleInput({
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final selected = value != 'Pilih $label'.toLowerCase();
+    return _buildField(
+      label: label,
+      child: InkWell(
+        onTap: _isSubmitting ? null : onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: InputDecorator(
+          decoration: _inputDecoration(prefixIcon: Icon(icon, size: 19)),
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              color: selected ? AppColors.grey900 : AppColors.grey500,
+            ),
           ),
         ),
       ),
@@ -1451,11 +1634,11 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
   // LOCATION PICKER
   // =========================================================
 
-  Widget _buildLocationPicker() {
-    final hasLocation = _latitude != null;
+  Widget _buildLocationPicker({VoidCallback? onTap, bool? hasLocation, String? label}) {
+    final selected = hasLocation ?? (_latitude != null);
 
     return InkWell(
-      onTap: _isSubmitting ? null : _pickLocation,
+      onTap: _isSubmitting ? null : (onTap ?? () => _pickLocation()),
       borderRadius: BorderRadius.circular(10),
       child: Container(
         width: double.infinity,
@@ -1464,24 +1647,24 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
           vertical: 14,
         ),
         decoration: BoxDecoration(
-          color: hasLocation
+          color: selected
               ? AppColors.mint.withValues(alpha: 0.10)
               : Colors.transparent,
           border: Border.all(
-            color: hasLocation
+            color: selected
                 ? AppColors.primaryTeal
                 : AppColors.grey300,
-            width: hasLocation ? 1.5 : 1,
+            width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
             Icon(
-              hasLocation
+              selected
                   ? Icons.check_circle_outline
                   : Icons.location_on_outlined,
-              color: hasLocation
+              color: selected
                   ? AppColors.primaryTeal
                   : AppColors.grey500,
               size: 22,
@@ -1492,20 +1675,20 @@ class _PostingJasaDialogState extends State<PostingJasaDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    hasLocation
-                        ? 'Lokasi berhasil dipilih'
+                    selected
+                        ? (label ?? 'Lokasi berhasil dipilih')
                         : 'Pilih lokasi dari peta',
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
-                      color: hasLocation
+                      color: selected
                           ? AppColors.primaryTeal
                           : AppColors.grey900,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    hasLocation
+                    selected
                         ? 'OpenStreetMap'
                         : 'Tentukan titik lokasi pekerjaan',
                     style: const TextStyle(

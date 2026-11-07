@@ -915,7 +915,7 @@ class _PaymentChartCard extends StatelessWidget {
             )
           else
             Column(
-              children: data.take(6).map<Widget>((item) {
+              children: data.take(12).map<Widget>((item) {
                 if (item is! Map) return const SizedBox.shrink();
 
                 final total = _toDouble(item['total_pembayaran']);

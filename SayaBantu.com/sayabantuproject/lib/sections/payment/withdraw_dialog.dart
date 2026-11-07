@@ -16,12 +16,9 @@ class WithdrawDialog extends StatefulWidget {
 
 class _WithdrawDialogState extends State<WithdrawDialog> {
   final _amountController = TextEditingController();
-  final _accountNumberController = TextEditingController();
-  final _accountNameController = TextEditingController();
-  
-  // Dropdown Bank
-  String? _selectedBank;
-  final _customBankController = TextEditingController();
+  String _savedBankName = '';
+  String _savedAccountNumber = '';
+  String _savedAccountName = '';
 
   // Controller PIN
   final _pinController = TextEditingController();
@@ -29,15 +26,10 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
   bool _isLoading = false;
   bool _isFetchingProfile = true;
   bool _hasPin = false; 
+  bool _hasBankAccount = false;
 
   static const Color _primaryColor = AppColors.primaryTeal;
   static const Color _borderColor = Color(0xFFE5E7EB);
-
-  // Daftar Bank
-  final List<String> _bankList = [
-    'BCA', 'Mandiri', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 
-    'Permata', 'Danamon', 'BTN', 'Lainnya'
-  ];
 
   @override
   void initState() {
@@ -52,23 +44,21 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final user = data['user'] ?? data;
+        final account = widget.role.toLowerCase() == 'mitra'
+            ? (user['mitra_profile'] ?? <String, dynamic>{})
+            : user;
         
         if (mounted) {
           setState(() {
             // CEK STATUS PIN
             _hasPin = user['has_pin'] == true;
 
-            // AUTO-FILL BANK
-            final savedBank = user['bank_name']?.toString() ?? '';
-            if (_bankList.contains(savedBank)) {
-              _selectedBank = savedBank;
-            } else if (savedBank.isNotEmpty) {
-              _selectedBank = 'Lainnya';
-              _customBankController.text = savedBank;
-            }
-
-            _accountNumberController.text = user['bank_account_number']?.toString() ?? '';
-            _accountNameController.text = user['bank_account_name']?.toString() ?? user['name']?.toString() ?? '';
+            _savedBankName = account['bank_name']?.toString().trim() ?? '';
+            _savedAccountNumber = account['bank_account_number']?.toString().trim() ?? '';
+            _savedAccountName = account['bank_account_name']?.toString().trim() ?? '';
+            _hasBankAccount = _savedBankName.isNotEmpty &&
+                _savedAccountNumber.isNotEmpty &&
+                _savedAccountName.isNotEmpty;
           });
         }
       }
@@ -84,17 +74,13 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
     final rawAmount = _amountController.text.replaceAll('.', '');
     final amount = double.tryParse(rawAmount) ?? 0;
     
-    final finalBankName = _selectedBank == 'Lainnya' 
-        ? _customBankController.text.trim() 
-        : _selectedBank;
-
     // VALIDASI LOKAL
     if (amount <= 0 || amount > widget.maxAmount) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nominal tidak valid atau melebihi saldo!'), backgroundColor: Colors.red));
       return;
     }
-    if (finalBankName == null || finalBankName.isEmpty || _accountNumberController.text.isEmpty || _accountNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi data bank dan rekening!'), backgroundColor: Colors.orange));
+    if (!_hasBankAccount) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi data rekening melalui menu Pengaturan terlebih dahulu.'), backgroundColor: Colors.orange));
       return;
     }
     if (_pinController.text.length != 6) {
@@ -108,9 +94,6 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
 
       final response = await ApiService.post(endpoint, {
         'amount': amount, // <-- Kirim angka murni (tanpa titik)
-        'bank_name': finalBankName,
-        'account_number': _accountNumberController.text,
-        'account_name': _accountNameController.text,
         'pin': _pinController.text,
       });
 
@@ -220,6 +203,31 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
                     ],
                   ),
                 )
+              else if (!_hasBankAccount)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.account_balance_outlined, size: 44, color: Colors.orange),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Data rekening belum lengkap',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.grey900),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Tambahkan nama bank, nomor rekening, dan nama pemilik melalui menu Pengaturan sebelum menarik saldo.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: AppColors.grey600, height: 1.4),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tutup'),
+                      ),
+                    ],
+                  ),
+                )
               else
                 // JIKA SUDAH PUNYA PIN
                 Flexible(
@@ -257,49 +265,26 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
                         ),
                         const SizedBox(height: 12),
                         
-                        // DROPDOWN BANK
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedBank,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: 'Nama Bank',
-                            prefixIcon: const Icon(Icons.account_balance_outlined, size: 19),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _borderColor)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _borderColor)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _primaryColor, width: 1.5)),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _borderColor),
                           ),
-                          style: const TextStyle(fontSize: 13, color: AppColors.grey900),
-                          items: _bankList.map((bank) => DropdownMenuItem(value: bank, child: Text(bank))).toList(),
-                          onChanged: _isLoading ? null : (val) {
-                            setState(() => _selectedBank = val);
-                          },
-                        ),
-
-                        // JIKA PILIH LAINNYA
-                        if (_selectedBank == 'Lainnya') ...[
-                          const SizedBox(height: 12),
-                          _buildTextField(
-                            controller: _customBankController,
-                            label: 'Nama Bank Manual',
-                            icon: Icons.edit_outlined,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Rekening Tujuan', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
+                              const SizedBox(height: 8),
+                              Text(_savedBankName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey900)),
+                              Text('No. rekening: $_savedAccountNumber', style: const TextStyle(fontSize: 13, color: AppColors.grey800)),
+                              Text('Atas nama: $_savedAccountName', style: const TextStyle(fontSize: 13, color: AppColors.grey800)),
+                              const SizedBox(height: 8),
+                              const Text('Data rekening hanya dapat diubah melalui Pengaturan.', style: TextStyle(fontSize: 11, color: AppColors.grey600)),
+                            ],
                           ),
-                        ],
-                        
-                        const SizedBox(height: 12),
-                        
-                        _buildTextField(
-                          controller: _accountNumberController,
-                          label: 'Nomor Rekening',
-                          icon: Icons.numbers,
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        _buildTextField(
-                          controller: _accountNameController,
-                          label: 'Nama Pemilik Rekening',
-                          icon: Icons.person_outline,
                         ),
                         
                         // INPUT PIN
@@ -316,7 +301,7 @@ class _WithdrawDialogState extends State<WithdrawDialog> {
                 ),
 
               // ACTIONS (Hanya muncul jika sudah punya PIN)
-              if (!_isFetchingProfile && _hasPin) ...[
+              if (!_isFetchingProfile && _hasPin && _hasBankAccount) ...[
                 const Divider(height: 1, color: Color(0xFFE5E7EB)),
                 Padding(
                   padding: const EdgeInsets.all(16),

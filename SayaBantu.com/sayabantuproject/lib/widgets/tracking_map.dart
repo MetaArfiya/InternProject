@@ -36,6 +36,9 @@ class _TrackingMapState extends State<TrackingMap> {
     if (widget.tracking.destination != null) {
       points.add(widget.tracking.destination!);
     }
+    if (widget.tracking.pickup != null) {
+      points.add(widget.tracking.pickup!);
+    }
     if (widget.showMitra && widget.tracking.mitraPosition != null) {
       points.add(widget.tracking.mitraPosition!);
     }
@@ -60,6 +63,7 @@ class _TrackingMapState extends State<TrackingMap> {
   @override
   Widget build(BuildContext context) {
     final destination = widget.tracking.destination;
+    final pickup = widget.tracking.pickup;
     final mitra = widget.tracking.mitraPosition;
 
     final markers = <Marker>[];
@@ -75,6 +79,17 @@ class _TrackingMapState extends State<TrackingMap> {
             color: Color(0xFFDC2626),
             size: 40,
           ),
+        ),
+      );
+    }
+
+    if (pickup != null) {
+      markers.add(
+        Marker(
+          point: pickup,
+          width: 42,
+          height: 42,
+          child: const Icon(Icons.store, color: Color(0xFF0F766E), size: 34),
         ),
       );
     }
@@ -104,7 +119,7 @@ class _TrackingMapState extends State<TrackingMap> {
       );
     }
 
-    final initial = destination ?? mitra ?? const LatLng(-6.2, 106.8);
+    final initial = pickup ?? destination ?? mitra ?? const LatLng(-6.2, 106.8);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
@@ -128,7 +143,11 @@ class _TrackingMapState extends State<TrackingMap> {
             PolylineLayer(
               polylines: [
                 Polyline(
-                  points: [mitra, destination],
+                  points: [
+                    mitra,
+                    if (pickup != null && widget.tracking.status == 'menuju') pickup,
+                    if (pickup == null || widget.tracking.status != 'menuju') destination,
+                  ],
                   strokeWidth: 3,
                   color: const Color(0xFF0F766E),
                 ),

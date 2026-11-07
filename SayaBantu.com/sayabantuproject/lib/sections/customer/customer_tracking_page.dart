@@ -286,9 +286,19 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
             ],
 
             // Alamat & Waktu Mulai
+            if (t?.pickupAddress?.isNotEmpty == true) ...[
+              _infoRow(
+                icon: Icons.store_outlined,
+                label: 'Lokasi Ambil',
+                value: t!.pickupAddress!,
+              ),
+              const SizedBox(height: 12),
+            ],
             _infoRow(
               icon: Icons.location_on_outlined,
-              label: 'Alamat Tujuan',
+              label: t?.pickupAddress?.isNotEmpty == true
+                  ? 'Lokasi Serah / Tujuan'
+                  : 'Alamat Tujuan',
               value: t?.destinationAddress?.isNotEmpty == true
                   ? t!.destinationAddress!
                   : '-',
@@ -453,12 +463,14 @@ class _CustomerTrackingPageState extends State<CustomerTrackingPage> {
   Widget _statusBadge(String status) {
     final colors = {
       'menuju': const Color(0xFF0F766E),
+      'mengantar': const Color(0xFF0F766E),
       'sampai': const Color(0xFF2563EB),
       'dikerjakan': const Color(0xFFF59E0B),
       'selesai': const Color(0xFF16A34A),
     };
     final labels = {
       'menuju': 'Menuju Lokasi',
+      'mengantar': 'Mitra Mengantar ke Lokasi Serah',
       'sampai': 'Sudah Sampai',
       'dikerjakan': 'Dikerjakan',
       'selesai': 'Selesai',

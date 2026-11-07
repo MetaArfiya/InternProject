@@ -28,7 +28,10 @@ class TestimonialCard extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmall = screenWidth < 400;
 
-    final cardPadding = isSmall ? 14.0 : 18.0;
+    // Desktop cards share a row and are stretched to the tallest card. Keep
+    // the vertical rhythm compact so the author row still fits at narrower
+    // desktop/tablet widths.
+    final cardPadding = 14.0;
     final cardRadius = isSmall ? 14.0 : 18.0;
     final starSize = isSmall ? 14.0 : 17.0;
     final reviewFont = isSmall ? 12.0 : 13.0;
@@ -90,7 +93,7 @@ class TestimonialCard extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: isSmall ? 10 : 14),
+          SizedBox(height: isSmall ? 10 : 8),
 
           // CATEGORY BADGE
           Container(
@@ -127,12 +130,12 @@ class TestimonialCard extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: isSmall ? 10 : 14),
+          SizedBox(height: isSmall ? 10 : 8),
           Divider(
             height: 1,
             color: AppColors.primaryTeal.withValues(alpha: 0.10),
           ),
-          SizedBox(height: isSmall ? 8 : 12),
+          const SizedBox(height: 8),
 
           // USER
           Row(
