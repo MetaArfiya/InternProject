@@ -12,8 +12,7 @@
 Platform ini dirancang dengan sistem **Role-Based Access Control (RBAC)** yang membagi wewenang ke dalam 4 tingkatan:
 
 ### 👤 1. Pelanggan (Customer)
-* Pencarian layanan berbasis lokasi otomatis (Kota/Kabupaten).
-* Pemesanan jasa secara instan atau terjadwal.
+* Posting jasa secara instan atau terjadwal.
 * Pembayaran aman via Payment Gateway (Escrow System).
 * Sistem pelacakan status pengerjaan secara real-time.
 * Rating, ulasan, dan pengajuan komplain (dispute).
@@ -34,23 +33,6 @@ Platform ini dirancang dengan sistem **Role-Based Access Control (RBAC)** yang m
 * Pengaturan variabel bisnis (skema komisi, fee platform, batas minimum deposit/withdraw).
 * Manajemen master data (Wilayah, Kategori Jasa, Syarat & Ketentuan).
 * Analytics & Laporan Keuangan Nasional.
-
----
-
-## 📐 Arsitektur & Flowchart
-
-Detail penjelasan diagram alur (*Flowchart*) untuk tiap role dapat dilihat pada file terpisah:  
-📄 **[Lihat FLOWCHART.md](./FLOWCHART.md)**
-
----
-
-## 🛠️ Tech Stack (Contoh Setup)
-
-- **Frontend**: React.js / Next.js / Tailwind CSS
-- **Backend**: Node.js (Express/NestJS) / Laravel
-- **Database**: PostgreSQL / MySQL
-- **Realtime**: Socket.io / Firebase
-- **Payment Gateway**: Midtrans / Xendit
 
 ---
 
