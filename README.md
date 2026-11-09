@@ -74,7 +74,3 @@ Platform ini dirancang dengan sistem **Role-Based Access Control (RBAC)** yang m
    ```
 
 ---
-
-## 📝 Lisensi
-
-Project ini dilindungi di bawah lisensi [MIT License](LICENSE).
